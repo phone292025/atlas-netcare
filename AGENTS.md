@@ -23,9 +23,9 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
-| **Build stage** | Sprint 0, Stages 0–2 complete, 3a (app shell) done. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Laravel 12.68.0 + Breeze. Sprint 0 Stages 0–3a done: config, enums, role middleware, app shell. 121 tests passing. |
-| **Last updated** | 2026-08-27 |
+| **Build stage** | Sprint 0, Stages 0–2 complete, 3a (app shell) and 3b (component library) done. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Laravel 12.68.0 + Breeze. Sprint 0 Stages 0–3b done: config, enums, role middleware, app shell, seven shared components. 155 tests passing. |
+| **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 
 ## Stack
@@ -90,6 +90,7 @@ These are not stylistic preferences. Breaking them creates work for six other pe
 - **Never create a second database** for mock or test data. One schema, one database, tagged rows. See ADR-0003.
 - **Never add a repository interface** for an Eloquent model. Eloquent is already the data-access layer. See ADR-0001.
 - **Never hardcode arrays of fake data** in a controller, service, or Blade file. Seeders and factories only. See `docs/07-data-strategy.md`.
+- **Never write a `match` on a tone outside `app/Support/Tone.php`.** One file owns tone to Tailwind classes, one method per surface. A second mapping is how `urgent` becomes two different reds.
 - **Never use MySQL's `ENUM` column type.** Use a `string` column cast to a PHP backed enum. See ADR-0004.
 - **Never use `float` for a number a user reads.** Use `decimal`.
 - **Never add a global Eloquent scope** that hides demo rows. It will silently hide data during a demo.

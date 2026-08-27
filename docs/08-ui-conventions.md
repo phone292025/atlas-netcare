@@ -1,6 +1,6 @@
 # UI Conventions
 
-> **Last updated:** 2026-08-27 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-08-28 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 >
 > Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
 
@@ -94,22 +94,26 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | Component | Props | Used by |
 |---|---|---|
 | `<x-page-header>` | `title`, `subtitle`, actions slot | Every page |
-| `<x-card>` | `title`, footer slot | Everywhere |
-| `<x-empty-state>` | `title`, `message`, action slot | **Every list view** |
+| `<x-card>` | `title`, `subtitle`, `flush`, header + footer slots | Everywhere |
+| `<x-empty-state>` | `title`, `message`, `icon`, action slot | **Every list view** |
 | `<x-stat-tile>` | `label`, `value`, `delta`, `trend`, sparkline slot | All three dashboards |
 | `<x-status-badge>` | `:status` (any enum implementing `HasTone`) | Tickets, assets, shifts, alarms |
 | `<x-priority-pill>` | `:priority` | Ticket lists and detail |
 | `<x-risk-gauge>` | `:score`, `:band` | Asset detail, risk ranking |
-| `<x-data-table>` | `headers`, rows slot, sort/filter/pagination slots | Every index page |
+| `<x-data-table>` | `headers`, rows slot, `filters` / `empty` / `pagination` slots | Every index page |
 | `<x-form.input>` | `name`, `label`, `help`, `type` — error display built in | Every form |
 | `<x-form.select>` | `name`, `label`, `options`, `selected` | Every form |
 | `<x-form.textarea>` | `name`, `label`, `rows` | Every form |
 | `<x-chart>` | `type`, `:data`, `:options` — Chart.js wrapper | Dashboard, AP detail, traffic, reports |
 | `<x-checklist-item>` | `:item`, `:result` — OK / Issue / N/A with expanding remark | Inspection form |
 | `<x-timeline>` | `:events` — actor, action, timestamp | Ticket detail, audit log |
-| `<x-modal>` | `name`, `title` — Alpine-driven | Confirmations, quick forms |
-| `<x-alert>` | `type` — success / warning / error | Flash messages |
+| `<x-modal>` | `name`, `title`, `maxWidth`, footer slot — Alpine-driven | Confirmations, quick forms |
+| `<x-alert>` | `type` — success / warning / error — plus `title`, `dismissible` | Flash messages |
 | `<x-pagination>` | `:paginator` | Every index page |
+
+**Built so far.** Stage 3a: `<x-icon>`, `<x-badge>`, `<x-status-badge>`, `<x-priority-pill>`, `<x-sidebar>`.
+Stage 3b: `<x-page-header>`, `<x-card>`, `<x-empty-state>`, `<x-alert>`, `<x-modal>`, `<x-data-table>`, `<x-pagination>`.
+Stage 3c has the rest. A module owner who needs one that does not exist yet should say so rather than hand-rolling it on their own screen.
 
 ### The rule that makes data-source swapping invisible
 
@@ -143,6 +147,22 @@ The same mapping in badges, gauges, charts and tables. If `critical` is one red 
 **`neutral` means low visual weight, not "dead".** It covers both things that are out of play (`retired`, `maintenance`) and things deliberately kept quiet (`low` priority, `scheduled`). It was called `inactive` in Stage 2 and renamed, because a low-priority ticket is very much active.
 
 > Tone is not exclusive to status fields. `AlarmType` also implements `HasTone` so the notification list can show severity. Any enum implementing `App\Enums\Contracts\HasTone` may be passed to `<x-status-badge>`.
+
+#### Where the mapping lives
+
+`app/Support/Tone.php`, and nowhere else. It exposes one method per **surface**:
+
+| Method | Surface | Used by |
+|---|---|---|
+| `Tone::badge()` | small inline chip | `<x-badge>`, and through it `<x-status-badge>` and `<x-priority-pill>` |
+| `Tone::banner()` | full-width message | `<x-alert>` |
+| `Tone::accent()` | foreground tint only | icons and rules sitting on a tinted surface |
+
+Adding a surface means adding a method there. **Never write a `match` on a tone anywhere else** — that is how `urgent` ends up as two different reds, one of which nobody notices until a marker does.
+
+Every class string is written out in full, and `./app/**/*.php` is in the `content` array of `tailwind.config.js` so the file is scanned. Tailwind reads source for literal class names: a class assembled at runtime (`bg-{$colour}-50`) is generated as nothing, purged from the build, and renders unstyled **with no error at all**. This is the one place where a "no magic values in code" instinct produces a broken build.
+
+An unrecognised tone renders fuchsia on purpose. A bug should be visible, not silently grey.
 
 > **Semantic colour is not the brand colour.** Pick one brand accent for links, primary buttons and active nav; keep it distinct from all four status colours so a coloured button never reads as a status.
 
@@ -189,6 +209,7 @@ Every admin resource follows the same four screens. Build one, copy the shape.
 - **Loading states exist.** The dashboard poll shows a subtle indicator; form submits disable the button.
 - **Keyboard focus is visible everywhere.** Never `outline: none` without a replacement.
 - **Respect `prefers-reduced-motion`.**
+- **Flash messages go through the layout, not your page.** `layouts/app.blade.php` renders `<x-alert>` for four session keys — `status` (Breeze's), `success`, `warning` and `error`. Redirect with `->with('success', 'Ticket resolved.')` and the banner appears. Do not add your own banner to a page.
 
 ---
 

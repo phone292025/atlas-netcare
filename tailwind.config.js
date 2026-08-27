@@ -6,11 +6,13 @@ import forms from '@tailwindcss/forms';
  *
  * Semantic status colour is deliberately NOT defined here. The four tones map
  * to Tailwind's own emerald / amber / red / slate scales, and the mapping lives
- * in exactly one place: resources/views/components/badge.blade.php.
+ * in exactly one place: app/Support/Tone.php.
  *
- * It has to be a literal class string in a Blade file, because Tailwind scans
- * source for class names — a class assembled at runtime from config would be
- * purged from the build and silently render unstyled.
+ * It has to be a literal class string, because Tailwind scans source for class
+ * names — a class assembled at runtime from config would be purged from the
+ * build and silently render unstyled. That is also why `./app/**\/*.php` is in
+ * the content array below: without it, Tone.php is never scanned and every
+ * badge and alert in the system renders colourless.
  *
  * `brand` is the accent for links, primary buttons and active navigation. It is
  * deliberately none of the four status hues, so a coloured button never reads
@@ -23,6 +25,7 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './app/**/*.php',
     ],
 
     theme: {

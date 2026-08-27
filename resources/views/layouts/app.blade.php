@@ -115,11 +115,16 @@
         </header>
 
         <main class="px-4 sm:px-6 py-6">
-            @if (session('status'))
-                <div class="mb-4 rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
-                    {{ session('status') }}
-                </div>
-            @endif
+            {{-- Flash messages. Four session keys, one component, so seven module
+                 owners do not each hand-roll a banner and pick their own green.
+                 'status' is Breeze's key; the other three are ours.
+
+                     return redirect()->route('...')->with('success', 'Ticket resolved.');  --}}
+            @foreach (['status' => 'success', 'success' => 'success', 'warning' => 'warning', 'error' => 'error'] as $key => $type)
+                @if (session()->has($key))
+                    <x-alert :type="$type" class="mb-4" dismissible>{{ session($key) }}</x-alert>
+                @endif
+            @endforeach
 
             {{ $slot }}
         </main>

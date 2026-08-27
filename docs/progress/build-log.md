@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-08-27
+> **Last updated:** 2026-08-28
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -11,10 +11,10 @@
 | | |
 |---|---|
 | **Stage** | Sprint 0 — scaffolding |
-| **Last session** | 2026-08-27 |
+| **Last session** | 2026-08-28 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
-| **Database created** | ❌ Not yet — MySQL was not running |
-| **Next action** | Stage 3b: remaining Blade component library |
+| **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32, base Laravel migrations only |
+| **Next action** | Stage 3c: stat-tile, risk-gauge, chart, timeline, form.* , checklist-item |
 
 ## Sprint 0 stages
 
@@ -25,7 +25,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 | 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
 | 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
 | 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
-| 3 | Layouts, role-filtered sidebar, shared Blade components | 🔨 3a done 2026-08-27 (shell, tones, icons); 3b/3c pending |
+| 3 | Layouts, role-filtered sidebar, shared Blade components | 🔨 3a done 2026-08-27 (shell, tones, icons); 3b done 2026-08-28 (seven components); 3c pending |
 | 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
 
 Sprint 0 is complete when all five are ticked **and all seven members have run the app successfully**.
@@ -52,7 +52,7 @@ Checked 2026-08-27.
 
 ## Session log
 
-Newest first. One entry per development session: what was done, what was decided, what is next.
+Oldest first — append new entries at the end. One entry per development session: what was done, what was decided, what is next.
 
 ### 2026-08-27 — Stage 0
 
@@ -255,4 +255,53 @@ Found by opening the page and measuring `getBoundingClientRect()`. Fixed by scop
 
 **Next**
 - Stage 3b: page-header, card, empty-state, alert, modal, data-table, pagination
+- Stage 3c: stat-tile, risk-gauge, chart, timeline, form.input, form.select, form.textarea, checklist-item
+
+### 2026-08-28 — Stage 3b: page furniture
+
+The seven components every screen is assembled from. **121 → 155 tests.**
+
+**Built**
+- `<x-page-header>` — title, subtitle, actions slot. Renders an `<h2>`: the layout owns the only `<h1>`, and two of them leaves a screen reader unable to tell which is the page.
+- `<x-card>` — title, subtitle, header and footer slots, plus `flush` for content that manages its own edges. A table inside a normal card is inset twice.
+- `<x-empty-state>` — title, message, icon, action slot.
+- `<x-alert>` — success / warning / error, optional title, optional dismiss.
+- `<x-modal>` — replaces Breeze's, which nothing referenced. Its focus trap was kept because tab containment is fiddly and theirs is correct; the header, footer slot, close button and `role="dialog"` / `aria-modal` semantics are new.
+- `<x-data-table>` — headers array, rows as plain `<tr>`, plus `filters`, `empty` and `pagination` slots. Sorting is a **link**, not JavaScript, so the controller orders the query and the sort survives a refresh, a back button and a shared URL.
+- `<x-pagination>` — hand-rolled rather than `$paginator->links()`, whose stock Tailwind view uses its own greys and focus styles. Windowed to first / last / current ±1. Renders nothing on a single page.
+- Nine icons added for the above — `check-circle`, `warning`, `x-circle`, `inbox`, `chevron-left/right/up`, `sort`, `plus`. **17 → 26.**
+
+**The tone mapping moved, and had to**
+`badge.blade.php` held the tone → class `match` because a badge was the only surface that needed it. An alert banner cannot reuse a badge's classes — different size, border, tinted icon — so the vocabulary moved to **`app/Support/Tone.php`** with one method per surface (`badge()`, `banner()`, `accent()`). `<x-risk-gauge>` in 3c is the third surface, and `<x-chart>` will need the same colours as JavaScript values, which Tailwind cannot supply at all.
+
+That required `./app/**/*.php` in the Tailwind `content` array. **Verified in the built CSS** rather than assumed: all fourteen tone classes, including four that exist only in `Tone.php`, are present after a clean build. Delete that content line and every badge and alert in the system silently loses its colour.
+
+`ToneTest` pins the property rather than the palette — badge, banner and accent must agree on the colour family for a given tone — so a deliberate recolour stays a one-line edit but a drifting one fails.
+
+**Flash messages are the layout's job now**
+The shell was carrying a hand-written emerald `<div>` for `session('status')`. It now renders `<x-alert>` for four keys — `status`, `success`, `warning`, `error`. Seven owners each inventing a banner was a guaranteed inconsistency.
+
+**Two traps worth knowing**
+- `ComponentSlot::isEmpty()` compares against `''` **exactly**, and a `@foreach` over an empty collection still emits the whitespace between its tags. The slot is blank on screen but not an empty string, so `<x-data-table>` trims before deciding. Without that, an empty list renders a table header sitting above nothing. There is a test for it.
+- `<x-pagination>` needs the controller to call `->withQueryString()`. Without it, paging away from page 1 drops the filters and the sort the user just chose and the list appears to reset itself. The component deliberately does **not** do this itself — it would be mutating its caller's object as a side effect of rendering.
+
+**Vite does not purge classes for deleted files**
+Removing the scratch gallery and rebuilding produced a byte-identical CSS, still carrying `grid-cols-2` that no source used any more. `rm -rf node_modules/.vite public/build` first, and the real figure appears: **54.3 KB reported → 41.8 KB actual**. Stage 3a's "35 KB → 52 KB" was measuring the same accumulation. Quote clean-build numbers in the report.
+
+**Verified**
+- `php artisan test --display-deprecations` — **155 passed, 496 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- `npm run build` from a cleared cache — 41.83 KB CSS
+- `php artisan view:cache` — every template compiles
+
+**Verified in a real browser**, desktop and mobile, on a scratch gallery page rendering all seven side by side (deleted before committing):
+- Desktop — sidebar at `left: 0`, two-column card grid, sort indicators, pagination window `1 2 3 4 … 44`, no horizontal page overflow, no console output at all
+- **375px** — drawer closed at `-256`, hamburger present, cards single column, page-header actions stacked below the title, and the table scrolling **inside its own container** (324px visible, 632px content) with the page body not moving sideways
+- Modal — centred, backdrop dimming, header, footer; confirmed by rendering it with `:show="true"`
+
+> **The window resize tool does not work in this browser pane** — it reports success and the viewport stays 1707px. Mobile was checked by injecting a 375px same-origin `<iframe>` of the page, whose media queries respond to the iframe viewport. Use that method for every future responsive check.
+
+> Extending Stage 3a's note on this pane: Alpine's `x-transition` **never advances** here. Opening the modal by event left `show === true`, the body scroll-locked, the wrapper `display: block` — and the dialog frozen at the enter-*start* state (`display: none; opacity: 0; scale(.95)`). Synchronous watchers fire; anything driven by `requestAnimationFrame` does not. To check an animated component, render it in its open state instead of transitioning into it.
+
+**Next**
 - Stage 3c: stat-tile, risk-gauge, chart, timeline, form.input, form.select, form.textarea, checklist-item
