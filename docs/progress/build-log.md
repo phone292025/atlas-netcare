@@ -242,7 +242,10 @@ Found by opening the page and measuring `getBoundingClientRect()`. Fixed by scop
 
 **Also done to make the app runnable**
 - `atlas_netcare` database created; base Laravel migrations run against MariaDB
-- A local `demo@atlas.test` user exists for visual checks. It is **not** tagged `is_demo` and will be wiped by `migrate:fresh --seed` in Stage 4.
+- A local `demo@atlas.test` user exists for visual checks, password `password`. Throwaway, local only, **not** tagged `is_demo`, and wiped by `migrate:fresh --seed` in Stage 4. Recreate with:
+  ```
+  php artisan tinker --execute='App\Models\User::firstOrCreate(["email" => "demo@atlas.test"], ["name" => "Demo Engineer", "password" => bcrypt("password")]);'
+  ```
 - `.claude/launch.json` added (gitignored) so the dev server starts with one command
 
 **Verified**
