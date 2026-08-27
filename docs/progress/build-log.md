@@ -57,20 +57,23 @@ Newest first. One entry per development session: what was done, what was decided
 ### 2026-08-27 — Stage 0
 
 **Done**
-- `.gitignore` (Laravel-aware) and `.gitattributes` added
-- All 35 documentation files committed as the initial commit
+- Documentation committed (`4e86655`) — 35 files, `docs/` is now under version control
+- Sprint 0 stance on Q3 and Q6 recorded in the decision log (`7e0b1a7`) without flipping either question to `Decided`, since the team has not ratified them
+- `.gitignore` (Laravel-aware) and `.gitattributes` added (`c91325f`)
 - Branch renamed `master` → `main` to match the docs
-- This build log created
+- This build log created and wired into `docs/INDEX.md`
 
 **Found**
-- Composer is not installed on the development machine. Stage 1 cannot start without it.
-- GitHub CLI is not installed, so the remote repository has to be created through the website or after installing `gh`.
+- Composer is **not installed** on the development machine. Stage 1 cannot start without it.
+- GitHub CLI is not installed, so a remote repository must be created through the website or after installing `gh`.
+- XAMPP provides PHP 8.2.12 and MySQL, which is sufficient for Laravel 11.
 
 **Decided**
 - Sprint 0 split into five reviewable stages, recorded above.
+- Provisional-values rule for blocked questions: values already documented in `06-database.md` and `05-architecture.md` may be written into enums and config, marked provisional in a code comment, but **no behaviour that depends on an undecided question is built**. So `TicketStatus` cases and `atlas.sla_hours` can exist; the state machine, transition guards and SLA breach logic cannot. Same for Q6: `register` removed and `must_change_password` column created, but no first-login enforcement middleware.
 
 **Next**
 - Install Composer, then Stage 1.
 
 **Still open**
-- Q3 (ticket lifecycle) and Q6 (account creation) remain `Open`. Q6 affects Stage 1 — the working assumption is Breeze with the `register` route removed. Q3 affects nothing in Sprint 0, since `tickets` is not a foundation table.
+- Q3 (ticket lifecycle) and Q6 (account creation) remain `Open`. Neither blocks Sprint 0 under the provisional-values rule above, but both must be settled before M1 and M4 start.
