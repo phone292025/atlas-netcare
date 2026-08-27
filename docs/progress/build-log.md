@@ -14,7 +14,7 @@
 | **Last session** | 2026-08-27 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
 | **Database created** | ❌ Not yet — MySQL was not running |
-| **Next action** | Stage 2: config/atlas.php, enums, role middleware |
+| **Next action** | Stage 3: layouts, role-filtered sidebar, shared Blade components |
 
 ## Sprint 0 stages
 
@@ -24,7 +24,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 |---|---|---|
 | 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
 | 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
-| 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ⬜ Not started |
+| 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
 | 3 | Layouts, role-filtered sidebar, shared Blade components | ⬜ Not started |
 | 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
 
@@ -117,3 +117,33 @@ Newest first. One entry per development session: what was done, what was decided
 
 **Next**
 - Stage 2: `config/atlas.php`, the eleven enums, `EnsureUserHasRole` middleware.
+
+### 2026-08-27 — Stage 2
+
+**Done**
+- `config/atlas.php` written to the specification in `05-architecture.md`, plus the navigation map from `08-ui-conventions.md`. Every value carries a comment explaining what it does and which document or open question it comes from.
+- All **eleven enums** created in `app/Enums/`, matching the documented list exactly. Each has `label()`; every status enum also has `tone()` returning one of `healthy` / `attention` / `urgent` / `inactive`, which `<x-status-badge>` will map to Tailwind classes in one place (Stage 3).
+- Shared `HasValues` trait giving every enum `values()` and `options()` — used by seeders, factories and select inputs. One file rather than 33 lines duplicated across eleven.
+- `EnsureUserHasRole` middleware, registered as the `role` alias in `bootstrap/app.php`. Accepts a comma list: `role:engineer,admin`.
+- `app/Http/Middleware/` had to be created — Laravel 12 ships no middleware directory by default.
+
+**Provisional values marked in code**
+- `atlas.thresholds` carries a PROVISIONAL comment pointing at Q1.
+- `atlas.sla_hours` and `TicketStatus` carry PROVISIONAL comments pointing at Q3, and `TicketStatus` explicitly names what must *not* be built yet: the state machine, transition guards and SLA breach detection. Anyone opening that file sees the constraint.
+
+**Verified**
+- `php artisan test` — **93 passed, 341 assertions** (up from 22)
+  - `EnumContractTest` — every case has a label, every backing value is lower snake_case, every status tone is one of the four known tones, `values()` and `options()` stay in step
+  - `RiskBandTest` — banding pinned at every boundary, including that retuning `config` changes the outcome without touching code
+  - `AtlasConfigTest` — risk weights sum to 1.0, bands are ordered, every priority has an SLA, more urgent priorities have shorter SLAs, every role has navigation
+  - `EnsureUserHasRoleTest` — matching role passes, non-matching forbidden, multi-role lists work, no role forbidden, deactivated user forbidden, guests redirect to login rather than 403
+- `php artisan about` — application boots with the new middleware alias registered
+
+**Known limitation**
+- `users.role` and `users.is_active` do not exist as columns yet; they arrive with the M1 migration in Stage 4. The middleware tests set them as in-memory attributes, which exercises the logic fully but is not the same as testing against the real schema. Re-check these tests once the migration lands.
+
+**Deferred**
+- `routes/api.php` is not registered in `bootstrap/app.php`. Laravel 12 omits it by default, and `php artisan install:api` would pull in Sanctum, which this project does not need — the dashboard polling endpoint is session-authenticated from the same browser. Decide in M5 whether to register `api.php` manually or put the endpoint in `web.php`.
+
+**Next**
+- Stage 3: layouts, role-filtered sidebar, shared Blade components.
