@@ -101,6 +101,7 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-priority-pill>` | `:priority` | Ticket lists and detail |
 | `<x-risk-gauge>` | `:score`, `:band` | Asset detail, risk ranking |
 | `<x-data-table>` | `headers`, rows slot, `filters` / `empty` / `pagination` slots | Every index page |
+| `<x-form.field>` | *internal* — label, help and error scaffolding the three controls share | Not used directly |
 | `<x-form.input>` | `name`, `label`, `help`, `type` — error display built in | Every form |
 | `<x-form.select>` | `name`, `label`, `options`, `selected` | Every form |
 | `<x-form.textarea>` | `name`, `label`, `rows` | Every form |

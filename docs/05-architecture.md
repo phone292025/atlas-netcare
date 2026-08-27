@@ -84,6 +84,12 @@ app/
 ├── Policies/                             per-record authorisation
 ├── Providers/
 │   └── AppServiceProvider.php            binds TelemetrySource
+├── Support/                              ← NEW: shared, framework-free helpers
+│   ├── Tone.php                          THE tone → Tailwind mapping. One
+│   │                                     method per surface. Never write a
+│   │                                     match on a tone anywhere else.
+│   └── FormField.php                     id and error-key derivation shared by
+│                                         <x-form.field> and its three controls
 └── Services/                             ← NEW: all business logic
     ├── Telemetry/
     │   ├── TelemetrySource.php           interface

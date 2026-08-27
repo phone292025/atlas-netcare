@@ -24,20 +24,27 @@ This is **academic coursework assessed against a published rubric**. Documentati
 |---|---|
 | **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
 | **Build stage** | Sprint 0, Stages 0–3 complete. Only Stage 4 (migrations, seeders) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Laravel 12.68.0 + Breeze. Sprint 0 Stages 0–3 done: config, enums, role middleware, full component library. 205 tests passing. |
+| **Code written** | Sprint 0 Stages 0–3 done: config, enums, role middleware, app shell, 17 shared components. 208 tests passing. No feature modules yet — screens arrive with M1–M7. |
 | **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 
 ## Stack
 
-- **Laravel** (PHP) — backend, routing, auth, Eloquent ORM
-- **Blade** — server-side templating
-- **Tailwind CSS** — styling, via Vite
-- **Alpine.js** — small client-side interactions (dropdowns, modals, poll timer)
-- **Chart.js** — telemetry and analytics charts
-- **MySQL** — single database, 17 domain tables
+Pinned versions, verified in the installed lock file. Do not upgrade any of these without an ADR.
+
+| | Version | Notes |
+|---|---|---|
+| **Laravel** | 12.68.0 | Pinned. Laravel 13 needs PHP ^8.3; this project runs on PHP 8.2.12. See ADR-0008. |
+| **PHP** | 8.2.12 | XAMPP |
+| **Breeze** | 2.4.2 | Blade stack. Registration deliberately removed. |
+| **Blade** | — | Server-side templating. All 17 shared components live in `resources/views/components/`. |
+| **Tailwind CSS** | 3.4.19 | Configured in `tailwind.config.js`, **not** the CSS-based v4 config |
+| **Alpine.js** | 3.16 | Dropdowns, modals, the mobile drawer, the poll timer. No plugins installed. |
+| **Chart.js** | via `window.Chart` | Wired in `resources/js/app.js` with shared defaults |
+| **Database** | MariaDB 10.4.32 | XAMPP ships MariaDB, not MySQL. `DB_CONNECTION` is still `mysql`; switching to the `mariadb` driver is outstanding and matters for M7's JSON column. |
 
 No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those, it does not — raise it as an open question instead.
+
 
 ---
 
@@ -49,7 +56,8 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 | Write a migration or model | `docs/06-database.md` |
 | Add a controller, route, or service | `docs/05-architecture.md` |
 | Touch anything to do with mock/fake/seeded data | `docs/07-data-strategy.md` |
-| Build a screen or Blade component | `docs/08-ui-conventions.md` |
+| Build a screen or Blade component | `docs/08-ui-conventions.md`, then look at `/dev/gallery` — the component probably already exists |
+| Give something a status colour | `app/Support/Tone.php` — one method per surface, and nowhere else |
 | Work on one specific feature area | `docs/modules/` — find its owner and spec |
 | Understand *why* something is built this way | `docs/decisions/` |
 | Check whether a requirement exists | `docs/03-requirements.md` |
@@ -96,6 +104,44 @@ These are not stylistic preferences. Breaking them creates work for six other pe
 - **Never add a global Eloquent scope** that hides demo rows. It will silently hide data during a demo.
 - **Never install a package** without an ADR justifying it.
 - **Never write `register` routes or self-signup.** Accounts are created by administrators only.
+- **Never build a Tailwind class from a variable.** `"bg-{$colour}-50"`, or prefixing a class string with `str_replace`, produces a name Tailwind's scanner never sees. The class is purged from the build and the element renders **completely unstyled, with no error anywhere**. Write every class out in full. *This trap has been hit twice — once in the very file that documents it.*
+- **Never nest a Blade comment inside a Blade comment.** The inner closing token ends the outer one, and everything after it becomes live template code. A usage example in a component docblock then gets compiled and evaluated. Keep examples as plain indented text.
+- **Never run `composer update`.** It drifts dependencies off the committed lock file and can pull a Laravel version ADR-0008 rules out. Use `composer install`.
+- **Never let a component query the database.** Components receive data as props. That is the single property that lets `ATLAS_TELEMETRY_DRIVER` change without a view being touched.
+
+---
+
+## Before you commit
+
+Four commands, in this order. Each catches something the others do not.
+
+```bash
+php artisan view:clear     # compiled views are Tailwind "source" — see below
+npm run build
+vendor/bin/pint            # the project has no pint.json; the Laravel preset is the standard
+php artisan test --display-deprecations
+```
+
+**Why `view:clear` first.** `./storage/framework/views/*.php` is in the Tailwind `content` array, so **compiled Blade views count as source**. Build output therefore depends on view-cache state, and a deleted view keeps contributing classes until its compiled artifact is cleared. Measured on identical source: 42 KB cleared, 54 KB cached.
+
+**Why `--display-deprecations`.** Warnings print above the summary line. Filtering test output down to `PASS|FAIL|Tests:` hides them — that is how five PHPUnit deprecations went unnoticed for a whole stage.
+
+## Verifying your work
+
+**A green test suite does not mean the page works.** Feature tests assert on rendered HTML; they cannot evaluate CSS, layout or JavaScript. Two real defects have shipped past a fully green suite:
+
+- a sidebar that sat **off-screen on every desktop screen** — the class was in the markup, it just lost the cascade
+- an authorisation guard that **failed open** — the test assigned a PHP `false` where the database returns `int(0)`
+
+So for anything visual or stateful: open it, and **measure the DOM rather than trusting a screenshot**. When the browser pane is not displayed its compositor pauses, so screenshots can be stale frames and CSS transitions never advance. `getBoundingClientRect()` tells the truth; a picture may not.
+
+`/dev/gallery` renders every component and is registered only when `APP_ENV=local`. Add to it rather than building a throwaway review page — that scaffold has been built and deleted twice already.
+
+## Editing files from the shell
+
+`sed` and `perl` **silently mangle PHP namespaces and Blade syntax**. `\E`, `\U`, `\C` and `$var` are all interpreted, so `App\Enums\UserRole` comes out as `AppnumsSERROLE` and the command still reports success. This has happened six times in this project.
+
+Use an editor tool for anything containing `\` or `$`. If you must use the shell, write backslashes as `\x5c` — and always print the result back to check it applied.
 
 ---
 

@@ -404,3 +404,30 @@ Three reasons it is worth keeping rather than being a scaffold:
 
 **Note for the next session**
 Do not build a throwaway review page again. Add to `resources/views/dev/gallery.blade.php` instead.
+
+### 2026-08-28 — Stage 1–3 audit
+
+A review of everything built in Sprint 0 so far, checking the code against what the documents claim rather than assuming they agree.
+
+**Dead code removed — six components**
+`danger-button`, `dropdown`, `dropdown-link`, `nav-link`, `responsive-nav-link` and `secondary-button` had **zero** references. They belonged to Breeze's top-nav layout (deleted in 3a) and the self-delete-account form (deleted in Stage 1). Dead files are worse than clutter here: a module owner opening the components folder cannot tell which of two buttons to use. All 208 tests still pass without them.
+
+**Documentation drift closed**
+- `app/Support/` was **not in the architecture folder tree at all**, despite holding `Tone.php` — the single most rule-bound file in the codebase — and `FormField.php`. Added, with what each is for.
+- `<x-form.field>` was missing from the component table in `08-ui-conventions.md`. Added and marked internal.
+
+**AGENTS.md brought up to date.** It was accurate about Stage 0 and stale about everything since. Changes:
+- **Stack section replaced with pinned versions** verified against the lock file: Laravel 12.68.0, PHP 8.2.12, Breeze 2.4.2, Tailwind 3.4.19, Alpine 3.16, MariaDB 10.4.32. It previously said only "Laravel", "Tailwind CSS", "MySQL" — and MySQL was wrong.
+- **Four rules added to "Never do these"**, all learned the hard way in stages 1–3: never build a Tailwind class from a variable, never nest a Blade comment, never run `composer update`, never let a component query.
+- **New "Before you commit" section** — the four commands in order, with why `view:clear` comes first and why `--display-deprecations` matters.
+- **New "Verifying your work" section** — that a green suite has now let two real defects through, and to measure the DOM rather than trust a screenshot.
+- **New "Editing files from the shell" section** — `sed`/`perl` silently mangle PHP namespaces and report success. This has happened six times; the rule is now written down rather than relearned.
+
+**Outstanding, raised not resolved**
+- **Two form vocabularies coexist.** Four auth views and two profile partials use Breeze's `x-text-input` / `x-input-label` / `x-input-error`; everything built since uses `x-form.*`. Both work, but seven module owners about to build roughly twenty forms need one answer, and consistency is directly marked. Migrating the six views would let four more Breeze components go.
+- `DB_CONNECTION` is still `mysql` against a MariaDB server. Matters for M7's JSON column.
+
+**Verified**
+- `php artisan test` — 208 passed, 625 assertions
+- `vendor/bin/pint --test` — passes
+- Every Blade template compiles
