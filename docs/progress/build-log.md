@@ -285,8 +285,8 @@ The shell was carrying a hand-written emerald `<div>` for `session('status')`. I
 - `ComponentSlot::isEmpty()` compares against `''` **exactly**, and a `@foreach` over an empty collection still emits the whitespace between its tags. The slot is blank on screen but not an empty string, so `<x-data-table>` trims before deciding. Without that, an empty list renders a table header sitting above nothing. There is a test for it.
 - `<x-pagination>` needs the controller to call `->withQueryString()`. Without it, paging away from page 1 drops the filters and the sort the user just chose and the list appears to reset itself. The component deliberately does **not** do this itself — it would be mutating its caller's object as a side effect of rendering.
 
-**Vite does not purge classes for deleted files**
-Removing the scratch gallery and rebuilding produced a byte-identical CSS, still carrying `grid-cols-2` that no source used any more. `rm -rf node_modules/.vite public/build` first, and the real figure appears: **54.3 KB reported → 41.8 KB actual**. Stage 3a's "35 KB → 52 KB" was measuring the same accumulation. Quote clean-build numbers in the report.
+**Stale classes after deleting a view** *(cause corrected during the Stage 3b review — see below)*
+Removing the scratch gallery and rebuilding produced a byte-identical CSS, still carrying `grid-cols-2` that no source used any more. The observation was real; the diagnosis was not. See the review entry below.
 
 **Verified**
 - `php artisan test --display-deprecations` — **155 passed, 496 assertions**, zero deprecations
@@ -305,3 +305,46 @@ Removing the scratch gallery and rebuilding produced a byte-identical CSS, still
 
 **Next**
 - Stage 3c: stat-tile, risk-gauge, chart, timeline, form.input, form.select, form.textarea, checklist-item
+
+### 2026-08-28 — Stage 3b review
+
+Independent review of Stage 3b. Everything was re-verified against the code and in a browser rather than taken from the notes.
+
+**Verdict: the work is sound.** One documented cause was wrong, one measurement does not reproduce, and one decision is now backed by a number instead of an assertion. No defects found in the components themselves.
+
+**Verified independently**
+- `php artisan test --display-deprecations` — 155 passed, 496 assertions, zero deprecations
+- `vendor/bin/pint --test` — passes
+- Every Blade template compiles
+- Rendered all seven components on a scratch page at 1280px and at mobile width, then deleted the scaffold
+
+What the browser confirmed, beyond what the tests assert:
+- All four alert tones render with the right colour and icon; an unrecognised type renders **fuchsia**, so the visible-bug guard works end to end
+- `TicketStatus::Open` renders amber and `TicketPriority::Low` renders slate — the tone corrections agreed before Stage 3 held all the way to the screen
+- Sorting: `aria-sort="ascending"` appears on the sorted column only, its link toggles to `desc`, the other column stays `asc`, and `page` is dropped from both. Sorting from page 3 does not strand you on page 3 of a re-sorted list.
+- Pagination range maths correct — "Showing 21 to 30 of 47"
+- Desktop sidebar at `left: 0` with content offset 256; the Stage 3a cascade fix survived 3b
+- No horizontal page overflow at either width; the wide table scrolls inside its own container
+
+**Correction: the CSS size claim was misattributed**
+The Stage 3b notes blamed Vite for retaining classes from deleted files and prescribed `rm -rf node_modules/.vite public/build`. That is not the cause. Both directories were cleared in each measurement below and the difference persisted:
+
+| Same source files | CSS |
+|---|---|
+| `php artisan view:clear` first | **42,191 bytes** |
+| `php artisan view:cache` first | **54,035 bytes** |
+
+The real cause is `./storage/framework/views/*.php` in the Tailwind `content` array — a Laravel default that makes **compiled Blade views count as source**. So build output depends on view-cache state, and a deleted view keeps contributing classes until its compiled artifact is cleared. The fix is `php artisan view:clear` before `npm run build`. Decision log updated; the superseded entry is struck through rather than deleted.
+
+The recorded "41.8 KB actual" also does not reproduce as an unconditional figure — it is the *views-cleared* number. Quote it as such in the report, with the condition attached.
+
+**Confirmed: `./app/**/*.php` in the content array is the right call**
+This looked over-broad, so it was measured. Narrowing to `./app/Support/*.php` produced 53,612 bytes against 53,675 — a **63 byte** difference, with all `Tone` classes still present either way. The broad glob costs almost nothing, and its failure mode (63 bytes of unused CSS) is far cheaper than the narrow one's: a future file outside `app/Support` holding class strings would be silently purged, which is the exact bug the path exists to prevent. Keep it broad.
+
+**Notes on the components, none blocking**
+- `<x-alert>` wraps every alert in `x-data`/`x-show` even when not dismissible. Harmless, and it fails safe if Alpine never loads, but the Alpine binding is only needed for the dismissible case.
+- The unknown-type branch asks `<x-icon>` for `help`, which no case defines. It falls through to the "?" fallback, which is the intended outcome — worth knowing it is reached by fallback rather than by a defined case.
+
+**Still outstanding, unchanged by this review**
+- Q3 and Q6 remain `Open`
+- Design freeze is **15 Sep**. Context Diagram, DFD 0 and the consolidated ERD are worth 15 marks and none exist yet.
