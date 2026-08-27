@@ -110,9 +110,10 @@ Newest first. One entry per development session: what was done, what was decided
 **Not yet done**
 - MySQL was not running, so the `atlas_netcare` database has not been created and no migration has been run against MySQL. Tests use in-memory SQLite, so they pass regardless. **Start MySQL from the XAMPP Control Panel before Stage 4.**
 
-**Blocked on you**
-- **MySQL is not running.** Start it from the XAMPP Control Panel, then the `atlas_netcare` database can be created. Needed for Stage 4.
-- **GitHub CLI 2.98.0 is now installed but not authenticated.** Authentication has to be done by a person — run `gh auth login` once, then the remote repository can be created and pushed from here.
+**Resolved same day**
+- MySQL started. XAMPP ships **MariaDB 10.4.32**, not MySQL proper. Laravel 11+ has a dedicated `mariadb` driver that is more accurate than the generic `mysql` one currently in `.env` — worth switching before M7, because MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than a native type, and some JSON query methods behave differently. **Still to do.**
+- GitHub CLI authenticated as `phone292025`. Private repository created at **https://github.com/phone292025/atlas-netcare**, `main` pushed and tracking `origin/main`.
+- Collaborators **not** added yet, at the group's request. Decide whether the group leader should own the repository before inviting the other six.
 
 **Next**
 - Stage 2: `config/atlas.php`, the eleven enums, `EnsureUserHasRole` middleware.

@@ -22,7 +22,9 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**Phase 2 — System Design.** No application code yet; the design is being ratified. Design freeze: **15 September 2026**.
+**Phase 2 — System Design**, with Sprint 0 scaffolding running in parallel. Laravel 12 + Breeze are installed; feature modules have not started. Design freeze: **15 September 2026**.
+
+Current build state: [docs/progress/build-log.md](docs/progress/build-log.md).
 
 ## Documentation
 
@@ -44,7 +46,7 @@ Working on the code? Read **[AGENTS.md](AGENTS.md)** first — it is the short v
 ### Setup
 
 ```bash
-git clone <repo-url> CP-Project
+git clone https://github.com/phone292025/atlas-netcare.git CP-Project
 cd CP-Project
 
 composer install          # never `composer update` — see ADR-0008
