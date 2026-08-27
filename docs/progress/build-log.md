@@ -431,3 +431,27 @@ A review of everything built in Sprint 0 so far, checking the code against what 
 - `php artisan test` — 208 passed, 625 assertions
 - `vendor/bin/pint --test` — passes
 - Every Blade template compiles
+
+**Follow-up the same day — the two form vocabularies resolved**
+
+The audit above raised this and left it as a question. Looking at what Breeze's components actually do settled it on facts rather than taste:
+
+- `<x-input-error>` rendered a floating `<ul>` with **no programmatic link to its input** — no `id`, no `aria-describedby`, no `aria-invalid`. A screen reader user tabbing to a failed login field heard "Email, edit text" and nothing about the failure. That is a real gap against NFR-10, not a style preference.
+- `<x-text-input>` hardcoded `focus:border-indigo-500` instead of the `brand` token, so the login page would not follow a brand change.
+- It used `border-gray-300` where every other form uses `border-slate-300` — **a visibly different neutral on the login page from the rest of the system.**
+
+Three functional defects, so all seven views migrated to `<x-form.*>`.
+
+**What the migration forced, and it was worth it.** `update-password-form` validates into a **named error bag** (`$errors->updatePassword`) because two forms share the profile page. The form components only read the default bag, so a straight swap would have rendered **no password errors at all** — silently. All four now take a `bag` prop. That capability was missing and would have bitten the first module owner who put two forms on one screen.
+
+**Ten Breeze components removed in total** — six dead from the audit, plus `text-input`, `input-label`, `input-error` and `primary-button` once nothing referenced them. 23 components remain, all ours, all documented.
+
+`verify-email.blade.php` still said *"Thanks for signing up!"*. There is no signup in this system — an administrator creates every account (FR-105). Copy corrected.
+
+`AuthFormMigrationTest` pins what this had to preserve: login errors announced with the failing field, old input returned on rejection, the password form reading its own named bag, the profile form **not** picking up the password form's errors, and a scan asserting no Breeze form component ever comes back.
+
+**Verified**
+- `php artisan test --display-deprecations` — **213 passed, 750 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- Login, profile and both profile forms rendered in a browser
+- Clean build (views cleared) — CSS 55,869 bytes

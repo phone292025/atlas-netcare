@@ -112,9 +112,19 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-alert>` | `type` — success / warning / error — plus `title`, `dismissible` | Flash messages |
 | `<x-pagination>` | `:paginator` | Every index page |
 
-**Built so far.** Stage 3a: `<x-icon>`, `<x-badge>`, `<x-status-badge>`, `<x-priority-pill>`, `<x-sidebar>`.
-Stage 3b: `<x-page-header>`, `<x-card>`, `<x-empty-state>`, `<x-alert>`, `<x-modal>`, `<x-data-table>`, `<x-pagination>`.
-Stage 3c has the rest. A module owner who needs one that does not exist yet should say so rather than hand-rolling it on their own screen.
+**All of these are built.** See them rendered together at **`/dev/gallery`**, which is registered only when `APP_ENV=local`. Look there before building anything — the component you need probably already exists. If one genuinely does not, say so rather than hand-rolling it on your own screen.
+
+### Named error bags
+
+All three form controls take a **`bag`** prop. Two forms on one page validate into separate bags — the profile screen is the existing case — and a field reading the default bag renders **no error at all**, silently:
+
+```blade
+<x-form.input name="password" label="New password" type="password" bag="updatePassword" />
+```
+
+### One form vocabulary
+
+Breeze's `<x-text-input>`, `<x-input-label>`, `<x-input-error>` and `<x-primary-button>` have been **deleted**. Breeze's error component had no `id`, `aria-describedby` or `aria-invalid` linking it to its input, hardcoded indigo rather than the brand token, and used `border-gray-300` against our `border-slate-300`. Every form in the system now uses `<x-form.*>`, and a test asserts the Breeze components never come back.
 
 ### The rule that makes data-source swapping invisible
 

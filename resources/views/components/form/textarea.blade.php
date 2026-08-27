@@ -5,6 +5,7 @@
     'rows' => 4,
     'value' => null,
     'required' => false,
+    'bag' => 'default',
 ])
 
 {{--
@@ -25,7 +26,7 @@
 @php
     $fieldId = \App\Support\FormField::id($name);
     $errorKey = \App\Support\FormField::errorKey($name);
-    $hasError = $errors->has($errorKey);
+    $hasError = $errors->getBag($bag)->has($errorKey);
 
     $describedBy = implode(' ', array_filter([
         filled($help) ? $fieldId.'-help' : null,
@@ -33,7 +34,7 @@
     ]));
 @endphp
 
-<x-form.field :name="$name" :label="$label" :help="$help" :required="$required">
+<x-form.field :name="$name" :label="$label" :help="$help" :required="$required" :bag="$bag">
     <textarea
         id="{{ $fieldId }}"
         name="{{ $name }}"

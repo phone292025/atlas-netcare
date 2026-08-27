@@ -1,4 +1,4 @@
-@props(['name', 'label' => null, 'help' => null, 'required' => false])
+@props(['name', 'label' => null, 'help' => null, 'required' => false, 'bag' => 'default'])
 
 {{--
     The label / help / error scaffolding around a form control.
@@ -25,7 +25,7 @@
 
 @php
     $fieldId = \App\Support\FormField::id($name);
-    $hasError = $errors->has(\App\Support\FormField::errorKey($name));
+    $hasError = $errors->getBag($bag)->has(\App\Support\FormField::errorKey($name));
 @endphp
 
 <div {{ $attributes->merge(['class' => 'space-y-1.5']) }}>
@@ -52,7 +52,7 @@
              for the same value is noise; the first is the one to fix. --}}
         <p id="{{ $fieldId }}-error" class="flex items-start gap-1 text-xs text-red-600">
             <x-icon name="x-circle" class="w-3.5 h-3.5 flex-none mt-px" />
-            <span>{{ $errors->first(\App\Support\FormField::errorKey($name)) }}</span>
+            <span>{{ $errors->getBag($bag)->first(\App\Support\FormField::errorKey($name)) }}</span>
         </p>
     @endif
 </div>

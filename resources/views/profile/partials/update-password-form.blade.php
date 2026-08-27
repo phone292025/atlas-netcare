@@ -1,47 +1,42 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Update Password') }}
-        </h2>
+        <h2 class="text-lg font-medium text-slate-900">Update Password</h2>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
+        <p class="mt-1 text-sm text-slate-600">
+            Ensure your account is using a long, random password to stay secure.
         </p>
     </header>
 
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    {{-- Two forms share this page, so this one validates into its own named
+         error bag. Without the `bag` prop the fields would look for their
+         errors in the default bag and silently show nothing. --}}
+    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-4">
         @csrf
         @method('put')
 
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
-        </div>
+        <x-form.input name="current_password" label="Current password" type="password"
+                      bag="updatePassword" autocomplete="current-password" />
 
-        <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
-        </div>
+        <x-form.input name="password" label="New password" type="password"
+                      bag="updatePassword" autocomplete="new-password" />
 
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
-        </div>
+        <x-form.input name="password_confirmation" label="Confirm new password" type="password"
+                      bag="updatePassword" autocomplete="new-password" />
 
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+        <div class="flex items-center gap-4 pt-2">
+            <button type="submit"
+                    class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white
+                           hover:bg-brand-700 focus:outline-none focus-visible:ring-2
+                           focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+                Save
+            </button>
 
             @if (session('status') === 'password-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+                <p x-data="{ show: true }"
+                   x-show="show"
+                   x-transition
+                   x-init="setTimeout(() => show = false, 2000)"
+                   class="text-sm text-slate-600">Saved.</p>
             @endif
         </div>
     </form>

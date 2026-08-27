@@ -6,6 +6,7 @@
     'selected' => null,
     'placeholder' => null,
     'required' => false,
+    'bag' => 'default',
 ])
 
 {{--
@@ -33,7 +34,7 @@
 @php
     $fieldId = \App\Support\FormField::id($name);
     $errorKey = \App\Support\FormField::errorKey($name);
-    $hasError = $errors->has($errorKey);
+    $hasError = $errors->getBag($bag)->has($errorKey);
 
     $current = old($errorKey, $selected);
 
@@ -43,7 +44,7 @@
     ]));
 @endphp
 
-<x-form.field :name="$name" :label="$label" :help="$help" :required="$required">
+<x-form.field :name="$name" :label="$label" :help="$help" :required="$required" :bag="$bag">
     <select
         id="{{ $fieldId }}"
         name="{{ $name }}"
