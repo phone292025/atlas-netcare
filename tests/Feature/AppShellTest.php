@@ -164,9 +164,12 @@ class AppShellTest extends TestCase
             ->assertRedirect(route('home'));
     }
 
-    public function test_the_root_url_shows_the_welcome_page_to_a_guest(): void
+    public function test_the_root_url_sends_a_guest_to_sign_in(): void
     {
-        $this->get('/')->assertOk();
+        // There is no public landing page. Atlas NetCare is internal and
+        // privilege-based with no student-facing entry point (NFR-03), so a
+        // guest at "/" gets the sign-in form rather than a marketing page.
+        $this->get('/')->assertRedirect(route('login'));
     }
 
     public function test_dashboard_redirect_uses_the_role_home_route_when_it_exists(): void

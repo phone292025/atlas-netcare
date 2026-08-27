@@ -455,3 +455,26 @@ Three functional defects, so all seven views migrated to `<x-form.*>`.
 - `vendor/bin/pint --test` — passes
 - Login, profile and both profile forms rendered in a browser
 - Clean build (views cleared) — CSS 55,869 bytes
+
+**Same day — Laravel's branding removed from the front door**
+
+Opening `localhost:8000` as a **guest** showed Laravel's stock welcome page: the Laravel logo, "Deploy now", and links to Laravel's documentation and Laracasts. The audit above missed it because every check was made while signed in, and `/` only shows that page to guests.
+
+It was worse one level down. Breeze's `<x-application-logo>` is **the Laravel logo SVG**, and `layouts/guest.blade.php` rendered it above the sign-in form — so the very first screen anyone opens carried the framework's branding rather than the project's. The guest layout also used `bg-gray-100` and `text-gray-900` where the rest of the system uses slate, so the page visibly changed shade the moment a user signed in.
+
+For a submission assessed on "innovative and originality of the implemented system", the first impression being Laravel's marketing page is not a small thing.
+
+**Fixed**
+- `welcome.blade.php` **deleted**. There is no public landing page by design: Atlas NetCare is internal and privilege-based with no student-facing entry point (NFR-03, proposal Keynote). `/` now sends a signed-in user to their own home screen and everyone else to sign in.
+- `<x-application-logo>` replaced with **`<x-brand-mark>`**, used by *both* layouts, so the sign-in screen and the signed-in shell cannot show different branding. A letterform rather than an SVG illustration — no asset to lose, no file to license, scales cleanly.
+- `layouts/guest.blade.php` rebuilt on the slate palette with the brand accent, and it now says **"Accounts are created by a system administrator"** — so a new assistant does not hunt for a sign-up link that does not exist (FR-105).
+
+`ExampleTest` — Laravel's stock smoke test asserting `/` returns 200 — was rewritten rather than deleted. It now asserts the redirect *and* that the sign-in page shows "Atlas NetCare" and does **not** show "Laracasts" or "Deploy now". If the framework branding ever returns, that test fails.
+
+**Verified**
+- `php artisan test --display-deprecations` — **214 passed, 756 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- Signed out and opened `/` in a browser: redirects to a branded sign-in screen
+
+**Lesson**
+Every visual check so far had been made while signed in. **Check the signed-out state too** — it is the first thing a marker sees, and it was the one part of the application still wearing the framework's clothes.

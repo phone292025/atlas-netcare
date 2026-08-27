@@ -46,9 +46,8 @@
            :class="sidebarOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'">
 
         <div class="flex items-center gap-2 h-16 px-5 border-b border-slate-200">
-            <a href="{{ url('/') }}" class="flex items-center gap-2 font-semibold text-slate-900">
-                <span class="grid place-items-center w-8 h-8 rounded-lg bg-brand-600 text-white text-sm font-bold">A</span>
-                <span>Atlas NetCare</span>
+            <a href="{{ url('/') }}" class="rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                <x-brand-mark />
             </a>
             <button @click="sidebarOpen = false"
                     class="ml-auto p-1 rounded text-slate-400 hover:text-slate-600 lg:hidden"

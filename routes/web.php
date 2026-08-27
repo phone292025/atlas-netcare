@@ -17,8 +17,20 @@ use Illuminate\Support\Facades\Route;
 |   Route::middleware('role:admin')->prefix('admin')->name('admin.')
 */
 
+/*
+| There is no public landing page, by design. Atlas NetCare is an internal,
+| privilege-based system with no student-facing entry point (proposal Keynote,
+| NFR-03), so "/" sends a signed-in user to their own home screen and everyone
+| else to the sign-in form.
+|
+| This replaces Laravel's welcome page, which advertised the framework — a
+| marker opening the system saw "Deploy now" and a Laracasts link rather than
+| the project.
+*/
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('home') : view('welcome');
+    return auth()->check()
+        ? redirect()->route('home')
+        : redirect()->route('login');
 })->name('welcome');
 
 Route::middleware('auth')->group(function () {

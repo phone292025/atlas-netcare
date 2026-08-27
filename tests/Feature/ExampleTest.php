@@ -2,18 +2,31 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * The smallest possible check that the application boots and routes.
+ *
+ * Laravel's stock version asserted that "/" returns 200, which stopped being
+ * true when the welcome page was removed: Atlas NetCare has no public landing
+ * page, so "/" redirects a guest to sign in.
+ */
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_application_boots_and_routes(): void
     {
-        $response = $this->get('/');
+        $this->get('/')->assertRedirect(route('login'));
+    }
 
-        $response->assertStatus(200);
+    public function test_the_sign_in_page_renders_with_project_branding(): void
+    {
+        // Breeze's <x-application-logo> was the Laravel logo, so the first
+        // screen anyone saw carried the framework's branding rather than the
+        // project's. If that ever comes back, this fails.
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('Atlas NetCare')
+            ->assertDontSee('Laracasts')
+            ->assertDontSee('Deploy now');
     }
 }
