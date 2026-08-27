@@ -23,8 +23,8 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
-| **Build stage** | Sprint 0, Stages 0–2 complete, 3a (app shell) and 3b (component library) done. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Laravel 12.68.0 + Breeze. Sprint 0 Stages 0–3b done: config, enums, role middleware, app shell, seven shared components. 155 tests passing. |
+| **Build stage** | Sprint 0, Stages 0–3 complete. Only Stage 4 (migrations, seeders) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Laravel 12.68.0 + Breeze. Sprint 0 Stages 0–3 done: config, enums, role middleware, full component library. 205 tests passing. |
 | **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 

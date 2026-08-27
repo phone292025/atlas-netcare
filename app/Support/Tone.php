@@ -97,6 +97,63 @@ final class Tone
     }
 
     /**
+     * Solid fill — <x-risk-gauge>, progress bars, anything where the colour is
+     * the data rather than a tint behind text.
+     *
+     * The badge and banner surfaces are deliberately pale because text sits on
+     * them. Nothing sits on a gauge fill, so it can carry full saturation.
+     */
+    public static function solid(?string $tone): string
+    {
+        return match ($tone) {
+            self::HEALTHY => 'bg-emerald-500',
+            self::ATTENTION => 'bg-amber-500',
+            self::URGENT => 'bg-red-500',
+            self::NEUTRAL => 'bg-slate-400',
+            default => 'bg-fuchsia-500',
+        };
+    }
+
+    /**
+     * A selectable choice chip in its CHECKED state — <x-checklist-item>.
+     *
+     * Written out as literal `peer-checked:` strings rather than derived from
+     * badge() with a prefix. Deriving them would build the class name at
+     * runtime, Tailwind would never see it in a scanned file, and every
+     * selected choice on the inspection form would render colourless.
+     */
+    public static function choice(?string $tone): string
+    {
+        return match ($tone) {
+            self::HEALTHY => 'peer-checked:bg-emerald-50 peer-checked:text-emerald-700 peer-checked:ring-emerald-600',
+            self::ATTENTION => 'peer-checked:bg-amber-50 peer-checked:text-amber-800 peer-checked:ring-amber-600',
+            self::URGENT => 'peer-checked:bg-red-50 peer-checked:text-red-700 peer-checked:ring-red-600',
+            self::NEUTRAL => 'peer-checked:bg-slate-100 peer-checked:text-slate-700 peer-checked:ring-slate-400',
+            default => 'peer-checked:bg-fuchsia-100 peer-checked:text-fuchsia-900 peer-checked:ring-fuchsia-600',
+        };
+    }
+
+    /**
+     * The same four tones as a hex value, for Chart.js.
+     *
+     * A canvas cannot use a Tailwind class, so this is the one surface that
+     * has to leave the class vocabulary. The values match the Tailwind 500
+     * scale used by solid() — if one changes, change both, which is precisely
+     * why they live next to each other rather than in a chart config
+     * somewhere.
+     */
+    public static function chart(?string $tone): string
+    {
+        return match ($tone) {
+            self::HEALTHY => '#10b981',   // emerald-500
+            self::ATTENTION => '#f59e0b', // amber-500
+            self::URGENT => '#ef4444',    // red-500
+            self::NEUTRAL => '#94a3b8',   // slate-400
+            default => '#d946ef',         // fuchsia-500
+        };
+    }
+
+    /**
      * An unrecognised tone is a bug, not a styling choice.
      *
      * Rendering it fuchsia makes it impossible to miss on screen. Falling back

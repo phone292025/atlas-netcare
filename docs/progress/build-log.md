@@ -14,7 +14,7 @@
 | **Last session** | 2026-08-28 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
 | **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32, base Laravel migrations only |
-| **Next action** | Stage 3c: stat-tile, risk-gauge, chart, timeline, form.* , checklist-item |
+| **Next action** | Stage 4: foundation migrations, ReferenceSeeder, empty DemoDataSeeder |
 
 ## Sprint 0 stages
 
@@ -25,7 +25,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 | 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
 | 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
 | 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
-| 3 | Layouts, role-filtered sidebar, shared Blade components | 🔨 3a done 2026-08-27 (shell, tones, icons); 3b done 2026-08-28 (seven components); 3c pending |
+| 3 | Layouts, role-filtered sidebar, shared Blade components | ✅ Done 2026-08-28 — 3a shell/tones/icons, 3b page furniture, 3c dashboards/forms |
 | 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
 
 Sprint 0 is complete when all five are ticked **and all seven members have run the app successfully**.
@@ -348,3 +348,38 @@ This looked over-broad, so it was measured. Narrowing to `./app/Support/*.php` p
 **Still outstanding, unchanged by this review**
 - Q3 and Q6 remain `Open`
 - Design freeze is **15 Sep**. Context Diagram, DFD 0 and the consolidated ERD are worth 15 marks and none exist yet.
+
+### 2026-08-28 — Stage 3c: dashboards, forms and the inspection control
+
+Stage 3 is complete. The component library is built; every module screen from here is assembled from it rather than written from scratch.
+
+**Done — eight components**
+- `<x-stat-tile>` — a headline number with an optional delta. **Tone is the caller's decision, never inferred from the trend.** Rising uptime is good and rising latency is bad; a component that guessed would get half a dashboard wrong. `trend` picks the arrow, `tone` picks the colour, independently.
+- `<x-risk-gauge>` — a 0-100 score with its band, clamped so an out-of-range score cannot overflow its track. `role="meter"` rather than a decorative bar. Derives the band from the score when one is not supplied. **Renders the contributing factors sorted heaviest first** — a bare number is not analytics, and the factors are the whole reason ADR-0007 chose a weighted model over a trained one.
+- `<x-chart>` — Chart.js wrapper. Height is explicit because `maintainAspectRatio` is false, so a container without one collapses and the chart silently does not appear. Accepts a `chart-data` window event so the 20-second dashboard poll can animate between states instead of replacing the canvas.
+- `<x-timeline>` — who did what, when. Absolute timestamp in `datetime` and `title`, relative time as the text.
+- `<x-form.input>`, `<x-form.select>`, `<x-form.textarea>` — plus an internal `<x-form.field>` wrapper the three share, so the label position, error treatment and aria wiring cannot drift apart.
+- `<x-checklist-item>` — OK / Issue / N/A with a remark that appears only for Issue.
+
+**Three new Tone surfaces**
+`solid()` for gauge fills, `choice()` for `peer-checked:` states, `chart()` for hex — a canvas cannot use a Tailwind class, so that one surface leaves the class vocabulary while staying in the single source.
+
+**Two traps hit and recorded**
+- A `str_replace` was used to prefix `Tone::badge()` with `peer-checked:`. That assembles a class at runtime, Tailwind never sees it, and every selected choice on the inspection form would have rendered colourless. Replaced with `Tone::choice()`, written out in full. **This is the exact trap the docs warn about, walked into anyway.**
+- A Blade comment was nested inside a Blade comment in the risk-gauge docblock. The inner closing token ended the outer one, so the usage example below it became live template code and threw at render. Both are in the decision log.
+
+**Verified in a browser at both widths, not only in tests**
+- Desktop 1280px — stat tiles, gauge with factors ordered correctly, Chart.js line taking its amber from `Tone::chart()`, form controls with required marker and placeholder, timeline with tone-coloured dots
+- **Mobile 375px — checklist tap targets measured at 44px tall**, which is the accepted minimum touch target. No horizontal overflow. Tapping Issue reveals the remark; the other items stay collapsed.
+- That mobile measurement is the evidence for **NFR-05**, and it is reproducible during UAT.
+
+> A screenshot mid-review appeared to show two cards missing. They were present in the DOM at the correct position — the pane had served a stale frame, the same non-compositing artifact noted in Stage 3a. **Measure the DOM before believing a screenshot.**
+
+**Verified**
+- `php artisan test --display-deprecations` — **205 passed, 622 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- Clean build (`view:clear` first, per the corrected guidance) — CSS **47,333 bytes**
+
+**Next**
+- Stage 4: foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder`. That completes Sprint 0.
+- Still open and unchanged: Q3, Q6, and the 15 Sep design freeze with Context Diagram, DFD 0 and the consolidated ERD outstanding.
