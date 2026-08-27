@@ -110,5 +110,9 @@ Newest first. One entry per development session: what was done, what was decided
 **Not yet done**
 - MySQL was not running, so the `atlas_netcare` database has not been created and no migration has been run against MySQL. Tests use in-memory SQLite, so they pass regardless. **Start MySQL from the XAMPP Control Panel before Stage 4.**
 
+**Blocked on you**
+- **MySQL is not running.** Start it from the XAMPP Control Panel, then the `atlas_netcare` database can be created. Needed for Stage 4.
+- **GitHub CLI 2.98.0 is now installed but not authenticated.** Authentication has to be done by a person — run `gh auth login` once, then the remote repository can be created and pushed from here.
+
 **Next**
 - Stage 2: `config/atlas.php`, the eleven enums, `EnsureUserHasRole` middleware.
