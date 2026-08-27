@@ -36,7 +36,7 @@ enum ChecklistResult: string implements HasLabel, HasTone
         return match ($this) {
             self::Ok => 'healthy',
             self::Issue => 'urgent',
-            self::Na => 'inactive',
+            self::Na => 'neutral',
         };
     }
 

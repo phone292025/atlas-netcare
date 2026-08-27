@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-08-26 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-08-27 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
 
@@ -42,7 +42,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
 | FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](04-open-questions.md) |
-| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added |
+| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **partially built.** The role middleware blocks deactivated users from guarded areas, but the login check in `LoginRequest::authenticate()` is M1 work and does not exist yet. |
 
 ### FR-200 — Student IT Assistant
 

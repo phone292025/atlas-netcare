@@ -177,3 +177,36 @@ An independent review of Stage 2 found a real defect. All findings were re-verif
 
 **Lesson worth keeping**
 Three separate `sed`/`perl` edits in this project have silently failed on backslashes in PHP namespaces and been reported as done. When editing PHP `use` statements from the shell, use `\x5c` for the backslash or an editor tool — and check the result, do not assume it applied.
+
+### 2026-08-27 — Second review pass
+
+A follow-up review found seven issues. All were verified against the code before acting; all seven were real.
+
+**Corruption — fixed**
+- `docs/INDEX.md` had been broken since Stage 0 (`c91325f`). A botched `perl` edit left three stray table rows above the file and glued `# Documentation Index` onto the end of line 3, so the H1 rendered as body text. This is the first file every agent and teammate is told to open, and it sat broken through two stages without anyone noticing. Repaired.
+
+**Overclaiming — corrected**
+- The middleware comment and commit message read as though FR-106 was satisfied. It is not: `LoginRequest::authenticate()` has **no** `is_active` check, and **no route currently uses the `role` middleware**, so a deactivated user can still sign in and reach everything that exists today. The guard fix was real; the traceability claim was premature. Comment rewritten, and FR-106 marked **partially built** in `03-requirements.md`.
+- Two docblocks described code that does not exist, in the present tense: `atlas.php` said the driver is "Bound in AppServiceProvider" (that provider is empty) and `UserRole::homeRoute()` referred to `DashboardRedirect` (no such class). Both now say PLANNED and name the stage that will build them.
+
+**Coordination risk — closed**
+- Twelve route names were coined in `config/atlas.php` during Stage 2 and recorded nowhere else; `08-ui-conventions.md` documented only the assistant menu. With seven owners naming their own routes, and a sidebar that **silently skips unregistered routes**, a mismatch would make a menu item vanish with no error. All eighteen route names are now a documented table in `08-ui-conventions.md`, mapped to the owning module.
+
+**Design tokens — settled before Stage 3 bakes them in**
+- The tone `inactive` is renamed **`neutral`**. It has to cover both "out of play" (`retired`, `maintenance`) and "deliberately quiet" (`low` priority, `scheduled`); `inactive` was wrong for a low-priority ticket, which is very much active.
+- `TicketStatus::Open` and `Reopened` were `urgent`, making every brand-new ticket render the same red as an offline access point. All outstanding ticket states are now `attention`. **Status carries progress; priority carries urgency.**
+- `ShiftStatus::CheckedIn` was `attention` — a shift running normally is a good state. Now `healthy`.
+- `AlarmType` keeps `HasTone` (severity in the notification list is genuinely useful), but the docs no longer describe tone as status-only, and `<x-status-badge>` is specced as accepting any `HasTone` enum.
+- The design-token table in `08-ui-conventions.md` is now the authority and covers every case, so Stage 3 has nothing left to guess.
+
+**Minor**
+- `glob()` returns `false` on failure, which would have produced a `TypeError` instead of a clean assertion failure. Now `glob(...) ?: []`.
+- `AGENTS.md` still claimed 93 tests. It is 107.
+
+**Verified**
+- `php artisan test --display-deprecations` — 107 passed, 357 assertions, zero deprecations
+- `vendor/bin/pint --test` — passes
+- All internal documentation links resolve
+
+**Pattern worth noting**
+Both review passes found defects that the test suite reported as passing, and this one found a corrupted file that had survived two stages of "verified" work. Green tests and a clean Pint run say nothing about whether the docs are true or the claims are honest. Read the artefacts.

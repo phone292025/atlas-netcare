@@ -33,7 +33,7 @@ class EnumContractTest extends TestCase
 
         $cases = [];
 
-        foreach (glob($enumDirectory.'/*.php') as $file) {
+        foreach (glob($enumDirectory.'/*.php') ?: [] as $file) {
             $name = basename($file, '.php');
             $class = 'App\\Enums\\'.$name;
 
@@ -111,7 +111,7 @@ class EnumContractTest extends TestCase
     #[DataProvider('toneEnums')]
     public function test_every_status_case_maps_to_a_known_tone(string $enum): void
     {
-        $tones = ['healthy', 'attention', 'urgent', 'inactive'];
+        $tones = ['healthy', 'attention', 'urgent', 'neutral'];
 
         foreach ($enum::cases() as $case) {
             $this->assertContains(

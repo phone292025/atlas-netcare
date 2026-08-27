@@ -1,6 +1,4 @@
-| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
-| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
-| [progress/](progress/) | Weekly progress reports and the running decision log |# Documentation Index
+# Documentation Index
 
 > **Last updated:** 2026-08-27 · **Phase:** 2 — System Design
 

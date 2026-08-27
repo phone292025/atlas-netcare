@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-08-26 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-08-27 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -56,7 +56,7 @@ app/
 ├── Enums/                               ← NEW: backed PHP enums
 │   ├── Concerns/HasValues.php           values() and options() for every enum
 │   ├── Contracts/HasLabel.php           every enum must provide label()
-│   ├── Contracts/HasTone.php            status enums must provide tone()
+│   ├── Contracts/HasTone.php            enums that carry semantic colour
 │   ├── UserRole.php
 │   ├── TicketStatus.php
 │   ├── TicketPriority.php

@@ -41,7 +41,7 @@ enum DeviceStatus: string implements HasLabel, HasTone
             self::Operational => 'healthy',
             self::Degraded => 'attention',
             self::Faulty => 'urgent',
-            self::Retired => 'inactive',
+            self::Retired => 'neutral',
         };
     }
 

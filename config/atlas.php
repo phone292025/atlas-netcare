@@ -27,8 +27,9 @@ return [
     |   simulated  generated locally, no external dependency (default)
     |   snmp       polled from real access points, needs APU IT access
     |
-    | Bound in AppServiceProvider. Switching drivers requires no change outside
-    | app/Services/Telemetry.
+    | PLANNED (M5): AppServiceProvider will bind the interface to the driver named
+    | here. Nothing reads this key yet — app/Services/Telemetry does not exist.
+    | Switching drivers will require no change outside that folder.
     | See docs/decisions/ADR-0002-telemetry-source-driver.md
     |
     */

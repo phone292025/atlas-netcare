@@ -35,7 +35,10 @@ class EnsureUserHasRole
             abort(403, 'Authentication required.');
         }
 
-        // A deactivated account keeps its history but loses access (FR-106).
+        // Part of FR-106, not all of it. FR-106 says a deactivated user cannot
+        // SIGN IN; this only stops them reaching role-guarded areas. The login
+        // check belongs in LoginRequest::authenticate() and is M1's work, and
+        // until then no route actually uses this middleware anyway.
         //
         // Deliberately a loose truthiness check, not `=== false`. Without a
         // model cast Eloquent hands back int(0) for a boolean column, so a

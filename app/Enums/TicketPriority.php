@@ -31,7 +31,7 @@ enum TicketPriority: string implements HasLabel, HasTone
     public function tone(): string
     {
         return match ($this) {
-            self::Low => 'inactive',
+            self::Low => 'neutral',
             self::Medium => 'attention',
             self::Critical => 'urgent',
         };

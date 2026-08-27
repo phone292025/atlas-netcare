@@ -39,7 +39,7 @@ enum ApStatus: string implements HasLabel, HasTone
             self::Online => 'healthy',
             self::Degraded => 'attention',
             self::Offline => 'urgent',
-            self::Maintenance => 'inactive',
+            self::Maintenance => 'neutral',
         };
     }
 

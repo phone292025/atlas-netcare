@@ -1,6 +1,6 @@
 # UI Conventions
 
-> **Last updated:** 2026-08-26 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-08-27 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 >
 > Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
 
@@ -44,13 +44,42 @@ Two, and only two.
 
 **Build the sidebar once**, from a config array keyed by role. Seven people must never each invent their own navigation.
 
+### Route names are fixed vocabulary
+
+These names live in `config('atlas.navigation')` and the sidebar renders from them. **A module owner must use the name listed here**, not one of their own choosing.
+
+This matters more than it looks: the sidebar silently skips any entry whose route is not registered. If M2's owner names their route `admin.assets.index` instead of `admin.lab-pcs.index`, nothing errors — the menu item just quietly disappears, and somebody loses an afternoon finding out why.
+
+| Module | Route name | Screen |
+|---|---|---|
+| M6 | `assistant.shifts.today` | My shift today |
+| M3 | `assistant.inspections.index` | Inspection rounds |
+| M4 | `assistant.tickets.index` | My tickets |
+| M5 | `assistant.aps.index` | AP status (read-only) |
+| M5 | `engineer.dashboard` | AP health dashboard |
+| M5 | `engineer.aps.index` | Access point list |
+| M5 | `engineer.traffic.index` | Traffic & congestion logs |
+| M4 | `engineer.tickets.index` | Ticket queue |
+| M7 | `engineer.risk.index` | Maintenance priority ranking |
+| M1 | `admin.users.index` | User management |
+| M2 | `admin.locations.index` | Locations |
+| M2 | `admin.lab-pcs.index` | Lab PC inventory |
+| M2 | `admin.aps.index` | Access point inventory |
+| M3 | `admin.checklists.index` | Checklist templates |
+| M6 | `admin.shift-templates.index` | Shift templates |
+| M6 | `admin.roster.index` | Roster generator |
+| M1 | `admin.audit.index` | Audit log |
+| M7 | `admin.reports.index` | Reports |
+
+Conventions: role prefix, kebab-case for multi-word resources (`lab-pcs`, `shift-templates`), and standard Laravel resource verbs (`index`, `create`, `edit`, `show`) beneath each. Adding a sidebar entry means adding a row here **and** to `config/atlas.php` in the same commit.
+
 ```php
 // config/atlas.php → 'navigation'
 'assistant' => [
-    ['label' => 'My Shift',     'route' => 'assistant.shifts.today', 'icon' => 'calendar'],
-    ['label' => 'Inspections',  'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
-    ['label' => 'My Tickets',   'route' => 'assistant.tickets.index', 'icon' => 'ticket'],
-    ['label' => 'AP Status',    'route' => 'assistant.aps.index', 'icon' => 'wifi'],
+    ['label' => 'My Shift', 'route' => 'assistant.shifts.today', 'icon' => 'calendar'],
+    ['label' => 'Inspections', 'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
+    ['label' => 'My Tickets', 'route' => 'assistant.tickets.index', 'icon' => 'ticket'],
+    ['label' => 'AP Status', 'route' => 'assistant.aps.index', 'icon' => 'wifi'],
 ],
 ```
 
@@ -68,7 +97,7 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-card>` | `title`, footer slot | Everywhere |
 | `<x-empty-state>` | `title`, `message`, action slot | **Every list view** |
 | `<x-stat-tile>` | `label`, `value`, `delta`, `trend`, sparkline slot | All three dashboards |
-| `<x-status-badge>` | `:status` (any status enum) | Tickets, assets, shifts |
+| `<x-status-badge>` | `:status` (any enum implementing `HasTone`) | Tickets, assets, shifts, alarms |
 | `<x-priority-pill>` | `:priority` | Ticket lists and detail |
 | `<x-risk-gauge>` | `:score`, `:band` | Asset detail, risk ranking |
 | `<x-data-table>` | `headers`, rows slot, sort/filter/pagination slots | Every index page |
@@ -100,12 +129,20 @@ Define these in `tailwind.config.js` before the first screen is built, so nobody
 
 The same mapping in badges, gauges, charts and tables. If `critical` is one red in a table, it is that red in the chart too.
 
-| Meaning | Applies to | Tailwind |
-|---|---|---|
-| **Healthy** | `operational`, `online`, `resolved`, `closed`, `completed`, risk band `low` | `emerald` |
-| **Attention** | `degraded`, `medium` priority, `in_progress`, `acknowledged`, risk band `medium`/`high` | `amber` |
-| **Urgent** | `faulty`, `offline`, `critical`, `missed`, SLA breached, risk band `critical` | `red` |
-| **Inactive** | `retired`, `na`, `maintenance` | `slate` |
+| Tone | Meaning | Applies to | Tailwind |
+|---|---|---|---|
+| `healthy` | Working as intended | `operational`, `online`, `resolved`, `closed`, `completed`, `checked_in`, `ok`, `pass`, risk band `low` | `emerald` |
+| `attention` | In play, needs someone eventually | `degraded`, `medium` priority, and **every outstanding ticket state** — `open`, `acknowledged`, `in_progress`, `reopened` — plus `pass_with_issues`, risk band `medium`/`high` | `amber` |
+| `urgent` | Act now | `faulty`, `offline`, `critical` priority, `missed`, `fail`, `issue`, SLA breached, risk band `critical` | `red` |
+| `neutral` | Low salience — either not in play, or deliberately quiet | `retired`, `na`, `maintenance`, `scheduled`, `low` priority | `slate` |
+
+**Two rules that follow from this table.**
+
+**Status carries progress; priority carries urgency.** A ticket's *status* badge never uses `urgent`, however serious the ticket is — otherwise a brand-new low-priority ticket renders the same red as an offline access point. Urgency is the priority pill's job. This is why `TicketStatus::Open` is `attention`, not `urgent`.
+
+**`neutral` means low visual weight, not "dead".** It covers both things that are out of play (`retired`, `maintenance`) and things deliberately kept quiet (`low` priority, `scheduled`). It was called `inactive` in Stage 2 and renamed, because a low-priority ticket is very much active.
+
+> Tone is not exclusive to status fields. `AlarmType` also implements `HasTone` so the notification list can show severity. Any enum implementing `App\Enums\Contracts\HasTone` may be passed to `<x-status-badge>`.
 
 > **Semantic colour is not the brand colour.** Pick one brand accent for links, primary buttons and active nav; keep it distinct from all four status colours so a coloured button never reads as a status.
 

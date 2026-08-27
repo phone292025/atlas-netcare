@@ -36,10 +36,10 @@ enum ShiftStatus: string implements HasLabel, HasTone
     public function tone(): string
     {
         return match ($this) {
-            self::Completed => 'healthy',
-            self::CheckedIn => 'attention',
+            // A shift running normally is a good state, not one needing attention.
+            self::Completed, self::CheckedIn => 'healthy',
             self::Missed => 'urgent',
-            self::Scheduled => 'inactive',
+            self::Scheduled => 'neutral',
         };
     }
 }

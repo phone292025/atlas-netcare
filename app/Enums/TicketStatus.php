@@ -48,8 +48,11 @@ enum TicketStatus: string implements HasLabel, HasTone
     {
         return match ($this) {
             self::Resolved, self::Closed => 'healthy',
-            self::Acknowledged, self::InProgress => 'attention',
-            self::Open, self::Reopened => 'urgent',
+            // Every outstanding state is 'attention'. Urgency is the job of the
+            // PRIORITY pill, not the status badge — otherwise a brand-new
+            // low-priority ticket renders the same red as an offline access
+            // point. See docs/08-ui-conventions.md.
+            self::Open, self::Acknowledged, self::InProgress, self::Reopened => 'attention',
         };
     }
 

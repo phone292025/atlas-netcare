@@ -9,7 +9,7 @@ namespace App\Enums\Contracts;
  * classes in exactly one place, which is what keeps `critical` the same red in
  * a table, a chart and a gauge.
  *
- * Valid tones: healthy, attention, urgent, inactive.
+ * Valid tones: healthy, attention, urgent, neutral.
  *
  * @see docs/08-ui-conventions.md — Design tokens
  */
