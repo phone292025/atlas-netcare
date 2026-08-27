@@ -32,7 +32,45 @@ Working on the code? Read **[AGENTS.md](AGENTS.md)** first — it is the short v
 
 ## Getting started
 
-Setup instructions will be added here when Sprint 0 begins (week of 16 September). Until then there is nothing to install.
+### Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| XAMPP | PHP 8.2+ | Provides PHP and MySQL. Laravel 12 needs PHP `^8.2` — see [ADR-0008](docs/decisions/ADR-0008-laravel-12-pinned.md). |
+| Composer | 2.x | [getcomposer.org/download](https://getcomposer.org/download/) — the Windows installer finds XAMPP automatically |
+| Node.js | 20+ | For Vite |
+| Git | any recent | |
+
+### Setup
+
+```bash
+git clone <repo-url> CP-Project
+cd CP-Project
+
+composer install          # never `composer update` — see ADR-0008
+npm install
+
+cp .env.example .env
+php artisan key:generate
+```
+
+Start **Apache and MySQL** from the XAMPP Control Panel, then create the database:
+
+```bash
+mysql -u root -e "CREATE DATABASE atlas_netcare CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+Then migrate, seed and run:
+
+```bash
+php artisan migrate --seed
+npm run dev               # keep this running in its own terminal
+php artisan serve         # in a second terminal
+```
+
+The app is at `http://127.0.0.1:8000`.
+
+> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 
 ## Team
 

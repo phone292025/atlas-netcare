@@ -12,9 +12,9 @@
 |---|---|
 | **Stage** | Sprint 0 — scaffolding |
 | **Last session** | 2026-08-27 |
-| **Laravel installed** | ❌ Not yet — blocked on Composer |
-| **Database created** | ❌ Not yet |
-| **Next action** | Install Composer, then Stage 1 |
+| **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
+| **Database created** | ❌ Not yet — MySQL was not running |
+| **Next action** | Stage 2: config/atlas.php, enums, role middleware |
 
 ## Sprint 0 stages
 
@@ -23,7 +23,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 | # | Stage | Status |
 |---|---|---|
 | 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
-| 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ⏸ Blocked — Composer not installed |
+| 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
 | 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ⬜ Not started |
 | 3 | Layouts, role-filtered sidebar, shared Blade components | ⬜ Not started |
 | 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
@@ -77,3 +77,38 @@ Newest first. One entry per development session: what was done, what was decided
 
 **Still open**
 - Q3 (ticket lifecycle) and Q6 (account creation) remain `Open`. Neither blocks Sprint 0 under the provisional-values rule above, but both must be settled before M1 and M4 start.
+
+### 2026-08-27 — Stage 1 (in progress)
+
+**Environment resolved**
+- Composer 2.10.2 installed to `C:\xampp\php\composer.phar`, with a `composer.bat` wrapper and a POSIX shim so the `composer` command works in both cmd and Git Bash. Installer signature verified against `composer.github.io/installer.sig` before running.
+- PHP extension `zip` is **not enabled** in this XAMPP build. Composer falls back to a slower extraction path but works. Worth enabling in `php.ini` if installs feel slow.
+- MySQL is **not currently running**. Start it from the XAMPP Control Panel before any `migrate` command.
+
+**Version decision**
+- Laravel **13.10.1** is current but requires PHP `^8.3`; this machine has PHP 8.2.12. Pinned to **Laravel 12** (installed 12.68.0), which requires `^8.2`. Breeze 2.4.2 supports it. Recorded as [ADR-0008](../decisions/ADR-0008-laravel-12-pinned.md).
+- **Nobody runs `composer update`.** Use `composer install` so everyone matches the committed lock file.
+
+**Done**
+- Laravel 12.68.0 installed at the project root alongside `docs/`
+- Project `README.md`, `.gitignore` and `.gitattributes` preserved over Laravel's versions; `*.log` added to ours
+- Default SQLite database removed; `.env` and `.env.example` switched to MySQL, database name `atlas_netcare`
+- `ATLAS_TELEMETRY_DRIVER`, `ATLAS_DEMO_MODE` and `ATLAS_POLL_INTERVAL` added to `.env.example` with explanatory comments
+- Breeze 2.4.2 installed with the **Blade** stack, bringing Tailwind 3.4.19, Alpine 3 and Vite 7
+- **Registration removed** per Q6 working assumption: `register` routes, `RegisteredUserController`, `register.blade.php`, `RegistrationTest` and the welcome-page link are all gone. A comment at the top of `routes/auth.php` explains why, so nobody re-adds it.
+- **Self-delete-account removed**: Breeze lets a user delete their own account, which contradicts M1's "deactivate, never delete" and NFR-06 auditability. Route, controller method, form partial and test removed; `ProfileTest` rewritten to assert DELETE `/profile` returns 405.
+- Chart.js installed and wired into `resources/js/app.js` with shared defaults, so every graph in the system looks consistent
+- Unused `@tailwindcss/vite` v4 dependency removed — Breeze installed a Tailwind **3** setup with `tailwind.config.js`, which is what `08-ui-conventions.md` already specifies
+- `README.md` now carries verified setup steps for teammates; these become the Installation Guide in the report appendix
+
+**Verified**
+- `php artisan test` — 22 passed, 49 assertions
+- `php artisan view:cache` — every Blade template compiles
+- `php artisan route:list` — 17 routes, no `register`, no `profile.destroy`
+- `npm run build` — Vite build succeeds
+
+**Not yet done**
+- MySQL was not running, so the `atlas_netcare` database has not been created and no migration has been run against MySQL. Tests use in-memory SQLite, so they pass regardless. **Start MySQL from the XAMPP Control Panel before Stage 4.**
+
+**Next**
+- Stage 2: `config/atlas.php`, the eleven enums, `EnsureUserHasRole` middleware.

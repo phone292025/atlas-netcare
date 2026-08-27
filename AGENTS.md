@@ -24,7 +24,7 @@ This is **academic coursework assessed against a published rubric**. Documentati
 |---|---|
 | **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
 | **Build stage** | Sprint 0, Stage 0 complete. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | None yet. Laravel not installed; blocked on Composer. |
+| **Code written** | Laravel 12.68.0 + Breeze scaffolding. Sprint 0 Stages 0–1 done. |
 | **Last updated** | 2026-08-27 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 

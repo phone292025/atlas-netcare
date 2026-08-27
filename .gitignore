@@ -24,6 +24,8 @@ yarn-error.log
 /.nova
 /.zed
 
+*.log
+
 # OS
 .DS_Store
 Thumbs.db

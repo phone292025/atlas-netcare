@@ -15,6 +15,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0005](ADR-0005-ajax-polling-not-websockets.md) | AJAX polling for live updates, not WebSockets | Accepted |
 | [0006](ADR-0006-alpine-chartjs-not-livewire.md) | Alpine.js and Chart.js, not Livewire | Accepted |
 | [0007](ADR-0007-weighted-risk-not-ml.md) | Weighted-factor risk scoring, not machine learning | Accepted |
+| [0008](ADR-0008-laravel-12-pinned.md) | Pin to Laravel 12, not the latest release | Accepted |
 
 ## Rules
 
