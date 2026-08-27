@@ -1,11 +1,14 @@
-# Progress
+| [build-log.md](build-log.md) | **Where the build is.** Session handover for developers and agents. Read first. |
+| [build-log.md](build-log.md) | **Where the build is.** Session handover for developers and agents. Read first. |
+| `week-NN.md` | The weekly progress report submitted to the supervisor. Also becomes the report appendix. |# Progress
 
-> **Last updated:** 2026-08-26 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-08-27 · **Worth 10 marks in the report rubric**
 
-Two things live here:
+Three things live here:
 
 | File | Purpose |
 |---|---|
+| [build-log.md](build-log.md) | **Where the build is.** Session handover for developers and agents. Read first. |
 | `week-NN.md` | The weekly progress report submitted to the supervisor. Also becomes the report appendix. |
 | [decision-log.md](decision-log.md) | Small calls that affect other people but do not warrant an ADR |
 

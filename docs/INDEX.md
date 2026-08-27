@@ -1,6 +1,8 @@
-# Documentation Index
+| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
+| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
+| [progress/](progress/) | Weekly progress reports and the running decision log |# Documentation Index
 
-> **Last updated:** 2026-08-26 · **Phase:** 2 — System Design
+> **Last updated:** 2026-08-27 · **Phase:** 2 — System Design
 
 This folder is the project's source of truth. Conversation history and memory are not — they get lost. If something matters beyond today, it belongs in here.
 
@@ -52,6 +54,7 @@ Then read the module spec for whatever you are working on: [modules/](modules/).
 | [modules/](modules/) | One spec per module: owner, tables, routes, screens, definition of done |
 | [09-roadmap.md](09-roadmap.md) | Two-track schedule, sprint contents, milestones, scheduling risks |
 | [10-testing.md](10-testing.md) | Unit test approach, UAT protocol, test case format |
+| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
 | [progress/](progress/) | Weekly progress reports and the running decision log |
 
 ---
@@ -59,10 +62,11 @@ Then read the module spec for whatever you are working on: [modules/](modules/).
 ## How to use this as an AI agent
 
 1. **Load [`../AGENTS.md`](../AGENTS.md)** — the rules, conventions and prohibitions.
-2. **Check [04-open-questions.md](04-open-questions.md)** before assuming anything about behaviour that is not in the requirements.
-3. **Check [decisions/](decisions/)** before proposing an architectural change — it may already have been considered and rejected, with reasons.
-4. **Check the module spec** in [modules/](modules/) for whatever you are touching, and respect its owner.
-5. **Update the docs in the same change** as the code. A schema change without a `06-database.md` update is an incomplete change.
+2. **Read [progress/build-log.md](progress/build-log.md)** — what exists, what is half-done, what is next. Conversation history does not survive between sessions; this file does.
+3. **Check [04-open-questions.md](04-open-questions.md)** before assuming anything about behaviour that is not in the requirements.
+4. **Check [decisions/](decisions/)** before proposing an architectural change — it may already have been considered and rejected, with reasons.
+5. **Check the module spec** in [modules/](modules/) for whatever you are touching, and respect its owner.
+6. **Update the docs in the same change** as the code. A schema change without a `06-database.md` update is an incomplete change.
 
 ## How to use this as a team member
 
