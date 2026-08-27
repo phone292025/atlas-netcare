@@ -14,7 +14,7 @@
 | **Last session** | 2026-08-28 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
 | **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32, base Laravel migrations only |
-| **Next action** | Stage 4: foundation migrations, ReferenceSeeder, empty DemoDataSeeder |
+| **Next action** | Stage 4: foundation migrations, ReferenceSeeder, empty DemoDataSeeder. No user accounts exist — Stage 4 seeds the first admin. |
 
 ## Sprint 0 stages
 
@@ -242,7 +242,7 @@ Found by opening the page and measuring `getBoundingClientRect()`. Fixed by scop
 
 **Also done to make the app runnable**
 - `atlas_netcare` database created; base Laravel migrations run against MariaDB
-- A local `demo@atlas.test` user exists for visual checks, password `password`. Throwaway, local only, **not** tagged `is_demo`, and wiped by `migrate:fresh --seed` in Stage 4. Recreate with:
+- No user accounts exist. The throwaway visual-check accounts were deleted on 2026-08-28; Stage 4 seeds the real first administrator. To create a temporary one before then:
   ```
   php artisan tinker --execute='App\Models\User::firstOrCreate(["email" => "demo@atlas.test"], ["name" => "Demo Engineer", "password" => bcrypt("password")]);'
   ```
@@ -478,3 +478,24 @@ For a submission assessed on "innovative and originality of the implemented syst
 
 **Lesson**
 Every visual check so far had been made while signed in. **Check the signed-out state too** — it is the first thing a marker sees, and it was the one part of the application still wearing the framework's clothes.
+
+### Handover — next session starts Stage 4
+
+**Sprint 0 is one stage from complete.** Stages 0–3 are done: repository, Laravel 12 + Breeze, config and enums, role middleware, the app shell, and all 23 shared components. 214 tests, Pint clean, everything pushed.
+
+**The database currently has no user accounts at all.** The two throwaway accounts used for visual checks were deleted. That is deliberate — Stage 4's `ReferenceSeeder` creates the first real administrator, and a hand-made account would have muddied it. Until then nobody can sign in, which is the correct state rather than a fault.
+
+**Stage 4 scope**
+- Migrations for `users` (adding `role`, `is_active`, `tp_number`, `phone`, `must_change_password`, soft deletes), `locations`, `lab_pcs`, `access_points` — to the schema in `06-database.md`
+- Model casts, including `'role' => UserRole::class` and `'is_active' => 'boolean'` (see the Stage 2 review — the middleware guard is written to survive a missing cast, but the cast should exist)
+- `ReferenceSeeder` — first admin, campus locations, checklist templates, shift templates
+- `DemoDataSeeder` — created empty, wired to `config('atlas.demo_mode')`
+
+**Decide before writing the migrations**
+- **`DB_CONNECTION` is `mysql` against a MariaDB 10.4.32 server.** Laravel 11+ has a dedicated `mariadb` driver. This matters for M7: MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than a native type, and some JSON query methods behave differently. Cheaper to settle now than after `risk_assessments` exists.
+- **Q6 is still `Open`** and Stage 4 touches it directly: the `must_change_password` column exists in the schema, but whether a first-login enforcement middleware is built depends on the team's answer.
+
+**Also still open, unchanged**
+- Q3 (ticket lifecycle) — blocks M4 and M6
+- Seven module owners unassigned
+- **Design freeze 15 Sep**: Context Diagram, DFD 0 and the consolidated ERD are 15 marks and none exist yet
