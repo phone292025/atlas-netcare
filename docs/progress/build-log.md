@@ -383,3 +383,24 @@ Stage 3 is complete. The component library is built; every module screen from he
 **Next**
 - Stage 4: foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder`. That completes Sprint 0.
 - Still open and unchanged: Q3, Q6, and the 15 Sep design freeze with Context Diagram, DFD 0 and the consolidated ERD outstanding.
+
+### 2026-08-28 — Component gallery
+
+**Problem this fixes.** Seventeen shared components existed and **nothing used them**. The only visitable pages were login, profile and the password-reset flow, because screens arrive with their modules in Sprints 1-4. Worse, both the 3b and 3c reviews built a throwaway scaffold to look at the components and then deleted it before committing — so the same page was built twice and left behind nothing.
+
+**`/dev/gallery`**, registered **only when `APP_ENV=local`**, renders every component with its variants: page furniture, the four alert tones, every status enum as badges, dashboard tiles, the risk gauge with factors, a Chart.js line, the data table with sorting and pagination, all four form controls, the timeline, the inspection checklist, the modal, and all 27 icons including a deliberately invalid name.
+
+Three reasons it is worth keeping rather than being a scaffold:
+- Seven module owners can see what already exists instead of each building their own card
+- It is the source of screenshots for the **Screens Design chapter** of the report
+- A component that breaks shows up here before it shows up inside somebody's module
+
+**It cannot leak.** `DevGalleryTest` asserts the test environment is not `local`, that `dev.gallery` is not registered, and that the URL 404s. If the guard in `routes/web.php` is ever loosened, those fail.
+
+**Verified**
+- `php artisan test` — **208 passed, 625 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- Rendered in a browser; no horizontal overflow
+
+**Note for the next session**
+Do not build a throwaway review page again. Add to `resources/views/dev/gallery.blade.php` instead.
