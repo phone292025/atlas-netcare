@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * Operational state of a Wi-Fi access point.
@@ -12,7 +14,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/04-open-questions.md Q1 for the thresholds
  */
-enum ApStatus: string
+enum ApStatus: string implements HasLabel, HasTone
 {
     use HasValues;
 

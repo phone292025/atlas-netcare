@@ -84,11 +84,11 @@ return [
     */
 
     'thresholds' => [
-        'latency_ms'         => 120,
-        'packet_loss_pct'    => 5.0,
-        'client_saturation'  => 0.85,
+        'latency_ms' => 120,
+        'packet_loss_pct' => 5.0,
+        'client_saturation' => 0.85,
         'consecutive_breach' => 3,
-        'offline_after_min'  => 5,
+        'offline_after_min' => 5,
     ],
 
     /*
@@ -107,8 +107,8 @@ return [
     */
 
     'risk_weights' => [
-        'age'                => 0.25,
-        'fault_frequency'    => 0.30,
+        'age' => 0.25,
+        'fault_frequency' => 0.30,
         'critical_fail_rate' => 0.25,
         'days_since_inspect' => 0.20,
     ],
@@ -124,9 +124,9 @@ return [
     */
 
     'risk_bands' => [
-        'low'      => 0,
-        'medium'   => 40,
-        'high'     => 65,
+        'low' => 0,
+        'medium' => 40,
+        'high' => 65,
         'critical' => 85,
     ],
 
@@ -147,8 +147,8 @@ return [
 
     'sla_hours' => [
         'critical' => 4,
-        'medium'   => 24,
-        'low'      => 72,
+        'medium' => 24,
+        'low' => 72,
     ],
 
     /*
@@ -165,7 +165,7 @@ return [
     */
 
     'retention' => [
-        'raw_days'         => 90,
+        'raw_days' => 90,
         'aggregate_months' => 12,
     ],
 

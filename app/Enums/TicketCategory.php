@@ -3,12 +3,13 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
 
 /**
  * What kind of fault a ticket describes. Used for filtering the queue and for
  * the "ticket volume by category" report in M7.
  */
-enum TicketCategory: string
+enum TicketCategory: string implements HasLabel
 {
     use HasValues;
 

@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * Operational state of a lab PC.
@@ -10,7 +12,7 @@ use App\Enums\Concerns\HasValues;
  * Degraded means still working but below standard. Faulty means not working.
  * They are different states with different urgency — see docs/glossary.md.
  */
-enum DeviceStatus: string
+enum DeviceStatus: string implements HasLabel, HasTone
 {
     use HasValues;
 

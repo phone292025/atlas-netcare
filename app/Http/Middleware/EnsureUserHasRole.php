@@ -36,7 +36,12 @@ class EnsureUserHasRole
         }
 
         // A deactivated account keeps its history but loses access (FR-106).
-        if ($user->is_active === false) {
+        //
+        // Deliberately a loose truthiness check, not `=== false`. Without a
+        // model cast Eloquent hands back int(0) for a boolean column, so a
+        // strict comparison never matches and the guard fails OPEN. A missing
+        // attribute means active, so this is safe before the column exists.
+        if (! ($user->is_active ?? true)) {
             abort(403, 'This account has been deactivated.');
         }
 

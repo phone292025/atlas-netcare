@@ -79,7 +79,7 @@ class AtlasConfigTest extends TestCase
                 $this->assertArrayHasKey('icon', $entry);
                 $this->assertNotSame('', trim($entry['label']));
                 $this->assertStringStartsWith(
-                    $role->value === 'admin' ? 'admin.' : $role->value.'.',
+                    $role->value.'.',
                     $entry['route'],
                     "Navigation route '{$entry['route']}' is not namespaced under the {$role->value} role"
                 );

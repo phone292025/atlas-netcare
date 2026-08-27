@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * Lifecycle states of a workspace incident ticket.
@@ -19,7 +21,7 @@ use App\Enums\Concerns\HasValues;
  * Those belong in TicketService (M4). Do not add them here or anywhere else
  * before Q3 is settled — see docs/progress/decision-log.md.
  */
-enum TicketStatus: string
+enum TicketStatus: string implements HasLabel, HasTone
 {
     use HasValues;
 

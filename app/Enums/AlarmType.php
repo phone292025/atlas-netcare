@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * Why an alarm was raised.
@@ -16,7 +18,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/modules/M6-shifts-and-alarms.md
  */
-enum AlarmType: string
+enum AlarmType: string implements HasLabel, HasTone
 {
     use HasValues;
 

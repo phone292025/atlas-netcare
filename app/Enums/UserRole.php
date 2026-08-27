@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
 
 /**
  * The three roles Atlas NetCare serves.
@@ -12,7 +13,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/03-requirements.md FR-104, FR-402
  */
-enum UserRole: string
+enum UserRole: string implements HasLabel
 {
     use HasValues;
 

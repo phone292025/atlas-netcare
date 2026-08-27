@@ -54,6 +54,9 @@ app/
 │   ├── GenerateShifts.php
 │   └── PurgeDemoData.php
 ├── Enums/                               ← NEW: backed PHP enums
+│   ├── Concerns/HasValues.php           values() and options() for every enum
+│   ├── Contracts/HasLabel.php           every enum must provide label()
+│   ├── Contracts/HasTone.php            status enums must provide tone()
 │   ├── UserRole.php
 │   ├── TicketStatus.php
 │   ├── TicketPriority.php
@@ -162,32 +165,45 @@ Route::middleware(['auth'])->group(function () {
 
 `config/atlas.php` is the project's single tuning surface. Every business rule that is a number lives here.
 
+> Formatting note: write these as `'key' => value` with a single space. Laravel
+> Pint's default preset normalises aligned `=>` arrows, and this is the file the
+> whole team edits — do not fight the formatter on it. Run `vendor/bin/pint`
+> before committing.
+
 ```php
 return [
     'telemetry_driver' => env('ATLAS_TELEMETRY_DRIVER', 'simulated'), // simulated | snmp
-    'demo_mode'        => env('ATLAS_DEMO_MODE', true),
-    'poll_interval'    => env('ATLAS_POLL_INTERVAL', 20),             // seconds
+    'demo_mode' => (bool) env('ATLAS_DEMO_MODE', true),
+    'poll_interval' => (int) env('ATLAS_POLL_INTERVAL', 20),          // seconds
 
     'thresholds' => [
-        'latency_ms'         => 120,
-        'packet_loss_pct'    => 5.0,
-        'client_saturation'  => 0.85,
+        'latency_ms' => 120,
+        'packet_loss_pct' => 5.0,
+        'client_saturation' => 0.85,
         'consecutive_breach' => 3,
-        'offline_after_min'  => 5,
+        'offline_after_min' => 5,
     ],
 
     'risk_weights' => [
-        'age'                => 0.25,
-        'fault_frequency'    => 0.30,
+        'age' => 0.25,
+        'fault_frequency' => 0.30,
         'critical_fail_rate' => 0.25,
         'days_since_inspect' => 0.20,
     ],
 
     'risk_bands' => ['low' => 0, 'medium' => 40, 'high' => 65, 'critical' => 85],
 
-    'sla_hours'  => ['critical' => 4, 'medium' => 24, 'low' => 72],
+    'sla_hours' => ['critical' => 4, 'medium' => 24, 'low' => 72],
 
-    'retention'  => ['raw_days' => 90, 'aggregate_months' => 12],
+    'retention' => ['raw_days' => 90, 'aggregate_months' => 12],
+
+    // Sidebar entries per role, built once and filtered by the signed-in
+    // user's role. See docs/08-ui-conventions.md.
+    'navigation' => [
+        'assistant' => [/* label, route, icon */],
+        'engineer' => [/* … */],
+        'admin' => [/* … */],
+    ],
 ];
 ```
 

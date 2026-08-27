@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * The band a predictive risk score falls into.
@@ -12,7 +14,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/decisions/ADR-0007-weighted-risk-not-ml.md
  */
-enum RiskBand: string
+enum RiskBand: string implements HasLabel, HasTone
 {
     use HasValues;
 
@@ -44,8 +46,11 @@ enum RiskBand: string
      * Band a 0-100 score into a risk level.
      *
      * Bounds are inclusive lower bounds: with the default configuration a
-     * score of 40 is Medium, 64 is still Medium, and 65 is High. Scores are
-     * clamped, so anything outside 0-100 lands in the nearest band.
+     * score of 40 is Medium, 64 is still Medium, and 65 is High.
+     *
+     * The input is not clamped. It does not need to be — the comparison chain
+     * puts anything above the top bound in Critical and anything below zero in
+     * Low, so out-of-range scores land in the nearest band on their own.
      */
     public static function fromScore(float $score): self
     {

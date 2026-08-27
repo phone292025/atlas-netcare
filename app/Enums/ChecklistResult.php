@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * The answer to one checklist item during an inspection.
@@ -12,7 +14,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/03-requirements.md FR-205
  */
-enum ChecklistResult: string
+enum ChecklistResult: string implements HasLabel, HasTone
 {
     use HasValues;
 

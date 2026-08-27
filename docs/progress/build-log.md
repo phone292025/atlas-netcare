@@ -147,3 +147,33 @@ Newest first. One entry per development session: what was done, what was decided
 
 **Next**
 - Stage 3: layouts, role-filtered sidebar, shared Blade components.
+
+### 2026-08-27 — Stage 2 review and fixes
+
+An independent review of Stage 2 found a real defect. All findings were re-verified against the code before acting on any of them.
+
+**Correctness — fixed**
+- `EnsureUserHasRole` failed **open** on deactivated accounts. `$user->is_active === false` compares strictly against a value Eloquent returns as `int(0)` when no cast is configured, so the guard never fired and FR-106 was silently broken. Proven with a throwaway probe (`type: int, value: 0`), then fixed to `! ($user->is_active ?? true)`.
+- The original test suite could not have caught it: it assigned a PHP `false` in memory, which makes strict comparison work. Two regression tests were added that load the user **back out of the database**, and were validated by reintroducing the bug — they fail against it and pass against the fix.
+
+**Tooling — fixed**
+- `@dataProvider` doc-comments replaced with `#[DataProvider]` attributes. Deprecated in PHPUnit 11.5.56, removed in 12. The warnings were printing on every run; earlier sessions missed them because the test output was grepped down to `PASS|FAIL|Tests:`. **Do not filter test output that aggressively.**
+- `vendor/bin/pint` now passes clean. `config/atlas.php` had aligned `=>` arrows that the Laravel preset un-aligns, and `ProfileController` still carried an unused `Auth` import from Stage 1 — a `sed` that was reported as done had silently failed.
+- A `pint.json` with `align_single_space_minimal` was tried and **rejected**: it forces alignment across the entire codebase including Laravel's own files. Recorded in the decision log.
+
+**Design — improved**
+- `HasLabel` and `HasTone` interfaces added under `app/Enums/Contracts/`. `HasValues::options()` calls `label()`; without an interface a twelfth enum that forgot it would fail at render time rather than statically.
+- `EnumContractTest` now **discovers** enums by globbing `app/Enums/*.php` instead of a hand-maintained list, so a new enum is covered the moment it exists. It also asserts the discovered set still matches the eleven the docs promise. Note: data providers run before Laravel boots, so `app_path()` is unavailable — the glob walks up from `__DIR__`.
+
+**Documentation — corrected**
+- `05-architecture.md`: enum `Concerns/` and `Contracts/` added to the folder tree; `navigation` added to the config snippet; casts and Pint formatting noted.
+- `ADR-0004`: corrected the claim that the schema has eleven enumerated fields. Eleven get an enum class; three more (`locations.type`, `checklist_items.category`, `telemetry_readings.source`) are enumerated in the schema but deliberately do not, because nothing branches on them. Added a warning that `telemetry_readings.source` (`simulated`/`live`) is **not** the same vocabulary as `atlas.telemetry_driver` (`simulated`/`snmp`).
+- Minor: `RiskBand::fromScore()` docblock claimed scores were clamped; nothing clamps, the comparison chain handles out-of-range on its own. Redundant ternary removed from `AtlasConfigTest`.
+
+**Verified**
+- `php artisan test --display-deprecations` — **107 passed, 357 assertions, zero deprecations**
+- `vendor/bin/pint --test` — passes
+- Regression tests confirmed to fail against the reintroduced bug
+
+**Lesson worth keeping**
+Three separate `sed`/`perl` edits in this project have silently failed on backslashes in PHP namespaces and been reported as done. When editing PHP `use` statements from the shell, use `\x5c` for the backslash or an editor tool — and check the result, do not assume it applied.

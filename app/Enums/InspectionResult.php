@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * The overall outcome of one inspection.
@@ -16,7 +18,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/modules/M3-checklists-and-inspections.md
  */
-enum InspectionResult: string
+enum InspectionResult: string implements HasLabel, HasTone
 {
     use HasValues;
 

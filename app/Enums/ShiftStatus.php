@@ -3,6 +3,8 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * Where a rostered shift has got to.
@@ -12,7 +14,7 @@ use App\Enums\Concerns\HasValues;
  *
  * @see docs/modules/M6-shifts-and-alarms.md
  */
-enum ShiftStatus: string
+enum ShiftStatus: string implements HasLabel, HasTone
 {
     use HasValues;
 

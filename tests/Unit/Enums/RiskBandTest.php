@@ -3,6 +3,7 @@
 namespace Tests\Unit\Enums;
 
 use App\Enums\RiskBand;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -30,7 +31,7 @@ class RiskBandTest extends TestCase
         ];
     }
 
-    /** @dataProvider scores */
+    #[DataProvider('scores')]
     public function test_scores_band_at_the_configured_boundaries(float $score, RiskBand $expected): void
     {
         $this->assertSame($expected, RiskBand::fromScore($score));

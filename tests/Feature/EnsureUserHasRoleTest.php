@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
@@ -49,6 +51,31 @@ class EnsureUserHasRoleTest extends TestCase
         $user->is_active = $active;
 
         return $user;
+    }
+
+    /**
+     * A user whose `role` and `is_active` come back out of the database rather
+     * than being set in memory, so the values have the types Eloquent actually
+     * hands back when no cast is configured.
+     *
+     * The columns are added here because the M1 migration has not landed yet.
+     * Once it has, drop the Schema::table call and use the real columns.
+     */
+    private function userFromDatabase(string $role, bool $isActive): User
+    {
+        if (! Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->string('role')->nullable();
+                $table->boolean('is_active')->default(true);
+            });
+        }
+
+        // forceFill, not the factory: neither column is in User::$fillable, so
+        // passing them to create() would silently drop them.
+        $user = User::factory()->create();
+        $user->forceFill(['role' => $role, 'is_active' => $isActive])->save();
+
+        return User::findOrFail($user->getKey());
     }
 
     public function test_the_role_alias_is_registered_under_the_expected_name(): void
@@ -115,6 +142,36 @@ class EnsureUserHasRoleTest extends TestCase
         // The role middleware must not be what stops unauthenticated requests;
         // `auth` handles them first and redirects rather than returning 403.
         $this->get('/test-engineer-only')->assertRedirect('/login');
+    }
+
+    public function test_a_deactivated_user_is_forbidden_when_is_active_is_a_real_database_column(): void
+    {
+        // Regression test for a guard that failed OPEN.
+        //
+        // The in-memory tests above keep passing even when the guard is broken,
+        // because assigning PHP false makes a strict `=== false` comparison
+        // work. The bug only appears when the value comes back out of the
+        // database, where an uncast boolean column reads as int(0).
+        //
+        // So this test must use a user LOADED FROM the database, not the
+        // instance that was just written.
+        $user = $this->userFromDatabase(role: 'engineer', isActive: false);
+
+        // Prove the premise rather than assume it.
+        $this->assertSame(0, $user->is_active, 'Expected an uncast boolean column to read back as int(0).');
+
+        $this->actingAs($user)
+            ->get('/test-engineer-only')
+            ->assertForbidden();
+    }
+
+    public function test_an_active_user_with_a_real_database_column_is_allowed(): void
+    {
+        $user = $this->userFromDatabase(role: 'engineer', isActive: true);
+
+        $this->assertSame(1, $user->is_active);
+
+        $this->actingAs($user)->get('/test-engineer-only')->assertOk();
     }
 
     public function test_a_plain_string_role_is_accepted_as_well_as_the_enum(): void

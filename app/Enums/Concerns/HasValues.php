@@ -2,6 +2,8 @@
 
 namespace App\Enums\Concerns;
 
+use App\Enums\Contracts\HasLabel;
+
 /**
  * Shared helpers for every backed enum in the system.
  *
@@ -26,13 +28,16 @@ trait HasValues
     /**
      * Backing value => human label, for building select inputs.
      *
+     * Requires label(), which the HasLabel interface enforces. Every
+     * enum using this trait must implement that interface.
+     *
      * @return array<string, string>
      */
     public static function options(): array
     {
         return array_combine(
             self::values(),
-            array_map(static fn (self $case): string => $case->label(), self::cases()),
+            array_map(static fn (HasLabel $case): string => $case->label(), self::cases()),
         );
     }
 }

@@ -3,13 +3,15 @@
 namespace App\Enums;
 
 use App\Enums\Concerns\HasValues;
+use App\Enums\Contracts\HasLabel;
+use App\Enums\Contracts\HasTone;
 
 /**
  * How urgent a ticket is. Drives the service level target.
  *
  * @see docs/04-open-questions.md Q3 — the SLA hours are provisional
  */
-enum TicketPriority: string
+enum TicketPriority: string implements HasLabel, HasTone
 {
     use HasValues;
 

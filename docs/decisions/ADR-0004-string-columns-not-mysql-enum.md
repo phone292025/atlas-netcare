@@ -6,7 +6,17 @@
 
 ## Context
 
-The schema has eleven enumerated fields: user role, ticket status, ticket priority, ticket category, device status, AP status, checklist result, inspection result, shift status, alarm type, and risk band.
+Eleven schema fields get a PHP enum: user role, ticket status, ticket priority, ticket category, device status, AP status, checklist result, inspection result, shift status, alarm type, and risk band.
+
+Three further fields are enumerated in the schema but deliberately get **no** enum class, because nothing in the application branches on their value — they are labels for filtering and reporting only:
+
+| Field | Values | Why no enum |
+|---|---|---|
+| `locations.type` | `library` · `it_lab` · `cafeteria` · `other` | Only ever displayed and filtered |
+| `checklist_items.category` | `boot` · `display` · `peripheral` · `network` | Grouping label on the inspection form |
+| `telemetry_readings.source` | `simulated` · `live` | Written by the collector, read by reports |
+
+> ⚠️ `telemetry_readings.source` (`simulated`/`live`) is **not** the same vocabulary as `config('atlas.telemetry_driver')` (`simulated`/`snmp`). The driver is *how* a reading was collected; the source is *what kind of data it is*. The `snmp` driver writes rows with `source = 'live'`. Never assign one to the other directly.
 
 MySQL offers a native `ENUM` column type. Laravel offers PHP 8.1 backed enums with model casting.
 
