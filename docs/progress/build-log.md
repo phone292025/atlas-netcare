@@ -14,7 +14,7 @@
 | **Last session** | 2026-08-27 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
 | **Database created** | ❌ Not yet — MySQL was not running |
-| **Next action** | Stage 3: layouts, role-filtered sidebar, shared Blade components |
+| **Next action** | Stage 3b: remaining Blade component library |
 
 ## Sprint 0 stages
 
@@ -25,7 +25,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 | 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
 | 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
 | 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
-| 3 | Layouts, role-filtered sidebar, shared Blade components | ⬜ Not started |
+| 3 | Layouts, role-filtered sidebar, shared Blade components | 🔨 3a done 2026-08-27 (shell, tones, icons); 3b/3c pending |
 | 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
 
 Sprint 0 is complete when all five are ticked **and all seven members have run the app successfully**.
@@ -210,3 +210,46 @@ A follow-up review found seven issues. All were verified against the code before
 
 **Pattern worth noting**
 Both review passes found defects that the test suite reported as passing, and this one found a corrupted file that had survived two stages of "verified" work. Green tests and a clean Pint run say nothing about whether the docs are true or the claims are honest. Read the artefacts.
+
+### 2026-08-27 — Stage 3a: application shell
+
+Stage 3 is the largest of the five, so it is split. **3a is the foundation every component and screen sits on**; 3b and 3c build the remaining component library on top of it.
+
+**Done**
+- `tailwind.config.js`: a `brand` (indigo) palette for links, primary buttons and active navigation — deliberately none of the four status hues, so a coloured button never reads as a status. Semantic colour is **not** defined here; see below.
+- `<x-icon>`: 17 hand-built inline SVGs on one 24x24 / 1.5-stroke grid. No icon package — eleven navigation icons do not justify a dependency. An unknown name renders a visible "?" so a typo shows on screen instead of leaving a gap.
+- `<x-badge>` — **the single place that turns a tone into classes.** `<x-status-badge>` and `<x-priority-pill>` both delegate to it, so `urgent` is one red everywhere. An unrecognised tone renders fuchsia on purpose: a bug should be visible, not silently grey.
+- `<x-sidebar>`: role-filtered navigation built from `config('atlas.navigation')`. Active state matches the whole `admin.users.*` section so create/edit screens keep their parent highlighted.
+- `layouts/app.blade.php`: full shell — fixed sidebar on desktop, Alpine slide-over drawer on mobile, sticky topbar, user block with role, sign-out. Replaces Breeze's top-nav.
+- `DashboardRedirect` + `/home`: sends each role to its own landing screen, falling back to the profile page for routes that do not exist yet. This is the class `05-architecture.md` referenced and `UserRole::homeRoute()` was written for — both now real rather than PLANNED.
+- Breeze leftovers removed: `layouts/navigation.blade.php` and `dashboard.blade.php`. The `dashboard` route is replaced by `home`; nine references updated.
+- `profile/edit.blade.php` rebuilt — it had unbalanced `<div>`s and an empty card left behind when the delete-account form was removed in Stage 1.
+
+**The tone → class mapping deliberately does not live in config**
+Tailwind scans source files for class names. A class assembled at runtime from config (`bg-{$tone}-50`) is never seen by the scanner, gets purged from the build, and renders unstyled. So the mapping is literal strings inside `badge.blade.php`. This is the one place a "no magic values in code" instinct would produce a broken build.
+
+**A layout bug that 120 passing tests did not catch**
+The sidebar was written with `-translate-x-full` and `lg:translate-x-0`. Both utilities set `--tw-translate-x`, the negative one won the cascade, and **the sidebar sat off-screen on every desktop screen** — a 256px empty gutter with no navigation. Every test passed, because they assert on rendered HTML and cannot evaluate CSS.
+
+Found by opening the page and measuring `getBoundingClientRect()`. Fixed by scoping the transform to `max-lg:`, so desktop has no transform at all. A regression test now pins the class names, since HTML assertions are the only lever available.
+
+**Verified in a real browser**, not just in tests:
+- Desktop 1280px — sidebar at `left: 0`, content offset 256px, no horizontal overflow
+- Mobile 375px — drawer closed at `-256`, opens to `0`, closes back to `-256`, no horizontal overflow
+- No console errors; Alpine 3.16.3 initialising correctly
+
+> Measuring animated properties in this browser pane is unreliable — when the pane is not displayed the compositor pauses and CSS transitions never advance, so `getComputedStyle().transform` returns stale values. Remove the transition class before measuring position.
+
+**Also done to make the app runnable**
+- `atlas_netcare` database created; base Laravel migrations run against MariaDB
+- A local `demo@atlas.test` user exists for visual checks. It is **not** tagged `is_demo` and will be wiped by `migrate:fresh --seed` in Stage 4.
+- `.claude/launch.json` added (gitignored) so the dev server starts with one command
+
+**Verified**
+- `php artisan test --display-deprecations` — **121 passed, 386 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- `npm run build` — succeeds; CSS 35 KB → 52 KB as the new component classes are picked up
+
+**Next**
+- Stage 3b: page-header, card, empty-state, alert, modal, data-table, pagination
+- Stage 3c: stat-tile, risk-gauge, chart, timeline, form.input, form.select, form.textarea, checklist-item

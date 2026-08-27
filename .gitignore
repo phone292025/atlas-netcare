@@ -33,3 +33,4 @@ desktop.ini
 
 # Local tooling
 /.phpactor.json
+/.claude/launch.json
