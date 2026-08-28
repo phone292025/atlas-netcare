@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-08-28
+> **Last updated:** 2026-08-29
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -12,10 +12,10 @@
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Modules done** | **5 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry |
-| **Tests** | 433 passing, 1211 assertions, zero deprecations |
+| **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
+| **Tests** | 481 passing (1 skipped), 1290 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M6 — shifts, roster and alarms.** Nothing blocks it. It adds the `shift_id` foreign key that M3's `inspections` table is already carrying as a bare column. |
+| **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores now exists: inspection history (M3), ticket history (M4), telemetry (M5). |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---
@@ -33,8 +33,8 @@ A module is not done until every box in the definition of done in [../modules/RE
 | [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ✅ **Done 2026-08-28** |
 | [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-28** |
 | [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ✅ **Done 2026-08-28** |
-| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | 🔨 **Next** |
-| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ⬜ Not started |
+| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-29** |
+| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | 🔨 **Next — the last one** |
 
 **Seven owners are still unassigned.** Nothing technical is blocked by that, but the individual report deliverables are — each person documents the module they personally built, and nobody currently owns one.
 
@@ -120,6 +120,28 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 **An access point going offline raises exactly one ticket**, guarded twice: only on the transition, and only if nothing is already open for that asset.
 
 **Run `atlas:backfill-telemetry` before demonstrating.** A 24-hour chart that is empty until you have left the collector running for a day is not demonstrable.
+
+### What M6 delivered
+
+| | |
+|---|---|
+| Tables | `shift_templates`, `shifts`, `alarms` — plus the foreign key M3 left waiting on `inspections.shift_id` |
+| Screens | Assistant: **my shift today** (their home screen) · my roster · notifications. Admin: shift templates · roster with week view and generator |
+| Commands | `atlas:generate-shifts` (weekly) · `atlas:dispatch-alarms` (every minute) |
+| Routes | `assistant.shifts.*`, `admin.shift-templates.*`, `admin.roster.*`, `notifications.*` |
+| Requirements | FR-201, FR-202, FR-210, FR-211, FR-212, FR-407, FR-408, FR-506 |
+| Tests | 47 across two classes |
+| Settled | **Q4** and **Q5**, both as assumed |
+
+**The notification bell is live.** It has been an inert icon in the layout since Sprint 0 with the title "Notifications arrive with M6"; it now carries a real unread count for all three roles. `assistant.shifts.today` is likewise now registered, so `UserRole::homeRoute()` finally lands assistants on their shift screen instead of falling back to the profile page.
+
+**`AlarmService` is the seam.** M4 raises SLA breaches, M5 raises access-point outages, neither touches the `alarms` table. Both guard against repeats — one alarm per breaching ticket ever, outages only on the transition — because a sweep that re-alarms every minute is how a bell gets muted.
+
+**Alarms are scheduled and invisible until due.** A reminder written a week early is neither shown nor counted until it comes due, or the badge would be wrong all morning.
+
+**The day-of-week trap.** Carbon numbers Sunday as 0 but `startOfWeek()` is Monday, so a naive conversion shifts the whole roster by six days and looks like the generator not working. There is a test for Sunday specifically.
+
+**One bug found in an old test, not new code.** `AppShellTest` asserted an assistant *falls back* to the profile page because `assistant.shifts.today` did not exist. It does now, so the test's premise expired — rewritten to assert the real behaviour, with the fallback still covered by the no-role case.
 
 ---
 

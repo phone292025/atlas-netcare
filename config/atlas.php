@@ -243,6 +243,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Shifts and reminders
+    |--------------------------------------------------------------------------
+    |
+    | `check_in_grace_min` — how early an assistant may check in. Deliberately
+    | generous: somebody arriving fifteen minutes early should not be told to
+    | wait, because a system that refuses trains people to ignore it.
+    |
+    | `reminder_before_min` — how long before a shift starts its reminder is
+    | sent.
+    |
+    | `round_interval_min` — how often an inspection-round reminder fires
+    | during a shift. A four-hour shift at 120 gets one reminder, at the
+    | halfway point. Lower it and the bell becomes noise; noise is how people
+    | learn to ignore notifications.
+    |
+    | See docs/modules/M6-shifts-and-alarms.md
+    |
+    */
+
+    'shifts' => [
+        'check_in_grace_min' => 15,
+        'reminder_before_min' => 30,
+        'round_interval_min' => 120,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Navigation
     |--------------------------------------------------------------------------
     |

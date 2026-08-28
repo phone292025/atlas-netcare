@@ -183,13 +183,22 @@ class AppShellTest extends TestCase
             ->assertRedirect(route('engineer.dashboard'));
     }
 
-    public function test_dashboard_redirect_falls_back_to_profile_when_the_target_does_not_exist(): void
+    public function test_an_assistant_lands_on_their_shift_screen(): void
     {
-        // assistant.shifts.today arrives with M6. Until then this controller
-        // must not be the reason the application is unreachable.
+        /*
+         * This asserted a fallback to the profile page until M6 landed:
+         * `assistant.shifts.today` did not exist, and DashboardRedirect must
+         * never be the reason the application is unreachable.
+         *
+         * All three home routes are now registered, so the fallback is no
+         * longer reachable by any role that has one. The guard stays in the
+         * controller — a role added later starts out with no screen — and
+         * `test_a_user_with_no_role_is_sent_somewhere_safe` below is what
+         * still exercises it.
+         */
         $this->actingAs($this->userWithRole(UserRole::Assistant))
             ->get('/home')
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('assistant.shifts.today'));
     }
 
     public function test_a_user_with_no_role_is_sent_somewhere_safe(): void

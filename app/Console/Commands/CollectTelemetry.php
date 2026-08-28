@@ -2,10 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\AlarmType;
 use App\Enums\ApStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
+use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\TelemetryService;
 use App\Services\Tickets\TicketService;
 use Illuminate\Console\Command;
@@ -26,7 +29,7 @@ class CollectTelemetry extends Command
 
     protected $description = 'Poll every access point once and store the readings';
 
-    public function handle(TelemetryService $telemetry, TicketService $tickets): int
+    public function handle(TelemetryService $telemetry, TicketService $tickets, AlarmService $alarms): int
     {
         $transitions = $telemetry->collectAndStore();
 
@@ -35,6 +38,23 @@ class CollectTelemetry extends Command
 
             if ($change['to'] === ApStatus::Offline) {
                 $this->raiseOfflineTicket($tickets, $change['access_point']);
+
+                /*
+                 * And tell the engineers directly (FR-506). The ticket is the
+                 * record of work; the alarm is what puts it in front of
+                 * somebody. Raised through AlarmService, so M5 knows nothing
+                 * about how an alarm is stored, scheduled or delivered.
+                 *
+                 * On the transition only, exactly like the ticket — otherwise
+                 * a six-hour outage rings the bell 360 times.
+                 */
+                $alarms->raiseForRole(
+                    AlarmType::ApOffline,
+                    UserRole::Engineer,
+                    "{$change['access_point']->ap_code} is not responding",
+                    $change['access_point']->location?->label(),
+                    related: $change['access_point'],
+                );
             }
         }
 

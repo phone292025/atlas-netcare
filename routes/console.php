@@ -49,3 +49,24 @@ Schedule::command('atlas:aggregate-telemetry --hours=3')
 // Weekly and out of hours, because it deletes in chunks across a large table.
 Schedule::command('atlas:prune-telemetry')
     ->weeklyOn(0, '03:15');
+
+/*
+ * M6 — shifts and alarms.
+ *
+ * Alarms are written ahead of time with a `trigger_at`; this is what turns
+ * them into something a person can see. Every minute, because a reminder that
+ * arrives twenty minutes after the round should have started is worse than
+ * none — it teaches people the reminders are not to be trusted.
+ */
+Schedule::command('atlas:dispatch-alarms')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+/*
+ * Next week's roster, generated on Sunday evening so it is populated before
+ * anybody looks on Monday. Idempotent, and it also marks past shifts nobody
+ * turned up to — a roster full of shifts that are neither done nor missed is
+ * exactly the kind of stale screen people stop trusting.
+ */
+Schedule::command('atlas:generate-shifts')
+    ->weeklyOn(0, '18:00');

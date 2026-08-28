@@ -5,15 +5,19 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ChecklistTemplateController;
 use App\Http\Controllers\Admin\LabPcController;
 use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\RosterController;
+use App\Http\Controllers\Admin\ShiftTemplateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Api\DashboardDataController;
 use App\Http\Controllers\Assistant\AccessPointStatusController;
 use App\Http\Controllers\Assistant\InspectionController;
+use App\Http\Controllers\Assistant\ShiftController;
 use App\Http\Controllers\Assistant\TicketController as AssistantTicketController;
 use App\Http\Controllers\DashboardRedirect;
 use App\Http\Controllers\Engineer\DashboardController;
 use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketCommentController;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -115,6 +119,19 @@ Route::middleware('auth')->group(function () {
 
         Route::patch('checklists/{checklist}/activate', [ChecklistTemplateController::class, 'activate'])
             ->name('checklists.activate');
+
+        /*
+        | M6 — shift patterns and the roster.
+        |
+        | `admin.shift-templates.index` and `admin.roster.index` are fixed
+        | vocabulary from docs/08-ui-conventions.md.
+        */
+        Route::resource('shift-templates', ShiftTemplateController::class)
+            ->parameters(['shift-templates' => 'shift_template'])
+            ->except('show');
+
+        Route::get('roster', [RosterController::class, 'index'])->name('roster.index');
+        Route::post('roster/generate', [RosterController::class, 'generate'])->name('roster.generate');
     });
 
     /*
@@ -168,7 +185,28 @@ Route::middleware('auth')->group(function () {
     // M5 — read-only AP status for an assistant on a round (FR-209).
     Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
         Route::get('aps', [AccessPointStatusController::class, 'index'])->name('aps.index');
+
+        /*
+        | M6 — an assistant's own shift.
+        |
+        | `assistant.shifts.today` is where UserRole::homeRoute() sends an
+        | assistant after signing in, so it is their landing page and has to
+        | work when they have no shift at all.
+        */
+        Route::get('shifts/today', [ShiftController::class, 'today'])->name('shifts.today');
+        Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('shifts/{shift}/check-in', [ShiftController::class, 'checkIn'])->name('shifts.check-in');
+        Route::post('shifts/{shift}/check-out', [ShiftController::class, 'checkOut'])->name('shifts.check-out');
     });
+
+    /*
+    | M6 — notifications, for everybody.
+    |
+    | All three roles receive alarms; which ones they see is decided by
+    | Alarm::scopeVisibleTo(), not by the route.
+    */
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/{alarm}', [NotificationController::class, 'show'])->name('notifications.show');
 
     /*
     | The dashboard's polling endpoint (FR-302, ADR-0005).

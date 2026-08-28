@@ -105,11 +105,32 @@
             </h1>
 
             <div class="ml-auto flex items-center gap-1">
-                {{-- Notifications land here in M6. The bell is present now so the
-                     shell does not shift when it arrives. --}}
-                <span class="relative p-2 rounded-md text-slate-300" title="Notifications arrive with M6">
+                {{-- Live as of M6.
+
+                     The count is resolved through the service rather than
+                     queried here: a layout that runs its own query does it on
+                     every page in the system, and this one is on all of them.
+                     One count, one place, and Alarm::scopeVisibleTo() decides
+                     what is countable — scheduled-but-not-yet-sent alarms are
+                     deliberately not. --}}
+                @php($unreadAlarms = auth()->check()
+                    ? app(\App\Services\Shifts\AlarmService::class)->unreadCount(auth()->user())
+                    : 0)
+
+                <a href="{{ route('notifications.index') }}"
+                   class="relative p-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700
+                          focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                   title="{{ $unreadAlarms > 0 ? $unreadAlarms.' unread' : 'Notifications' }}">
                     <x-icon name="bell" class="w-5 h-5" />
-                </span>
+
+                    @if ($unreadAlarms > 0)
+                        <span class="absolute -top-0.5 -right-0.5 grid min-w-[1.15rem] place-items-center
+                                     rounded-full bg-red-600 px-1 text-[0.65rem] font-semibold leading-4 text-white">
+                            {{ $unreadAlarms > 99 ? '99+' : $unreadAlarms }}
+                        </span>
+                        <span class="sr-only">{{ $unreadAlarms }} unread notifications</span>
+                    @endif
+                </a>
             </div>
         </header>
 

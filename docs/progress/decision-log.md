@@ -1,6 +1,6 @@
 # Decision Log
 
-> **Last updated:** 2026-08-28
+> **Last updated:** 2026-08-29
 
 Small calls that affect other people but do not warrant a full ADR. One line each. Newest at the top.
 
@@ -10,6 +10,10 @@ Small calls that affect other people but do not warrant a full ADR. One line eac
 
 | Date | Decision | Made by | Affects |
 |---|---|---|---|
+| 2026-08-29 | **`AlarmService` is the only way anything raises an alarm.** M4 (SLA breaches) and M5 (access-point outages) call `raise()` / `raiseForRole()` and never touch the `alarms` table. Both guard against repeats — one alarm per breaching ticket ever, outages only on the transition — because a scheduled sweep that re-alarms the same thing every minute is how a notification bell gets muted. | M6 | M4, M5, M7 |
+| 2026-08-29 | **Alarms are scheduled, and a scheduled alarm is invisible until due.** `Alarm::scopeVisibleTo()` requires `sent_at`, so a reminder written a week early is neither shown nor counted until `atlas:dispatch-alarms` sends it. Without that the unread badge would count tomorrow's reminders today. | M6 | Everyone |
+| 2026-08-29 | **Carbon numbers Sunday as 0 but `startOfWeek()` is Monday.** A naive `addDays($dayOfWeek)` puts Sunday's shift on the Monday and shifts the whole roster by six days, which looks exactly like the generator not working. `ShiftService` converts with `($day + 6) % 7` and there is a test for Sunday specifically. | M6 | M6, M7 |
+| 2026-08-29 | **A shift copies its times from the template rather than reading through it.** Changing "Mondays 09:00" to 10:00 must not rewrite what somebody already worked last week. The same reasoning as M3's checklist versioning: history is not editable by editing a pattern. | M6 | Everyone |
 | 2026-08-29 | **Never use `timestamp` for a column recording when something HAPPENED — use `dateTime`.** MySQL and MariaDB give the FIRST `timestamp` column in a table an implicit `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` unless `explicit_defaults_for_timestamp` is on, which it is not in XAMPP. Three columns were being silently rewritten by any UPDATE that did not name them: `tickets.opened_at` (**destroying the SLA baseline on every status transition** — confirmed live, 00:52:02 became 01:04:58 from a status change alone), `telemetry_hourly.hour_bucket` (the 1062 duplicate-key error in the log), and `telemetry_readings.recorded_at` (armed, no damage yet). `created_at`/`updated_at` stay as `timestamp` — being touched automatically is their job. | Bugfix | Everyone |
 | 2026-08-29 | **`php artisan atlas:check-schema` audits the live database for traps the suite cannot see.** Read-only, so it is safe to point at real data — a test using `RefreshDatabase` against MariaDB would wipe it. **Run it after any migration and before a submission.** Three defects have now shipped through a fully green suite purely because tests run on SQLite and the system runs on MariaDB: MySQL-only `FIELD()`, MySQL-only `DATE_FORMAT`, and the auto-updating timestamps above. | Bugfix | Everyone |
 | 2026-08-28 | **An unknown `ATLAS_TELEMETRY_DRIVER` throws; it does not fall back to the simulator.** A typo in `.env` silently producing invented data on a system meant to be showing real readings is the worst outcome available. `SnmpTelemetrySource::collect()` throws for the same reason — an empty collection would look like forty access points going quiet at once. | M5 | Everyone |

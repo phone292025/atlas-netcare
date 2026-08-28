@@ -2,10 +2,14 @@
 
 namespace App\Services\Tickets;
 
+use App\Enums\AlarmType;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Enums\UserRole;
+use App\Models\Alarm;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -176,6 +180,48 @@ class TicketService
             static fn (string $value) => TicketStatus::from($value),
             self::TRANSITIONS[$ticket->status->value] ?? [],
         );
+    }
+
+    /**
+     * Tell the engineers about tickets that have blown their SLA.
+     *
+     * M4 owns the question "which tickets are breaching?" — that is
+     * `Ticket::scopeBreaching()`, and it deliberately excludes resolved and
+     * closed ones. M6 owns delivery. This method is the seam between them, and
+     * it is why AlarmService is passed in rather than reached for: M4 knows
+     * nothing about how an alarm is stored or sent.
+     *
+     * ONE ALARM PER TICKET, EVER. Without the guard this runs on a schedule
+     * and re-alarms the same overdue ticket every minute until somebody
+     * resolves it, which is precisely how a notification bell becomes
+     * something people mute.
+     *
+     * @return int how many were raised
+     */
+    public function raiseSlaBreachAlarms(AlarmService $alarms): int
+    {
+        $alreadyAlarmed = Alarm::query()
+            ->where('type', AlarmType::SlaBreach)
+            ->where('related_type', (new Ticket)->getMorphClass())
+            ->pluck('related_id')
+            ->unique();
+
+        $breaching = Ticket::query()
+            ->breaching()
+            ->whereNotIn('id', $alreadyAlarmed)
+            ->get();
+
+        foreach ($breaching as $ticket) {
+            $alarms->raiseForRole(
+                AlarmType::SlaBreach,
+                UserRole::Engineer,
+                "{$ticket->ticket_number} is past its target",
+                "{$ticket->title} — {$ticket->priority->label()}, due {$ticket->due_at?->diffForHumans()}.",
+                related: $ticket,
+            );
+        }
+
+        return $breaching->count();
     }
 
     /**

@@ -1,6 +1,6 @@
 # Open Questions
 
-> **Last updated:** 2026-08-28 · **Bring this to every supervisor meeting — it is the agenda.**
+> **Last updated:** 2026-08-29 · **Bring this to every supervisor meeting — it is the agenda.**
 
 Ten things the approved proposal leaves undefined. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
@@ -12,18 +12,20 @@ Ten things the approved proposal leaves undefined. Each has a working assumption
 
 ## Summary
 
-| # | Question | Status | Blocks | Decide by |
+> **Eight of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because they are the ones a marker is most likely to ask you to justify.
+
+| # | Question | Status | Built in | Where to change it |
 |---|---|---|---|---|
-| [Q1](#q1) | What counts as a degraded access point? | `Assumed` | M5 | Sprint 2 |
-| [Q2](#q2) | Is the checklist fixed or admin-editable? | `Assumed` | M3 | Sprint 1 |
-| [Q3](#q3) | What is the full ticket lifecycle and SLA? | **`Open`** | **M4, M6** | **Sprint 0** |
-| [Q4](#q4) | Are shifts recurring or assigned individually? | `Assumed` | M6 | Sprint 2 |
-| [Q5](#q5) | How does an alarm reach an assistant? | `Assumed` | M6 | Sprint 2 |
-| [Q6](#q6) | Who creates user accounts? | **`Open`** | **M1** | **Sprint 0** |
-| [Q7](#q7) | Do lab PCs self-report health? | `Assumed` | M2, M7 | Sprint 1 |
+| [Q1](#q1) | What counts as a degraded access point? | ✅ Settled | M5 | `config/atlas.php` → `thresholds` |
+| [Q2](#q2) | Is the checklist fixed or admin-editable? | ✅ Settled | M3 | `ChecklistService` |
+| [Q3](#q3) | What is the full ticket lifecycle and SLA? | ✅ Settled | M4 | `TicketService::TRANSITIONS`, `config/atlas.php` → `sla_hours` |
+| [Q4](#q4) | Are shifts recurring or assigned individually? | ✅ Settled | M6 | `ShiftService::generateWeek()` |
+| [Q5](#q5) | How does an alarm reach an assistant? | ✅ Settled | M6 | `AlarmService` — **state the in-app-only limit in the report** |
+| [Q6](#q6) | Who creates user accounts? | **🔴 Open** | — | **Still needs a decision** |
+| [Q7](#q7) | Do lab PCs self-report health? | ✅ Settled | M2, M3 | — inspections are the only health source |
 | [Q8](#q8) | Where do the NFRs live? | `Assumed` | Report | Week 12 |
-| [Q9](#q9) | Per-AP history or campus-wide trends? | `Assumed` | M5 | Sprint 2 |
-| [Q10](#q10) | How long is telemetry retained? | `Assumed` | M5 | Sprint 3 |
+| [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
+| [Q10](#q10) | How long is telemetry retained? | ✅ Settled | M5 | `config/atlas.php` → `retention` |
 
 ---
 
@@ -112,7 +114,7 @@ open ──▶ acknowledged ──▶ in_progress ──▶ resolved ──▶ c
 <a id="q4"></a>
 ## Q4 — Are shifts recurring, or assigned one at a time?
 
-**Status:** `Assumed` · **Owner:** M6 owner · **Blocks:** M6 schema, admin roster screen
+**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Owner:** M6 owner · **Blocks:** nothing further
 
 **Working assumption:** weekly recurring **templates** (e.g. "Mondays 09:00–13:00, Level 6 IT Lab, 2 assistants") that generate dated `shifts` records one week ahead via a scheduled command. An admin can then override any individual shift.
 
@@ -123,7 +125,7 @@ Recurring templates mean the admin sets up a pattern once instead of entering sh
 <a id="q5"></a>
 ## Q5 — How does an alarm actually reach an assistant?
 
-**Status:** `Assumed` · **Owner:** M6 owner · **Blocks:** M6 delivery mechanism
+**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Owner:** M6 owner · **Blocks:** nothing further
 
 "Alarm" in the proposal could mean an in-app badge, an email, a browser push, or a phone notification. Mobile push is out of reach for this project — it needs a native app or service worker infrastructure we do not have time for.
 
