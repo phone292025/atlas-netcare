@@ -34,19 +34,21 @@ Sprint 0 is complete when all five are ticked **and all seven members have run t
 
 ## Environment on the development machine
 
-Checked 2026-08-27.
+**Re-verified 2026-08-28. Everything below is installed and working — nothing needs installing.**
 
 | Tool | Status | Notes |
 |---|---|---|
-| PHP | ✅ 8.2.12 | XAMPP, at `C:\xampp\php\php.exe`. Laravel 11 needs 8.2+, so this is fine. |
-| MySQL | ✅ Present | XAMPP, at `C:\xampp\mysql\bin\mysql.exe`. Start it from the XAMPP Control Panel. |
+| PHP | ✅ 8.2.12 | XAMPP, at `C:\xampp\php\php.exe`. Laravel 12 needs `^8.2`, so this is fine. |
+| MariaDB | ✅ 10.4.32 | XAMPP, at `C:\xampp\mysql\bin\mysql.exe`. **Start it from the XAMPP Control Panel** before any `migrate` command. |
 | Node | ✅ 24.15.0 | For Vite |
 | npm | ✅ 11.12.1 | |
 | Git | ✅ 2.54.0 | |
-| **Composer** | ❌ **Missing** | **Required before anything else.** |
-| GitHub CLI | ❌ Missing | Only needed if creating the remote from the terminal |
+| **Composer** | ✅ **2.10.2** | Installed 2026-08-27 to `C:\xampp\php\composer.phar`, with a `composer.bat` wrapper and a POSIX shim so `composer` works in cmd and Git Bash alike. |
+| **GitHub CLI** | ✅ **2.98.0** | Installed and authenticated as `phone292025`. |
 
-> Other team members will need the same set. Once Stage 1 is done, the verified setup steps go in the README and eventually into the Installation Guide for the report appendix.
+> This table was left saying "Composer ❌ Missing" for a day after Composer was installed — the session log recorded the install, the summary at the top did not. Someone read the table and set out to install it again. **If you change the environment, change this table in the same session.** A summary that contradicts the log below it is worse than no summary.
+>
+> Other team members will still need PHP, MariaDB, Node and Composer. The verified setup steps are in `README.md` and become the Installation Guide in the report appendix.
 
 ---
 
@@ -63,10 +65,10 @@ Oldest first — append new entries at the end. One entry per development sessio
 - Branch renamed `master` → `main` to match the docs
 - This build log created and wired into `docs/INDEX.md`
 
-**Found**
+**Found** *(historical — both were installed the same day; see the Stage 1 entry and the environment table above)*
 - Composer is **not installed** on the development machine. Stage 1 cannot start without it.
 - GitHub CLI is not installed, so a remote repository must be created through the website or after installing `gh`.
-- XAMPP provides PHP 8.2.12 and MySQL, which is sufficient for Laravel 11.
+- XAMPP provides PHP 8.2.12 and MariaDB, which is sufficient for Laravel 12.
 
 **Decided**
 - Sprint 0 split into five reviewable stages, recorded above.
