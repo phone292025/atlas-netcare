@@ -1,6 +1,16 @@
 # Roadmap
 
-> **Last updated:** 2026-08-26 · **Today:** week 3 of 14
+> **Last updated:** 2026-08-29
+>
+> ## ⚠️ THE DATES BELOW ARE INVENTED AND ALMOST CERTAINLY WRONG
+>
+> **The module brief gives a duration — 14 weeks — and no calendar dates at all.** Every date in this file was produced by anchoring week 1 to 26 August 2026, the day these docs were written. That anchor was an assumption, and it was never checked with anybody.
+>
+> Phone Myat Ko has since said the real deadlines are **next year (2027)**. If that is right, every date here is out by roughly a year, including the "15 September design freeze" that other documents have been treating as imminent.
+>
+> **Do not plan against this file until the real dates are filled in.** Get them from the module brief or the supervisor, replace the table below, and delete this warning.
+>
+> The *sequence* and the *effort split* are still sound — two tracks, converging near the end, with a design freeze before the schema is depended on. It is only the calendar that is fiction.
 
 Two tracks working in parallel on files that do not overlap, converging in week 11. This buys back the time a strictly sequential plan loses.
 

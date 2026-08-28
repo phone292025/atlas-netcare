@@ -64,7 +64,7 @@ Use exactly these strings. They are enum values, UI labels, and report terms all
 | **Module** | One of the seven feature areas, M1–M7, each owned by one member. |
 | **Track** | Track A (Operations) or Track B (Data) — the two parallel work streams. |
 | **ADR** | Architecture Decision Record. A numbered, immutable record of a significant technical decision. |
-| **Design freeze** | 15 Sep 2026. After this the ERD and architecture do not change without an ADR. |
+| **Design freeze** | The point after which the ERD and architecture do not change without an ADR. **Date not yet known** — see docs/09-roadmap.md. |
 | **Feature freeze** | 9 Nov 2026. After this, only bug fixes and documentation. |
 | **Demo data** | Seeded records tagged `is_demo = true`, removable with one command. |
 | **Reference data** | The minimum records a real deployment needs — admin account, locations, checklist templates. Never demo data. |

@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**Phase 2 — System Design**, with Sprint 0 scaffolding running in parallel. Laravel 12 + Breeze are installed; feature modules have not started. Design freeze: **15 September 2026**.
+**Building modules** — six of seven are done (M1–M6). Laravel 12 + Breeze, 481 tests passing.
 
 Current build state: [docs/progress/build-log.md](docs/progress/build-log.md).
 

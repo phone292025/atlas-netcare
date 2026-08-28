@@ -22,7 +22,7 @@ This is **academic coursework assessed against a published rubric**. Documentati
 
 | | |
 |---|---|
-| **Phase** | 2 — System Design (**design freeze 15 Sep 2026, diagrams not started**), building modules in parallel |
+| **Phase** | Building modules. **Diagrams not started** — Context Diagram, DFD 0, consolidated ERD, 15 marks. The "15 Sep 2026 design freeze" in older docs was an invented date, not from the brief; see `docs/09-roadmap.md`. |
 | **Build stage** | Sprint 0 complete. **Modules: 6 of 7 done** — only M7 (predictive risk and reports) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
 | **Code written** | Sprint 0 + M1–M6. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, the asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, and shifts with alarms. 481 tests passing. |
 | **Last updated** | 2026-08-29 |

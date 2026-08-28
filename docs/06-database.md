@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-08-28 · **Status:** design freeze 15 Sep 2026 — after that, changes require an ADR
+> **Last updated:** 2026-08-29 · **Status:** schema changes need an ADR after the design freeze — see docs/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 

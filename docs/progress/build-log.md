@@ -167,7 +167,7 @@ These do not move when modules get built, and one of them has a date.
 
 | | Status |
 |---|---|
-| **Design freeze — 15 Sep 2026** | 🔴 Context Diagram, DFD 0 and the consolidated ERD. **15 marks. Not started.** |
+| **Design freeze — date unknown** | 🟠 Context Diagram, DFD 0 and the consolidated ERD. **15 marks, not started.** The 15 Sep 2026 date was invented, not taken from the brief — see docs/09-roadmap.md. Still needed; the urgency is unverified. |
 | **Q3 — ticket lifecycle** | 🟠 Adopted as proposed and built in M4, but **never actually agreed by the team.** Confirm it or change it — the code is written to make either cheap. |
 | **Module owners** | 🔴 Seven unassigned. **Four modules are now built with nobody named as their author.** Blocks the individual report deliverables. |
 | **Per-module diagrams** | 🔴 DFD 1, data dictionary and flowchart now owed for M1, M2, M3 and M4. |
