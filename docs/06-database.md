@@ -184,7 +184,7 @@ erDiagram
         string category "hardware|network|peripheral|software|other"
         string priority "low|medium|critical"
         string status "open|acknowledged|in_progress|resolved|closed|reopened"
-        string ticketable_type "LabPc or AccessPoint"
+        string ticketable_type "LabPc or AccessPoint, nullable"
         bigint ticketable_id
         bigint location_id FK "nullable"
         bigint inspection_id FK "nullable"
@@ -296,6 +296,14 @@ erDiagram
 ### `tickets` is polymorphic
 
 A ticket can be about a lab PC or an access point. Rather than two ticket tables or two nullable foreign keys, `ticketable_type` + `ticketable_id` handles both.
+
+**Built nullable in M4.** A fault can belong to a place rather than a machine — "no network anywhere on Level 6" is a real ticket that points at nothing more specific than a location. `location_id` is therefore denormalised off the asset rather than joined through the morph, so the engineer's queue can filter by place without reaching into two different asset tables.
+
+The form posts a short key (`lab_pc` / `access_point`), never a class name. Accepting a raw FQCN from a request would let a crafted POST attach a ticket to any model in the system.
+
+### `tickets` lifecycle columns
+
+`status` and every `*_at` in the lifecycle are absent from `Ticket::$fillable`. Only `TicketService` writes them, and it refuses any move the state machine does not allow — see [`../modules/M4-ticketing.md`](../modules/M4-ticketing.md). `due_at` is stamped once at creation from `config('atlas.sla_hours')`, so changing a target affects new tickets and leaves existing ones on the promise they were given.
 
 ```php
 // Ticket model

@@ -12,10 +12,10 @@
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Modules done** | **3 of 7** — M1 identity · M2 locations and assets · M3 checklists and inspections |
-| **Tests** | 336 passing, 1018 assertions, zero deprecations |
+| **Modules done** | **4 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing |
+| **Tests** | 387 passing, 1111 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M4 — workspace ticketing**, which is still **blocked on Q3** (the ticket lifecycle). M5 telemetry is unblocked and can go first if Q3 is not settled. |
+| **Next action** | **M5 — telemetry and the AP dashboard.** Nothing blocks it. Its collector calls `TicketService::hasOutstandingFor()` before auto-raising a ticket, and that guard is already built and tested. |
 
 ---
 
@@ -30,8 +30,8 @@ A module is not done until every box in the definition of done in [../modules/RE
 | [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | *unassigned* | 1 | ✅ **Done 2026-08-28** |
 | [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | ✅ **Done 2026-08-28** |
 | [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ✅ **Done 2026-08-28** |
-| [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ⬜ Not started — **blocked on Q3** |
-| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | 🔨 **Next** (M4 is blocked) |
+| [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-28** |
+| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | 🔨 **Next** |
 | [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ⬜ Not started |
 | [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ⬜ Not started |
 
@@ -79,6 +79,25 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 
 **Three bugs the tests did not catch, all found by rendering the pages.** The checklist form 500'd on a Collection subscript for every inspection with no answers yet; the assistant landing page 500'd on `having()` against a `withCount` alias; `LabPc::inspections()` did not exist. All three routes had tests — every one of which asserted a 403 or a redirect, so none had ever rendered the page. **A route whose tests only assert failures has never been rendered.** There are now tests that render each of them.
 
+### What M4 delivered
+
+| | |
+|---|---|
+| Tables | `tickets`, `ticket_comments` — two new migrations |
+| Screens | Engineer: queue with filters · ticket detail with transitions and comments. Assistant: my tickets · raise ticket · ticket detail |
+| Routes | `engineer.tickets.*`, `assistant.tickets.*`, `tickets.transition`, `tickets.comments.store` |
+| Requirements | FR-206, FR-207, FR-208, FR-306, FR-307, FR-308 · part of FR-503 |
+| Tests | 51 feature tests across two classes |
+| Settled | **Q3** — adopted as proposed, *not* ratified by the team. See below. |
+
+**Q3 was adopted, not agreed.** M4 could not be built without a lifecycle and the team has not met on it, so the documented proposal was implemented exactly as written. It is still cheap to overturn: the machine is one array in `TicketService::TRANSITIONS`, the targets are three lines in `config/atlas.php`. **Anyone who wants a different lifecycle should say so rather than assume it is now fixed.**
+
+**Hiding a button is not a rule.** Actions render from `nextStates()`, so the UI never offers an illegal move — but the refusal is in the service, and a hand-written POST is rejected too. Three questions, three places: the request validates shape, the Policy decides who, the service decides whether the move is legal at all.
+
+**Internal comments are filtered in the query.** `TicketComment::scopeVisibleTo()` is the only place visibility is decided; a Blade `@if` would be one edit away from showing an assistant what the engineers said about their report.
+
+**The M3 hand-off is live.** A failed checklist item pre-fills the machine, location, fault text and a suggested priority, and the ticket keeps a link back to the inspection that found it (FR-207). M3 built the panel behind a `Route::has()` guard, so wiring it up was deleting the guard.
+
 ---
 
 ## Sprint 0 — complete
@@ -104,8 +123,9 @@ These do not move when modules get built, and one of them has a date.
 | | Status |
 |---|---|
 | **Design freeze — 15 Sep 2026** | 🔴 Context Diagram, DFD 0 and the consolidated ERD. **15 marks. Not started.** |
-| **Q3 — ticket lifecycle** | 🔴 `Open`. Blocks M4 and M6. |
-| **Module owners** | 🔴 Seven unassigned. Blocks the individual report deliverables. |
+| **Q3 — ticket lifecycle** | 🟠 Adopted as proposed and built in M4, but **never actually agreed by the team.** Confirm it or change it — the code is written to make either cheap. |
+| **Module owners** | 🔴 Seven unassigned. **Four modules are now built with nobody named as their author.** Blocks the individual report deliverables. |
+| **Per-module diagrams** | 🔴 DFD 1, data dictionary and flowchart now owed for M1, M2, M3 and M4. |
 | **Weekly progress reports** | 🟠 10 marks, due every week to week 12. See the files in this folder. |
 
 ---

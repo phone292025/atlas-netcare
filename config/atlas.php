@@ -163,10 +163,13 @@ return [
     | Hours from a ticket being opened until it is due. Breaching this raises
     | an SLA alarm.
     |
-    | PROVISIONAL: open question Q3 is not resolved. These values may exist in
-    | config, but NO lifecycle behaviour that depends on them — state machine,
-    | transition guards, breach detection — may be built until the team
-    | ratifies Q3. See docs/04-open-questions.md
+    | Q3 was settled on 2026-08-28 and M4 implements it. TicketService stamps
+    | `due_at` from these values once, when the ticket is raised — so editing a
+    | number here changes what NEW tickets are promised and leaves existing
+    | ones on the target they were given.
+    |
+    | These three lines are the whole SLA. If the team decides the targets are
+    | wrong, this is the edit. See docs/04-open-questions.md
     |
     */
 

@@ -9,7 +9,7 @@ use App\Enums\Contracts\HasTone;
 /**
  * How urgent a ticket is. Drives the service level target.
  *
- * @see docs/04-open-questions.md Q3 — the SLA hours are provisional
+ * @see docs/04-open-questions.md Q3 — settled 2026-08-28
  */
 enum TicketPriority: string implements HasLabel, HasTone
 {
@@ -40,8 +40,10 @@ enum TicketPriority: string implements HasLabel, HasTone
     /**
      * Hours from opening until the ticket is due, from config/atlas.php.
      *
-     * PROVISIONAL: reading the value is fine; acting on a breach is Q3 work
-     * and must not be built yet.
+     * TicketService stamps `due_at` from this once, at creation. Changing a
+     * value here changes what NEW tickets are given and deliberately leaves
+     * existing ones alone — a ticket's target is what it was promised when it
+     * was raised, not whatever the config says today.
      */
     public function slaHours(): int
     {

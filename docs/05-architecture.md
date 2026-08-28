@@ -103,7 +103,8 @@ app/
     │   ├── ChecklistService.php          template versioning and activation
     │   └── RiskScoringService.php
     ├── Tickets/
-    │   └── TicketService.php
+    │   └── TicketService.php             the ticket state machine, and the
+    │                                     only thing that may write `status`
     └── Shifts/
         ├── ShiftService.php
         └── AlarmService.php

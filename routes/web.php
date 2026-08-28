@@ -7,8 +7,11 @@ use App\Http\Controllers\Admin\LabPcController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Assistant\InspectionController;
+use App\Http\Controllers\Assistant\TicketController as AssistantTicketController;
 use App\Http\Controllers\DashboardRedirect;
+use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TicketCommentController;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +127,41 @@ Route::middleware('auth')->group(function () {
         Route::resource('inspections', InspectionController::class)
             ->except('show');
     });
+
+    /*
+    | M4 — ticketing.
+    |
+    | Raising and reading your own tickets is not assistant-only: an engineer
+    | who finds a fault while working on something else must be able to file
+    | it, or faults stop being recorded. So this group is guarded by
+    | TicketPolicy rather than by a role, and `assistant.tickets.*` is a name
+    | from the fixed vocabulary rather than a claim about who may use it.
+    */
+    Route::prefix('assistant')->name('assistant.')->group(function () {
+        Route::resource('tickets', AssistantTicketController::class)
+            ->only(['index', 'create', 'store', 'show']);
+    });
+
+    // The queue itself is engineer furniture, so it stays role-guarded.
+    Route::middleware('role:engineer,admin')->prefix('engineer')->name('engineer.')->group(function () {
+        Route::get('tickets', [EngineerTicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/{ticket}', [EngineerTicketController::class, 'show'])->name('tickets.show');
+    });
+
+    /*
+    | Both shared endpoints are guarded by TicketPolicy, not by a role.
+    |
+    | Transitions cannot live in the engineer group: closing and reopening
+    | belong to the person who reported the fault, and an assistant behind
+    | `role:engineer` could never reach the route that lets them say "this was
+    | not actually fixed". Which of the six moves each person may make is a
+    | per-record question, and that is a Policy's job.
+    */
+    Route::patch('tickets/{ticket}/transition', [EngineerTicketController::class, 'transition'])
+        ->name('tickets.transition');
+
+    Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])
+        ->name('tickets.comments.store');
 
     /*
     | The summary of a submitted inspection is readable by engineers and

@@ -15,11 +15,12 @@
             {{--
                 The hand-off to M4 and the demo's best moment: a failed item
                 already knows the machine, the location and the fault, so
-                raising a ticket should not ask for any of it again.
+                raising a ticket does not ask for any of it again.
 
-                The button is not wired yet — M4 owns assistant.tickets.create
-                and it is not registered. Rendering the panel now means M4's
-                owner replaces one href rather than building this screen.
+                Live as of M4. The panel was built in M3 with the link behind a
+                Route::has() guard, so wiring it up was deleting the guard —
+                which is what building a hand-off ahead of the module that
+                receives it is supposed to cost.
 
                 @see docs/03-requirements.md FR-207
             --}}
@@ -41,17 +42,13 @@
                                 @endif
                             </div>
 
-                            @if (Route::has('assistant.tickets.create'))
-                                <a href="{{ route('assistant.tickets.create', [
-                                       'inspection' => $inspection->id,
-                                       'item' => $result->checklist_item_id,
-                                   ]) }}"
-                                   class="flex-none rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                                    Raise ticket
-                                </a>
-                            @else
-                                <span class="flex-none text-xs text-slate-400">Ticketing arrives with M4</span>
-                            @endif
+                            <a href="{{ route('assistant.tickets.create', [
+                                   'inspection' => $inspection->id,
+                                   'item' => $result->checklist_item_id,
+                               ]) }}"
+                               class="flex-none rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                                Raise ticket
+                            </a>
                         </li>
                     @endforeach
                 </ul>

@@ -66,7 +66,11 @@ A fixed list is one table and one seeder. An editable list is two tables and a C
 <a id="q3"></a>
 ## Q3 — What is the full ticket lifecycle, and is there an SLA?
 
-**Status:** 🔴 **`Open`** · **Owner:** M4 owner · **Blocks:** M4 schema, M6 alarms, engineer UI · **Decide before Sprint 0**
+**Status:** ✅ `Settled` — the proposal below was adopted and built in M4 on 2026-08-28 · **Owner:** M4 owner · **Blocks:** nothing further
+
+> **Adopted rather than ratified.** The team never met on this, and M4 could not be built without an answer, so the proposal below was implemented exactly as written. **If the team wants a different lifecycle, say so — it is still cheap to change.** The state machine is one array in `TicketService::TRANSITIONS`, the SLA hours are three lines in `config/atlas.php`, and both are covered by tests that will tell you immediately what breaks.
+>
+> The two questions this section left open are answered by its own transition table: closing is "Reporter or engineer", so an engineer may close their own resolution — with the reporter able to reopen, which is what makes that safe. SLA was kept, per the recommendation below.
 
 The proposal names three priorities and says a ticket runs "from the moment an IT assistant reports an issue until a network engineer closes it" — but not the states in between. This one answer drives the `tickets` table, the state machine, the SLA alarms, and roughly half the engineer interface.
 
@@ -96,6 +100,10 @@ open ──▶ acknowledged ──▶ in_progress ──▶ resolved ──▶ c
 | `low` | 72 hours |
 
 **Questions for the team:** should closure require the original reporter to confirm, or can an engineer close their own resolution? Is SLA worth having at all, or is it scope creep? *(Recommendation: keep it — it makes the alarm module meaningful and gives the reports something to measure.)*
+
+**As built.** The machine refuses everything not in the table above — `open` cannot jump to `resolved`, and `closed` is final. That refusal is in `TicketService`, not in the UI: buttons render from `nextStates()`, so the screen never offers an illegal move, but a hand-written POST is rejected by the service regardless. Hiding a button is not a rule.
+
+`due_at` is computed once at creation from `config('atlas.sla_hours')`. M6 raises the breach alarm; `Ticket::scopeBreaching()` is the query it should sweep, and it deliberately excludes resolved and closed tickets — a ticket that took too long has still breached, but nobody can act on it now.
 
 ---
 

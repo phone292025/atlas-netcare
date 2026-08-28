@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Http\Controllers\Engineer;
+
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Enums\UserRole;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Tickets\TransitionTicketRequest;
+use App\Models\Location;
+use App\Models\Ticket;
+use App\Models\User;
+use App\Services\Tickets\TicketService;
+use DomainException;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+
+/**
+ * The engineer's queue and the transitions that move a ticket along
+ * (FR-306, FR-307).
+ *
+ * @see docs/modules/M4-ticketing.md
+ */
+class TicketController extends Controller
+{
+    public function __construct(private readonly TicketService $tickets) {}
+
+    public function index(Request $request): View
+    {
+        $this->authorize('viewAny', Ticket::class);
+
+        return view('engineer.tickets.index', [
+            'tickets' => Ticket::query()
+                ->with(['ticketable', 'location', 'reporter', 'assignee'])
+                ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
+                    fn ($q) => $q->where('ticket_number', 'like', "%{$term}%")
+                        ->orWhere('title', 'like', "%{$term}%")
+                ))
+                ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+                ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
+                ->when($request->filled('location'), fn ($q) => $q->where('location_id', $request->integer('location')))
+                ->when($request->filled('assignee'), fn ($q) => $q->where('assigned_to', $request->integer('assignee')))
+                ->when($request->boolean('mine'), fn ($q) => $q->where('assigned_to', $request->user()->id))
+                ->when($request->boolean('breaching'), fn ($q) => $q->breaching())
+                // Default view is work that still needs somebody.
+                ->when(! $request->hasAny(['status', 'search']), fn ($q) => $q->outstanding())
+                ->orderByRaw($this->priorityOrdering())
+                ->orderBy('due_at')
+                ->paginate(25)
+                ->withQueryString(),
+
+            'statuses' => TicketStatus::options(),
+            'priorities' => TicketPriority::options(),
+            'locations' => Location::orderBy('code')->get()->mapWithKeys(fn ($l) => [$l->id => $l->label()])->all(),
+            'engineers' => User::query()->active()->role(UserRole::Engineer)
+                ->orderBy('name')->get()->mapWithKeys(fn ($u) => [$u->id => $u->name])->all(),
+            'breachCount' => Ticket::query()->breaching()->count(),
+        ]);
+    }
+
+    public function show(Ticket $ticket): View
+    {
+        $this->authorize('view', $ticket);
+
+        return view('engineer.tickets.show', [
+            'ticket' => $ticket->load(['ticketable', 'location', 'reporter', 'assignee', 'inspection']),
+            'comments' => $ticket->comments()->visibleTo(request()->user())->with('author')->get(),
+            // Buttons render from the machine itself, so the UI can never
+            // offer a move the service would then refuse.
+            'nextStates' => $this->tickets->nextStates($ticket),
+        ]);
+    }
+
+    /**
+     * Move the ticket.
+     *
+     * Three checks, all of them server-side: the request shape, then the
+     * policy (may this person?), then the service (is this move legal?).
+     * Hiding a button is not a check.
+     */
+    public function transition(TransitionTicketRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $target = $request->target();
+
+        $this->authorize($this->abilityFor($target), $ticket);
+
+        try {
+            $this->tickets->transition($ticket, $target, $request->user(), [
+                'resolution_notes' => $request->validated('resolution_notes'),
+            ]);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "{$ticket->ticket_number} is now {$target->label()}.");
+    }
+
+    /** Which policy ability guards each destination state. */
+    private function abilityFor(TicketStatus $target): string
+    {
+        return match ($target) {
+            TicketStatus::Acknowledged => 'acknowledge',
+            TicketStatus::InProgress, TicketStatus::Resolved => 'resolve',
+            TicketStatus::Closed => 'close',
+            TicketStatus::Reopened => 'reopen',
+            default => 'work',
+        };
+    }
+
+    /**
+     * Critical first, then medium, then low.
+     *
+     * A CASE expression rather than MySQL's FIELD(), which SQLite does not
+     * have — the test suite runs on SQLite and MariaDB is what ships, so
+     * anything vendor-specific here passes review and fails the moment a test
+     * touches the queue.
+     *
+     * Built from the enum's own weights, so adding a priority cannot leave the
+     * queue silently sorting it last. Every value is enum-derived and never
+     * request input, so there is nothing here to inject.
+     */
+    private function priorityOrdering(): string
+    {
+        $cases = collect(TicketPriority::cases())
+            ->map(fn (TicketPriority $p) => "WHEN '{$p->value}' THEN {$p->weight()}")
+            ->implode(' ');
+
+        return "CASE priority {$cases} ELSE 0 END DESC";
+    }
+}

@@ -9,17 +9,15 @@ use App\Enums\Contracts\HasTone;
 /**
  * Lifecycle states of a workspace incident ticket.
  *
- * PROVISIONAL — open question Q3 is not resolved. These cases come from the
- * proposed lifecycle recorded in docs/04-open-questions.md and may change when
- * the team ratifies it.
+ * Q3 was settled on 2026-08-28 and these cases are the adopted lifecycle.
  *
- * Deliberately absent until Q3 is Decided:
- *   - the state machine (which transitions are legal)
- *   - transition guards
- *   - SLA breach detection
+ * THE STATE MACHINE IS NOT HERE. Which transitions are legal lives in
+ * TicketService::TRANSITIONS, and that is the only place it may live — an enum
+ * that knew its own successors would be a second copy of the rule, and the two
+ * would disagree within a fortnight.
  *
- * Those belong in TicketService (M4). Do not add them here or anywhere else
- * before Q3 is settled — see docs/progress/decision-log.md.
+ * @see App\Services\Tickets\TicketService
+ * @see docs/04-open-questions.md Q3
  */
 enum TicketStatus: string implements HasLabel, HasTone
 {
