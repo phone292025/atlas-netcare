@@ -34,7 +34,9 @@ class AppShellTest extends TestCase
     {
         parent::setUp();
 
-        Route::middleware(['web', 'auth'])->get('/test-admin-users', fn () => 'users')->name('admin.users.index');
+        // admin.users.index is no longer stubbed here — M1 built the real one.
+        // As each module lands, delete its stub rather than shadowing the real
+        // route with a fake that can drift away from it.
         Route::middleware(['web', 'auth'])->get('/test-engineer-dash', fn () => 'dash')->name('engineer.dashboard');
 
         // ->name() is applied after the route enters the collection, so the
@@ -112,9 +114,11 @@ class AppShellTest extends TestCase
 
     public function test_a_registered_navigation_route_renders_as_a_link(): void
     {
+        // admin.users.index is a real route now, which is exactly what this
+        // should assert against — the sidebar reaching the module M1 built.
         $this->actingAs($this->userWithRole(UserRole::Admin))
             ->get('/profile')
-            ->assertSee('href="'.url('/test-admin-users').'"', escape: false);
+            ->assertSee('href="'.route('admin.users.index').'"', escape: false);
     }
 
     public function test_an_unregistered_navigation_route_is_flagged_rather_than_hidden_in_debug(): void

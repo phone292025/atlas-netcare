@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardRedirect;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -39,6 +41,24 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    /*
+    | M1 — Identity, roles and audit log.
+    |
+    | Route names come from the table in docs/08-ui-conventions.md. The sidebar
+    | renders from those exact names; anything else silently vanishes from the
+    | menu.
+    */
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class)->except('destroy');
+
+        // Deactivate, never delete — a person's inspections and tickets must
+        // survive them leaving (FR-106, NFR-06).
+        Route::patch('users/{user}/active', [UserController::class, 'toggleActive'])
+            ->name('users.toggle-active');
+
+        Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index');
+    });
 });
 
 /*

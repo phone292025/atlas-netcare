@@ -50,6 +50,26 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // FR-106: a deactivated account cannot sign in.
+        //
+        // Checked AFTER the credentials, not before — answering "that account
+        // is deactivated" to a wrong password would confirm the address exists
+        // to someone guessing.
+        //
+        // The role middleware also blocks deactivated users, but only from
+        // role-guarded areas. This is the half that stops them getting a
+        // session at all.
+        if (! (Auth::user()->is_active ?? true)) {
+            Auth::logout();
+            $this->session()->invalidate();
+
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been deactivated. Contact the IT office.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
