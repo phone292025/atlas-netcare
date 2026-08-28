@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin\AccessPointController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ChecklistTemplateController;
 use App\Http\Controllers\Admin\LabPcController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Assistant\InspectionController;
 use App\Http\Controllers\DashboardRedirect;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -88,7 +90,49 @@ Route::middleware('auth')->group(function () {
             ->withTrashed(['show']);
         Route::patch('aps/{access_point}/restore', [AccessPointController::class, 'restore'])
             ->name('aps.restore')->withTrashed();
+
+        /*
+        | M3 — checklist templates.
+        |
+        | `checklists` in the URL and route name, because
+        | docs/08-ui-conventions.md fixes it as admin.checklists.index.
+        | The model is ChecklistTemplate, so the parameter is spelled out.
+        |
+        | No `show`: a template's only readable form is the edit screen, and
+        | a second read-only rendering of the same list of items would be one
+        | more thing to keep in step.
+        */
+        Route::resource('checklists', ChecklistTemplateController::class)
+            ->parameters(['checklists' => 'checklist'])
+            ->except('show');
+
+        Route::patch('checklists/{checklist}/activate', [ChecklistTemplateController::class, 'activate'])
+            ->name('checklists.activate');
     });
+
+    /*
+    | M3 — inspection rounds.
+    |
+    | Only `assistant.inspections.index` is fixed vocabulary; the rest are
+    | standard resource verbs beneath it, which the convention allows.
+    |
+    | `edit` is the checklist form and `update` submits it. That is an odd
+    | fit for the words, but the alternative is inventing a verb — and the
+    | sidebar, the tests and six other people all read the standard set.
+    */
+    Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
+        Route::resource('inspections', InspectionController::class)
+            ->except('show');
+    });
+
+    /*
+    | The summary of a submitted inspection is readable by engineers and
+    | admins too — it is the evidence behind a ticket and a risk score —
+    | so it sits outside the assistant-only group and is guarded by
+    | InspectionPolicy instead.
+    */
+    Route::get('inspections/{inspection}', [InspectionController::class, 'show'])
+        ->name('assistant.inspections.show');
 });
 
 /*

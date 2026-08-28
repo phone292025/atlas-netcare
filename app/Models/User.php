@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -93,5 +94,21 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;
+    }
+
+    public function isEngineer(): bool
+    {
+        return $this->role === UserRole::Engineer;
+    }
+
+    public function isAssistant(): bool
+    {
+        return $this->role === UserRole::Assistant;
+    }
+
+    /** @return HasMany<Inspection, $this> */
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(Inspection::class);
     }
 }

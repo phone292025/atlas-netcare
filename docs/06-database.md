@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-08-26 · **Status:** design freeze 15 Sep 2026 — after that, changes require an ADR
+> **Last updated:** 2026-08-28 · **Status:** design freeze 15 Sep 2026 — after that, changes require an ADR
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -41,6 +41,9 @@ Apply these everywhere. They are not negotiable per-module.
 | `tickets` | `(assigned_to)` | "My tickets" |
 | `tickets` | `(ticketable_type, ticketable_id)` | Tickets for one asset |
 | `inspections` | `(lab_pc_id, completed_at)` | Inspection history, risk scoring input |
+| `inspections` | `(user_id, completed_at)` | "What am I part-way through?" — the assistant's resume path |
+| `inspection_results` | `(inspection_id, checklist_item_id)` unique | **One answer per item per inspection.** A phone on bad campus Wi-Fi double-submits; without this every answer lands twice and the derived outcome counts the same issue repeatedly. |
+| `checklist_items` | `(checklist_template_id, sort_order)` | The inspection form reads exactly this: one template's items, in order |
 | `shifts` | `(user_id, shift_date)` | "My shift today" |
 | `alarms` | `(user_id, read_at)` | Unread badge count |
 | `risk_assessments` | `(assessable_type, assessable_id, calculated_at)` | Risk history chart |
@@ -313,6 +316,18 @@ The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `access_p
 ### `checklist_templates.version`
 
 An inspection stores `checklist_template_id`, so it is permanently tied to the template version it was completed against. Editing an active template creates a new version rather than mutating the existing one — otherwise historical inspections reference items that no longer exist.
+
+**Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a plain boolean with a plain index, *not* a unique constraint: "only one active" is a rule the service enforces, because a unique index on the column would forbid a second **inactive** template, which is precisely what versioning produces. MariaDB has no partial unique index to express it properly.
+
+### `inspections.shift_id` has no foreign key yet
+
+The column exists because the ERD has it, but `shifts` is M6's table and does not exist. M6's migration adds the constraint:
+
+```php
+$table->foreign('shift_id')->references('id')->on('shifts')->nullOnDelete();
+```
+
+Nothing writes the column until then. This is the pattern to follow whenever a module needs a column pointing at a table nobody has built yet — add the column, not the other module's table.
 
 ### `telemetry_readings.source`
 

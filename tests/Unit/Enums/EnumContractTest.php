@@ -63,10 +63,15 @@ class EnumContractTest extends TestCase
     public function test_the_documented_enums_all_exist(): void
     {
         // docs/05-architecture.md and ADR-0004 both promise exactly these.
+        //
+        // InspectionOutcome, not InspectionResult: the original name collided
+        // with the model for the inspection_results table. ChecklistCategory
+        // was added by M3 — a bare string category column cannot supply the
+        // section headings the inspection form groups by.
         $documented = [
             'UserRole', 'TicketStatus', 'TicketPriority', 'TicketCategory',
-            'DeviceStatus', 'ApStatus', 'ChecklistResult', 'InspectionResult',
-            'ShiftStatus', 'AlarmType', 'RiskBand',
+            'DeviceStatus', 'ApStatus', 'ChecklistResult', 'ChecklistCategory',
+            'InspectionOutcome', 'ShiftStatus', 'AlarmType', 'RiskBand',
         ];
 
         $discovered = array_keys(self::allEnums());

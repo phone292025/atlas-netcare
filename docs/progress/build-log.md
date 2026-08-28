@@ -12,10 +12,10 @@
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Modules done** | **2 of 7** — M1 identity, roles and audit log · M2 locations and asset inventory |
-| **Tests** | 291 passing, 918 assertions, zero deprecations |
+| **Modules done** | **3 of 7** — M1 identity · M2 locations and assets · M3 checklists and inspections |
+| **Tests** | 336 passing, 1018 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M3 — checklists and inspections.** M2 gave it the lab PCs to inspect; the `last_inspected_at` column on `lab_pcs` is M3's to write. |
+| **Next action** | **M4 — workspace ticketing**, which is still **blocked on Q3** (the ticket lifecycle). M5 telemetry is unblocked and can go first if Q3 is not settled. |
 
 ---
 
@@ -29,9 +29,9 @@ A module is not done until every box in the definition of done in [../modules/RE
 |---|---|---|---|---|
 | [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | *unassigned* | 1 | ✅ **Done 2026-08-28** |
 | [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | ✅ **Done 2026-08-28** |
-| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | 🔨 **Next** |
+| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ✅ **Done 2026-08-28** |
 | [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ⬜ Not started — **blocked on Q3** |
-| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ⬜ Not started |
+| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | 🔨 **Next** (M4 is blocked) |
 | [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ⬜ Not started |
 | [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ⬜ Not started |
 
@@ -61,6 +61,23 @@ A module is not done until every box in the definition of done in [../modules/RE
 **Retirement is two columns written together.** `destroy()` sets `status = retired` *and* soft-deletes; `restore()` undoes both. `retired` is missing from the form's status dropdown and rejected by `LabPcRequest` on purpose — it is what the Retire button does, not a state you can pick. Setting one column without the other gives a machine that is retired in a report and operational on screen.
 
 Access points have no equivalent status case: `ApStatus::Maintenance` means "temporarily off", not "gone", so for an AP removal is the soft delete alone.
+
+### What M3 delivered
+
+| | |
+|---|---|
+| Tables | `checklist_templates`, `checklist_items`, `inspections`, `inspection_results` — four new migrations |
+| Screens | Assistant: rounds index · machines in a location · **the checklist form** · summary. Admin: template index/create/edit with the item builder |
+| Routes | `assistant.inspections.*`, `admin.checklists.*` — live in the sidebar |
+| Requirements | FR-203, FR-204, FR-205, FR-406 · NFR-05 |
+| Tests | 42 feature tests across two classes |
+| Settled | **Q2** — admin-editable templates with versioning, exactly as assumed |
+
+**The derived outcome is the module.** An Issue on a critical item is a `fail`, any other Issue is `pass_with_issues`, otherwise `pass`; N/A is never a failure. `overall_result` is not fillable, so no form can submit a failing machine as a pass.
+
+**Editing a used template creates a new version** rather than mutating it, so a six-month-old inspection still renders against the questions it was actually asked. An unused draft is edited in place.
+
+**Three bugs the tests did not catch, all found by rendering the pages.** The checklist form 500'd on a Collection subscript for every inspection with no answers yet; the assistant landing page 500'd on `having()` against a `withCount` alias; `LabPc::inspections()` did not exist. All three routes had tests — every one of which asserted a 403 or a redirect, so none had ever rendered the page. **A route whose tests only assert failures has never been rendered.** There are now tests that render each of them.
 
 ---
 

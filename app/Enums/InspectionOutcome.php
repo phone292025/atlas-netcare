@@ -16,9 +16,18 @@ use App\Enums\Contracts\HasTone;
  *   any non-critical item as Issue  -> PassWithIssues
  *   otherwise                       -> Pass
  *
+ * NAMED `InspectionOutcome`, NOT `InspectionResult`. The docs originally
+ * called this `InspectionResult`, which collides with the Eloquent model for
+ * the `inspection_results` table — and almost every file in M3 needs both. PHP
+ * refuses two imports with the same short name, so one would have to be
+ * aliased in every such file. The distinction now reads correctly anyway: this
+ * enum is the outcome of the whole inspection, the model is one row of
+ * results.
+ *
  * @see docs/modules/M3-checklists-and-inspections.md
+ * @see docs/progress/decision-log.md — 2026-08-28
  */
-enum InspectionResult: string implements HasLabel, HasTone
+enum InspectionOutcome: string implements HasLabel, HasTone
 {
     use HasValues;
 
@@ -42,5 +51,17 @@ enum InspectionResult: string implements HasLabel, HasTone
             self::PassWithIssues => 'attention',
             self::Fail => 'urgent',
         };
+    }
+
+    /**
+     * Whether this outcome should put the machine in front of somebody.
+     *
+     * M7 weighs inspection history; M4 offers a ticket. Both need one place
+     * to ask "did this inspection find something?" rather than each writing
+     * their own comparison and disagreeing about PassWithIssues.
+     */
+    public function needsAttention(): bool
+    {
+        return $this !== self::Pass;
     }
 }

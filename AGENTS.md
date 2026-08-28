@@ -23,10 +23,10 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (**design freeze 15 Sep 2026, diagrams not started**), building modules in parallel |
-| **Build stage** | Sprint 0 complete. **Modules: 2 of 7 done** (M1 identity, M2 assets). Next is M3. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 + M1 + M2. Config, enums, role middleware, app shell, 23 components, foundation schema, seeders, account management, the audit log, and the location / lab PC / access point inventory. 291 tests passing. |
+| **Build stage** | Sprint 0 complete. **Modules: 3 of 7 done** (M1 identity, M2 assets, M3 inspections). Next is M5 — M4 is still blocked on Q3. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Sprint 0 + M1 + M2 + M3. Config, enums, role middleware, app shell, 23 components, schema, seeders, account management, the audit log, the asset inventory, and checklists with inspections. 336 tests passing. |
 | **Last updated** | 2026-08-28 |
-| **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
+| **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md`. **Q3 now blocks the next module**, not just a future one. |
 
 ## Stack
 
@@ -134,7 +134,9 @@ php artisan test --display-deprecations
 - a sidebar that sat **off-screen on every desktop screen** — the class was in the markup, it just lost the cascade
 - an authorisation guard that **failed open** — the test assigned a PHP `false` where the database returns `int(0)`
 
-So for anything visual or stateful: open it, and **measure the DOM rather than trusting a screenshot**. When the browser pane is not displayed its compositor pauses, so screenshots can be stale frames and CSS transitions never advance. `getBoundingClientRect()` tells the truth; a picture may not.
+**A route whose tests only assert failures has never been rendered.** M3 shipped three 500s onto routes that all had tests — every one of which asserted a 403 or a redirect, so no test ever fetched the page successfully. Before calling a screen done, check that at least one test asserts `assertOk()` on it, in its *empty* state as well as its populated one. Half of these bugs only appear when a collection is empty, which is what every screen looks like on the day it ships.
+
+For anything visual or stateful: open it, and **measure the DOM rather than trusting a screenshot**. When the browser pane is not displayed its compositor pauses, so screenshots can be stale frames and CSS transitions never advance. `getBoundingClientRect()` tells the truth; a picture may not.
 
 `/dev/gallery` renders every component and is registered only when `APP_ENV=local`. Add to it rather than building a throwaway review page — that scaffold has been built and deleted twice already.
 

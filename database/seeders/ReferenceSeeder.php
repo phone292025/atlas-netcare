@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Models\ChecklistTemplate;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\Maintenance\ChecklistService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -26,14 +28,22 @@ use Illuminate\Support\Facades\Hash;
  */
 class ReferenceSeeder extends Seeder
 {
+    /**
+     * The name is a constant because it is an identity, not a label: the
+     * seeder keys on it to stay idempotent, and versioning an edited template
+     * carries it forward. Two spellings would produce two template families.
+     */
+    private const CHECKLIST_NAME = 'Standard Lab PC Check';
+
     public function run(): void
     {
         $this->firstAdministrator();
         $this->campusLocations();
+        $this->standardChecklist();
 
-        // Checklist templates (M3) and shift templates (M6) belong here too,
-        // but their tables do not exist yet. Add those sections when the
-        // migrations land — this seeder is where they go, not a new one.
+        // Shift templates (M6) belong here too, but their table does not
+        // exist yet. Add that section when the migration lands — this seeder
+        // is where it goes, not a new one.
     }
 
     /**
@@ -93,5 +103,73 @@ class ReferenceSeeder extends Seeder
         }
 
         $this->command?->info('  '.count($locations).' campus locations.');
+    }
+
+    /**
+     * The checklist an assistant fills in at a machine.
+     *
+     * Reference data, not demo data: a deployment with no active template
+     * cannot start an inspection at all, so the system ships with one. It is
+     * written out in full here so anyone can read what the system asks
+     * without opening the admin screen.
+     *
+     * The four critical items are the ones that mean the machine cannot be
+     * used at all — a student sitting down at it would have to get up again.
+     * Everything else is a fault worth recording that still leaves a usable
+     * machine, which is the whole difference between `fail` and
+     * `pass_with_issues`.
+     *
+     * Seeded INACTIVE-then-activated through the same code path the admin
+     * screen uses, so there is exactly one place that can ever produce two
+     * active templates, and it is tested.
+     */
+    private function standardChecklist(): void
+    {
+        // Keyed on name + version: re-running the seeder must not create a
+        // second copy, and must not disturb a template an administrator has
+        // since versioned.
+        $existing = ChecklistTemplate::query()
+            ->where('name', self::CHECKLIST_NAME)
+            ->exists();
+
+        if ($existing) {
+            $this->command?->info('  Checklist template already present.');
+
+            return;
+        }
+
+        $template = ChecklistTemplate::create([
+            'name' => self::CHECKLIST_NAME,
+            'description' => 'Routine check carried out on each lab workstation during a round.',
+        ]);
+
+        $items = [
+            ['Machine powers on and reaches the desktop', 'boot', true],
+            ['No unexpected error messages at start-up', 'boot', false],
+            ['Fans are not running loudly or continuously', 'boot', false],
+            ['Monitor displays a stable picture', 'display', true],
+            ['No flicker, lines or dead pixels', 'display', false],
+            ['Correct resolution and no stretching', 'display', false],
+            ['Keyboard responds, all keys working', 'peripheral', true],
+            ['Mouse responds and tracks correctly', 'peripheral', true],
+            ['Headphone socket produces sound', 'peripheral', false],
+            ['USB ports accept a device', 'peripheral', false],
+            ['Wired network connects', 'network', true],
+            ['Campus Wi-Fi is reachable', 'network', false],
+            ['Browser reaches an external site', 'network', false],
+        ];
+
+        foreach ($items as $index => [$label, $category, $isCritical]) {
+            $template->items()->create([
+                'label' => $label,
+                'category' => $category,
+                'is_critical' => $isCritical,
+                'sort_order' => $index + 1,
+            ]);
+        }
+
+        app(ChecklistService::class)->activate($template);
+
+        $this->command?->info('  Checklist template with '.count($items).' items.');
     }
 }

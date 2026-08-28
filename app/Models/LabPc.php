@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -66,6 +67,20 @@ class LabPc extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * Every time somebody checked this machine.
+     *
+     * Added by M3. It is the machine's whole health record — Q7 says a lab PC
+     * never reports on itself — so M7 scores from this and the lab PC show
+     * page will list it.
+     *
+     * @return HasMany<Inspection, $this>
+     */
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(Inspection::class);
     }
 
     /**
