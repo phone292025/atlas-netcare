@@ -81,7 +81,27 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 | Email | `ATLAS_ADMIN_EMAIL` (default `admin@atlas.local`) |
 | Password | `ATLAS_ADMIN_PASSWORD` |
 
-**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. Every other account is created from the admin's user-management screen.
+**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. Every other real account is created from the admin's user-management screen.
+
+### Demo accounts
+
+While `ATLAS_DEMO_MODE=true`, seeding also creates one sign-in per role. Most of the built screens belong to the assistant and the engineer, so without these there is no way to open the inspection form or the ticket queue at all.
+
+| Role | Email | Password |
+|---|---|---|
+| Network Engineer | `yar@apu.test` | `ATLAS_DEMO_PASSWORD` |
+| Student IT Assistant | `swan@apu.test` | `ATLAS_DEMO_PASSWORD` |
+| Student IT Assistant | `nyan@apu.test` | `ATLAS_DEMO_PASSWORD` |
+
+All three share one password — they exist to be handed round the team, and per-account passwords would just be three things to lose. Two assistants on purpose: one cannot demonstrate that an assistant sees only *their own* inspections and tickets.
+
+**Forgotten or changed one?** Re-run the seeder — it resets them rather than failing:
+
+```bash
+php artisan db:seed --class=DemoDataSeeder
+```
+
+These accounts are tagged `is_demo`, so `php artisan atlas:purge-demo-data` removes them and leaves the real administrator. With `ATLAS_DEMO_MODE=false` they are never created — a deployed system gets the administrator and nothing else.
 
 > `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 

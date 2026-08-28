@@ -78,6 +78,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo accounts
+    |--------------------------------------------------------------------------
+    |
+    | One sign-in per role, so the engineer and assistant screens can actually
+    | be opened. Created by DemoDataSeeder, so they exist ONLY when
+    | ATLAS_DEMO_MODE is true, and every one is tagged is_demo — which means
+    | `php artisan atlas:purge-demo-data` takes them away and leaves the real
+    | administrator behind.
+    |
+    | They are NOT flagged must_change_password, unlike the first
+    | administrator: being made to change the password before you can look at
+    | a screen defeats the point of a demo account.
+    |
+    | Two assistants on purpose. A single one cannot demonstrate that an
+    | assistant sees only their own inspections and tickets, which is a rule
+    | worth being able to show rather than assert.
+    |
+    | The password is one value for all three. These accounts exist to be
+    | shared with six teammates and a marker; per-account passwords would just
+    | be three things to lose.
+    |
+    */
+
+    'demo_users' => [
+        'password' => env('ATLAS_DEMO_PASSWORD', 'AtlasDemo!2026'),
+
+        'engineer' => [
+            'name' => env('ATLAS_DEMO_ENGINEER_NAME', 'Yar Zar Min'),
+            'email' => env('ATLAS_DEMO_ENGINEER_EMAIL', 'yar@apu.test'),
+        ],
+
+        'assistant' => [
+            'name' => env('ATLAS_DEMO_ASSISTANT_NAME', 'Swan Yee Htet'),
+            'email' => env('ATLAS_DEMO_ASSISTANT_EMAIL', 'swan@apu.test'),
+        ],
+
+        'assistant_two' => [
+            'name' => env('ATLAS_DEMO_ASSISTANT2_NAME', 'Nyan Lin Tun'),
+            'email' => env('ATLAS_DEMO_ASSISTANT2_EMAIL', 'nyan@apu.test'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Dashboard refresh
     |--------------------------------------------------------------------------
     |
