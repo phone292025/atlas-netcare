@@ -1,6 +1,6 @@
 # Documentation Index
 
-> **Last updated:** 2026-08-27 · **Phase:** 2 — System Design
+> **Last updated:** 2026-08-29 · **Phase:** 2 — System Design
 
 This folder is the project's source of truth. Conversation history and memory are not — they get lost. If something matters beyond today, it belongs in here.
 
@@ -18,6 +18,15 @@ New to the project (human or AI agent), read these four in order. Twenty minutes
 | 4 | [06-database.md](06-database.md) | Every table, column and relationship |
 
 Then read the module spec for whatever you are working on: [modules/](modules/).
+
+---
+
+## Start here if you are writing the report or preparing for the viva
+
+| Document | Contents |
+|---|---|
+| [13-how-the-system-works.md](13-how-the-system-works.md) | **The whole system, start to finish.** What each role does, how the parts fit, why they are built that way. Read this if you did not build it. |
+| [12-what-the-proposal-did-not-say.md](12-what-the-proposal-did-not-say.md) | **Every decision made during the build that the proposal never specified.** Roughly forty of them, none agreed by the team yet. Go through it as a group before the viva. |
 
 ---
 
