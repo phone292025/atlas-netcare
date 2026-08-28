@@ -1,6 +1,25 @@
 # Submission Checklist
 
-> **Last updated:** 2026-08-26 · Tick items as they are genuinely complete, not as they are started.
+> **Last updated:** 2026-08-29 · Tick items as they are genuinely complete, not as they are started.
+
+## Where this actually stands
+
+Six of seven modules are built and 481 tests pass. That is most of the code and a small share of the submission.
+
+| Part | Weight | State |
+|---|---|---|
+| Proposal | 20% | Submitted. **31 fixes listed below** must not reach the report. |
+| Project Report | 40% | **Barely started.** Two of twenty-one sections exist in any form. |
+| Implementation and presentation | 40% | Code is close. Nothing rehearsed, nobody owns a module. |
+| Weekly progress reports | part of the report mark | **1 written.** One per week to week 12. |
+
+The three biggest jobs left are all writing, not coding.
+
+**47 screens** need documenting for Section 15, Screens Design and User Manual. Every one, described as a manual.
+
+**Four documented UAT sessions** with real participants and recorded feedback. These take calendar time, so they cannot be left to the last week.
+
+**Four artefacts per member**, times seven members: a DFD Level 1, a data dictionary, a flowchart, and the ability to answer questions on their module. **Nobody owns a module yet**, so none of this can start.
 
 ---
 
@@ -88,16 +107,16 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 
 ## Part 3 — Implementation and Presentation (40%)
 
-- [ ] System runs complete, without errors, from a fresh install
-- [ ] All functional requirements in [03-requirements.md](03-requirements.md) achieved or explicitly descoped with a reason
-- [ ] Validation on every form
-- [ ] Consistent navigation across all three roles
-- [ ] Code neat, readable and **commented** — explicitly in the rubric
-- [ ] Installation Guide verified by someone who did not write it
-- [ ] Demo database seeds reproducibly: `php artisan migrate:fresh --seed`
-- [ ] Flagship flow rehearsed twice on the actual demo machine
-- [ ] Every member can explain their own module under questioning
-- [ ] Every member can answer "why did you build it this way?" from [decisions/](decisions/)
+- [x] System runs complete, without errors, from a fresh install — 481 tests, `atlas:check-schema` clean
+- [ ] All functional requirements in [03-requirements.md](03-requirements.md) achieved or explicitly descoped with a reason — **M7's FRs are the remaining gap**
+- [x] Validation on every form — every write goes through a Form Request
+- [x] Consistent navigation across all three roles — one sidebar built from `config/atlas.php`
+- [x] Code neat, readable and **commented** — explicitly in the rubric
+- [ ] Installation Guide verified by someone who did not write it — **the README has never been followed by anyone else**
+- [x] Demo database seeds reproducibly: `php artisan migrate:fresh --seed`
+- [ ] Flagship flow rehearsed twice on the actual demo machine — inspection to pre-filled ticket is the flow
+- [ ] Every member can explain their own module under questioning — **blocked: no module owners**
+- [ ] Every member can answer "why did you build it this way?" from [decisions/](decisions/) and [12-what-the-proposal-did-not-say.md](12-what-the-proposal-did-not-say.md)
 
 ---
 
