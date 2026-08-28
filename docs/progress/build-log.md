@@ -10,25 +10,70 @@
 
 | | |
 |---|---|
-| **Stage** | **Sprint 0 complete.** Next: Sprint 1 (M1 identity, M2 assets) |
+| **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
-| **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32 via the `mariadb` driver. Foundation schema migrated and seeded. |
-| **Next action** | **Sprint 0 complete.** Next: assign the seven module owners, settle Q3, and start Sprint 1 (M1 identity, M2 assets). |
+| **Modules done** | **1 of 7** — M1 identity, roles and audit log |
+| **Tests** | 251 passing, 828 assertions, zero deprecations |
+| **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
+| **Next action** | **M2 — locations and asset inventory.** Tables already exist from Stage 4, so it is three CRUD resources built from the component library. |
 
-## Sprint 0 stages
+---
 
-Sprint 0 is broken into five stages so each can be reviewed before the next starts. A stage is not done until its checkbox is ticked here.
+## Module progress — the live tracker
+
+This is the table to read. Seven modules, one owner each; the split exists because Section F requires an **individual** DFD 1, data dictionary and flowchart per member.
+
+A module is not done until every box in the definition of done in [../modules/README.md](../modules/README.md) is ticked — migrations, model, service, thin controllers, screens from the shared components, a feature test for the happy path *and* an authorisation failure, and the three report diagrams drafted.
+
+| Module | Track | Owner | Sprint | Status |
+|---|---|---|---|---|
+| [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | *unassigned* | 1 | ✅ **Done 2026-08-28** |
+| [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | 🔨 **Next** |
+| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ⬜ Not started |
+| [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ⬜ Not started — **blocked on Q3** |
+| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ⬜ Not started |
+| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ⬜ Not started |
+| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ⬜ Not started |
+
+**Seven owners are still unassigned.** Nothing technical is blocked by that, but the individual report deliverables are — each person documents the module they personally built, and nobody currently owns one.
+
+### What M1 delivered
+
+| | |
+|---|---|
+| Tables | `audit_logs` (+ the `users` columns from Stage 4) |
+| Screens | User index with filters and sorting · create · edit · show with history · audit log |
+| Routes | `admin.users.*`, `admin.audit.index` — live in the sidebar |
+| Requirements | FR-101…FR-106, FR-401, FR-402, FR-409, FR-509, NFR-03, NFR-04, NFR-06 |
+
+---
+
+## Sprint 0 — complete
+
+Scaffolding, finished 2026-08-28. Kept for the record; nothing here is outstanding.
 
 | # | Stage | Status |
 |---|---|---|
-| 0 | Repository, gitignore, branch, docs committed | ✅ Done 2026-08-27 |
-| 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
-| 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
-| 3 | Layouts, role-filtered sidebar, shared Blade components | ✅ Done 2026-08-28 — 3a shell/tones/icons, 3b page furniture, 3c dashboards/forms |
-| 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ✅ Done 2026-08-28 |
+| 0 | Repository, gitignore, branch, docs committed | ✅ 2026-08-27 |
+| 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ 2026-08-27 |
+| 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ 2026-08-27 |
+| 3 | Layouts, role-filtered sidebar, 23 shared Blade components | ✅ 2026-08-28 |
+| 4 | Foundation migrations, `ReferenceSeeder`, empty `DemoDataSeeder` | ✅ 2026-08-28 |
 
-Sprint 0 is complete when all five are ticked **and all seven members have run the app successfully**.
+> One Sprint 0 exit condition is still open: **all seven members have run the app successfully.** Until that happens the setup steps in `README.md` are unverified by anyone but the author, and they become the Installation Guide in the report appendix.
+
+---
+
+## Not code, and on a deadline
+
+These do not move when modules get built, and one of them has a date.
+
+| | Status |
+|---|---|
+| **Design freeze — 15 Sep 2026** | 🔴 Context Diagram, DFD 0 and the consolidated ERD. **15 marks. Not started.** |
+| **Q3 — ticket lifecycle** | 🔴 `Open`. Blocks M4 and M6. |
+| **Module owners** | 🔴 Seven unassigned. Blocks the individual report deliverables. |
+| **Weekly progress reports** | 🟠 10 marks, due every week to week 12. See the files in this folder. |
 
 ---
 
@@ -541,3 +586,27 @@ Constraints enforced by the database, not by form rules: unique `asset_tag`, `ma
 - **Q3** (ticket lifecycle) — blocks M4 and M6
 - Seven module owners unassigned
 - **Design freeze 15 Sep** — Context Diagram, DFD 0 and the consolidated ERD, 15 marks, still not started
+
+### 2026-08-28 — M1: identity, roles and the audit log
+
+**Done**
+- `audit_logs` table, written by **`AuditObserver`** rather than by controllers. Models are registered in `AppServiceProvider::AUDITED`; adding one there is the only step, and every write is then recorded — including from a seeder, a console command or tinker. A call site cannot forget it because there are no call sites. Polymorphic, so M2–M7 need no schema change.
+- `Admin\UserController` — index with search, role and status filters, whitelisted sorting, `withQueryString()` so paging keeps the filters. Create, edit, show. **No `destroy`**: accounts are deactivated, never deleted (FR-106, NFR-06).
+- `UserPolicy` — an administrator cannot **deactivate or demote themselves**. With no self-registration that is the only way to end up with a system nobody can administer, and there is no recovery path.
+- `Admin\AuditLogController` — read-only. No edit, no delete: a log somebody can change is not evidence of anything.
+- Base `Controller` gained `AuthorizesRequests`; Laravel 12 ships it empty, so `$this->authorize()` was unavailable.
+
+**Closed a requirement that had been half-built since the Stage 2 review**
+FR-106 says a deactivated account *cannot sign in*. The role middleware only blocked guarded areas — a deactivated user could still get a session. `LoginRequest` now rejects them, **after** the credential check rather than before, so the message cannot confirm an address exists to someone guessing.
+
+**Test correction**
+`AppShellTest` stubbed a fake `admin.users.index`. M1 built the real one, so the stub was shadowing it. Removed — the test now asserts against the real route. **As each module lands, delete its stub rather than leaving a fake that can drift.**
+
+**Verified**
+- `php artisan test --display-deprecations` — **251 passed, 828 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- All three screens rendered in a browser, signed in as the seeded administrator
+- The sidebar shows Users and Audit Log as live links with the six unbuilt modules struck through and marked "SOON" — the Stage 3a behaviour doing exactly what the review asked it to
+
+**Next**
+M2 — locations and asset inventory. Its tables exist from Stage 4, so it is three CRUD resources assembled from the component library.

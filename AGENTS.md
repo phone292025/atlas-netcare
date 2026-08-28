@@ -22,9 +22,9 @@ This is **academic coursework assessed against a published rubric**. Documentati
 
 | | |
 |---|---|
-| **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
-| **Build stage** | **Sprint 0 complete — all five stages.** Next work is M1–M7. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 done: config, enums, role middleware, app shell, 23 components, foundation schema and seeders. 233 tests passing. No feature modules yet — screens arrive with M1–M7. |
+| **Phase** | 2 — System Design (**design freeze 15 Sep 2026, diagrams not started**), building modules in parallel |
+| **Build stage** | Sprint 0 complete. **Modules: 1 of 7 done** (M1 identity). Next is M2. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Sprint 0 + M1. Config, enums, role middleware, app shell, 23 components, foundation schema, seeders, account management and the audit log. 251 tests passing. |
 | **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 
@@ -58,7 +58,7 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 | Touch anything to do with mock/fake/seeded data | `docs/07-data-strategy.md` |
 | Build a screen or Blade component | `docs/08-ui-conventions.md`, then look at `/dev/gallery` — the component probably already exists |
 | Give something a status colour | `app/Support/Tone.php` — one method per surface, and nowhere else |
-| Work on one specific feature area | `docs/modules/` — find its owner and spec |
+| Work on one specific feature area | `docs/modules/` — find its owner and spec. Progress tracker: `docs/progress/build-log.md` |
 | Understand *why* something is built this way | `docs/decisions/` |
 | Check whether a requirement exists | `docs/03-requirements.md` |
 | Know what is still undecided | `docs/04-open-questions.md` |

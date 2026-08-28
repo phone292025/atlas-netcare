@@ -1,6 +1,6 @@
 # Team and Ownership
 
-> **Last updated:** 2026-08-26 · **Status:** module assignment pending — do this before Sprint 0
+> **Last updated:** 2026-08-28 · **Status:** ⚠️ module assignment still pending. Sprint 0 is done and M1 is built without an owner — the individual report deliverables cannot start until this is filled in.
 
 ---
 
@@ -32,11 +32,11 @@ Seven members, seven modules, one owner each. Each person documents the module t
 
 ## Module assignment
 
-Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix.
+Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix. Live build status is in [progress/build-log.md](progress/build-log.md).
 
 | ID | Module | Track | Owner | Difficulty |
 |---|---|---|---|---|
-| **M1** | Identity, roles and audit log | A | *unassigned* | Medium |
+| **M1** | Identity, roles and audit log | A | *unassigned* | Medium — ✅ **built 2026-08-28** |
 | **M2** | Locations and asset inventory | B | *unassigned* | Low |
 | **M3** | Checklists and inspections | A | *unassigned* | Medium |
 | **M4** | Workspace ticketing | A | *unassigned* | Medium |
