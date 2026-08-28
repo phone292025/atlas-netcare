@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AccessPointController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\LabPcController;
+use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardRedirect;
 use App\Http\Controllers\ProfileController;
@@ -58,6 +61,33 @@ Route::middleware('auth')->group(function () {
             ->name('users.toggle-active');
 
         Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index');
+
+        /*
+        | M2 — locations and asset inventory.
+        |
+        | `aps` rather than `access-points` in the URL and route name, because
+        | docs/08-ui-conventions.md fixes it as admin.aps.index and the sidebar
+        | renders from that exact name.
+        */
+        Route::resource('locations', LocationController::class)->except('show');
+
+        /*
+        | `withTrashed('show')` on both resources is what makes "retiring
+        | hides it but keeps its history reachable" true. Without it the
+        | model binding 404s the moment a machine is retired, and the
+        | history the retirement was supposed to preserve is unreachable.
+        */
+        Route::resource('lab-pcs', LabPcController::class)
+            ->parameters(['lab-pcs' => 'lab_pc'])
+            ->withTrashed(['show']);
+        Route::patch('lab-pcs/{lab_pc}/restore', [LabPcController::class, 'restore'])
+            ->name('lab-pcs.restore')->withTrashed();
+
+        Route::resource('aps', AccessPointController::class)
+            ->parameters(['aps' => 'access_point'])
+            ->withTrashed(['show']);
+        Route::patch('aps/{access_point}/restore', [AccessPointController::class, 'restore'])
+            ->name('aps.restore')->withTrashed();
     });
 });
 

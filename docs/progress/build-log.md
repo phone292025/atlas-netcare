@@ -12,10 +12,10 @@
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Modules done** | **1 of 7** — M1 identity, roles and audit log |
-| **Tests** | 251 passing, 828 assertions, zero deprecations |
+| **Modules done** | **2 of 7** — M1 identity, roles and audit log · M2 locations and asset inventory |
+| **Tests** | 291 passing, 918 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M2 — locations and asset inventory.** Tables already exist from Stage 4, so it is three CRUD resources built from the component library. |
+| **Next action** | **M3 — checklists and inspections.** M2 gave it the lab PCs to inspect; the `last_inspected_at` column on `lab_pcs` is M3's to write. |
 
 ---
 
@@ -28,8 +28,8 @@ A module is not done until every box in the definition of done in [../modules/RE
 | Module | Track | Owner | Sprint | Status |
 |---|---|---|---|---|
 | [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | *unassigned* | 1 | ✅ **Done 2026-08-28** |
-| [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | 🔨 **Next** |
-| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ⬜ Not started |
+| [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | ✅ **Done 2026-08-28** |
+| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | 🔨 **Next** |
 | [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ⬜ Not started — **blocked on Q3** |
 | [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ⬜ Not started |
 | [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ⬜ Not started |
@@ -45,6 +45,22 @@ A module is not done until every box in the definition of done in [../modules/RE
 | Screens | User index with filters and sorting · create · edit · show with history · audit log |
 | Routes | `admin.users.*`, `admin.audit.index` — live in the sidebar |
 | Requirements | FR-101…FR-106, FR-401, FR-402, FR-409, FR-509, NFR-03, NFR-04, NFR-06 |
+
+### What M2 delivered
+
+| | |
+|---|---|
+| Tables | `locations`, `lab_pcs`, `access_points` — already migrated in Stage 4, no schema change |
+| Screens | Locations index/create/edit · Lab PC index/create/edit/**show** · Access point index/create/edit/**show** |
+| Routes | `admin.locations.*`, `admin.lab-pcs.*`, `admin.aps.*` — live in the sidebar |
+| Requirements | FR-403, FR-404, FR-405 · NFR-08 |
+| Tests | 40 feature tests across three classes |
+
+**The two show pages are the ones later modules plug into.** Each carries labelled, empty cards where M4 (tickets), M5 (telemetry) and M7 (risk) hang their content — see `resources/views/admin/lab-pcs/show.blade.php`. Filling one is a matter of replacing an `<x-empty-state>`, not restructuring a page.
+
+**Retirement is two columns written together.** `destroy()` sets `status = retired` *and* soft-deletes; `restore()` undoes both. `retired` is missing from the form's status dropdown and rejected by `LabPcRequest` on purpose — it is what the Retire button does, not a state you can pick. Setting one column without the other gives a machine that is retired in a report and operational on screen.
+
+Access points have no equivalent status case: `ApStatus::Maintenance` means "temporarily off", not "gone", so for an AP removal is the soft delete alone.
 
 ---
 

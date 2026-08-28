@@ -103,7 +103,7 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-data-table>` | `headers`, rows slot, `filters` / `empty` / `pagination` slots | Every index page |
 | `<x-form.field>` | *internal* — label, help and error scaffolding the three controls share | Not used directly |
 | `<x-form.input>` | `name`, `label`, `help`, `type` — error display built in | Every form |
-| `<x-form.select>` | `name`, `label`, `options`, `selected` | Every form |
+| `<x-form.select>` | `name`, `label`, `options`, `selected`, plus **`placeholder`** (disabled prompt, for forms) or **`blank`** (selectable "any", for filter bars) — one or the other, never both | Every form |
 | `<x-form.textarea>` | `name`, `label`, `rows` | Every form |
 | `<x-chart>` | `type`, `:data`, `:options` — Chart.js wrapper | Dashboard, AP detail, traffic, reports |
 | `<x-checklist-item>` | `:item`, `:result` — OK / Issue / N/A with expanding remark | Inspection form |

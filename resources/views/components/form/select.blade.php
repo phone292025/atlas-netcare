@@ -5,6 +5,7 @@
     'options' => [],
     'selected' => null,
     'placeholder' => null,
+    'blank' => null,
     'required' => false,
     'bag' => 'default',
 ])
@@ -23,9 +24,20 @@
     read their labels from the same enum, so they cannot disagree about what a
     value is called.
 
-    `placeholder` renders a disabled first option — use it when no value is a
+    `placeholder` renders a DISABLED first option — use it when no value is a
     valid answer ("Choose a location"), not as a fake empty choice on a
     required field.
+
+    `blank` renders a SELECTABLE first option with an empty value — for filter
+    bars, where "any" is a real answer and the user must be able to get back to
+    it. Use one or the other, never both:
+
+        placeholder → "Choose a location"   (a form; you must pick something)
+        blank       → "Anywhere"            (a filter; not picking is allowed)
+
+    They are separate props rather than one prop with a flag because the wrong
+    one is invisible until someone tries to clear a filter and finds the option
+    greyed out.
 
     @see App\Enums\Concerns\HasValues::options()
     @see docs/08-ui-conventions.md — Blade components
@@ -61,6 +73,10 @@
         @if (filled($placeholder))
             <option value="" disabled @selected($current === null || $current === '')>
                 {{ $placeholder }}
+            </option>
+        @elseif (filled($blank))
+            <option value="" @selected($current === null || $current === '')>
+                {{ $blank }}
             </option>
         @endif
 

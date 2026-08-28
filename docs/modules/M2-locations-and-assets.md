@@ -42,10 +42,22 @@ The lab PC and AP **show** pages are important — they are where M5, M4 and M7 
 
 ## Definition of done
 
-- [ ] Admin can create, edit and retire a location, lab PC and access point
-- [ ] Duplicate asset tag or MAC address is rejected with a clear message
-- [ ] Retiring a PC hides it from active lists but keeps its history reachable
-- [ ] Show pages expose slots for telemetry, tickets and risk
-- [ ] Locations seeded in `ReferenceSeeder`; assets seeded in `DemoDataSeeder` with `is_demo = true`
-- [ ] Feature tests: create, duplicate rejection, retire, non-admin denied
-- [ ] DFD 1, data dictionary and flowchart drafted
+- [x] Admin can create, edit and retire a location, lab PC and access point
+- [x] Duplicate asset tag or MAC address is rejected with a clear message
+- [x] Retiring a PC hides it from active lists but keeps its history reachable
+- [x] Show pages expose slots for telemetry, tickets and risk
+- [x] Locations seeded in `ReferenceSeeder`; assets seeded in `DemoDataSeeder` with `is_demo = true`
+- [x] Feature tests: create, duplicate rejection, retire, non-admin denied
+- [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.** Section F wants these per member, from whoever owns this module.
+
+## How it was built
+
+**Retirement writes two columns, always together.** `LabPcController::destroy()` sets `status = retired` *and* soft-deletes; `restore()` reverses both. `retired` is absent from the form dropdown and rejected by `LabPcRequest` — it is the Retire button's business, not a value you choose. Write one without the other and the machine is retired in a report and operational on screen.
+
+An access point has no equivalent: `ApStatus::Maintenance` means "temporarily off", not "gone", so AP removal is the soft delete alone.
+
+**`->withTrashed(['show'])` on both resource routes is load-bearing.** It is what makes "keeps its history reachable" true — without it the model binding 404s the moment a machine is retired, on exactly the records the retirement was meant to preserve. There is a test pinning this.
+
+**Counting a location's assets uses `withTrashed()`.** The soft-delete scope hides a retired PC from the relation, so counting without it reports the location empty and then hands the user a raw foreign-key error instead of the message written for that case.
+
+**Where later modules plug in.** Both show pages carry labelled empty cards for tickets (M4), telemetry (M5) and risk (M7). Filling one means replacing an `<x-empty-state>`, not restructuring the page.

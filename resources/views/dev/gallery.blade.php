@@ -156,7 +156,11 @@
                         <x-form.select name="priority" label="Priority"
                                        :options="\App\Enums\TicketPriority::options()" selected="medium" />
                         <x-form.select name="location_id" label="Location" placeholder="Choose a location"
-                                       :options="['1' => 'Level 6 IT Lab 01', '2' => 'Library', '3' => 'Cafeteria']" />
+                                       :options="['1' => 'Level 6 IT Lab 01', '2' => 'Library', '3' => 'Cafeteria']"
+                                       help="placeholder — a disabled prompt. For forms, where you must pick something." />
+                        <x-form.select name="location_filter" label="Location (filter bar)" blank="Anywhere"
+                                       :options="['1' => 'Level 6 IT Lab 01', '2' => 'Library', '3' => 'Cafeteria']"
+                                       help="blank — selectable. For filters, where the user has to be able to get back to &quot;any&quot;." />
                         <x-form.textarea name="handover_notes" label="Handover notes" rows="3"
                                          help="What the next shift needs to know." />
                     </div>

@@ -23,8 +23,8 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (**design freeze 15 Sep 2026, diagrams not started**), building modules in parallel |
-| **Build stage** | Sprint 0 complete. **Modules: 1 of 7 done** (M1 identity). Next is M2. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 + M1. Config, enums, role middleware, app shell, 23 components, foundation schema, seeders, account management and the audit log. 251 tests passing. |
+| **Build stage** | Sprint 0 complete. **Modules: 2 of 7 done** (M1 identity, M2 assets). Next is M3. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Sprint 0 + M1 + M2. Config, enums, role middleware, app shell, 23 components, foundation schema, seeders, account management, the audit log, and the location / lab PC / access point inventory. 291 tests passing. |
 | **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 
