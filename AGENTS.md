@@ -101,6 +101,7 @@ These are not stylistic preferences. Breaking them creates work for six other pe
 - **Never write a `match` on a tone outside `app/Support/Tone.php`.** One file owns tone to Tailwind classes, one method per surface. A second mapping is how `urgent` becomes two different reds.
 - **Never use MySQL's `ENUM` column type.** Use a `string` column cast to a PHP backed enum. See ADR-0004.
 - **Never use `float` for a number a user reads.** Use `decimal`.
+- **Never use `timestamp` for a column recording when something happened.** Use `dateTime`. MariaDB gives the *first* `timestamp` column in a table an implicit `ON UPDATE CURRENT_TIMESTAMP`, so it is silently rewritten by any UPDATE that does not name it — this destroyed `tickets.opened_at`, and with it the SLA baseline, on every status transition. `created_at` / `updated_at` are the exception: being touched automatically is their job. Run `php artisan atlas:check-schema` after any migration.
 - **Never add a global Eloquent scope** that hides demo rows. It will silently hide data during a demo.
 - **Never install a package** without an ADR justifying it.
 - **Never write `register` routes or self-signup.** Accounts are created by administrators only.
