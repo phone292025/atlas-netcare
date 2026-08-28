@@ -341,6 +341,16 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 `simulated` or `live`. Both can sit in the same table. This is what makes the mock/real strategy work without a second database — see [07-data-strategy.md](07-data-strategy.md).
 
+**Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
+
+`status` here is a plain string and must **not** be cast to `ApStatus`. A reading records a MEASURED state — online, degraded or offline only. `ApStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
+
+### `telemetry_hourly` is unique on `(access_point_id, hour_bucket)`
+
+Not merely indexed. Aggregation is re-runnable by design — scheduled hourly, rebuilding the last three hours, and runnable by hand — and without the unique constraint a second pass over the same hour silently doubles every point on the chart.
+
+Aggregated latency **excludes offline readings**: an unreachable access point has no latency, and counting it as zero makes an outage read as the best hour that AP ever had. Uptime is carried as its own column instead, which is also the figure the report quotes.
+
 ### `is_demo`
 
 On `users`, `lab_pcs`, `access_points`, `tickets`. Set **only** by `DemoDataSeeder`. Enables `php artisan atlas:purge-demo-data`.

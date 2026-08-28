@@ -130,5 +130,22 @@
     </div>
 </div>
 
+{{-- Page-specific scripts.
+
+     THE ORDER HERE IS LOAD-BEARING. @vite emits type="module", which is
+     deferred and therefore runs AFTER the document is parsed — so a plain
+     <script> pushed to this stack executes first, and any x-data function it
+     defines exists by the time Alpine.start() runs.
+
+     Push a module, or defer this script, and that reverses: Alpine initialises
+     first, cannot find the function, and the element renders as blank markup
+     with nothing in the console to explain it.
+
+     Use it sparingly. An Alpine component more than one page needs belongs in
+     resources/js/app.js instead.
+
+         @push('scripts') <script>function apDashboard() { ... }</script> @endpush --}}
+@stack('scripts')
+
 </body>
 </html>

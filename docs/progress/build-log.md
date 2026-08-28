@@ -12,10 +12,11 @@
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
-| **Modules done** | **4 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing |
-| **Tests** | 387 passing, 1111 assertions, zero deprecations |
+| **Modules done** | **5 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry |
+| **Tests** | 433 passing, 1211 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M5 — telemetry and the AP dashboard.** Nothing blocks it. Its collector calls `TicketService::hasOutstandingFor()` before auto-raising a ticket, and that guard is already built and tested. |
+| **Next action** | **M6 — shifts, roster and alarms.** Nothing blocks it. It adds the `shift_id` foreign key that M3's `inspections` table is already carrying as a bare column. |
+| **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---
 
@@ -31,8 +32,8 @@ A module is not done until every box in the definition of done in [../modules/RE
 | [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | ✅ **Done 2026-08-28** |
 | [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ✅ **Done 2026-08-28** |
 | [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-28** |
-| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | 🔨 **Next** |
-| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ⬜ Not started |
+| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ✅ **Done 2026-08-28** |
+| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | 🔨 **Next** |
 | [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ⬜ Not started |
 
 **Seven owners are still unassigned.** Nothing technical is blocked by that, but the individual report deliverables are — each person documents the module they personally built, and nobody currently owns one.
@@ -97,6 +98,28 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 **Internal comments are filtered in the query.** `TicketComment::scopeVisibleTo()` is the only place visibility is decided; a Blade `@if` would be one edit away from showing an assistant what the engineers said about their report.
 
 **The M3 hand-off is live.** A failed checklist item pre-fills the machine, location, fault text and a suggested priority, and the ticket keeps a link back to the inspection that found it (FR-207). M3 built the panel behind a `Route::has()` guard, so wiring it up was deleting the guard.
+
+### What M5 delivered
+
+| | |
+|---|---|
+| Tables | `telemetry_readings`, `telemetry_hourly` — two new migrations |
+| Screens | Engineer: **live AP dashboard** · AP detail with 24h chart · traffic and congestion logs. Assistant: read-only AP status |
+| Commands | `atlas:collect-telemetry` (every minute) · `atlas:aggregate-telemetry` (hourly) · `atlas:prune-telemetry` (weekly) · `atlas:backfill-telemetry` (by hand) |
+| Routes | `engineer.dashboard`, `engineer.aps.*`, `engineer.traffic.index`, `assistant.aps.index`, `api.dashboard` |
+| Requirements | FR-209, FR-301…FR-305, FR-503 · NFR-02, NFR-07 |
+| Tests | 37 across two classes |
+| Settled | **Q1**, **Q9**, **Q10** — all three built as assumed |
+
+**The driver swap is the design, and it is tested.** `TelemetrySource` has two implementations chosen by `config('atlas.telemetry_driver')`; going live is an `.env` change and one class. An unknown driver name **throws** rather than falling back — a typo silently producing invented data on a system meant to show real readings is the worst outcome available.
+
+**The simulator is a model, not `rand()`.** Fixed per-AP personalities, a two-humped daily curve, weekends at 28%, and latency rising with the cube of saturation. Generated data measures 3–4 clients / ~21 ms overnight against 31–33 clients / ~210 ms at the 11:00 peak, and the correlation is visible on the chart. ADR-0002 warns a sharp marker will look for exactly this, so there are tests asserting both the curve and the correlation.
+
+**Classification lives in the service** because it needs history. `consecutive_breach` stops one noisy sample flipping a colour or auto-raising a ticket, and `Maintenance` survives untouched — it is an administrative decision, not a measurement.
+
+**An access point going offline raises exactly one ticket**, guarded twice: only on the transition, and only if nothing is already open for that asset.
+
+**Run `atlas:backfill-telemetry` before demonstrating.** A 24-hour chart that is empty until you have left the collector running for a day is not demonstrable.
 
 ---
 

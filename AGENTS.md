@@ -23,10 +23,10 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (**design freeze 15 Sep 2026, diagrams not started**), building modules in parallel |
-| **Build stage** | Sprint 0 complete. **Modules: 4 of 7 done** (M1 identity, M2 assets, M3 inspections, M4 ticketing). Next is M5. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 + M1–M4. Config, enums, role middleware, app shell, 23 components, schema, seeders, account management, the audit log, the asset inventory, checklists with inspections, and ticketing. 387 tests passing. |
+| **Build stage** | Sprint 0 complete. **Modules: 5 of 7 done** (M1 identity, M2 assets, M3 inspections, M4 ticketing, M5 telemetry). Next is M6. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Sprint 0 + M1–M5. Config, enums, role middleware, app shell, 23 components, schema, seeders, account management, the audit log, the asset inventory, checklists with inspections, ticketing, and the telemetry pipeline with its live dashboard. 433 tests passing. |
 | **Last updated** | 2026-08-28 |
-| **Blocking** | **Q6** only. Q3 was adopted-as-proposed and built in M4, but the team never agreed it — confirm or change it. See `docs/04-open-questions.md`. |
+| **Blocking** | **Q6** only. Q1 and Q3 were built from their working assumptions without the team agreeing them — confirm or change. See `docs/04-open-questions.md`. |
 
 ## Stack
 

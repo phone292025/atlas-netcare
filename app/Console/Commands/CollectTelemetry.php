@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Enums\ApStatus;
+use App\Enums\TicketCategory;
+use App\Enums\TicketPriority;
+use App\Models\User;
+use App\Services\Telemetry\TelemetryService;
+use App\Services\Tickets\TicketService;
+use Illuminate\Console\Command;
+
+/**
+ * Take one reading from every access point and store it.
+ *
+ * Runs every minute on the schedule. Enters at the SERVICE layer and skips
+ * controllers entirely, which is the point of putting the rules there — this
+ * command and a browser request share exactly the same logic.
+ *
+ * @see docs/modules/M5-telemetry-and-dashboard.md
+ * @see docs/05-architecture.md
+ */
+class CollectTelemetry extends Command
+{
+    protected $signature = 'atlas:collect-telemetry {--quiet-summary : Print only the counts}';
+
+    protected $description = 'Poll every access point once and store the readings';
+
+    public function handle(TelemetryService $telemetry, TicketService $tickets): int
+    {
+        $transitions = $telemetry->collectAndStore();
+
+        foreach ($transitions as $change) {
+            $this->reportTransition($change['access_point'], $change['from'], $change['to']);
+
+            if ($change['to'] === ApStatus::Offline) {
+                $this->raiseOfflineTicket($tickets, $change['access_point']);
+            }
+        }
+
+        $this->info('Telemetry collected. '.$transitions->count().' status '
+            .str('change')->plural($transitions->count()).'.');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * An access point going offline raises exactly one ticket (FR-503).
+     *
+     * Two guards, both needed. This runs only on the TRANSITION into offline,
+     * not on every offline reading — otherwise a six-hour outage files 360
+     * tickets. And `hasOutstandingFor()` covers the case where somebody has
+     * already reported it by hand, or where the AP flaps in and out and the
+     * first ticket is still open.
+     */
+    private function raiseOfflineTicket(TicketService $tickets, $ap): void
+    {
+        if ($tickets->hasOutstandingFor($ap)) {
+            return;
+        }
+
+        $reporter = $this->systemReporter();
+
+        if (! $reporter) {
+            // Nobody to attribute it to. Say so rather than failing the whole
+            // collection run — the reading itself is already safely stored.
+            $this->warn("No administrator to attribute the auto-ticket for {$ap->ap_code}.");
+
+            return;
+        }
+
+        $tickets->open([
+            'title' => "{$ap->ap_code} is not responding",
+            'description' => "Raised automatically: no response from {$ap->ap_code}"
+                .($ap->location ? " in {$ap->location->label()}" : '')
+                .'. Last seen '.($ap->last_seen_at?->diffForHumans() ?? 'never').'.',
+            'category' => TicketCategory::Network->value,
+            'priority' => TicketPriority::Critical->value,
+            'location_id' => $ap->location_id,
+        ], $reporter, $ap);
+
+        $this->warn("Raised a ticket for {$ap->ap_code}.");
+    }
+
+    /**
+     * Who an automatic ticket is attributed to.
+     *
+     * `reported_by` is not nullable — a ticket with no reporter is a ticket
+     * nobody can be asked about. The first administrator stands in for the
+     * system, which is honest: an administrator configured the collector.
+     */
+    private function systemReporter(): ?User
+    {
+        return User::query()->active()->where('role', 'admin')->orderBy('id')->first();
+    }
+
+    private function reportTransition($ap, ApStatus $from, ApStatus $to): void
+    {
+        $line = "{$ap->ap_code}: {$from->label()} → {$to->label()}";
+
+        $to === ApStatus::Online ? $this->info($line) : $this->warn($line);
+    }
+}

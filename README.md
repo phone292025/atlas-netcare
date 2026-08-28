@@ -105,6 +105,24 @@ These accounts are tagged `is_demo`, so `php artisan atlas:purge-demo-data` remo
 
 > `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 
+### Seeing the dashboard with data
+
+The AP health dashboard is driven by telemetry, and telemetry only exists once something has collected it. Two commands:
+
+```bash
+php artisan atlas:backfill-telemetry --days=14
+```
+
+Invents two weeks of plausible history and rolls it into the hourly buckets the charts read — so the 24-hour chart has something to draw immediately, instead of after you have left the collector running for a day.
+
+```bash
+php artisan schedule:work
+```
+
+Keeps it live: one reading per access point per minute, aggregated hourly, pruned weekly. **Without the scheduler the dashboard shows whatever the last collection produced and quietly goes stale**, which looks exactly like a broken dashboard.
+
+Telemetry is simulated by default (`ATLAS_TELEMETRY_DRIVER=simulated`). Switching to real access points is that one `.env` value plus implementing `SnmpTelemetrySource` — nothing else in the system changes. See [ADR-0002](docs/decisions/ADR-0002-telemetry-source-driver.md).
+
 ## Team
 
 | Member | TP Number | Module |

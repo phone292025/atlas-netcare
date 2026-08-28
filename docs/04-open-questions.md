@@ -30,7 +30,9 @@ Ten things the approved proposal leaves undefined. Each has a working assumption
 <a id="q1"></a>
 ## Q1 — What numerically counts as a "degraded" access point?
 
-**Status:** `Assumed` · **Owner:** M5 owner · **Blocks:** telemetry classification, dashboard colours, auto-ticketing
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
+
+> Built from the working assumption below, which nobody has ratified. **The numbers are five lines in `config/atlas.php` under `thresholds`** — changing them is a config edit, and `TelemetryClassificationTest` covers each threshold separately so you will see immediately what moves. The one thing still worth doing is sanity-checking 120 ms against an actual APU access point, even informally; a number nobody has ever compared to reality is the kind of thing a viva asks about.
 
 The proposal promises to "highlight congested zones" but never defines congestion. Without numbers there is nothing to code, nothing to test, and nothing to defend in the viva.
 
@@ -173,7 +175,9 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 <a id="q9"></a>
 ## Q9 — Does "Traffic and Congestion Logs" mean per-AP history or campus-wide trends?
 
-**Status:** `Assumed` · **Owner:** M5 owner · **Blocks:** aggregation strategy
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
+
+**As built:** both, from **one screen**. `engineer.traffic.index` unfiltered is the campus trend; filtered to one access point it is that AP's history. Two screens reading the same table would have been two things to keep in step. The chart above the table is grouped in the database rather than in PHP — a month of hourly rows across forty access points is ~29,000, and summing them in a collection works fine on seeded data and falls over on real volume.
 
 **Working assumption: both**, served from the `telemetry_hourly` aggregate table rather than by scanning raw readings. At one reading per AP per minute across 40 APs, raw telemetry reaches roughly 1.7 million rows over 30 days — charting directly off that table will be slow enough to notice during a demo.
 
@@ -182,9 +186,11 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 <a id="q10"></a>
 ## Q10 — How long is telemetry retained?
 
-**Status:** `Assumed` · **Owner:** M5 owner · **Blocks:** pruning command
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
 
 **Working assumption:** 90 days of raw readings, 12 months of hourly aggregates, pruned weekly by `atlas:prune-telemetry`.
+
+**As built** exactly that, from `config('atlas.retention')`. The command deletes in chunks rather than one statement — a single `DELETE` across a million rows holds the table long enough to notice, and this is scheduled to run while the system is up. `--dry-run` reports what would go without touching anything.
 
 Worth stating in the report even though it is a small decision — it demonstrates that data volume was considered rather than ignored, which is exactly the kind of thing the "depth of your approach" criterion rewards.
 

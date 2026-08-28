@@ -6,10 +6,14 @@ use App\Http\Controllers\Admin\ChecklistTemplateController;
 use App\Http\Controllers\Admin\LabPcController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Api\DashboardDataController;
+use App\Http\Controllers\Assistant\AccessPointStatusController;
 use App\Http\Controllers\Assistant\InspectionController;
 use App\Http\Controllers\Assistant\TicketController as AssistantTicketController;
 use App\Http\Controllers\DashboardRedirect;
+use App\Http\Controllers\Engineer\DashboardController;
 use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
+use App\Http\Controllers\Engineer\TrafficLogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketCommentController;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -146,7 +150,34 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:engineer,admin')->prefix('engineer')->name('engineer.')->group(function () {
         Route::get('tickets', [EngineerTicketController::class, 'index'])->name('tickets.index');
         Route::get('tickets/{ticket}', [EngineerTicketController::class, 'show'])->name('tickets.show');
+
+        /*
+        | M5 — telemetry and the AP dashboard.
+        |
+        | `engineer.dashboard`, `engineer.aps.index` and
+        | `engineer.traffic.index` are fixed vocabulary from
+        | docs/08-ui-conventions.md; the sidebar renders from those exact
+        | names.
+        */
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('aps', [DashboardController::class, 'index'])->name('aps.index');
+        Route::get('aps/{accessPoint}', [DashboardController::class, 'show'])->name('aps.show');
+        Route::get('traffic', [TrafficLogController::class, 'index'])->name('traffic.index');
     });
+
+    // M5 — read-only AP status for an assistant on a round (FR-209).
+    Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
+        Route::get('aps', [AccessPointStatusController::class, 'index'])->name('aps.index');
+    });
+
+    /*
+    | The dashboard's polling endpoint (FR-302, ADR-0005).
+    |
+    | Behind `auth` deliberately: the access point layout of a campus network
+    | is not public information, and an unauthenticated JSON endpoint would
+    | publish it.
+    */
+    Route::get('api/dashboard', DashboardDataController::class)->name('api.dashboard');
 
     /*
     | Both shared endpoints are guarded by TicketPolicy, not by a role.

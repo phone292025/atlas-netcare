@@ -1,0 +1,300 @@
+<?php
+
+namespace App\Services\Telemetry;
+
+use App\Enums\ApStatus;
+use App\Models\AccessPoint;
+use App\Models\TelemetryReading;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Storing readings, deciding what they mean, and answering the dashboard.
+ *
+ * CLASSIFICATION LIVES HERE, not in a driver and not in a database trigger. A
+ * driver reports numbers; whether those numbers amount to "degraded" is a
+ * business rule with thresholds in config, and it needs the previous readings
+ * — which a driver does not have.
+ *
+ * @see docs/modules/M5-telemetry-and-dashboard.md
+ * @see docs/04-open-questions.md Q1
+ */
+class TelemetryService
+{
+    public function __construct(private readonly TelemetrySource $source) {}
+
+    /**
+     * Take a round of readings and store them.
+     *
+     * Returns the access points whose status CHANGED, so the caller can act on
+     * a transition — M4 raises a ticket when one goes offline, and only on the
+     * transition. Reacting to every offline reading would raise one ticket a
+     * minute for six hours.
+     *
+     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     */
+    public function collectAndStore(): Collection
+    {
+        $readings = $this->source->collect();
+
+        if ($readings->isEmpty()) {
+            return collect();
+        }
+
+        return $this->store($readings);
+    }
+
+    /**
+     * Persist readings and update each access point's current state.
+     *
+     * @param  Collection<int, ReadingData>  $readings
+     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     */
+    public function store(Collection $readings): Collection
+    {
+        $accessPoints = AccessPoint::query()
+            ->whereIn('id', $readings->pluck('accessPointId')->unique())
+            ->get()
+            ->keyBy('id');
+
+        $transitions = collect();
+
+        DB::transaction(function () use ($readings, $accessPoints, &$transitions) {
+            $rows = [];
+
+            foreach ($readings as $reading) {
+                $ap = $accessPoints->get($reading->accessPointId);
+
+                if (! $ap) {
+                    continue;
+                }
+
+                $status = $this->classify($ap, $reading);
+                $rows[] = $reading->toRow($status->value);
+
+                $from = $ap->status;
+
+                if ($from !== $status) {
+                    $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => $status]);
+                }
+
+                /*
+                 * The access point's own columns are a denormalised cache of
+                 * its latest reading, so the dashboard and the inventory list
+                 * need no subquery. Written in the same transaction as the
+                 * reading, so the two can never disagree.
+                 *
+                 * last_seen_at is only touched when the AP actually answered —
+                 * that is the column the offline rule reads, and stamping it
+                 * on a failed poll would mean nothing is ever offline.
+                 */
+                $ap->forceFill(array_filter([
+                    'status' => $status,
+                    'last_seen_at' => $reading->unreachable ? null : $reading->recordedAt,
+                ], fn ($value) => $value !== null))->save();
+            }
+
+            // Chunked insert() rather than create() in a loop: one round is 40
+            // rows, but the backfill is hundreds of thousands.
+            foreach (array_chunk($rows, 500) as $chunk) {
+                TelemetryReading::insert($chunk);
+            }
+        });
+
+        return $transitions;
+    }
+
+    /**
+     * What this reading means for this access point (Q1).
+     *
+     *   offline   — did not answer, or has not answered for offline_after_min
+     *   degraded  — latency, loss or saturation over threshold for
+     *               `consecutive_breach` readings in a row
+     *   online    — neither
+     *
+     * The consecutive requirement is what stops one noisy sample flipping an
+     * access point's state, and with it the dashboard colour and an
+     * auto-raised ticket.
+     *
+     * An access point under planned maintenance keeps that status regardless.
+     * It is an administrative decision, not a measurement, and overwriting it
+     * would start paging somebody about a device an engineer is holding.
+     */
+    public function classify(AccessPoint $ap, ReadingData $reading): ApStatus
+    {
+        if ($ap->status === ApStatus::Maintenance) {
+            return ApStatus::Maintenance;
+        }
+
+        if ($reading->unreachable || $this->hasBeenSilentTooLong($ap, $reading)) {
+            return ApStatus::Offline;
+        }
+
+        if (! $this->breachesThreshold($ap, $reading)) {
+            return ApStatus::Online;
+        }
+
+        $required = (int) config('atlas.thresholds.consecutive_breach');
+
+        // This reading is one of them, so we only need the previous n-1.
+        $previous = TelemetryReading::query()
+            ->where('access_point_id', $ap->id)
+            ->orderByDesc('recorded_at')
+            ->limit($required - 1)
+            ->get();
+
+        if ($previous->count() < $required - 1) {
+            // Not enough history to be sure yet. Staying online is the safer
+            // wrong answer: a false Degraded on a newly added access point
+            // trains people to ignore the dashboard.
+            return ApStatus::Online;
+        }
+
+        $allBreaching = $previous->every(
+            fn (TelemetryReading $r) => $this->rowBreaches($ap, $r)
+        );
+
+        return $allBreaching ? ApStatus::Degraded : ApStatus::Online;
+    }
+
+    /** Whether a single fresh reading is over any threshold. */
+    private function breachesThreshold(AccessPoint $ap, ReadingData $reading): bool
+    {
+        return $this->overThresholds(
+            $ap,
+            $reading->latencyMs,
+            $reading->packetLossPct,
+            $reading->clientCount,
+        );
+    }
+
+    /** The same test, against a row already in the database. */
+    private function rowBreaches(AccessPoint $ap, TelemetryReading $reading): bool
+    {
+        return $this->overThresholds(
+            $ap,
+            $reading->latency_ms,
+            (float) $reading->packet_loss_pct,
+            $reading->client_count,
+        );
+    }
+
+    /**
+     * One threshold test, used by both paths.
+     *
+     * Written once rather than twice on purpose: a fresh reading and a stored
+     * one must be judged identically, and two copies of this would drift into
+     * "degraded now but not degraded a minute later" with no data change.
+     */
+    private function overThresholds(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): bool
+    {
+        $thresholds = config('atlas.thresholds');
+
+        if ($latencyMs !== null && $latencyMs > $thresholds['latency_ms']) {
+            return true;
+        }
+
+        if ($lossPct > $thresholds['packet_loss_pct']) {
+            return true;
+        }
+
+        $saturation = $ap->saturation($clients);
+
+        return $saturation !== null && $saturation > $thresholds['client_saturation'];
+    }
+
+    /**
+     * Answered, but not for longer than the offline window.
+     *
+     * Covers the case a failed poll does not: the collector itself stopped
+     * running. Without this an access point that has not been heard from since
+     * Tuesday still shows online, because no reading ever arrived to say
+     * otherwise.
+     */
+    private function hasBeenSilentTooLong(AccessPoint $ap, ReadingData $reading): bool
+    {
+        if ($ap->last_seen_at === null) {
+            return false;
+        }
+
+        $minutes = (int) config('atlas.thresholds.offline_after_min');
+
+        return $ap->last_seen_at->lt($reading->recordedAt->copy()->subMinutes($minutes));
+    }
+
+    /**
+     * The dashboard payload — counts by state, plus every access point's
+     * current reading.
+     *
+     * Deliberately one method serving both the first page render and the
+     * polling endpoint, so the two can never show different numbers.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboardData(): array
+    {
+        $accessPoints = AccessPoint::query()
+            ->with('location')
+            ->orderBy('ap_code')
+            ->get();
+
+        $latest = $this->latestReadings($accessPoints->pluck('id'));
+
+        return [
+            'generated_at' => now()->toIso8601String(),
+            'counts' => [
+                'total' => $accessPoints->count(),
+                'online' => $accessPoints->where('status', ApStatus::Online)->count(),
+                'degraded' => $accessPoints->where('status', ApStatus::Degraded)->count(),
+                'offline' => $accessPoints->where('status', ApStatus::Offline)->count(),
+                'maintenance' => $accessPoints->where('status', ApStatus::Maintenance)->count(),
+            ],
+            'clients_now' => (int) $latest->sum('client_count'),
+            'access_points' => $accessPoints->map(function (AccessPoint $ap) use ($latest) {
+                $reading = $latest->get($ap->id);
+
+                return [
+                    'id' => $ap->id,
+                    'code' => $ap->ap_code,
+                    'location' => $ap->location?->code,
+                    'status' => $ap->status->value,
+                    'status_label' => $ap->status->label(),
+                    'tone' => $ap->status->tone(),
+                    'clients' => $reading?->client_count ?? 0,
+                    'capacity' => $ap->client_capacity,
+                    'latency_ms' => $reading?->latency_ms,
+                    'packet_loss_pct' => $reading ? (float) $reading->packet_loss_pct : null,
+                    'last_seen' => $ap->last_seen_at?->diffForHumans(),
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    /**
+     * The most recent reading for each of these access points.
+     *
+     * One query for all of them rather than one per AP — this runs on every
+     * dashboard poll, and forty extra queries every twenty seconds is exactly
+     * the N+1 a marker looks for.
+     *
+     * @param  Collection<int, int>  $accessPointIds
+     * @return Collection<int, TelemetryReading>
+     */
+    public function latestReadings(Collection $accessPointIds): Collection
+    {
+        if ($accessPointIds->isEmpty()) {
+            return collect();
+        }
+
+        $latestIds = TelemetryReading::query()
+            ->selectRaw('MAX(id) as id')
+            ->whereIn('access_point_id', $accessPointIds)
+            ->groupBy('access_point_id')
+            ->pluck('id');
+
+        return TelemetryReading::query()
+            ->whereIn('id', $latestIds)
+            ->get()
+            ->keyBy('access_point_id');
+    }
+}

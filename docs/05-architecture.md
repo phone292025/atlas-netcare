@@ -49,6 +49,8 @@ app/
 │   ├── CollectTelemetry.php
 │   ├── AggregateTelemetry.php
 │   ├── PruneTelemetry.php
+│   ├── BackfillTelemetry.php            by hand, not scheduled — invents
+│   │                                    history so the charts have data
 │   ├── RecalculateRiskScores.php
 │   ├── DispatchDueAlarms.php
 │   ├── GenerateShifts.php
