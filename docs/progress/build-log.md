@@ -15,8 +15,29 @@
 | **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
 | **Tests** | 481 passing (1 skipped), 1290 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores now exists: inspection history (M3), ticket history (M4), telemetry (M5). |
+| **Next action** | **1. Calendar export for shifts** (agreed 2026-08-29, see below). **2. M7 — predictive risk and reports**, the last module. Everything M7 scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
+
+---
+
+## Agreed next: calendar export for shifts
+
+Decided with Phone Myat Ko on 2026-08-29. Not started.
+
+**The problem.** M6's alarms only reach the notification bell inside the app. An assistant who is not looking at Atlas NetCare does not know their shift starts in 30 minutes, which is most of the point of having shift alarms at all.
+
+**Rejected: email.** Every account in the system uses `@apu.test` or `@atlas.local`. Both are reserved domains that can never receive mail, chosen deliberately in M1 so a stray notification could never reach a real person. Sending email would mean putting seven teammates' personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message.
+
+**Agreed instead: hand the shift to the phone's own calendar.** iOS and Android already have reminder systems that work with the app closed, the phone locked, and no internet. Nothing we build will beat them. A calendar file needs no email address, no SMTP account, no bot, and no service worker.
+
+**Two parts, sharing one generator:**
+
+1. **Add to my calendar** button on the shift screen. Downloads one event with a reminder already set for 30 minutes before. Works immediately on both platforms.
+2. **Subscribe to my roster.** One link, and every shift appears in the assistant's calendar and keeps appearing as administrators generate new weeks. Needs a per-person secret token in the URL, revocable, because calendar apps cannot sign in. Google refreshes subscriptions slowly, sometimes up to a day, so part 1 stays useful for "I need this on my phone now".
+
+**What it does not solve.** Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. Worth stating plainly in the report's Limitations, along with the note that real APU addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
+
+Estimated at about an hour for both parts.
 
 ---
 
