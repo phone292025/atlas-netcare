@@ -23,8 +23,8 @@ This is **academic coursework assessed against a published rubric**. Documentati
 | | |
 |---|---|
 | **Phase** | 2 — System Design (design freeze 15 Sep 2026), building Sprint 0 in parallel |
-| **Build stage** | Sprint 0, Stages 0–3 complete. Only Stage 4 (migrations, seeders) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 Stages 0–3 done: config, enums, role middleware, app shell, 23 shared components. 213 tests passing. No feature modules yet — screens arrive with M1–M7. |
+| **Build stage** | **Sprint 0 complete — all five stages.** Next work is M1–M7. See `docs/progress/build-log.md` — **read it before doing anything.** |
+| **Code written** | Sprint 0 done: config, enums, role middleware, app shell, 23 components, foundation schema and seeders. 233 tests passing. No feature modules yet — screens arrive with M1–M7. |
 | **Last updated** | 2026-08-28 |
 | **Blocking** | Open questions Q3 and Q6 — see `docs/04-open-questions.md` |
 
@@ -37,11 +37,11 @@ Pinned versions, verified in the installed lock file. Do not upgrade any of thes
 | **Laravel** | 12.68.0 | Pinned. Laravel 13 needs PHP ^8.3; this project runs on PHP 8.2.12. See ADR-0008. |
 | **PHP** | 8.2.12 | XAMPP |
 | **Breeze** | 2.4.2 | Blade stack. Registration deliberately removed. |
-| **Blade** | — | Server-side templating. All 17 shared components live in `resources/views/components/`. |
+| **Blade** | — | Server-side templating. All 23 shared components live in `resources/views/components/` — see them at `/dev/gallery`. |
 | **Tailwind CSS** | 3.4.19 | Configured in `tailwind.config.js`, **not** the CSS-based v4 config |
 | **Alpine.js** | 3.16 | Dropdowns, modals, the mobile drawer, the poll timer. No plugins installed. |
 | **Chart.js** | via `window.Chart` | Wired in `resources/js/app.js` with shared defaults |
-| **Database** | MariaDB 10.4.32 | XAMPP ships MariaDB, not MySQL. `DB_CONNECTION` is still `mysql`; switching to the `mariadb` driver is outstanding and matters for M7's JSON column. |
+| **Database** | MariaDB 10.4.32 | `DB_CONNECTION=mariadb` (Laravel 12 has a dedicated driver). Matters for M7: MariaDB implements `JSON` as `LONGTEXT`. |
 
 No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those, it does not — raise it as an open question instead.
 
@@ -108,6 +108,7 @@ These are not stylistic preferences. Breaking them creates work for six other pe
 - **Never nest a Blade comment inside a Blade comment.** The inner closing token ends the outer one, and everything after it becomes live template code. A usage example in a component docblock then gets compiled and evaluated. Keep examples as plain indented text.
 - **Never run `composer update`.** It drifts dependencies off the committed lock file and can pull a Laravel version ADR-0008 rules out. Use `composer install`.
 - **Never let a component query the database.** Components receive data as props. That is the single property that lets `ATLAS_TELEMETRY_DRIVER` change without a view being touched.
+- **Never put a privilege column in `$fillable`.** `role`, `is_active` and `is_demo` on `User`, and `risk_score` / `risk_band` / `is_demo` on the asset models, are written by the system — never from request input. A mass-assigned `role` turns any profile form into privilege escalation.
 
 ---
 

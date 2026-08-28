@@ -72,6 +72,17 @@ php artisan serve         # in a second terminal
 
 The app is at `http://127.0.0.1:8000`.
 
+### Signing in
+
+Atlas NetCare has **no self-registration** — an administrator creates every account. `php artisan migrate --seed` creates the first one from your `.env`:
+
+| | |
+|---|---|
+| Email | `ATLAS_ADMIN_EMAIL` (default `admin@atlas.local`) |
+| Password | `ATLAS_ADMIN_PASSWORD` |
+
+**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. Every other account is created from the admin's user-management screen.
+
 > `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 
 ## Team

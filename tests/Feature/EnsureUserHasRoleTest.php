@@ -150,26 +150,39 @@ class EnsureUserHasRoleTest extends TestCase
         //
         // The in-memory tests above keep passing even when the guard is broken,
         // because assigning PHP false makes a strict `=== false` comparison
-        // work. The bug only appears when the value comes back out of the
-        // database, where an uncast boolean column reads as int(0).
+        // work. The bug only appeared when the value came back out of the
+        // database, where an UNCAST boolean column reads as int(0) and
+        // `=== false` never matches.
         //
-        // So this test must use a user LOADED FROM the database, not the
-        // instance that was just written.
+        // Stage 4 added `'is_active' => 'boolean'` to the User model, so the
+        // value is now a real bool. The guard is deliberately still a loose
+        // truthiness check rather than `=== false`: if the cast is ever dropped
+        // the middleware keeps working. This test loads the user FROM the
+        // database so it exercises whichever of the two is true.
         $user = $this->userFromDatabase(role: 'engineer', isActive: false);
 
-        // Prove the premise rather than assume it.
-        $this->assertSame(0, $user->is_active, 'Expected an uncast boolean column to read back as int(0).');
+        $this->assertFalse((bool) $user->is_active, 'A deactivated user must read back as falsy.');
 
         $this->actingAs($user)
             ->get('/test-engineer-only')
             ->assertForbidden();
     }
 
+    public function test_the_user_model_casts_is_active_to_a_real_boolean(): void
+    {
+        // Pins the cast added in Stage 4. Without it Eloquent returns int(0),
+        // which is exactly what let the guard fail open in the first place.
+        $user = $this->userFromDatabase(role: 'engineer', isActive: false);
+
+        $this->assertIsBool($user->is_active);
+        $this->assertFalse($user->is_active);
+    }
+
     public function test_an_active_user_with_a_real_database_column_is_allowed(): void
     {
         $user = $this->userFromDatabase(role: 'engineer', isActive: true);
 
-        $this->assertSame(1, $user->is_active);
+        $this->assertTrue((bool) $user->is_active);
 
         $this->actingAs($user)->get('/test-engineer-only')->assertOk();
     }

@@ -2,24 +2,30 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Two seeders, deliberately.
+ *
+ *   ReferenceSeeder  the minimum a real deployment needs. Always runs.
+ *   DemoDataSeeder   the illustration. Only when ATLAS_DEMO_MODE is true.
+ *
+ * So `php artisan migrate:fresh --seed` gives a full demonstration system on a
+ * developer's machine, and the same command with ATLAS_DEMO_MODE=false gives a
+ * clean deployable one. No second database, no separate migration path.
+ *
+ * @see docs/07-data-strategy.md
+ */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(ReferenceSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (config('atlas.demo_mode')) {
+            $this->call(DemoDataSeeder::class);
+        } else {
+            $this->command?->info('  ATLAS_DEMO_MODE is off — reference data only.');
+        }
     }
 }

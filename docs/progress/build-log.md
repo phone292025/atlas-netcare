@@ -10,11 +10,11 @@
 
 | | |
 |---|---|
-| **Stage** | Sprint 0 — scaffolding |
+| **Stage** | **Sprint 0 complete.** Next: Sprint 1 (M1 identity, M2 assets) |
 | **Last session** | 2026-08-28 |
 | **Laravel installed** | ✅ 12.68.0, Breeze Blade stack |
-| **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32, base Laravel migrations only |
-| **Next action** | Stage 4: foundation migrations, ReferenceSeeder, empty DemoDataSeeder. No user accounts exist — Stage 4 seeds the first admin. |
+| **Database created** | ✅ `atlas_netcare` on MariaDB 10.4.32 via the `mariadb` driver. Foundation schema migrated and seeded. |
+| **Next action** | **Sprint 0 complete.** Next: assign the seven module owners, settle Q3, and start Sprint 1 (M1 identity, M2 assets). |
 
 ## Sprint 0 stages
 
@@ -26,7 +26,7 @@ Sprint 0 is broken into five stages so each can be reviewed before the next star
 | 1 | Laravel install, `.env`, Breeze with register removed, Vite + Tailwind + Alpine + Chart.js | ✅ Done 2026-08-27 |
 | 2 | `config/atlas.php`, all eleven enums, `EnsureUserHasRole` middleware | ✅ Done 2026-08-27 |
 | 3 | Layouts, role-filtered sidebar, shared Blade components | ✅ Done 2026-08-28 — 3a shell/tones/icons, 3b page furniture, 3c dashboards/forms |
-| 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ⬜ Not started |
+| 4 | Foundation migrations (`users`, `locations`, `lab_pcs`, `access_points`), `ReferenceSeeder`, empty `DemoDataSeeder` | ✅ Done 2026-08-28 |
 
 Sprint 0 is complete when all five are ticked **and all seven members have run the app successfully**.
 
@@ -501,3 +501,43 @@ Every visual check so far had been made while signed in. **Check the signed-out 
 - Q3 (ticket lifecycle) — blocks M4 and M6
 - Seven module owners unassigned
 - **Design freeze 15 Sep**: Context Diagram, DFD 0 and the consolidated ERD are 15 marks and none exist yet
+
+### 2026-08-28 — Stage 4: foundation schema and seeders. **Sprint 0 complete.**
+
+**Decisions settled first, both deferred since Stage 1**
+- **`DB_CONNECTION=mariadb`.** XAMPP ships MariaDB 10.4.32 and Laravel 12 has a dedicated `MariaDbConnector`. Settled *before* the first migration rather than after, because MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than a native type, and M7's `risk_assessments.factors` is a JSON column. Verified with `php artisan db:show`, which now reports `Connection: mariadb`.
+- **Q6 handled under the provisional-values rule.** `must_change_password` exists as a column because `06-database.md` specifies it, and the seeded administrator is flagged with it — but **no first-login enforcement middleware was built**, because the team has not ratified Q6.
+
+**Migrations — four, matching `06-database.md`**
+- `add_atlas_columns_to_users_table` — a **separate** migration rather than an edit to Laravel's `create_users_table`, which is already merged and has been run on other machines. Hard rule 4.
+- `create_locations_table`, `create_lab_pcs_table`, `create_access_points_table`
+
+Constraints enforced by the database, not by form rules: unique `asset_tag`, `mac_address`, `ap_code`, `code`, `tp_number`; `restrictOnDelete` from assets to locations so a lab holding machines cannot be deleted; soft deletes on users, lab PCs and access points so retiring something keeps its history (NFR-06).
+
+**The `is_active` cast finally landed.** The Stage 2 review found the role middleware failing **open** because an uncast boolean column returns `int(0)` and `=== false` never matches. The guard was fixed then to a loose check; the cast was recorded as outstanding. It now exists — and the guard stays loose on purpose, so removing the cast cannot reintroduce the bug. A new test pins the cast itself.
+
+**Privilege is not mass assignable.** `role`, `is_active` and `is_demo` are deliberately absent from `User::$fillable`. A mass-assigned `role` turns any profile form into privilege escalation. Same rule on the asset models for `risk_score`, `risk_band` and `is_demo` — written by M7's scoring run and the seeder, never by a form. There is a test.
+
+**Seeders — the split that makes the data strategy real**
+- `ReferenceSeeder` **always runs**: the first administrator and six campus locations covering the three zones in the approved scope. Nothing it creates is tagged `is_demo`, so `atlas:purge-demo-data` will leave all of it alone. Records are written out explicitly rather than through factories — a location called "Level 6 IT Lab 01" should be readable in the file.
+- `DemoDataSeeder` **only when `ATLAS_DEMO_MODE=true`**, and is intentionally empty at Stage 4: the tables it will populate arrive with M2–M6. It documents what goes in it and that every row must carry its flag.
+
+> **Correction to the Stage 4 handover note**, which said `ReferenceSeeder` would seed checklist and shift templates. Those tables belong to M3 and M6 and do not exist yet, so it seeds the administrator and the locations only. The seeder carries a comment saying those sections go *there* when the migrations land, rather than in a new seeder.
+
+**Credentials come from the environment.** `ATLAS_ADMIN_EMAIL` and `ATLAS_ADMIN_PASSWORD` in `.env`, never a committed default — a password in the repository is a credential shared with six people. Documented in `.env.example` with a warning.
+
+**Factories** for `Location`, `LabPc` and `AccessPoint`, with a `demo()` state that applies the `is_demo` flag. The same factories power the tests and will power `DemoDataSeeder`, so there is one set of fixtures rather than two. Lab PC purchase dates spread across six years on purpose — age is one of M7's four risk factors, and a dataset where every machine is the same age would make the ranking screen look broken.
+
+**Verified**
+- `php artisan test --display-deprecations` — **233 passed, 793 assertions**, zero deprecations
+- `vendor/bin/pint --test` — passes
+- `php artisan migrate:fresh --seed --force` — clean run, administrator and six locations created
+- Seeded administrator resolves to `UserRole::Admin`, `homeRoute()` → `admin.users.index`, 9 navigation entries
+- A feature test signs in as the seeded administrator end to end — the check that actually matters after `migrate --seed`
+
+**Sprint 0 is complete.** All five stages done. The next work is M1–M7.
+
+**Unchanged and still outstanding**
+- **Q3** (ticket lifecycle) — blocks M4 and M6
+- Seven module owners unassigned
+- **Design freeze 15 Sep** — Context Diagram, DFD 0 and the consolidated ERD, 15 marks, still not started

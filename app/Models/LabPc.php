@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\DeviceStatus;
+use App\Enums\RiskBand;
+use Database\Factories\LabPcFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+/**
+ * A university-owned lab workstation.
+ *
+ * Q7: a lab PC never reports its own health. No agent is installed on campus
+ * machines, so everything this record knows arrives through an assistant
+ * completing a checklist or raising a ticket. That is why M7 scores these from
+ * inspection history, ticket history and age rather than live telemetry.
+ *
+ * @see docs/modules/M2-locations-and-assets.md
+ * @see docs/04-open-questions.md Q7
+ */
+class LabPc extends Model
+{
+    /** @use HasFactory<LabPcFactory> */
+    use HasFactory, SoftDeletes;
+
+    /**
+     * `risk_score`, `risk_band`, `last_inspected_at` and `is_demo` are absent
+     * on purpose. They are written by the system — M7's scoring run, M3's
+     * inspection service, the demo seeder — never by a form.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'asset_tag',
+        'location_id',
+        'hostname',
+        'cpu',
+        'ram_gb',
+        'storage',
+        'os_version',
+        'purchase_date',
+        'warranty_expiry',
+        'status',
+    ];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'status' => DeviceStatus::class,
+            'risk_band' => RiskBand::class,
+            'purchase_date' => 'date',
+            'warranty_expiry' => 'date',
+            'last_inspected_at' => 'datetime',
+            'risk_score' => 'decimal:2',
+            'ram_gb' => 'integer',
+            'is_demo' => 'boolean',
+        ];
+    }
+
+    /** @return BelongsTo<Location, $this> */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * Machines still in service.
+     *
+     * Retired machines keep their history but drop out of inspection rounds
+     * and risk scoring.
+     *
+     * @param  Builder<LabPc>  $query
+     */
+    public function scopeInService(Builder $query): void
+    {
+        $query->where('status', '!=', DeviceStatus::Retired);
+    }
+
+    /** @param  Builder<LabPc>  $query */
+    public function scopeDemo(Builder $query): void
+    {
+        $query->where('is_demo', true);
+    }
+
+    /**
+     * Years since purchase, for M7's age risk factor.
+     *
+     * Null when the purchase date is unknown, so the scorer can skip the
+     * factor rather than treat a missing date as a brand-new machine.
+     */
+    public function ageInYears(): ?float
+    {
+        return $this->purchase_date?->floatDiffInYears(now());
+    }
+}

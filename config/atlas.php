@@ -54,6 +54,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | First administrator
+    |--------------------------------------------------------------------------
+    |
+    | Atlas NetCare has no self-registration: an administrator creates every
+    | account (FR-105). Somebody therefore has to create the first
+    | administrator, and that is ReferenceSeeder's job.
+    |
+    | The password comes from the environment, never from this file. A
+    | committed default password is a credential in the repository, and this
+    | repository is shared with six other people.
+    |
+    | The seeded account is flagged must_change_password so the first sign-in
+    | is expected to replace it.
+    |
+    */
+
+    'first_admin' => [
+        'name' => env('ATLAS_ADMIN_NAME', 'System Administrator'),
+        'email' => env('ATLAS_ADMIN_EMAIL', 'admin@atlas.local'),
+        'password' => env('ATLAS_ADMIN_PASSWORD', 'ChangeMeNow!2026'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Dashboard refresh
     |--------------------------------------------------------------------------
     |
