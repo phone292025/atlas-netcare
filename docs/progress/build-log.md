@@ -13,16 +13,16 @@
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
 | **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
-| **Tests** | 481 passing (1 skipped), 1290 assertions, zero deprecations |
+| **Tests** | 502 passing (1 skipped), 1404 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **1. Calendar export for shifts** (agreed 2026-08-29, see below). **2. M7 — predictive risk and reports**, the last module. Everything M7 scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). |
+| **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). Then FR-408, the individual shift override M6 did not build. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---
 
-## Agreed next: calendar export for shifts
+## Calendar export — built 2026-08-29
 
-Decided with Phone Myat Ko on 2026-08-29. Not started.
+Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and-alarms.md](../modules/M6-shifts-and-alarms.md) for how it works.
 
 **The problem.** M6's alarms only reach the notification bell inside the app. An assistant who is not looking at Atlas NetCare does not know their shift starts in 30 minutes, which is most of the point of having shift alarms at all.
 
@@ -37,7 +37,7 @@ Decided with Phone Myat Ko on 2026-08-29. Not started.
 
 **What it does not solve.** Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. Worth stating plainly in the report's Limitations, along with the note that real APU addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
 
-Estimated at about an hour for both parts.
+**Built.** 21 tests in `ShiftCalendarTest`, covering the file format as well as the behaviour, because a malformed calendar is rejected silently by the phone and looks exactly like a broken button.
 
 ---
 

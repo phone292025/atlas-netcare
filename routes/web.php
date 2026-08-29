@@ -19,6 +19,7 @@ use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ShiftCalendarController;
 use App\Http\Controllers\TicketCommentController;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
@@ -197,6 +198,16 @@ Route::middleware('auth')->group(function () {
         Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
         Route::post('shifts/{shift}/check-in', [ShiftController::class, 'checkIn'])->name('shifts.check-in');
         Route::post('shifts/{shift}/check-out', [ShiftController::class, 'checkOut'])->name('shifts.check-out');
+
+        // Hand one shift to the phone's own calendar, so the phone does the
+        // reminding. See ShiftCalendarController for why there are two ways in.
+        Route::get('shifts/{shift}/calendar', [ShiftCalendarController::class, 'download'])
+            ->name('shifts.calendar');
+
+        Route::post('shifts/calendar/link', [ShiftCalendarController::class, 'regenerate'])
+            ->name('shifts.calendar.link');
+        Route::delete('shifts/calendar/link', [ShiftCalendarController::class, 'revoke'])
+            ->name('shifts.calendar.revoke');
     });
 
     /*
@@ -241,6 +252,26 @@ Route::middleware('auth')->group(function () {
     Route::get('inspections/{inspection}', [InspectionController::class, 'show'])
         ->name('assistant.inspections.show');
 });
+
+/*
+| The shift subscription feed.
+|
+| DELIBERATELY OUTSIDE THE `auth` GROUP. A calendar application fetches this
+| on a timer with no session, no cookie and no way to be prompted for a
+| password, so the token in the URL is the credential. It is 48 random
+| characters, looked up against a unique index, and an unknown one gets a flat
+| 404 rather than anything confirming that other tokens exist.
+|
+| Regenerating the token from the shift screen invalidates every copy of the
+| old link. That is the revoke button.
+|
+| Throttled because it is the one route in the system anybody can reach
+| without signing in, and a feed URL is meant to be polled hourly, not
+| hammered.
+*/
+Route::get('calendar/{token}/atlas-shifts.ics', [ShiftCalendarController::class, 'feed'])
+    ->middleware('throttle:60,1')
+    ->name('shifts.calendar.feed');
 
 /*
 | Component gallery.

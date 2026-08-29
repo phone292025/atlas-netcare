@@ -71,6 +71,34 @@ Admin: shift template index/create/edit · roster generator with week preview an
 
 **`inspections.shift_id` finally has its foreign key.** M3 created the column and left the constraint for whenever `shifts` existed; this module added it, `nullOnDelete` so deleting a shift never deletes the evidence that somebody inspected a machine during it.
 
+## Calendar export
+
+Added 2026-08-29, after M6. The alarms above only reach the bell inside the app, so an assistant who is not looking at Atlas NetCare does not know their shift starts in thirty minutes.
+
+Rather than push messages out, the system hands the shift to the phone and the phone does the reminding. That alarm system already works with the app closed, the screen locked and no internet.
+
+**Email was considered and rejected.** Every account uses `@apu.test` or `@atlas.local`, both reserved domains that can never receive mail. Sending email would mean putting seven personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message. A calendar file needs no address at all.
+
+**Two ways in, sharing one generator** in `ShiftCalendar`.
+
+A **download button** on the shift screen gives one event, behind normal authentication, with a reminder already set for 30 minutes before. Works immediately on both platforms.
+
+A **subscription feed** gives every upcoming shift and keeps giving them as administrators generate new weeks. Calendar applications cannot sign in, so the URL carries a 48-character token instead of relying on a session. Regenerating it invalidates every copy of the old link, which is the revoke button. The route sits outside the `auth` group deliberately and is throttled, being the only thing in the system reachable without signing in.
+
+Both are kept because Google refreshes subscriptions on its own slow schedule, sometimes only daily, so the button still answers "I need this on my phone now".
+
+### The part worth getting right
+
+**Timezone.** A shift holds a local date and a local time, and the application runs in UTC. Emitting those values with a `Z` suffix would put a 09:00 shift into a Malaysian calendar at 17:00. Every event carries an explicit `TZID` and the file includes a `VTIMEZONE`. Malaysia has no daylight saving, so that block is a single fixed offset. A calendar showing the wrong time is worse than no calendar, and there is a test pinning it.
+
+**Format.** CRLF line endings, folding at 75 octets, and escaping for commas and semicolons are all required by RFC 5545 rather than optional tidiness. Get any of them wrong and the phone rejects the file silently, which is indistinguishable from a broken button. Asserted in `ShiftCalendarTest`.
+
+**Stable event IDs**, so tapping the button twice gives one calendar entry rather than two.
+
+### What it does not cover
+
+Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. **Worth stating in the report's Limitations**, along with the note that real `@apu.edu.my` addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
+
 ## Running it
 
 ```bash

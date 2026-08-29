@@ -270,6 +270,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Calendar export
+    |--------------------------------------------------------------------------
+    |
+    | Assistants add their shifts to their own phone calendar, so the phone's
+    | alarm system does the reminding. It works with the app closed, the phone
+    | locked and no internet, which nothing we could build would.
+    |
+    | `timezone` is the campus wall clock, and it is NOT config('app.timezone').
+    | The application runs in UTC while shifts are stored as a date and a local
+    | time, so a calendar emitting UTC would put every shift eight hours out.
+    | Every exported event carries this zone explicitly.
+    |
+    | `reminder_min` is how long before a shift the phone should alert. The
+    | assistant can change it once the event is in their calendar; this is only
+    | the default we ship.
+    |
+    | See docs/modules/M6-shifts-and-alarms.md
+    |
+    */
+
+    'calendar' => [
+        'timezone' => env('ATLAS_CALENDAR_TIMEZONE', 'Asia/Kuala_Lumpur'),
+        'reminder_min' => 30,
+        'name' => 'Atlas NetCare shifts',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Navigation
     |--------------------------------------------------------------------------
     |

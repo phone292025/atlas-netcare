@@ -48,6 +48,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        // Anyone holding this can read that person's roster without signing
+        // in. It must never reach a JSON response or a log line by accident.
+        'calendar_token',
     ];
 
     /**
