@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-08-29 · **Bring this to every supervisor meeting — it is the agenda.**
 
-Eleven things the approved proposal leaves undefined, or that building it exposed. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
+Eleven things the approved proposal leaves undefined, or that building it exposed. Nine are settled. Q6 is still open, and Q8 belongs to the report rather than the code. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
 **Status key:** `Open` — no assumption safe enough to build on · `Assumed` — building on a stated default · `Decided` — settled, recorded, safe
 
@@ -26,7 +26,7 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 | [Q8](#q8) | Where do the NFRs live? | `Assumed` | Report | Week 12 |
 | [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
 | [Q10](#q10) | How long is telemetry retained? | ✅ Settled | M5 | `config/atlas.php` → `retention` |
-| [Q11](#q11) | How does a password reset email reach anyone? | **🔴 Open** | M1 | **FR-102 is approved and currently undeliverable** |
+| [Q11](#q11) | How does a password reset email reach anyone? | ✅ Settled | M1 | `.env` → `ATLAS_MAIL_ACCOUNT`, `MAIL_PASSWORD` |
 
 ---
 
@@ -202,37 +202,51 @@ Worth stating in the report even though it is a small decision — it demonstrat
 <a id="q11"></a>
 ## Q11 — How does a password reset email actually reach anyone?
 
-**Status:** 🔴 **`Open`** · **Owner:** M1 owner · **Blocks:** FR-102 being demonstrable
+**Status:** ✅ `Settled` — built on 2026-08-29 · **Owner:** M1 owner · **Blocks:** nothing further
 
-Not in the original ten. Found on 2026-08-29 when the reset screen was tried on a phone and said *"We have emailed your password reset link"* while sending nothing.
+> **One manual step remains, and it is not optional.** Somebody has to paste a Google app password into `MAIL_PASSWORD` and run `php artisan atlas:mail-test`. Until that happens the reset screen says so instead of pretending. Nothing else in the system depends on it.
 
-**FR-102 is approved** and the proposal lists "recover password" for all three roles, so this cannot simply be dropped. The flow works. Delivery does not, for two separate reasons:
+Not in the original ten. Found when the reset screen was tried on a phone and said *"We have emailed your password reset link"* while sending nothing.
 
-`MAIL_MAILER=log`, so Laravel writes the message into `storage/logs/laravel.log`. Seven reset links had accumulated there. That is also a small security problem: a live token in a log file is a way into an account for anyone who can read it.
+**FR-102 is approved** and the proposal lists "recover password" for all three roles, so it could not simply be dropped. The flow was never broken. Delivery was, for two separate reasons:
 
-And every demo account uses `@apu.test` or `@atlas.local`, reserved domains that **can never** receive mail, so even a working mail server would deliver nothing.
+`MAIL_MAILER=log`, so Laravel wrote the message into `storage/logs/laravel.log`. Six reset links had accumulated there across four messages. That is also a small security problem, since a live token in a log file is a way into an account for anyone who can read it. Those tokens have been redacted in place; the error history around them was worth keeping.
 
-The screen now warns when the mailer is `log` and debug is on, so it no longer claims to have sent something. That makes it honest, not working.
+And every demo account used `@apu.test` or `@atlas.local`, reserved domains that **can never** receive mail, so even a working mail server would have delivered nothing.
 
-### The options
+### What was built
 
-**1. Real addresses plus Gmail SMTP.** Point the demo accounts at addresses the team controls, using plus-addressing so they all land in one inbox: `yourname+swan@gmail.com`, `yourname+nyan@gmail.com`. Those are real, deliverable addresses. Add a Gmail app password to `.env`.
+**Gmail plus-addressing.** Every account now uses one real inbox:
 
-*Fully satisfies FR-102 and is demonstrable on a phone.* Costs one app password, which must never be committed. **Recommended.**
+| | Was | Is |
+|---|---|---|
+| Administrator | `admin@atlas.local` | `${ATLAS_MAIL_ACCOUNT}+admin@gmail.com` |
+| Engineer | `phone@apu.test` | `${ATLAS_MAIL_ACCOUNT}+phone@gmail.com` |
+| Assistant | `swan@apu.test` | `${ATLAS_MAIL_ACCOUNT}+swan@gmail.com` |
+| Assistant | `nyan@apu.test` | `${ATLAS_MAIL_ACCOUNT}+nyan@gmail.com` |
 
-**2. A local mail catcher.** Mailpit or Mailtrap accepts the mail and shows it in a web inbox. No credentials, no real addresses.
+Gmail ignores everything after a `+`, so four deliverable addresses land in one inbox somebody already owns. **No teammate has to hand over a personal address, and nothing real reaches the repository** — `ATLAS_MAIL_ACCOUNT` is one line in `.env`, and `.env.example` carries only the shape.
 
-Proves the code path and is honest, but the demo shows a developer tool rather than an email arriving. Reasonable fallback if option 1 is unwanted.
+The rejected alternatives were Mailpit, which proves the code path but demonstrates a developer tool rather than an email arriving on a phone, and descoping FR-102, which contradicts an approved proposal and was not ours to decide quietly.
 
-**3. Descope FR-102.** Change its status here and in `03-requirements.md`, and say in the report that recovery is administrator-mediated because the system has no self-registration.
+**The screen now distinguishes the two ways of being broken.** `config('atlas.mail_configured')` is false for `MAIL_MAILER=log` and equally false for `smtp` with no password, and the warning names which. It is behind `app.debug`, so it can never appear on a deployment.
 
-Defensible, and the rubric permits requirements "explicitly descoped with a reason". But it contradicts the approved proposal, so raise it with Mr Dhason rather than deciding quietly.
+**A refused SMTP login is an error message, not a stack trace.** `Password::sendResetLink()` sends inline, so Gmail's `535` for a bad app password surfaced as a 500 on the one screen reachable without signing in. `PasswordResetLinkController` catches it, logs the real reason, and shows the user a sentence. Verified against a live rejection from Gmail rather than only a mocked one.
 
-### What must not happen
+**`php artisan atlas:mail-test` is the only real check.** The suite fakes the mailer, so a green run says nothing at all about whether SMTP works. The command sends one message, and on failure reads the server's wording and says which of the three usual causes it is: a rejected login, a blocked outbound port, or a missing CA bundle.
 
-Leaving it as it is and saying nothing. A marker who clicks "Forgot your password?" sees a success message for something that did not happen, and that reads worse than either building it or descoping it.
+**The email itself is from this system.** Laravel's stock wording ends "If you did not request a password reset, no further action is required", which is written for a public signup form. On a system where an administrator creates every account, an unexpected reset email means somebody typed a colleague's address, and the right advice is to say so. The expiry is read from config rather than written into the sentence, because someone will change it.
+
+### Still worth knowing
+
+**Requesting a reset for an unknown address says so.** That is Laravel's default and it confirms which addresses exist on the system. On an internal tool with no self-registration the disclosure is small, and the alternative is a demo where a typo looks identical to success. **Left as it is deliberately; say so in the report rather than being asked about it.**
+
+**The first message from a new app password usually lands in spam.** Look there before concluding it failed.
+
+**An app password can be revoked from the Google account without anything here changing.** Run `atlas:mail-test` once before the demonstration.
 
 ---
+
 
 ## Resolution log
 

@@ -15,9 +15,13 @@ use Illuminate\Support\Collection;
  * does the reminding. That system already works with the app closed, the
  * screen locked and no internet.
  *
- * It also needs no email address, which matters here: every account in the
- * system uses @apu.test or @atlas.local, both reserved domains that can never
- * receive mail.
+ * It also needs no email address at all, which is why this survived the
+ * change on 2026-08-29 that gave every account a deliverable Gmail
+ * plus-address so FR-102 could send a password reset link. Before that the
+ * accounts were @apu.test and @atlas.local, reserved domains that can never
+ * receive mail, and email was not an option for reminders at any price. It is
+ * now, and a calendar file is still the better answer: it alarms with the app
+ * closed, needs no SMTP account, and cannot end up in a spam folder.
  *
  * TIMEZONE IS THE THING TO GET RIGHT. A shift is stored as a date plus a local
  * time, and the application runs in UTC. Emitting the raw values with a `Z`

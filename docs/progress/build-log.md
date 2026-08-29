@@ -26,7 +26,8 @@ Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and
 
 **The problem.** M6's alarms only reach the notification bell inside the app. An assistant who is not looking at Atlas NetCare does not know their shift starts in 30 minutes, which is most of the point of having shift alarms at all.
 
-**Rejected: email.** Every account in the system uses `@apu.test` or `@atlas.local`. Both are reserved domains that can never receive mail, chosen deliberately in M1 so a stray notification could never reach a real person. Sending email would mean putting seven teammates' personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message.
+**Rejected: email.** *(Half of this reasoning expired on 2026-08-29, when accounts moved to deliverable Gmail plus-addresses for FR-102. The calendar decision does not depend on it — a calendar file still needs no address, no SMTP account and no service worker, and still alarms with the app closed. See [Q11](../04-open-questions.md#q11).)* Every account in the system used `@apu.test` or `@atlas.local`. Both are reserved domains that can never receive mail, chosen deliberately in M1 so a stray notification could never reach a real person.
+ Sending email would mean putting seven teammates' personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message.
 
 **Agreed instead: hand the shift to the phone's own calendar.** iOS and Android already have reminder systems that work with the app closed, the phone locked, and no internet. Nothing we build will beat them. A calendar file needs no email address, no SMTP account, no bot, and no service worker.
 

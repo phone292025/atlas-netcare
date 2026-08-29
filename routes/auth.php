@@ -11,14 +11,15 @@
 | proposal was checked. Being broken is grounds for fixing a requirement, not
 | for deleting it.
 |
-| The thing that was broken is DELIVERY, not the flow. Every demo account uses
+| The thing that was broken is DELIVERY, not the flow. Every account used
 | @apu.test or @atlas.local, reserved domains that can never receive mail, and
-| MAIL_MAILER is `log` — so the screen said "We have emailed your password
-| reset link" while writing the link into storage/logs/laravel.log. Seven
-| accumulated there before anybody noticed.
+| MAIL_MAILER was `log` — so the screen said "We have emailed your password
+| reset link" while writing the link into storage/logs/laravel.log.
 |
-| See docs/04-open-questions.md Q11 for the delivery options and what the team
-| chose.
+| Both are fixed. Accounts now use Gmail plus-addresses, which are real and all
+| land in one inbox, and the mailer is Gmail SMTP. The one manual step left is
+| pasting a Google app password into MAIL_PASSWORD; until somebody does, the
+| screen says so rather than pretending. See docs/04-open-questions.md Q11.
 |
 | EMAIL VERIFICATION AND PASSWORD CONFIRMATION stay removed. Neither appears in
 | the proposal or in docs/03-requirements.md, and neither could ever run: User

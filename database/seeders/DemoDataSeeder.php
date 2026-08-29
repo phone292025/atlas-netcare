@@ -57,6 +57,14 @@ class DemoDataSeeder extends Seeder
      * password rather than failing on the unique index — which is also the
      * supported way to recover a demo account whose password has been changed
      * or forgotten.
+     *
+     * BECAUSE IT MATCHES ON EMAIL, CHANGING ONE OF THE ATLAS_DEMO_*_EMAIL
+     * VALUES ON A DATABASE THAT IS ALREADY SEEDED GIVES YOU A SECOND ACCOUNT
+     * rather than a renamed one. The old row keeps every ticket, shift and
+     * inspection, and you sign in to a copy that owns none of them. The
+     * addresses moved from @apu.test to Gmail plus-addresses on 2026-08-29 so
+     * that FR-102 could deliver, and the existing rows were renamed in place
+     * rather than reseeded, for exactly this reason.
      */
     private function demoAccounts(): void
     {

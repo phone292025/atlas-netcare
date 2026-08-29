@@ -122,6 +122,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Can mail actually leave this machine?
+    |--------------------------------------------------------------------------
+    |
+    | FR-102 sends a password reset link by email, and there are two separate
+    | ways for that to silently do nothing:
+    |
+    |   MAIL_MAILER=log     nothing is sent; Laravel writes the message, reset
+    |                       token and all, into storage/logs/laravel.log
+    |   smtp with no auth   every send throws, because the app password that
+    |                       MAIL_PASSWORD wants has not been pasted in yet
+    |
+    | Laravel cannot tell either of those apart from a working mailer, so the
+    | reset screen asks this instead of asking config('mail.default'). It only
+    | ever changes what the user is TOLD — a false value never stops a send
+    | being attempted, because a wrong guess here must not disable the feature.
+    |
+    | @see docs/04-open-questions.md Q11
+    |
+    */
+
+    'mail_configured' => env('MAIL_MAILER', 'log') !== 'log'
+        && filled(env('MAIL_PASSWORD')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Dashboard refresh
     |--------------------------------------------------------------------------
     |

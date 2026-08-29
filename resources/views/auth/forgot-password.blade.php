@@ -6,25 +6,33 @@
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    {{-- Say where the link actually went.
+    {{-- Say what will actually happen, because two different configurations
+         make this screen lie in the same way.
 
          With MAIL_MAILER=log nothing is sent anywhere: Laravel writes the
-         message into storage/logs/laravel.log. The success notice above still
-         reads "We have emailed your password reset link", which is Laravel's
-         wording and is a lie in this configuration. Seven links accumulated in
-         that log before anybody noticed, because the screen said otherwise.
+         whole message, reset token included, into storage/logs/laravel.log.
+         With smtp and no app password the send throws instead. Laravel's
+         success notice above says "We have emailed your password reset link"
+         in both cases. Seven links accumulated in that log before anybody
+         noticed, because the screen said otherwise.
 
-         Shown only when the mailer is `log` AND debug is on, so it can never
-         appear on a configured deployment. A feature that quietly does nothing
-         is worse than one that admits it.
+         Shown only when debug is on, so it can never appear on a configured
+         deployment. A feature that quietly does nothing is worse than one
+         that admits it.
 
          @see docs/04-open-questions.md Q11 --}}
-    @if (config('mail.default') === 'log' && config('app.debug'))
+    @if (config('app.debug') && ! config('atlas.mail_configured'))
         <x-alert type="warning" class="mb-4" title="No mail server is configured">
-            Nothing was sent. Laravel wrote the reset link into
-            <code class="font-mono text-xs">storage/logs/laravel.log</code> instead.
-            The demo accounts also use <code class="font-mono text-xs">@apu.test</code>,
-            a reserved domain that can never receive mail.
+            @if (config('mail.default') === 'log')
+                Nothing will be sent. Laravel writes the reset link into
+                <code class="font-mono text-xs">storage/logs/laravel.log</code>
+                instead of delivering it.
+            @else
+                <code class="font-mono text-xs">MAIL_PASSWORD</code> is empty, so
+                the send will fail. Paste a Google app password into
+                <code class="font-mono text-xs">.env</code>, then check it with
+                <code class="font-mono text-xs">php artisan atlas:mail-test</code>.
+            @endif
         </x-alert>
     @endif
 

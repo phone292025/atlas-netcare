@@ -78,7 +78,7 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 
 | | |
 |---|---|
-| Email | `ATLAS_ADMIN_EMAIL` (default `admin@atlas.local`) |
+| Email | `ATLAS_ADMIN_EMAIL` |
 | Password | `ATLAS_ADMIN_PASSWORD` |
 
 **Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. Every other real account is created from the admin's user-management screen.
@@ -89,9 +89,15 @@ While `ATLAS_DEMO_MODE=true`, seeding also creates one sign-in per role. Most of
 
 | Role | Email | Password |
 |---|---|---|
-| Network Engineer | `yar@apu.test` | `ATLAS_DEMO_PASSWORD` |
-| Student IT Assistant | `swan@apu.test` | `ATLAS_DEMO_PASSWORD` |
-| Student IT Assistant | `nyan@apu.test` | `ATLAS_DEMO_PASSWORD` |
+| Network Engineer | `${ATLAS_MAIL_ACCOUNT}+yar@gmail.com` | `ATLAS_DEMO_PASSWORD` |
+| Student IT Assistant | `${ATLAS_MAIL_ACCOUNT}+swan@gmail.com` | `ATLAS_DEMO_PASSWORD` |
+| Student IT Assistant | `${ATLAS_MAIL_ACCOUNT}+nyan@gmail.com` | `ATLAS_DEMO_PASSWORD` |
+
+Those are **your own** Gmail address, four times. Set `ATLAS_MAIL_ACCOUNT` to your Gmail account name in `.env` and every address above follows, including the administrator's. Gmail ignores everything after a `+`, so all four land in the inbox you already own.
+
+They were `@apu.test` until 2026-08-29, which was tidier to read and could never receive mail — and FR-102 promises a password reset link *by email*. See [Q11](docs/04-open-questions.md#q11).
+
+> **Changing one of these on a database that is already seeded gives you a second account, not a renamed one.** Both seeders match on email, so the old row keeps its tickets and shifts and you sign in to an empty copy. Rename the existing rows instead.
 
 All three share one password — they exist to be handed round the team, and per-account passwords would just be three things to lose. Two assistants on purpose: one cannot demonstrate that an assistant sees only *their own* inspections and tickets.
 
@@ -105,7 +111,26 @@ These accounts are tagged `is_demo`, so `php artisan atlas:purge-demo-data` remo
 
 > `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 
+### Email
+
+FR-102 lets a user request a password reset link **by email**, which is only a real feature if a message arrives. Set it up once:
+
+1. Your Google account needs **2-Step Verification** on. Then **Google Account → Security → App passwords**, create one named `Atlas NetCare`, and copy the 16 characters.
+2. In `.env`, set `ATLAS_MAIL_ACCOUNT` to your Gmail account name **without** `@gmail.com`, and paste the app password into `MAIL_PASSWORD`. **Remove the spaces Google displays it with.**
+3. Check it:
+
+```bash
+php artisan atlas:mail-test
+```
+
+That sends one real message and, if the server refuses it, reads the error and tells you which of the usual three causes it is. A green test suite proves nothing here — the suite fakes the mailer, so this command is the only thing that can tell you mail works.
+
+**The app password is a key to your Google account.** `.env` is gitignored and must stay that way; `.env.example` has the shape but no value. If one is ever committed, revoke it on that same App passwords screen — rewriting git history does not help, because the push already happened.
+
+Leaving `MAIL_PASSWORD` empty is supported. The reset screen detects it and says so, rather than claiming to have sent something. Nobody has to configure mail to work on the rest of the system.
+
 ### Seeing the dashboard with data
+
 
 The AP health dashboard is driven by telemetry, and telemetry only exists once something has collected it. Two commands:
 

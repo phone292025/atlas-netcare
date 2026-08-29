@@ -10,6 +10,8 @@ use App\Observers\AuditObserver;
 use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetrySource;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -67,5 +69,47 @@ class AppServiceProvider extends ServiceProvider
         foreach (self::AUDITED as $model) {
             $model::observe(AuditObserver::class);
         }
+
+        $this->composeResetPasswordEmail();
+    }
+
+    /**
+     * The password reset email (FR-102).
+     *
+     * Laravel's stock version says "Hello!", "Regards, Atlas NetCare" and
+     * "If you did not request a password reset, no further action is
+     * required", which is wording written for a public signup form. On an
+     * internal system where an administrator creates every account, an
+     * unrequested reset email means somebody typed a colleague's address into
+     * the form, and the right advice is to say so rather than to ignore it.
+     *
+     * Done here with toMailUsing() rather than by overriding
+     * sendPasswordResetNotification() on User, because there is one email and
+     * no reason for the model to know how it is worded.
+     *
+     * The expiry is read from config rather than written into the sentence.
+     * Someone will change auth.passwords.users.expire eventually, and an
+     * email that states the wrong number is worse than one that omits it.
+     *
+     * @see docs/03-requirements.md FR-102
+     * @see docs/04-open-questions.md Q11
+     */
+    private function composeResetPasswordEmail(): void
+    {
+        ResetPassword::toMailUsing(function (User $user, string $token) {
+            $minutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+            return (new MailMessage)
+                ->subject('Reset your Atlas NetCare password')
+                ->greeting("Hello {$user->name},")
+                ->line('Somebody asked to reset the password on your Atlas NetCare account.')
+                ->action('Choose a new password', url(route('password.reset', [
+                    'token' => $token,
+                    'email' => $user->getEmailForPasswordReset(),
+                ], false)))
+                ->line("This link stops working in {$minutes} minutes, and once you have used it.")
+                ->line('If that was not you, your password has not changed and nothing has happened yet. Tell an administrator, because on this system only an administrator can create an account, so somebody knows your address.')
+                ->salutation('Atlas NetCare, Asia Pacific University');
+        });
     }
 }

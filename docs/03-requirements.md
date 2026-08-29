@@ -38,7 +38,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A user can sign in with an email address and password. | Approved |
-| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery options are [Q11](04-open-questions.md#q11). |
+| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery is Gmail SMTP with plus-addressed demo accounts, built the same day — see [Q11](04-open-questions.md#q11). One manual step remains: an app password has to be pasted into `MAIL_PASSWORD` and checked with `php artisan atlas:mail-test`. Until it is, the screen says so instead of pretending. |
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
 | FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](04-open-questions.md) |

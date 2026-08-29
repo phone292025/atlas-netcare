@@ -77,7 +77,7 @@ Added 2026-08-29, after M6. The alarms above only reach the bell inside the app,
 
 Rather than push messages out, the system hands the shift to the phone and the phone does the reminding. That alarm system already works with the app closed, the screen locked and no internet.
 
-**Email was considered and rejected.** Every account uses `@apu.test` or `@atlas.local`, both reserved domains that can never receive mail. Sending email would mean putting seven personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message. A calendar file needs no address at all.
+**Email was considered and rejected.** *(Updated 2026-08-29: the first of these reasons no longer holds. Accounts moved to deliverable Gmail plus-addresses so FR-102 could send a password reset link — see [Q11](../04-open-questions.md#q11). The decision stands on the reasons that follow it, not on this one.)* Every account used `@apu.test` or `@atlas.local`, both reserved domains that can never receive mail. Sending email would mean putting seven personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message. A calendar file needs no address at all.
 
 **Two ways in, sharing one generator** in `ShiftCalendar`.
 

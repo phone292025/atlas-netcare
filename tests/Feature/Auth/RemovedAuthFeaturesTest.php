@@ -67,29 +67,11 @@ class RemovedAuthFeaturesTest extends TestCase
         $this->get(route('login'))->assertOk()->assertSee('Forgot your password');
     }
 
-    public function test_the_reset_screen_admits_when_nothing_was_sent(): void
-    {
-        /*
-         * With no mail server, Laravel's own success message still reads "We
-         * have emailed your password reset link", which is untrue. Seven links
-         * accumulated in the log before anybody noticed, because the screen
-         * said otherwise.
-         */
-        config(['mail.default' => 'log', 'app.debug' => true]);
-
-        $this->get(route('password.request'))
-            ->assertOk()
-            ->assertSee('No mail server is configured');
-    }
-
-    public function test_that_warning_never_shows_on_a_configured_deployment(): void
-    {
-        config(['mail.default' => 'smtp', 'app.debug' => false]);
-
-        $this->get(route('password.request'))
-            ->assertOk()
-            ->assertDontSee('No mail server is configured');
-    }
+    /*
+     * Whether the screen tells the truth about delivery, and whether a
+     * refused SMTP login is survivable, moved to PasswordResetDeliveryTest.
+     * This file is only about what is and is not registered.
+     */
 
     public function test_an_administrator_can_still_reset_somebody_elses_password(): void
     {
