@@ -353,7 +353,7 @@ Aggregated latency **excludes offline readings**: an unreachable access point ha
 
 ### `is_demo`
 
-On `users`, `lab_pcs`, `access_points`, `tickets`. Set **only** by `DemoDataSeeder`. Enables `php artisan atlas:purge-demo-data`.
+On `users`, `lab_pcs`, `access_points`, `tickets`. Set **only** by `DemoDataSeeder`. Intended to enable `php artisan atlas:purge-demo-data`, **which is not built yet**.
 
 Do **not** add a global Eloquent scope that hides demo rows. It will silently hide data during a demo and cost someone an afternoon.
 

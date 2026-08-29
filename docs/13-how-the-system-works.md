@@ -232,13 +232,15 @@ Two more you run yourself.
 
 `atlas:check-schema` audits the live database for problems the test suite cannot see. Run it after any migration.
 
+`atlas:mail-test` sends one real email. The suite fakes the mailer, so a fully green run says nothing whatsoever about whether SMTP works — the same blind spot as SQLite hiding the MariaDB timestamp bug. On failure it reads the server's wording and says which of the three usual causes it is. Run it before a demonstration, because a Google app password can be revoked without anything in the repository changing.
+
 **Aggregation and roster generation are both safe to run twice.** They are scheduled and there are buttons for them, so they will be run twice. Aggregation corrects rows rather than doubling every point on a chart. Generation adds nothing rather than rostering everybody again.
 
 ---
 
 ## Testing
 
-481 tests, one skipped. Roughly 1,290 assertions.
+528 tests, one skipped. Roughly 1,460 assertions.
 
 The suite runs on SQLite in memory, which is fast and has caused three bugs. SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
 
@@ -258,7 +260,9 @@ Two habits came out of building this.
 
 **Real SNMP telemetry.** The driver is a deliberate stub that throws with instructions.
 
-**Email and push notifications.** In-app only. This belongs in the Limitations section of the report.
+**Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only. This belongs in the Limitations section of the report.
+
+Email is no longer on this list. FR-102 sends a password reset link through Gmail SMTP and it was confirmed arriving on a phone on 2026-08-29. Alarms could now be emailed too, since the account and the configuration exist — that is a choice nobody has made rather than a thing that cannot be done.
 
 **The report diagrams.** Context Diagram, DFD 0, and the consolidated ERD are worth 15 marks and none exist. Each of the six built modules also owes a DFD 1, a data dictionary, and a flowchart from whoever owns it. Nobody owns one yet.
 

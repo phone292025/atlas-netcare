@@ -11,12 +11,37 @@
 | | |
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
-| **Last session** | 2026-08-28 |
+| **Last session** | 2026-08-29 |
 | **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
-| **Tests** | 509 passing (1 skipped), 1399 assertions, zero deprecations |
+| **Tests** | 528 passing (1 skipped), 1459 assertions, zero deprecations |
+| **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). Then FR-408, the individual shift override M6 did not build. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
+
+---
+
+## Password reset made real — 2026-08-29
+
+FR-102 was **deleted** that morning for lying to the user, then restored the same day once the proposal was checked. It lists "recover password" for all three roles. **Being broken is grounds for fixing a requirement, not for deleting one, and the requirements file should have been read before anything was removed.**
+
+The flow had never been broken. Delivery had, twice over. `MAIL_MAILER=log` wrote the message into `storage/logs/laravel.log` rather than sending it, and every account used `@apu.test` or `@atlas.local`, reserved domains that can never receive mail, so no mailer configuration could have helped.
+
+**Both fixed.** Accounts moved to Gmail plus-addresses — `+admin`, `+phone`, `+yar`, `+swan`, `+nyan` on one account, four deliverable addresses in one inbox somebody already owns, driven by a single `.env` line so nothing real reaches the repository. `MAIL_PASSWORD` is a Google app password, pasted by hand.
+
+Confirmed working end to end: the command sends, the screen sends, the email arrives, the link opens the form with the address prefilled.
+
+Four things came out of using it that no test would have found:
+
+**`config('atlas.mail_configured')`.** Mail silently does nothing in two ways — mailer `log`, or `smtp` with no password — and Laravel cannot tell either from a working mailer. The screen names which, behind `app.debug`.
+
+**A refused SMTP login was a 500.** `sendResetLink()` sends inline, so Gmail's `535` surfaced as a stack trace on the one screen reachable without signing in.
+
+**The reset link was behind `guest`.** Tapping it from Gmail on a phone that was already signed in opened the profile screen with no explanation. Nobody controls which browser opens a link from their inbox. The token is the authorisation; a session alongside it now changes only the wording.
+
+**A reset did not end existing sessions.** Breeze rotates `remember_token` and stops, so somebody who had taken over an account stayed signed in while the owner reset the password believing otherwise. That is the entire point of the feature.
+
+**Known limit, and it will bite at a demonstration.** The link is built from the address the form was loaded on, so a reset requested at `localhost` produces a link that is dead on a phone. Do the whole flow on the phone, or set `APP_URL`.
 
 ---
 

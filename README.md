@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**Building modules** — six of seven are done (M1–M6). Laravel 12 + Breeze, 481 tests passing.
+**Building modules** — six of seven are done (M1–M6). Laravel 12 + Breeze, 528 tests passing.
 
 Current build state: [docs/progress/build-log.md](docs/progress/build-log.md).
 
@@ -81,7 +81,9 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 | Email | `ATLAS_ADMIN_EMAIL` |
 | Password | `ATLAS_ADMIN_PASSWORD` |
 
-**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. Every other real account is created from the admin's user-management screen.
+> **The administrator does not share the demo password.** `ATLAS_ADMIN_PASSWORD` and `ATLAS_DEMO_PASSWORD` are different values, and typing the demo one at the admin login gives "These credentials do not match our records" with nothing to explain why. If a sign-in fails, check which of the two the account uses before assuming the account is broken.
+
+**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. **Put the new value back in `.env` when you change it**, or the next `migrate --seed` resets the account to whatever that file still says and you are locked out wondering why. Every other real account is created from the admin's user-management screen.
 
 ### Demo accounts
 
@@ -107,9 +109,11 @@ All three share one password — they exist to be handed round the team, and per
 php artisan db:seed --class=DemoDataSeeder
 ```
 
-These accounts are tagged `is_demo`, so `php artisan atlas:purge-demo-data` removes them and leaves the real administrator. With `ATLAS_DEMO_MODE=false` they are never created — a deployed system gets the administrator and nothing else.
+These accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never created — a deployed system gets the administrator and nothing else.
 
-> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system, and run `php artisan atlas:purge-demo-data` to remove data already seeded. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
+> ⚠️ **`php artisan atlas:purge-demo-data` is referenced throughout these docs and has not been written.** The `is_demo` flags it needs are all there and correctly set; only the command is missing. For now, get a clean system by setting `ATLAS_DEMO_MODE=false` and seeding a fresh database.
+
+> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 
 ### Email
 

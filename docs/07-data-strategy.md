@@ -125,7 +125,9 @@ Then one command answers "how do we get rid of the fake data?":
 php artisan atlas:purge-demo-data --force
 ```
 
-Deletes every row flagged `is_demo` plus every reading with `source = 'simulated'`, leaving reference data and anything a real user created untouched. Cascading delete rules handle the children.
+It is meant to delete every row flagged `is_demo` plus every reading with `source = 'simulated'`, leaving reference data and anything a real user created untouched.
+
+> ⚠️ **NOT BUILT YET.** `app/Console/Commands/` has no such command, so that line fails. Found on 2026-08-29 while auditing the docs against the code. The design above is sound and the flags it relies on are all in place and populated — only the command is missing. **Until somebody writes it, set `ATLAS_DEMO_MODE=false` and reseed a fresh database rather than trying to purge one.**
 
 ---
 

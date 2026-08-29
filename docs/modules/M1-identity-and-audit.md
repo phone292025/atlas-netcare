@@ -49,10 +49,11 @@ Admin: user index, create, edit, show · Audit log with filters
 
 ## Definition of done
 
-- [ ] All three roles can sign in and land on their own home page
-- [ ] A user of one role gets 403 on another role's route
-- [ ] Admin can create, edit, deactivate and reactivate a user
-- [ ] Password reset works end to end via the `log` mailer
-- [ ] Every create, update and delete of a user writes an audit entry with actor, action and IP
-- [ ] Feature tests: login success, login failure, role denial, admin creates user
-- [ ] DFD 1, data dictionary and flowchart drafted for the report
+- [x] All three roles can sign in and land on their own home page — `DashboardRedirect`, covered by `dashboard_redirect_uses_the_role_home_route_when_it_exists`
+- [x] A user of one role gets 403 on another role's route — `EnsureUserHasRole`, and a deactivated user is refused at login and at every guarded route
+- [x] Admin can create, edit, deactivate and reactivate a user
+- [x] **Password reset works end to end, by real email.** Not through the `log` mailer, which is what this line originally said and which turned out to be the problem: the screen claimed to have emailed a link while writing it into `storage/logs/laravel.log`. It now goes through Gmail SMTP to a deliverable address, and was confirmed arriving on a phone on 2026-08-29. The link also works in a browser that is already signed in, and a reset ends every session that account has open. See [Q11](../04-open-questions.md#q11).
+- [x] Every create, update and delete of a user writes an audit entry with actor, action and IP
+- [x] Feature tests: login success, login failure, role denial, admin creates user
+- [ ] DFD 1, data dictionary and flowchart drafted for the report — **not started, and the only thing left in M1**
+

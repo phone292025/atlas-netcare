@@ -4,7 +4,7 @@
 
 ## Where this actually stands
 
-Six of seven modules are built and 481 tests pass. That is most of the code and a small share of the submission.
+Six of seven modules are built and 528 tests pass. That is most of the code and a small share of the submission.
 
 | Part | Weight | State |
 |---|---|---|
@@ -107,7 +107,7 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 
 ## Part 3 — Implementation and Presentation (40%)
 
-- [x] System runs complete, without errors, from a fresh install — 481 tests, `atlas:check-schema` clean
+- [x] System runs complete, without errors, from a fresh install — 528 tests, `atlas:check-schema` clean, `atlas:mail-test` sends
 - [ ] All functional requirements in [03-requirements.md](03-requirements.md) achieved or explicitly descoped with a reason — **M7's FRs are the remaining gap**
 - [x] Validation on every form — every write goes through a Form Request
 - [x] Consistent navigation across all three roles — one sidebar built from `config/atlas.php`
