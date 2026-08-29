@@ -352,7 +352,28 @@ class ShiftCalendarTest extends TestCase
         $this->actingAs($user)
             ->get(route('assistant.shifts.today'))
             ->assertOk()
-            ->assertSee('Add to my calendar')
+            ->assertSee('Add just this shift')
             ->assertSee('Create my subscription link');
+    }
+
+    public function test_subscribing_is_offered_as_a_one_click_protocol_link(): void
+    {
+        /*
+         * `webcal://` is registered by calendar applications, so clicking it
+         * opens Outlook or Calendar and offers to subscribe. Handing over an
+         * `http://` link instead makes the browser download a file the person
+         * then has to find and open, and leaves one in their Downloads folder
+         * every time. That was the complaint that prompted this.
+         */
+        $user = $this->assistant();
+        $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
+
+        $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
+
+        $this->actingAs($user->fresh())
+            ->get(route('assistant.shifts.today'))
+            ->assertOk()
+            ->assertSee('webcal://', false)
+            ->assertSee('Open in my calendar app');
     }
 }

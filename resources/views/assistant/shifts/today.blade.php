@@ -78,14 +78,16 @@
                         <span class="text-sm text-slate-500">This shift is finished.</span>
                     @endif
 
-                    {{-- Hands the shift to the phone's own calendar, which then
-                         does the reminding with the app closed and the screen
-                         locked. Nothing we could build would beat that. --}}
+                    {{-- One shift, downloaded as a file. Kept for the case where
+                         somebody has not subscribed and wants this shift on
+                         their phone right now, but subscribing below is the
+                         better path: it downloads nothing, ever. --}}
                     <a href="{{ route('assistant.shifts.calendar', $shift) }}"
                        class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium
-                              text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
+                              text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
+                       title="Downloads a single event. To stop downloading files, subscribe below.">
                         <x-icon name="calendar" class="h-4 w-4" />
-                        Add to my calendar
+                        Add just this shift
                     </a>
                     </div>
                 </x-slot:footer>
@@ -131,10 +133,29 @@
                 class="mb-4">
             @if (auth()->user()->calendar_token)
                 @php($feed = route('shifts.calendar.feed', auth()->user()->calendar_token))
+                @php($webcal = preg_replace('#^https?://#', 'webcal://', $feed))
 
-                <p class="text-sm text-slate-600">
-                    Copy this link, then add it in your calendar app.
-                    On iPhone that is Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar.
+                {{-- webcal:// is a protocol calendar applications register for, so
+                     clicking it opens Outlook or Calendar directly and offers to
+                     subscribe. No download, and nothing left in the Downloads
+                     folder. Subscribe once and the per-shift button is never
+                     needed again. --}}
+                <a href="{{ $webcal }}"
+                   class="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold
+                          text-white hover:bg-brand-700">
+                    <x-icon name="calendar" class="h-4 w-4" />
+                    Open in my calendar app
+                </a>
+
+                <p class="mt-3 text-sm text-slate-600">
+                    That opens your calendar and asks whether to subscribe. Say yes once and
+                    every shift arrives on its own, including weeks that have not been rostered yet.
+                </p>
+
+                <p class="mt-3 text-sm text-slate-600">
+                    If nothing happens, copy the link instead.
+                    On iPhone go to Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar.
+                    On Windows open Outlook, Add calendar, Subscribe from web.
                     On Android open Google Calendar on a computer, then Other calendars, From URL.
                 </p>
 
@@ -177,8 +198,8 @@
                 </x-slot:footer>
             @else
                 <p class="text-sm text-slate-600">
-                    You do not have a subscription link yet. Creating one gives your calendar app a private
-                    address to read your shifts from, so you never have to add them by hand.
+                    Adding shifts one at a time downloads a file each time. Subscribing instead lets your
+                    calendar read them directly, so nothing is downloaded and new shifts appear on their own.
                 </p>
 
                 <x-slot:footer>
