@@ -5,37 +5,33 @@
 | privilege-based system: administrators create every account (FR-105, FR-401).
 | See docs/04-open-questions.md Q6 and the project Keynote in the proposal.
 |
-| SO ARE PASSWORD RESET, EMAIL VERIFICATION AND PASSWORD CONFIRMATION, all of
-| which Breeze installs by default and none of which this system can honestly
-| offer.
+| PASSWORD RESET IS FR-102 AND IS APPROVED IN THE PROPOSAL, which lists
+| "recover password" for all three roles. It was briefly removed on 2026-08-29
+| because it was lying to the user, and restored the same day once the
+| proposal was checked. Being broken is grounds for fixing a requirement, not
+| for deleting it.
 |
-| Password reset emailed a link. Every account here uses @apu.test or
-| @atlas.local, reserved domains that can never receive mail, and MAIL_MAILER
-| is `log` — so the screen said "We have emailed your password reset link"
-| while writing the link into storage/logs/laravel.log. Seven of them
-| accumulated there before anybody noticed. A feature that lies to the user is
-| worse than one that is missing, and a reset token sitting in a log file is a
-| way into somebody's account for anyone who can read it.
+| The thing that was broken is DELIVERY, not the flow. Every demo account uses
+| @apu.test or @atlas.local, reserved domains that can never receive mail, and
+| MAIL_MAILER is `log` — so the screen said "We have emailed your password
+| reset link" while writing the link into storage/logs/laravel.log. Seven
+| accumulated there before anybody noticed.
 |
-| The real recovery path already exists and matches how the system works:
-| an administrator sets a new password from the user management screen, and it
-| is flagged must_change_password. The login page says so.
+| See docs/04-open-questions.md Q11 for the delivery options and what the team
+| chose.
 |
-| Email verification was never live. User does not implement MustVerifyEmail
-| and no route carries the `verified` middleware, so those three routes could
-| not do anything.
-|
-| Password confirmation was never applied to a route either.
-|
-| If email is ever configured against real @apu.edu.my addresses, reset is
-| worth restoring. Breeze's controllers are gone, so bring them back with
-| `php artisan make:` rather than hunting for the originals.
+| EMAIL VERIFICATION AND PASSWORD CONFIRMATION stay removed. Neither appears in
+| the proposal or in docs/03-requirements.md, and neither could ever run: User
+| does not implement MustVerifyEmail, and no route carried either middleware.
+| RemovedAuthFeaturesTest keeps them out.
 |
 | @see docs/progress/decision-log.md — 2026-08-29
 */
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -43,11 +39,24 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // FR-102.
+    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+        ->name('password.request');
+
+    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->name('password.email');
+
+    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+        ->name('password.reset');
+
+    Route::post('reset-password', [NewPasswordController::class, 'store'])
+        ->name('password.store');
 });
 
 Route::middleware('auth')->group(function () {
-    // Changing your own password from the profile screen. This one is real:
-    // it needs the current password and sends nothing anywhere.
+    // Changing your own password from the profile screen. Needs the current
+    // password and sends nothing anywhere.
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

@@ -31,13 +31,6 @@ class RemovedAuthFeaturesTest extends TestCase
     public static function removedRoutes(): array
     {
         return [
-            // Emailed a reset link to an address that cannot receive mail,
-            // and said so on screen while writing the link into a log file.
-            'password reset request' => ['password.request'],
-            'password reset email' => ['password.email'],
-            'password reset form' => ['password.reset'],
-            'password reset submit' => ['password.store'],
-
             // User does not implement MustVerifyEmail and nothing carries the
             // `verified` middleware, so these could never do anything.
             'verification notice' => ['verification.notice'],
@@ -58,22 +51,44 @@ class RemovedAuthFeaturesTest extends TestCase
         );
     }
 
-    public function test_the_reset_urls_are_gone_not_merely_unlinked(): void
+    public function test_password_reset_is_kept_because_it_is_an_approved_requirement(): void
     {
-        // Removing the link from the login page would leave the endpoint
-        // reachable by anybody who typed the address.
-        $this->get('/forgot-password')->assertNotFound();
-        $this->post('/forgot-password', ['email' => 'swan@apu.test'])->assertNotFound();
-        $this->get('/reset-password/any-token')->assertNotFound();
+        /*
+         * FR-102, and the proposal lists "recover password" for all three
+         * roles. It was briefly deleted on 2026-08-29 for lying to the user,
+         * and restored the same day once the proposal was checked. Being
+         * broken is grounds for fixing a requirement, not removing it.
+         *
+         * What was broken is delivery, not the flow. See Q11.
+         */
+        $this->assertTrue(Route::has('password.request'));
+        $this->assertTrue(Route::has('password.email'));
+
+        $this->get(route('login'))->assertOk()->assertSee('Forgot your password');
     }
 
-    public function test_the_login_page_does_not_offer_a_reset(): void
+    public function test_the_reset_screen_admits_when_nothing_was_sent(): void
     {
-        $this->get(route('login'))
+        /*
+         * With no mail server, Laravel's own success message still reads "We
+         * have emailed your password reset link", which is untrue. Seven links
+         * accumulated in the log before anybody noticed, because the screen
+         * said otherwise.
+         */
+        config(['mail.default' => 'log', 'app.debug' => true]);
+
+        $this->get(route('password.request'))
             ->assertOk()
-            ->assertDontSee('Forgot your password')
-            // What it says instead: the recovery path that actually exists.
-            ->assertSee('Accounts are created by a system administrator');
+            ->assertSee('No mail server is configured');
+    }
+
+    public function test_that_warning_never_shows_on_a_configured_deployment(): void
+    {
+        config(['mail.default' => 'smtp', 'app.debug' => false]);
+
+        $this->get(route('password.request'))
+            ->assertOk()
+            ->assertDontSee('No mail server is configured');
     }
 
     public function test_an_administrator_can_still_reset_somebody_elses_password(): void

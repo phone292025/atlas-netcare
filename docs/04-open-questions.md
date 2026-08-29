@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-08-29 · **Bring this to every supervisor meeting — it is the agenda.**
 
-Ten things the approved proposal leaves undefined. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
+Eleven things the approved proposal leaves undefined, or that building it exposed. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
 **Status key:** `Open` — no assumption safe enough to build on · `Assumed` — building on a stated default · `Decided` — settled, recorded, safe
 
@@ -26,6 +26,7 @@ Ten things the approved proposal leaves undefined. Each has a working assumption
 | [Q8](#q8) | Where do the NFRs live? | `Assumed` | Report | Week 12 |
 | [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
 | [Q10](#q10) | How long is telemetry retained? | ✅ Settled | M5 | `config/atlas.php` → `retention` |
+| [Q11](#q11) | How does a password reset email reach anyone? | **🔴 Open** | M1 | **FR-102 is approved and currently undeliverable** |
 
 ---
 
@@ -195,6 +196,41 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 **As built** exactly that, from `config('atlas.retention')`. The command deletes in chunks rather than one statement — a single `DELETE` across a million rows holds the table long enough to notice, and this is scheduled to run while the system is up. `--dry-run` reports what would go without touching anything.
 
 Worth stating in the report even though it is a small decision — it demonstrates that data volume was considered rather than ignored, which is exactly the kind of thing the "depth of your approach" criterion rewards.
+
+---
+
+<a id="q11"></a>
+## Q11 — How does a password reset email actually reach anyone?
+
+**Status:** 🔴 **`Open`** · **Owner:** M1 owner · **Blocks:** FR-102 being demonstrable
+
+Not in the original ten. Found on 2026-08-29 when the reset screen was tried on a phone and said *"We have emailed your password reset link"* while sending nothing.
+
+**FR-102 is approved** and the proposal lists "recover password" for all three roles, so this cannot simply be dropped. The flow works. Delivery does not, for two separate reasons:
+
+`MAIL_MAILER=log`, so Laravel writes the message into `storage/logs/laravel.log`. Seven reset links had accumulated there. That is also a small security problem: a live token in a log file is a way into an account for anyone who can read it.
+
+And every demo account uses `@apu.test` or `@atlas.local`, reserved domains that **can never** receive mail, so even a working mail server would deliver nothing.
+
+The screen now warns when the mailer is `log` and debug is on, so it no longer claims to have sent something. That makes it honest, not working.
+
+### The options
+
+**1. Real addresses plus Gmail SMTP.** Point the demo accounts at addresses the team controls, using plus-addressing so they all land in one inbox: `yourname+swan@gmail.com`, `yourname+nyan@gmail.com`. Those are real, deliverable addresses. Add a Gmail app password to `.env`.
+
+*Fully satisfies FR-102 and is demonstrable on a phone.* Costs one app password, which must never be committed. **Recommended.**
+
+**2. A local mail catcher.** Mailpit or Mailtrap accepts the mail and shows it in a web inbox. No credentials, no real addresses.
+
+Proves the code path and is honest, but the demo shows a developer tool rather than an email arriving. Reasonable fallback if option 1 is unwanted.
+
+**3. Descope FR-102.** Change its status here and in `03-requirements.md`, and say in the report that recovery is administrator-mediated because the system has no self-registration.
+
+Defensible, and the rubric permits requirements "explicitly descoped with a reason". But it contradicts the approved proposal, so raise it with Mr Dhason rather than deciding quietly.
+
+### What must not happen
+
+Leaving it as it is and saying nothing. A marker who clicks "Forgot your password?" sees a success message for something that did not happen, and that reads worse than either building it or descoping it.
 
 ---
 
