@@ -125,9 +125,21 @@
         @endif
 
         {{-- Subscribe once and every future shift arrives on its own, including
-             weeks an administrator has not generated yet. The single-shift
-             button above still exists because Google refreshes subscriptions
-             slowly, sometimes only once a day. --}}
+             weeks an administrator has not generated yet.
+
+             HIDDEN UNLESS ATLAS_CALENDAR_SUBSCRIPTION IS ON. Subscribing needs
+             a URL the calendar application can fetch, and a development server
+             cannot be one: the new Outlook takes only https:// and refuses a
+             private address, and Google fetches from its own servers which
+             cannot see a machine on your Wi-Fi. Only Apple's clients accept a
+             plain http:// feed on a local network.
+
+             The feed works and is tested. Turn the flag on once this is
+             deployed behind HTTPS. Until then a control that fails for two of
+             the three major clients is worse than no control.
+
+             See config/atlas.php for the full reasoning. --}}
+        @if (config('atlas.calendar.subscription'))
         <x-card title="Put your roster in your phone"
                 subtitle="Subscribe once. New shifts appear on their own, and your phone reminds you."
                 class="mb-4">
@@ -213,6 +225,7 @@
                 </x-slot:footer>
             @endif
         </x-card>
+        @endif
 
         <x-card title="Coming up" subtitle="Your next shifts." flush>
             @if ($upcoming->isEmpty())

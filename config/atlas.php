@@ -294,6 +294,29 @@ return [
         'timezone' => env('ATLAS_CALENDAR_TIMEZONE', 'Asia/Kuala_Lumpur'),
         'reminder_min' => 30,
         'name' => 'Atlas NetCare shifts',
+
+        /*
+         * Whether to offer the roster SUBSCRIPTION on the shift screen.
+         *
+         * OFF by default, because subscribing needs a URL the calendar
+         * application can actually fetch, and a development server cannot be
+         * one. The new Outlook accepts only https:// for a subscribed
+         * calendar and refuses a private address outright; Google Calendar
+         * fetches from its own servers and cannot see a machine on your
+         * Wi-Fi. Only Apple's clients accept a plain http:// feed on a local
+         * network.
+         *
+         * So on a laptop the button fails for two of the three major clients,
+         * and a control that fails in front of somebody is worse than one
+         * that is not there.
+         *
+         * The feed itself works and is tested. Turn this on once the system
+         * is deployed behind HTTPS and it becomes the better option: subscribe
+         * once and nothing is ever downloaded again.
+         *
+         * Downloading a single shift is unaffected and works everywhere.
+         */
+        'subscription' => (bool) env('ATLAS_CALENDAR_SUBSCRIPTION', false),
     ],
 
     /*

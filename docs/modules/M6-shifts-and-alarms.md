@@ -85,7 +85,23 @@ A **download button** on the shift screen gives one event, behind normal authent
 
 A **subscription feed** gives every upcoming shift and keeps giving them as administrators generate new weeks. Calendar applications cannot sign in, so the URL carries a 48-character token instead of relying on a session. Regenerating it invalidates every copy of the old link, which is the revoke button. The route sits outside the `auth` group deliberately and is throttled, being the only thing in the system reachable without signing in.
 
-Both are kept because Google refreshes subscriptions on its own slow schedule, sometimes only daily, so the button still answers "I need this on my phone now".
+### Subscription is switched off by default
+
+`ATLAS_CALENDAR_SUBSCRIPTION` is `false`, so the shift screen shows only the single-shift download.
+
+Not because the feed is broken. It works and is tested. Because **a development server cannot host a URL a calendar client will accept**:
+
+| Client | Accepts a feed at `http://192.168.x.x:8000` |
+|---|---|
+| Apple Calendar, iOS and macOS | Yes |
+| Outlook, new | No. Takes only `https://`, and refuses private addresses |
+| Google Calendar | No. Fetches from Google's servers, which cannot see your Wi-Fi |
+
+Tested on 2026-08-29: clicking the subscribe link in Outlook produced **Invalid URL**. Two of the three major clients fail, and a control that fails in front of somebody is worse than one that is not there.
+
+**Turn the flag on once the system is deployed behind HTTPS.** It then becomes the better option, because nothing is ever downloaded again.
+
+**This belongs in the report.** A subscription feed with per-user revocable tokens is more than the assignment asks for, and "we built it, it needs HTTPS, the demonstration environment is HTTP" is a stronger sentence than not mentioning it. The constraint is the environment, not the design.
 
 ### The part worth getting right
 

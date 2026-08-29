@@ -344,27 +344,50 @@ class ShiftCalendarTest extends TestCase
         $this->assertArrayNotHasKey('calendar_token', $user->fresh()->toArray());
     }
 
-    public function test_the_shift_screen_offers_the_calendar(): void
+    public function test_the_shift_screen_offers_a_single_shift_download(): void
     {
+        // Works on every platform, and is the only calendar control shown by
+        // default.
         $user = $this->assistant();
         $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
 
         $this->actingAs($user)
             ->get(route('assistant.shifts.today'))
             ->assertOk()
-            ->assertSee('Add just this shift')
-            ->assertSee('Create my subscription link');
+            ->assertSee('Add just this shift');
     }
 
-    public function test_subscribing_is_offered_as_a_one_click_protocol_link(): void
+    public function test_subscription_is_hidden_unless_it_is_switched_on(): void
+    {
+        /*
+         * Off by default because a development server cannot host a feed a
+         * calendar client will accept: the new Outlook takes only https:// and
+         * refuses a private address, and Google fetches from its own servers
+         * which cannot see a machine on somebody's Wi-Fi. A control that fails
+         * for two of the three major clients is worse than no control.
+         */
+        $user = $this->assistant();
+        $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
+        $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
+
+        $this->actingAs($user->fresh())
+            ->get(route('assistant.shifts.today'))
+            ->assertOk()
+            ->assertDontSee('Put your roster in your phone');
+    }
+
+    public function test_subscribing_is_offered_as_a_one_click_protocol_link_when_enabled(): void
     {
         /*
          * `webcal://` is registered by calendar applications, so clicking it
-         * opens Outlook or Calendar and offers to subscribe. Handing over an
-         * `http://` link instead makes the browser download a file the person
-         * then has to find and open, and leaves one in their Downloads folder
-         * every time. That was the complaint that prompted this.
+         * opens Outlook or Calendar and offers to subscribe rather than
+         * downloading a file the person then has to find and open.
+         *
+         * Only reachable once the system is deployed behind HTTPS, which is
+         * what the flag represents.
          */
+        config(['atlas.calendar.subscription' => true]);
+
         $user = $this->assistant();
         $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
 
@@ -375,5 +398,18 @@ class ShiftCalendarTest extends TestCase
             ->assertOk()
             ->assertSee('webcal://', false)
             ->assertSee('Open in my calendar app');
+    }
+
+    public function test_the_feed_still_works_while_the_button_is_hidden(): void
+    {
+        // Hiding the control must not break anybody already subscribed, and
+        // the capability has to survive for a deployment that can use it.
+        $user = $this->assistant();
+        $this->shiftFor($user);
+        $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
+
+        $this->get(route('shifts.calendar.feed', $user->fresh()->calendar_token))
+            ->assertOk()
+            ->assertSee('BEGIN:VEVENT', false);
     }
 }
