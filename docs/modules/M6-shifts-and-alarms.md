@@ -95,6 +95,21 @@ Both are kept because Google refreshes subscriptions on its own slow schedule, s
 
 **Stable event IDs**, so tapping the button twice gives one calendar entry rather than two.
 
+### Platform support, and how much of it was actually tested
+
+Say this accurately in the report. Two of these were tested on a device and two were not.
+
+| Platform | Event imports | Our 30-minute alarm | Evidence |
+|---|---|---|---|
+| iPhone | Yes | Yes | **Tested 2026-08-29.** Added through Safari from the app, appeared in Calendar at the right local time with "30 minutes before" set. |
+| Windows, Outlook | Yes | Yes | **Tested 2026-08-29.** Outlook is the registered `.ics` handler and the strictest common parser. |
+| macOS | Expected yes | Expected yes | **Not tested, no device.** macOS Calendar shares the EventKit engine with iOS, which was tested, so this is inference from a shared implementation rather than a guess. |
+| Android, Google Calendar | Expected yes | **Probably replaced** | **Not tested, no device.** Google Calendar discards `VALARM` on import and on subscription, applying the user's own default notification instead. Documented behaviour, not a fault in the file. |
+
+So on Android the assistant still gets reminded, on their own default schedule rather than the 30 minutes the file asks for. That is an acceptable outcome and an honest thing to state.
+
+The file itself was checked against RFC 5545: every mandatory property present in `VCALENDAR`, `VEVENT` and `VALARM`, balanced nesting, and the `TZID` in use matches the `VTIMEZONE` the file declares. That is what makes the untested platforms a reasonable expectation rather than a hope.
+
 ### What it does not cover
 
 Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. **Worth stating in the report's Limitations**, along with the note that real `@apu.edu.my` addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
