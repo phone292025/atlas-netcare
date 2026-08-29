@@ -13,7 +13,7 @@
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-28 |
 | **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
-| **Tests** | 504 passing (1 skipped), 1408 assertions, zero deprecations |
+| **Tests** | 509 passing (1 skipped), 1399 assertions, zero deprecations |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). Then FR-408, the individual shift override M6 did not build. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |

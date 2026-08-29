@@ -16,15 +16,14 @@
             <span class="text-sm text-slate-600">Remember me</span>
         </label>
 
-        <div class="flex items-center justify-end gap-4 pt-2">
-            @if (Route::has('password.request'))
-                <a href="{{ route('password.request') }}"
-                   class="rounded text-sm text-slate-600 underline hover:text-slate-900
-                          focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-                    Forgot your password?
-                </a>
-            @endif
+        {{-- No "forgot your password?" link, and no reset flow behind it.
 
+             Breeze's version emailed a link, and every account here uses a
+             reserved domain that can never receive mail, so the screen claimed
+             to have sent an email while writing the link into a log file. The
+             recovery path is an administrator setting a new password, which is
+             what the note under this form says. --}}
+        <div class="flex items-center justify-end gap-4 pt-2">
             <button type="submit"
                     class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white
                            hover:bg-brand-700 focus:outline-none focus-visible:ring-2

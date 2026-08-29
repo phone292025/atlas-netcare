@@ -14,7 +14,9 @@
 </head>
 <body class="font-sans antialiased bg-slate-50 text-slate-900">
 
-{{-- The signed-out shell: login, password reset, email verification.
+{{-- The signed-out shell. Only the login screen uses it now: password reset
+     and email verification were removed, so there is nothing else a
+     signed-out person can reach.
 
      Palette matches layouts/app.blade.php — slate, not Breeze's gray. They are
      different neutrals, and the seam between them is visible when a user signs
