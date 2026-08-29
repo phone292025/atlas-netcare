@@ -64,6 +64,32 @@ class PasswordResetLinkController extends Controller
         return $status === Password::RESET_LINK_SENT
             ? back()->with('status', __($status))
             : back()->withInput($request->only('email'))
-                ->withErrors(['email' => __($status)]);
+                ->withErrors(['email' => $this->explain($status)]);
+    }
+
+    /**
+     * Laravel's stock wording, except where it leaves out the useful part.
+     *
+     * The broker allows one request per address per
+     * config('auth.passwords.*.throttle') seconds, which is a real control —
+     * without it anyone can fill a colleague's inbox with reset links. But it
+     * answers with "Please wait before retrying", which does not say how long,
+     * so it reads like the button is broken. Somebody clicking twice during a
+     * demonstration is exactly who sees it.
+     *
+     * The number is read from config rather than written into the sentence,
+     * for the same reason the expiry in the email is.
+     */
+    private function explain(string $status): string
+    {
+        if ($status !== Password::RESET_THROTTLED) {
+            return __($status);
+        }
+
+        $seconds = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.throttle');
+
+        return __('A link was sent to that address moments ago. Wait :seconds seconds before asking for another.', [
+            'seconds' => $seconds,
+        ]);
     }
 }

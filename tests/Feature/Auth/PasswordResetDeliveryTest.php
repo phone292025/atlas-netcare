@@ -140,4 +140,37 @@ class PasswordResetDeliveryTest extends TestCase
             return true;
         });
     }
+
+    public function test_the_throttle_says_how_long_to_wait(): void
+    {
+        /*
+         * One request per address per minute. Laravel answers a second one
+         * with "Please wait before retrying", which does not say how long and
+         * reads like a broken button — and the person most likely to click
+         * twice is a marker seeing the screen for the first time.
+         */
+        config(['auth.passwords.users.throttle' => 90]);
+
+        $user = User::factory()->create();
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        $this->from(route('password.request'))
+            ->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHasErrors(['email' => 'A link was sent to that address moments ago. Wait 90 seconds before asking for another.']);
+    }
+
+    public function test_the_throttle_is_still_a_real_control(): void
+    {
+        // The point of the friendlier wording is the wording. A second
+        // request inside the window must still be refused.
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentToTimes($user, ResetPassword::class, 1);
+    }
 }
