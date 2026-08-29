@@ -48,12 +48,33 @@ Route::middleware('guest')->group(function () {
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
         ->name('password.email');
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
-        ->name('password.reset');
-
-    Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
 });
+
+/*
+| THE RESET LINK ITSELF IS DELIBERATELY NOT BEHIND `guest`.
+|
+| Breeze puts it there, and that is wrong for a URL that arrives by email:
+| nobody controls which browser opens a link from their inbox, and being
+| signed in somewhere is exactly the state a person who has forgotten their
+| password is often in. Behind `guest` the link silently redirects into the
+| application instead of showing the form, which reads as a broken link.
+| That is what happened on a phone on 2026-08-29.
+|
+| It is not a hole. The signed token in the URL is the authorisation, and it
+| is checked either way; whether a session happens to exist alongside it says
+| nothing about whether the holder opened that mailbox. What the session does
+| change is the wording on the form, which names who is signed in and whose
+| password is about to change.
+|
+| The request form above stays behind `guest`. Somebody already signed in has
+| no reason to ask for a link — the profile screen changes their password and
+| asks for the current one.
+*/
+Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+    ->name('password.reset');
+
+Route::post('reset-password', [NewPasswordController::class, 'store'])
+    ->name('password.store');
 
 Route::middleware('auth')->group(function () {
     // Changing your own password from the profile screen. Needs the current

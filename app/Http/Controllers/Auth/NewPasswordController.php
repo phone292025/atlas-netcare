@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -48,6 +49,8 @@ class NewPasswordController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                $this->signOutEverywhere($user);
+
                 event(new PasswordReset($user));
             }
         );
@@ -59,5 +62,39 @@ class NewPasswordController extends Controller
                     ? redirect()->route('login')->with('status', __($status))
                     : back()->withInput($request->only('email'))
                         ->withErrors(['email' => __($status)]);
+    }
+
+    /**
+     * End every session belonging to this account.
+     *
+     * Rotating remember_token above, which is all Breeze does, invalidates
+     * "remember me" cookies and nothing else. An active session survives a
+     * password reset untouched — so somebody who has taken over an account
+     * stays signed in while the owner resets the password and believes they
+     * have locked them out. Locking them out is the entire reason the feature
+     * exists.
+     *
+     * Only possible because SESSION_DRIVER is `database` and Laravel's
+     * sessions table carries user_id. On the `file` or `array` drivers there
+     * is nothing to query, so this quietly does nothing rather than throwing
+     * — a reset must still succeed on a machine configured differently.
+     *
+     * This signs out the person doing the reset too, if they were signed in
+     * on this device. That is intended: the redirect goes to the login screen
+     * either way, and signing in once with the new password is the proof it
+     * worked.
+     *
+     * @see docs/04-open-questions.md Q11
+     */
+    private function signOutEverywhere(User $user): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::connection(config('session.connection'))
+            ->table(config('session.table', 'sessions'))
+            ->where('user_id', $user->getAuthIdentifier())
+            ->delete();
     }
 }

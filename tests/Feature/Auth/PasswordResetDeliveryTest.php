@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -172,5 +173,116 @@ class PasswordResetDeliveryTest extends TestCase
         $this->post(route('password.email'), ['email' => $user->email]);
 
         Notification::assertSentToTimes($user, ResetPassword::class, 1);
+    }
+
+    public function test_a_reset_link_works_in_a_browser_that_is_already_signed_in(): void
+    {
+        /*
+         * Breeze puts this route behind `guest`, so an authenticated browser
+         * is redirected into the application and the link looks broken. That
+         * is what happened on a phone: tapping the link from Gmail opened the
+         * profile screen with no explanation.
+         *
+         * Nobody controls which browser opens a link from their inbox.
+         */
+        $user = User::factory()->create();
+        $token = Password::createToken($user);
+
+        $this->actingAs($user)
+            ->get(route('password.reset', ['token' => $token, 'email' => $user->email]))
+            ->assertOk()
+            ->assertSee('New password');
+    }
+
+    public function test_the_form_names_who_is_signed_in(): void
+    {
+        $reader = User::factory()->create(['name' => 'Nyan Lin Tun']);
+        $owner = User::factory()->create();
+
+        $this->actingAs($reader)
+            ->get(route('password.reset', [
+                'token' => Password::createToken($owner),
+                'email' => $owner->email,
+            ]))
+            ->assertOk()
+            ->assertSee('You are signed in as Nyan Lin Tun');
+    }
+
+    public function test_the_form_says_nothing_about_sessions_when_there_is_none(): void
+    {
+        $user = User::factory()->create();
+
+        $this->get(route('password.reset', [
+            'token' => Password::createToken($user),
+            'email' => $user->email,
+        ]))
+            ->assertOk()
+            ->assertDontSee('You are signed in as');
+    }
+
+    public function test_asking_for_a_link_is_still_a_signed_out_thing_to_do(): void
+    {
+        // The request form stays behind `guest`. Somebody already signed in
+        // changes their password from the profile screen, which asks for the
+        // current one.
+        $this->actingAs(User::factory()->create())
+            ->get(route('password.request'))
+            ->assertRedirect();
+    }
+
+    public function test_resetting_signs_the_account_out_everywhere(): void
+    {
+        /*
+         * Breeze rotates remember_token, which kills "remember me" cookies and
+         * nothing else. An active session survives a reset untouched — so
+         * somebody who has taken over an account stays signed in while the
+         * owner resets the password and believes they have locked them out.
+         *
+         * Locking them out is the entire reason the feature exists.
+         */
+        config(['session.driver' => 'database']);
+
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        foreach ([$user, $user, $other] as $i => $owner) {
+            DB::table('sessions')->insert([
+                'id' => 'session-'.$i,
+                'user_id' => $owner->id,
+                'ip_address' => '127.0.0.1',
+                'user_agent' => 'phpunit',
+                'payload' => '',
+                'last_activity' => now()->timestamp,
+            ]);
+        }
+
+        $this->post(route('password.store'), [
+            'token' => Password::createToken($user),
+            'email' => $user->email,
+            'password' => 'ANewPassword!2026',
+            'password_confirmation' => 'ANewPassword!2026',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, DB::table('sessions')->where('user_id', $user->id)->count());
+
+        // And only that account. Resetting one password must not sign out the
+        // rest of the campus.
+        $this->assertSame(1, DB::table('sessions')->where('user_id', $other->id)->count());
+    }
+
+    public function test_a_reset_still_succeeds_without_a_database_session_driver(): void
+    {
+        // The file and array drivers have nothing to query. A reset must not
+        // depend on how sessions happen to be stored.
+        config(['session.driver' => 'file']);
+
+        $user = User::factory()->create();
+
+        $this->post(route('password.store'), [
+            'token' => Password::createToken($user),
+            'email' => $user->email,
+            'password' => 'ANewPassword!2026',
+            'password_confirmation' => 'ANewPassword!2026',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
     }
 }
