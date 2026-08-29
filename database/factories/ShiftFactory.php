@@ -34,13 +34,24 @@ class ShiftFactory extends Factory
         ];
     }
 
-    /** A shift happening right now, so check-in is legal. */
+    /**
+     * A shift happening right now, so check-in is legal.
+     *
+     * Built from the CAMPUS clock, not `now()`. `start_time` is a wall clock
+     * on campus, and the application runs in UTC, so using now() directly
+     * produced a window eight hours out and check-in refused during a shift
+     * the factory had just declared to be in progress.
+     *
+     * @see App\Models\Shift::startsAt()
+     */
     public function inProgressWindow(): static
     {
+        $local = now()->setTimezone(config('atlas.calendar.timezone'));
+
         return $this->state([
-            'shift_date' => today()->toDateString(),
-            'start_time' => now()->subHour()->format('H:i'),
-            'end_time' => now()->addHours(2)->format('H:i'),
+            'shift_date' => $local->toDateString(),
+            'start_time' => $local->copy()->subHour()->format('H:i'),
+            'end_time' => $local->copy()->addHours(2)->format('H:i'),
         ]);
     }
 

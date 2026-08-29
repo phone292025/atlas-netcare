@@ -24,7 +24,7 @@ This is **academic coursework assessed against a published rubric**. Documentati
 |---|---|
 | **Phase** | Building modules. **Diagrams not started** — Context Diagram, DFD 0, consolidated ERD, 15 marks. The "15 Sep 2026 design freeze" in older docs was an invented date, not from the brief; see `docs/09-roadmap.md`. |
 | **Build stage** | Sprint 0 complete. **Modules: 6 of 7 done** — only M7 (predictive risk and reports) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 + M1–M6. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, the asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, and calendar export. 502 tests passing. |
+| **Code written** | Sprint 0 + M1–M6. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, the asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, and calendar export. 504 tests passing. |
 | **Last updated** | 2026-08-29 |
 | **Blocking** | **Q6** only. Q1–Q5, Q9 and Q10 were all built from their working assumptions without the team agreeing them — confirm or change. See `docs/04-open-questions.md`. |
 

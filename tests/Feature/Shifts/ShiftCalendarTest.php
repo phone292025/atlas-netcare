@@ -145,6 +145,30 @@ class ShiftCalendarTest extends TestCase
         $this->assertStringContainsString('STATUS:CANCELLED', app(ShiftCalendar::class)->forShift($shift));
     }
 
+    public function test_a_shift_with_no_status_in_memory_still_exports(): void
+    {
+        /*
+         * `status` is not fillable and the column default supplies it, so a
+         * model created and not reloaded has no status in memory. Found by
+         * generating a test file from a console script, where it crashed the
+         * export outright.
+         */
+        $shift = Shift::create([
+            'user_id' => $this->assistant()->id,
+            'location_id' => Location::factory()->create()->id,
+            'shift_date' => '2026-09-01',
+            'start_time' => '09:00:00',
+            'end_time' => '13:00:00',
+        ]);
+
+        $this->assertNull($shift->status);
+
+        $this->assertStringContainsString(
+            'STATUS:CONFIRMED',
+            app(ShiftCalendar::class)->forShift($shift),
+        );
+    }
+
     public function test_special_characters_are_escaped(): void
     {
         /*

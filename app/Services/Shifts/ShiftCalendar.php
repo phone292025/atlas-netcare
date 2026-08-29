@@ -118,9 +118,18 @@ class ShiftCalendar
             'DESCRIPTION:'.$this->escape($description),
             $location ? 'LOCATION:'.$this->escape($location->label()) : null,
 
-            // A shift somebody already worked or missed should not sit in
-            // their calendar as something still to do.
-            'STATUS:'.($shift->status->isOutstanding() ? 'CONFIRMED' : 'CANCELLED'),
+            /*
+             * A shift somebody already worked or missed should not sit in
+             * their calendar as something still to do.
+             *
+             * Null-safe because `status` is not in Shift::$fillable and the
+             * column default supplies it, so a freshly created model that has
+             * not been reloaded has no status in memory. Reachable from a
+             * console script or a seeder rather than from the app, but
+             * crashing an export over it would be a poor trade. An unknown
+             * status is treated as live, which is the safer wrong answer.
+             */
+            'STATUS:'.(($shift->status?->isOutstanding() ?? true) ? 'CONFIRMED' : 'CANCELLED'),
             'TRANSP:OPAQUE',
 
             ...$this->alarm(),

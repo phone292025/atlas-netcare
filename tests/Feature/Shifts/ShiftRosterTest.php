@@ -208,6 +208,36 @@ class ShiftRosterTest extends TestCase
         $this->assertNotNull($shift->fresh()->checked_in_at);
     }
 
+    public function test_shift_times_are_campus_local_not_utc(): void
+    {
+        /*
+         * The eight-hour bug. `start_time` is a wall clock on campus and the
+         * application runs in UTC, so parsing it without a zone made a 09:00
+         * shift begin at 09:00 UTC, which is 17:00 in Malaysia. Every
+         * comparison built on it was wrong: an assistant could only check into
+         * a 09:00 shift between 16:45 and 21:00, the reminder fired in the
+         * evening, and a finished shift was not marked missed until the small
+         * hours.
+         *
+         * Found by generating a calendar file and noticing the exported time
+         * disagreed with the application's own idea of when the shift ran.
+         */
+        $shift = Shift::factory()->create([
+            'user_id' => $this->userWith(UserRole::Assistant)->id,
+            'shift_date' => '2026-09-01',
+            'start_time' => '09:00:00',
+        ]);
+
+        $this->assertSame(
+            config('atlas.calendar.timezone'),
+            $shift->startsAt()->timezoneName,
+            'A shift time must be interpreted on the campus clock, not the application default.',
+        );
+
+        // 09:00 in Malaysia is 01:00 UTC. Reading it as 09:00 UTC is the bug.
+        $this->assertSame('2026-09-01 01:00', $shift->startsAt()->utc()->format('Y-m-d H:i'));
+    }
+
     public function test_an_assistant_cannot_check_in_to_somebody_elses_shift(): void
     {
         $shift = Shift::factory()->inProgressWindow()->create([

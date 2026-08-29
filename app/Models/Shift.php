@@ -102,18 +102,38 @@ class Shift extends Model
     /**
      * The moment this shift starts, as a real datetime.
      *
-     * `shift_date` and `start_time` are separate columns — a date and a wall
-     * clock — so anything comparing "has it started yet?" has to combine them.
-     * Doing that here means one implementation rather than five.
+     * `shift_date` and `start_time` are separate columns, a date and a wall
+     * clock, so anything asking "has it started yet?" has to combine them.
+     *
+     * THE TIMEZONE ARGUMENT IS LOAD-BEARING. An administrator entering "09:00"
+     * means 09:00 on campus. The application runs in UTC, so parsing without a
+     * zone produced 09:00 UTC, which is 17:00 in Malaysia. Every comparison
+     * built on it was eight hours out: an assistant could only check into a
+     * 09:00 shift between 16:45 and 21:00, the reminder fired in the evening,
+     * and a finished shift was not marked missed until the small hours.
+     *
+     * Carbon compares absolute moments, so once the zone is right every
+     * comparison against now() is right, whatever config('app.timezone') is
+     * set to. Setting the application timezone to the campus one would also
+     * fix this, and would leave these calls correct rather than
+     * double-converted.
+     *
+     * @see docs/progress/decision-log.md — 2026-08-29
      */
     public function startsAt(): Carbon
     {
-        return Carbon::parse($this->shift_date->toDateString().' '.$this->start_time);
+        return Carbon::parse(
+            $this->shift_date->toDateString().' '.$this->start_time,
+            config('atlas.calendar.timezone'),
+        );
     }
 
     public function endsAt(): Carbon
     {
-        return Carbon::parse($this->shift_date->toDateString().' '.$this->end_time);
+        return Carbon::parse(
+            $this->shift_date->toDateString().' '.$this->end_time,
+            config('atlas.calendar.timezone'),
+        );
     }
 
     public function isToday(): bool
