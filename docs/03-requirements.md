@@ -73,9 +73,9 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-306 | View, filter and sort the full incident ticket queue. | Approved |
 | FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](04-open-questions.md) |
 | FR-308 | Add comments to a ticket, optionally internal-only. | Added |
-| FR-309 | View assets ranked by predictive risk score. | Added |
-| FR-310 | View the contributing factors behind any asset's risk score. | Added |
-| FR-311 | Raise a preventive ticket directly from a high-risk asset. | Added |
+| FR-309 | View assets ranked by predictive risk score. | Added — **built 2026-08-30.** Lab PCs and access points in one queue, ranked on the same 0-100 scale. |
+| FR-310 | View the contributing factors behind any asset's risk score. | Added — **built 2026-08-30.** Stored as JSON at the time of scoring, so an old score still explains itself after the weights change. |
+| FR-311 | Raise a preventive ticket directly from a high-risk asset. | Added — **built 2026-08-30.** Pre-filled with the actual factors, asset locked. The only route by which an access point can be ticketed through the form. |
 
 ### FR-400 — System Administrator
 
@@ -90,7 +90,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-407 | Configure recurring shift templates. | Approved |
 | FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](04-open-questions.md) |
 | FR-409 | View a system audit log of significant actions. | Approved |
-| FR-410 | Generate and view operational reports and descriptive statistics. | Approved |
+| FR-410 | Generate and view operational reports and descriptive statistics. | Approved — **built 2026-08-30.** Five reports. Admin and engineer. |
 
 ### FR-500 — System behaviour (no direct user action)
 
@@ -100,7 +100,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](04-open-questions.md) |
 | FR-503 | Automatically raise a ticket when an access point goes offline. | Added |
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](04-open-questions.md) |
-| FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added |
+| FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |
 | FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](04-open-questions.md) |
 | FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](04-open-questions.md) |

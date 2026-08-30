@@ -11,13 +11,33 @@
 | | |
 |---|---|
 | **Phase** | Sprint 0 complete. Building modules. |
-| **Last session** | 2026-08-29 |
-| **Modules done** | **6 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms |
-| **Tests** | 528 passing (1 skipped), 1459 assertions, zero deprecations |
+| **Last session** | 2026-08-30 |
+| **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
+| **Tests** | 567 passing (1 skipped), 1566 assertions, zero deprecations |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **M7 — predictive risk and reports.** The last module. Everything it scores already exists: inspection history (M3), ticket history (M4), telemetry (M5). Then FR-408, the individual shift override M6 did not build. |
+| **Next action** | **The report, not the code.** All seven modules are built. The Context Diagram, DFD 0 and consolidated ERD are worth 15 marks and none exist, and each module owes a DFD 1, data dictionary and flowchart from an owner nobody has assigned. Two code items remain: FR-408, the individual shift override M6 did not build, and demo data with something in the top two risk bands. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
+
+---
+
+## M7 built — 2026-08-30
+
+The last module, and the one that makes this a predictive maintenance system rather than a monitoring one. Everything else in Atlas NetCare reports what has already happened; M7 ranks what is about to.
+
+**The model, in a sentence you can say out loud.** Each factor is a measurement divided by a ceiling from `config('atlas.risk_inputs')`, giving 0 to 1, clamped so nothing exceeds its share, multiplied by a weight from `config('atlas.risk_weights')`, summed and scaled to 0-100. No hidden step and no learned parameter. That is the whole of it, and being able to say that is why ADR-0007 chose weights over a trained model.
+
+**Two factor sets.** A lab PC leaves history — age, faults, critical inspection failures, inspection lag. An access point leaves telemetry, so it is scored on trends over two weeks. Config was restructured from one flat list into one set per type.
+
+**What was harder than expected.** Deciding what an unmeasurable factor means. Counting a missing purchase date as zero risk quietly punishes a machine for a blank field, and it is invisible: the score looks plausible either way. Dropping the factor and renormalising is right, and it needed the stored breakdown rescaled too so the parts still sum to the total on screen.
+
+**What the tests caught.** Nothing, at first — all 14 scoring tests passed on the first run, which is suspicious in a piece of arithmetic this fiddly. So the clamp and the renormalising were each removed to confirm the tests actually fail without them. They do. **Do that for any test whose subject is a calculation.**
+
+**What nearly shipped wrong.** Adding Reports to the engineer sidebar broke an invariant nobody had violated before — every navigation entry must be namespaced under its own role — and `AtlasConfigTest` caught it. Separately, two `AppShellTest` tests were resting on `admin.reports.index` being unbuilt, so finishing the module broke them. Both are worth remembering: a test that depends on work being incomplete passes right up until the work is done.
+
+**Verified against MariaDB, not only SQLite.** Every report aggregation was run against the live database as well as the suite, because the suite has now hidden three MariaDB-specific defects and reports are the most SQL-heavy code in the project.
+
+**Still open.** FR-408, and demo data that produces something in the top two risk bands — every seeded asset currently scores Low or Medium, and a maintenance ranking with no Critical row does not demonstrate what the screen is for.
 
 ---
 
@@ -81,7 +101,7 @@ A module is not done until every box in the definition of done in [../modules/RE
 | [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-28** |
 | [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ✅ **Done 2026-08-28** |
 | [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-29** |
-| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | 🔨 **Next — the last one** |
+| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ✅ **Built 2026-08-30.** Scoring, ranking, preventive tickets and five reports. Diagrams outstanding. |
 
 **Seven owners are still unassigned.** Nothing technical is blocked by that, but the individual report deliverables are — each person documents the module they personally built, and nobody currently owns one.
 

@@ -229,7 +229,7 @@ return [
 | `atlas:collect-telemetry` | every minute | One reading per active AP, through the current driver |
 | `atlas:dispatch-alarms` | every minute | Sends alarms past their trigger time; raises SLA breaches |
 | `atlas:aggregate-telemetry` | hourly | Rolls raw readings into `telemetry_hourly` |
-| `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row — **planned, arrives with M7** |
+| `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Runs after aggregation, so trends do not stop hours short of now |
 
 | `atlas:generate-shifts` | weekly, Sunday | Materialises next week's shifts from templates |
 | `atlas:prune-telemetry` | weekly | Drops raw readings past retention |

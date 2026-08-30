@@ -240,7 +240,8 @@ Two more you run yourself.
 
 ## Testing
 
-528 tests, one skipped. Roughly 1,460 assertions.
+567 tests, one skipped. Roughly 1,570 assertions.
+
 
 The suite runs on SQLite in memory, which is fast and has caused three bugs. SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
 
@@ -256,7 +257,9 @@ Two habits came out of building this.
 
 ## What is not built
 
-**M7, predictive risk and reports.** The last module. Everything it needs now exists: inspection history, ticket history, telemetry, and machine age. The lab PC and access point pages already have a labelled empty card waiting for the risk score.
+**FR-408, the individual shift override.** M6 did not build it, and it is now the last functional gap in the system.
+
+**A demo dataset with anything in the top two risk bands.** Every seeded asset scores Low or Medium, because the demo data holds no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. A maintenance ranking with no Critical row does not show what the screen is for, so this is worth fixing before the demonstration.
 
 **Real SNMP telemetry.** The driver is a deliberate stub that throws with instructions.
 
@@ -264,7 +267,8 @@ Two habits came out of building this.
 
 Email is no longer on this list. FR-102 sends a password reset link through Gmail SMTP and it was confirmed arriving on a phone on 2026-08-29. Alarms could now be emailed too, since the account and the configuration exist — that is a choice nobody has made rather than a thing that cannot be done.
 
-**The report diagrams.** Context Diagram, DFD 0, and the consolidated ERD are worth 15 marks and none exist. Each of the six built modules also owes a DFD 1, a data dictionary, and a flowchart from whoever owns it. Nobody owns one yet.
+**The report diagrams.** Context Diagram, DFD 0, and the consolidated ERD are worth 15 marks and none exist. Each of the seven built modules also owes a DFD 1, a data dictionary, and a flowchart from whoever owns it. Nobody owns one yet. **With all seven modules coded, this is now the largest single block of marks still outstanding.**
+
 
 ---
 

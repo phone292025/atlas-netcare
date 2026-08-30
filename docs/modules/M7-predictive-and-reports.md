@@ -50,14 +50,36 @@ All roles as permitted: reports — ticket volume by category and priority, mean
 | Inspection pass rate by location | `inspections` | Links M3 to outcomes |
 | AP uptime and peak congestion by location | `telemetry_hourly` | Links M5 to outcomes |
 
+## Built on 2026-08-30
+
+Everything below except the report diagrams. 29 tests, and the scoring ones pin their own weights rather than reading config — a test that reads the same configuration as the code cannot detect a weight changing, which is the one thing these numbers need protecting from. The clamp and the renormalising were both checked by reintroducing the bug and confirming the tests fail.
+
+**Three decisions worth being able to defend.**
+
+*Missing data is not zero risk.* An unmeasurable factor is dropped and the remaining weights renormalised, so an asset is scored on what is known. The naive alternative makes a machine with no purchase date score 25% lower than an identical machine that has one, and sink in the ranking because nobody typed a date in. The stored breakdown is rescaled too, so the parts still sum to the total on screen.
+
+*Never scored sorts last, not first.* Nothing is known about it. Floating an unknown to the top of a maintenance queue buries the assets that are genuinely about to fail. An access point with no telemetry is reported as unscored rather than as a clean zero, because silence is usually a dead device.
+
+*Access points are scored on trends, lab PCs on history.* The two asset types leave different evidence, so `risk_weights` was restructured into one set each. A link that has always been slow is a known quantity somebody has decided to live with; a link that is getting slower is the prediction.
+
+**The trend is measured as the second half's mean minus the first half's**, not a least squares regression. One subtraction anybody on the team can check by hand, and over two weeks of hourly data it answers the same question. ADR-0007's whole argument is that every number has to survive being questioned.
+
+**`risk_assessments.calculated_at` is `dateTime`, not `timestamp`.** That column is the x-axis of the trend chart, and MariaDB would have quietly moved it to "now" on every update.
+
 ## Definition of done
 
-- [ ] `RiskScoringService` scores both asset types from configured weights
-- [ ] Factors stored as JSON and rendered in the UI as readable reasons
-- [ ] Maintenance priority screen ranks assets and links to detail
-- [ ] Risk history chart shows an asset's score trending over time
-- [ ] Preventive ticket can be raised directly from a high-risk asset
-- [ ] All five reports render with charts and are screenshot-ready for the report
-- [ ] Daily recalculation runs on schedule and updates cached columns consistently
-- [ ] **Unit tests on `RiskScoringService`** — this is the most test-worthy code in the project
-- [ ] DFD 1, data dictionary and flowchart drafted
+- [x] `RiskScoringService` scores both asset types from configured weights
+- [x] Factors stored as JSON and rendered in the UI as readable reasons
+- [x] Maintenance priority screen ranks assets and links to detail — both asset types in one queue
+- [x] Risk history chart shows an asset's score trending over time — 90 days, needs two runs before it draws
+- [x] Preventive ticket can be raised directly from a high-risk asset, pre-filled with the actual factors
+- [x] All five reports render with charts and are screenshot-ready for the report
+- [x] Daily recalculation runs on schedule and updates cached columns consistently — 02:00, after telemetry aggregation
+- [x] **Unit tests on `RiskScoringService`** — 14 of them, one factor at a time
+- [ ] DFD 1, data dictionary and flowchart drafted — **not started**
+
+## Not built, and deliberately
+
+**FR-408, the individual shift override.** M6 did not build it and neither did this. It belongs to M6 and is the last functional gap in the system.
+
+**A spread across all four risk bands in the demo data.** Every seeded asset currently lands Low or Medium, because the demo data has no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. **Worth fixing before the demonstration** — a maintenance ranking with no Critical row does not show what the screen is for.
