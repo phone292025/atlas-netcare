@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -97,5 +100,57 @@ class AccessPoint extends Model
         return $this->client_capacity > 0
             ? $clientCount / $this->client_capacity
             : null;
+    }
+
+    /**
+     * Faults raised against this asset.
+     *
+     * Polymorphic because `tickets.ticketable` covers both asset types, so
+     * M7's fault-frequency factor reads the same relation whichever it is
+     * scoring.
+     *
+     * @return MorphMany<Ticket, $this>
+     */
+    public function tickets(): MorphMany
+    {
+        return $this->morphMany(Ticket::class, 'ticketable');
+    }
+
+    /**
+     * Every risk score this asset has ever been given, for the trend chart.
+     *
+     * @return MorphMany<RiskAssessment, $this>
+     */
+    public function riskAssessments(): MorphMany
+    {
+        return $this->morphMany(RiskAssessment::class, 'assessable');
+    }
+
+    /**
+     * The most recent score, with its factors.
+     *
+     * The cached `risk_score` column carries the same number for lists; this
+     * is for a detail page, which needs the reasons as well.
+     *
+     * @return MorphOne<RiskAssessment, $this>
+     */
+    public function latestRiskAssessment(): MorphOne
+    {
+        return $this->morphOne(RiskAssessment::class, 'assessable')->latestOfMany('calculated_at');
+    }
+
+    /**
+     * Hourly telemetry rollups, which are what M7 measures trends on.
+     *
+     * Trends read the aggregates rather than raw readings deliberately: two
+     * weeks of per-minute rows is around twenty thousand per access point,
+     * and an hourly mean is the right resolution for "is this link getting
+     * worse" anyway. A single bad minute is weather.
+     *
+     * @return HasMany<TelemetryHourly, $this>
+     */
+    public function hourly(): HasMany
+    {
+        return $this->hasMany(TelemetryHourly::class);
     }
 }

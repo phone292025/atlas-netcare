@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\TicketPriority;
 use App\Enums\UserRole;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -24,6 +25,7 @@ class AtlasConfigTest extends TestCase
             'poll_interval',
             'thresholds',
             'risk_weights',
+            'risk_inputs',
             'risk_bands',
             'sla_hours',
             'retention',
@@ -33,11 +35,45 @@ class AtlasConfigTest extends TestCase
         }
     }
 
-    public function test_risk_weights_sum_to_one(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function weightSets(): array
     {
-        // If these drift, every risk score silently scales wrong and no error
-        // is ever raised. See ADR-0007.
-        $this->assertEqualsWithDelta(1.0, array_sum(config('atlas.risk_weights')), 0.0001);
+        return [
+            'lab pc' => ['lab_pc'],
+            'access point' => ['access_point'],
+        ];
+    }
+
+    #[DataProvider('weightSets')]
+    public function test_risk_weights_sum_to_one(string $set): void
+    {
+        /*
+         * If these drift, every risk score in that set silently scales wrong
+         * and no error is ever raised — a run where the weights sum to 0.9
+         * produces scores 10% low and looks completely normal. See ADR-0007.
+         *
+         * Per set, because the two asset types are scored on different
+         * evidence and each set has to stand on its own.
+         */
+        $this->assertEqualsWithDelta(
+            1.0,
+            array_sum(config("atlas.risk_weights.{$set}")),
+            0.0001,
+            "config/atlas.php risk_weights.{$set} does not sum to 1.0",
+        );
+    }
+
+    public function test_every_scoring_input_is_a_positive_number(): void
+    {
+        // Each of these is a denominator. A zero divides by zero and a
+        // negative inverts the factor, and both produce a plausible-looking
+        // score rather than an error.
+        foreach (config('atlas.risk_inputs') as $name => $value) {
+            $this->assertIsNumeric($value, "risk_inputs.{$name} is not a number");
+            $this->assertGreaterThan(0, $value, "risk_inputs.{$name} must be greater than zero");
+        }
     }
 
     public function test_risk_bands_are_ordered_and_start_at_zero(): void

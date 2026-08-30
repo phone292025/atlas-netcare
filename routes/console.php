@@ -70,3 +70,22 @@ Schedule::command('atlas:dispatch-alarms')
  */
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00');
+
+/*
+ * M7 — predictive risk (FR-505).
+ *
+ * Daily and out of hours, because it rewrites the cached risk columns on
+ * every asset and the maintenance ranking should not reorder underneath
+ * somebody who is reading it.
+ *
+ * 02:00 rather than midnight, so it runs AFTER the previous day's telemetry
+ * has been aggregated into hourly buckets. Scoring an access point on trends
+ * that stop several hours short of "now" makes a link that failed last night
+ * look fine this morning, which is the one morning it matters.
+ *
+ * A second run the same day is harmless: it adds a history row rather than
+ * overwriting one.
+ */
+Schedule::command('atlas:recalculate-risk --show=0')
+    ->dailyAt('02:00')
+    ->withoutOverlapping();

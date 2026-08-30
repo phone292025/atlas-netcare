@@ -15,6 +15,7 @@ use App\Http\Controllers\Assistant\ShiftController;
 use App\Http\Controllers\Assistant\TicketController as AssistantTicketController;
 use App\Http\Controllers\DashboardRedirect;
 use App\Http\Controllers\Engineer\DashboardController;
+use App\Http\Controllers\Engineer\RiskController;
 use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
 use App\Http\Controllers\NotificationController;
@@ -168,6 +169,23 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:engineer,admin')->prefix('engineer')->name('engineer.')->group(function () {
         Route::get('tickets', [EngineerTicketController::class, 'index'])->name('tickets.index');
         Route::get('tickets/{ticket}', [EngineerTicketController::class, 'show'])->name('tickets.show');
+
+        /*
+        | M7 — predictive maintenance (FR-309, FR-310).
+        |
+        | `engineer.risk.index` is fixed vocabulary: the sidebar renders from
+        | that exact name and config/atlas.php has referenced it since Sprint 0.
+        |
+        | The detail route takes a TYPE SEGMENT rather than a model binding,
+        | because one ranking holds two different models. `{type}` is matched
+        | against a whitelist in the controller — never used to build a class
+        | name, which is how a crafted URL turns into an arbitrary model.
+        */
+        Route::get('risk', [RiskController::class, 'index'])->name('risk.index');
+        Route::get('risk/{type}/{id}', [RiskController::class, 'show'])
+            ->whereIn('type', ['lab-pc', 'access-point'])
+            ->whereNumber('id')
+            ->name('risk.show');
 
         /*
         | M5 — telemetry and the AP dashboard.

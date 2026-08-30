@@ -190,9 +190,20 @@ return [
     | Predictive risk scoring
     |--------------------------------------------------------------------------
     |
-    | Weights must sum to 1.0 — there is a unit test asserting this. Each
-    | factor is normalised to 0..1, clamped, multiplied by its weight, summed
-    | and scaled to 0-100.
+    | Each set must sum to 1.0 — there is a unit test asserting it per set.
+    | Every factor is normalised to 0..1, clamped, multiplied by its weight,
+    | summed and scaled to 0-100.
+    |
+    | TWO SETS, because the two asset types fail in different ways and the
+    | evidence available for each is not the same. A lab PC is scored on its
+    | history: how old it is, how often it breaks, how badly it fails
+    | inspection, how long since anybody looked at it. An access point has
+    | telemetry instead, so it is scored on TRENDS — a link degrading over two
+    | weeks is the signal, not a single bad reading, which is weather.
+    |
+    | Tuning these live during the demonstration is the point of them being
+    | here. Change a weight, run `php artisan atlas:recalculate-risk`, and the
+    | ranking reorders in front of the room.
     |
     | These weights are the team's engineering judgement, not values derived
     | from a training dataset. That must be stated in the report's Assumptions
@@ -201,10 +212,53 @@ return [
     */
 
     'risk_weights' => [
-        'age' => 0.25,
-        'fault_frequency' => 0.30,
-        'critical_fail_rate' => 0.25,
-        'days_since_inspect' => 0.20,
+
+        'lab_pc' => [
+            'age' => 0.25,
+            'fault_frequency' => 0.30,
+            'critical_fail_rate' => 0.25,
+            'days_since_inspect' => 0.20,
+        ],
+
+        'access_point' => [
+            'latency_trend' => 0.30,
+            'packet_loss_trend' => 0.25,
+            'offline_events' => 0.30,
+            'client_saturation' => 0.15,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Risk scoring inputs
+    |--------------------------------------------------------------------------
+    |
+    | The denominators that turn a raw measurement into a 0..1 factor. Named
+    | rather than written into the service, because every one of them is an
+    | assumption somebody may be asked to defend.
+    |
+    | `pc_life_years` is the expected service life a machine's age is measured
+    | against: a six-year-old PC scores 1.0 on age. `fault_window_days` and
+    | `fault_ceiling` say that ten tickets in ninety days is as bad as the
+    | fault factor gets. `inspect_ceiling_days` says a month without an
+    | inspection is a full-weight concern.
+    |
+    | For access points, `trend_days` is the window a trend is measured over.
+    | Two weeks is long enough that one bad evening does not move it and short
+    | enough to still be a warning rather than a history lesson.
+    |
+    */
+
+    'risk_inputs' => [
+        'pc_life_years' => 6,
+        'fault_window_days' => 90,
+        'fault_ceiling' => 10,
+        'inspect_ceiling_days' => 30,
+
+        'trend_days' => 14,
+        'latency_ceiling_ms' => 120,
+        'packet_loss_ceiling_pct' => 5.0,
+        'offline_ceiling' => 5,
     ],
 
     /*

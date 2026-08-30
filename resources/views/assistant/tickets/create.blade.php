@@ -43,22 +43,48 @@
                                        :selected="$prefill['priority'] ?? 'medium'" />
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <x-form.select name="ticketable_id" label="Which machine?" :options="$labPcs"
-                                       :selected="$prefill['ticketable_id'] ?? null"
-                                       blank="Not about one machine"
-                                       help="Leave blank for a fault affecting a whole room." />
+                    @if ($prefill['ticketable_locked'] ?? false)
+                        {{-- Arrived from one specific asset's risk detail
+                             (FR-311). Showing a dropdown of two hundred
+                             machines here would only be a chance to pick the
+                             wrong one. --}}
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <span class="block text-sm font-medium text-slate-700">Which asset?</span>
+                                <p class="mt-1 rounded-md bg-slate-50 px-3 py-2 font-mono text-sm text-slate-900 ring-1 ring-slate-200">
+                                    {{ $prefill['ticketable_label'] }}
+                                </p>
+                                <p class="mt-1 text-xs text-slate-500">
+                                    Flagged by the maintenance ranking.
+                                    <a href="{{ route('engineer.risk.index') }}" class="underline">Change asset</a>
+                                </p>
+                            </div>
 
-                        <x-form.select name="location_id" label="Where?" :options="$locations"
-                                       :selected="$prefill['location_id'] ?? null"
-                                       blank="Not sure" />
-                    </div>
+                            <x-form.select name="location_id" label="Where?" :options="$locations"
+                                           :selected="$prefill['location_id'] ?? null"
+                                           blank="Not sure" />
+                        </div>
 
-                    {{-- The morph type is fixed here rather than chosen. An
-                         assistant only ever raises tickets about lab PCs; the
-                         access point case belongs to M5's collector, which
-                         calls TicketService directly. --}}
-                    <input type="hidden" name="ticketable_type" value="lab_pc">
+                        <input type="hidden" name="ticketable_type" value="{{ $prefill['ticketable_type'] }}">
+                        <input type="hidden" name="ticketable_id" value="{{ $prefill['ticketable_id'] }}">
+                    @else
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-form.select name="ticketable_id" label="Which machine?" :options="$labPcs"
+                                           :selected="$prefill['ticketable_id'] ?? null"
+                                           blank="Not about one machine"
+                                           help="Leave blank for a fault affecting a whole room." />
+
+                            <x-form.select name="location_id" label="Where?" :options="$locations"
+                                           :selected="$prefill['location_id'] ?? null"
+                                           blank="Not sure" />
+                        </div>
+
+                        {{-- The morph type is fixed here rather than chosen. An
+                             assistant only ever raises tickets about lab PCs.
+                             Access points reach this form only through the
+                             locked branch above, from a risk detail screen. --}}
+                        <input type="hidden" name="ticketable_type" value="lab_pc">
+                    @endif
                 </div>
 
                 <x-slot:footer>

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Assistant;
 
+use App\Enums\RiskBand;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tickets\StoreTicketRequest;
+use App\Models\AccessPoint;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\RiskAssessment;
 use App\Models\Ticket;
 use App\Services\Tickets\TicketService;
 use Illuminate\Contracts\View\View;
@@ -54,7 +57,11 @@ class TicketController extends Controller
     {
         $this->authorize('create', Ticket::class);
 
-        $prefill = $this->prefillFromInspection($request);
+        // Two ways a ticket arrives pre-filled: from a failed checklist item
+        // (M3) or from a high-risk asset (M7, FR-311). Neither can be present
+        // at once, so the first that matches wins.
+        $prefill = $this->prefillFromInspection($request)
+            ?: $this->prefillFromRiskyAsset($request);
 
         return view('assistant.tickets.create', [
             'categories' => TicketCategory::options(),
@@ -131,5 +138,93 @@ class TicketController extends Controller
                 : TicketPriority::Medium->value,
             'category' => TicketCategory::Hardware->value,
         ];
+    }
+
+    /**
+     * Pre-fill from an asset the risk model has flagged (FR-311).
+     *
+     * PREVENTIVE, not reactive. Every other ticket in the system is raised
+     * because something has already broken. This one is raised because the
+     * scoring says it is about to, and that distinction is the whole point of
+     * M7 existing — so the description arrives carrying the actual reasons
+     * rather than a blank box the engineer has to justify from memory.
+     *
+     * The asset is LOCKED here rather than offered as a dropdown. You arrived
+     * from one specific machine's detail screen; re-picking it from a list of
+     * two hundred is a chance to pick the wrong one.
+     *
+     * Access points are reachable this way and not through the normal form.
+     * `StoreTicketRequest` has always accepted `access_point`; the assistant
+     * form hardcodes `lab_pc` because an assistant raises faults about
+     * machines they are standing at. An engineer acting on a risk ranking is a
+     * different situation.
+     *
+     * @return array<string, mixed>
+     */
+    private function prefillFromRiskyAsset(Request $request): array
+    {
+        if (! $request->filled('asset') || ! $request->filled('asset_id')) {
+            return [];
+        }
+
+        $asset = match ($request->string('asset')->toString()) {
+            'lab-pc' => LabPc::find($request->integer('asset_id')),
+            'access-point' => AccessPoint::find($request->integer('asset_id')),
+            default => null,
+        };
+
+        if (! $asset) {
+            // Fall back to a blank form rather than 403ing. The engineer can
+            // still raise the ticket by hand, and refusing outright helps
+            // nobody.
+            return [];
+        }
+
+        $assessment = $asset->latestRiskAssessment;
+        $isPc = $asset instanceof LabPc;
+        $name = $isPc ? $asset->asset_tag : $asset->ap_code;
+
+        return [
+            'title' => "Preventive maintenance: {$name}",
+            'description' => $this->riskNarrative($assessment),
+            'ticketable_type' => $isPc ? 'lab_pc' : 'access_point',
+            'ticketable_id' => $asset->id,
+            'ticketable_label' => $name,
+            'ticketable_locked' => true,
+            'location_id' => $asset->location_id,
+            'category' => ($isPc ? TicketCategory::Hardware : TicketCategory::Network)->value,
+            // A suggestion, not a decision. A Critical band means the model
+            // thinks this is close; the engineer looking at it knows more.
+            'priority' => match ($asset->risk_band) {
+                RiskBand::Critical => TicketPriority::Critical->value,
+                RiskBand::High => TicketPriority::Medium->value,
+                default => TicketPriority::Low->value,
+            },
+        ];
+    }
+
+    /**
+     * The score, written out as the sentence a person would say.
+     *
+     * "78, mostly age and inspection lag" is what makes this a ticket somebody
+     * can act on rather than a number they have to go and look up.
+     */
+    private function riskNarrative(?RiskAssessment $assessment): string
+    {
+        if (! $assessment) {
+            return 'Raised from the maintenance priority ranking.';
+        }
+
+        $reasons = collect($assessment->topFactors(3))
+            ->map(fn (float $points, string $name) => sprintf('%s (%.1f)', str_replace('_', ' ', $name), $points))
+            ->implode(', ');
+
+        return sprintf(
+            "Raised from the maintenance priority ranking.\n\nRisk score %s (%s), calculated %s.\n\nHeaviest factors: %s.",
+            round($assessment->score, 1),
+            $assessment->band->label(),
+            $assessment->calculated_at->format('j M Y'),
+            $reasons ?: 'none measurable',
+        );
     }
 }
