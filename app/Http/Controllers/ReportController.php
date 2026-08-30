@@ -99,9 +99,21 @@ class ReportController extends Controller
      */
     private function ticketVolume(): array
     {
+        /*
+         * toBase(), so the rows come back as plain objects.
+         *
+         * Without it Eloquent hydrates Ticket MODELS and casts `category` and
+         * `priority` into their enums, so comparing them to a string silently
+         * matches nothing and every cell in the matrix reads zero while the
+         * heading above it reports the true total. That is exactly what
+         * shipped: the screen said "3 tickets" over a grid of noughts, and no
+         * test caught it because the tests asserted the headings rather than
+         * the numbers.
+         */
         $counts = Ticket::query()
             ->selectRaw('category, priority, COUNT(*) as total')
             ->groupBy('category', 'priority')
+            ->toBase()
             ->get();
 
         $matrix = [];
@@ -152,16 +164,35 @@ class ReportController extends Controller
         foreach (TicketPriority::cases() as $priority) {
             $forPriority = $resolved->where('priority', $priority);
 
-            $hours = $forPriority
-                ->map(fn (Ticket $t) => $t->opened_at->diffInMinutes($t->resolved_at) / 60)
-                ->filter(fn (float $h) => $h >= 0);
+            $all = $forPriority
+                ->map(fn (Ticket $t) => $t->opened_at->diffInMinutes($t->resolved_at) / 60);
+
+            /*
+             * A NEGATIVE DURATION MEANS THE ROW IS CORRUPT, not that the
+             * ticket was fixed before it broke. `tickets.opened_at` was a
+             * MariaDB `timestamp` until 2026-08-29 and silently rewrote
+             * itself to "now" on every status transition, so rows written
+             * before that fix can carry an opened_at later than their own
+             * resolved_at.
+             *
+             * Excluded from the mean, because averaging in a negative pulls
+             * the figure toward zero and makes the SLA look better than it
+             * was. But COUNTED and REPORTED, because the first version of
+             * this silently dropped them and the screen then said "nothing
+             * resolved yet" about a priority that had a resolved ticket.
+             * A report that quietly omits rows is how a total stops adding up.
+             */
+            $usable = $all->filter(fn (float $h) => $h >= 0);
+            $excluded = $all->count() - $usable->count();
 
             $target = (float) config("atlas.sla_hours.{$priority->value}", 0);
-            $mean = $hours->isEmpty() ? null : $hours->avg();
+            $mean = $usable->isEmpty() ? null : $usable->avg();
 
             $rows[$priority->value] = [
                 'label' => $priority->label(),
-                'resolved' => $hours->count(),
+                'resolved' => $all->count(),
+                'measurable' => $usable->count(),
+                'excluded' => $excluded,
                 'mean_hours' => $mean,
                 'target_hours' => $target,
                 // Whether the AVERAGE met the target. Individual breaches are

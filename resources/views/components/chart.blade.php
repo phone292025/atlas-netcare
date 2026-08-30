@@ -42,6 +42,13 @@
 
     Chart.js then animates between states instead of flashing a new canvas.
 
+    OPTIONS ARE CAST TO AN OBJECT before they reach Chart.js. An empty PHP
+    array serialises to a JS ARRAY, and `new Chart(canvas, { options: [] })`
+    throws "Cannot convert undefined or null to object" and draws nothing at
+    all. Every caller until M7 happened to pass options, so this sat here from
+    M5 without anybody hitting it, and a blank chart reads as missing data
+    rather than as a crash.
+
     @see docs/decisions/ADR-0006-alpine-chartjs-not-livewire.md
     @see docs/decisions/ADR-0005-ajax-polling-not-websockets.md
 --}}
@@ -74,7 +81,7 @@
                 this.chart = new window.Chart(this.$refs.canvas, {
                     type: @js($type),
                     data: @js($payload),
-                    options: @js($options),
+                    options: @js((object) $options),
                 });
             },
             destroy() {

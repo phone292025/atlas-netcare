@@ -201,4 +201,111 @@ class ReportsTest extends TestCase
             ->get(route('admin.reports.index'))
             ->assertForbidden();
     }
+
+    public function test_the_ticket_matrix_shows_real_counts_not_a_grid_of_zeroes(): void
+    {
+        /*
+         * The bug this was written against, found by looking at the screen
+         * rather than by any test: the heading said "3 tickets" over a matrix
+         * where every cell read 0.
+         *
+         * Eloquent casts `category` and `priority` into enums, so comparing a
+         * hydrated model's attribute to a string matches nothing and every
+         * lookup silently falls through to its default. toBase() keeps the
+         * aggregate rows as plain objects.
+         *
+         * ASSERT THE NUMBERS, not the headings. The original tests checked
+         * that the words "Ticket volume" and "Hardware" appeared, which they
+         * did throughout.
+         */
+        $reporter = $this->assistant();
+
+        Ticket::factory()->count(3)->create([
+            'category' => TicketCategory::Hardware,
+            'priority' => TicketPriority::Critical,
+            'reported_by' => $reporter->id,
+        ]);
+        Ticket::factory()->create([
+            'category' => TicketCategory::Network,
+            'priority' => TicketPriority::Low,
+            'reported_by' => $reporter->id,
+        ]);
+
+        $volume = $this->actingAs($this->admin())
+            ->get(route('admin.reports.index'))
+            ->assertOk()
+            ->viewData('ticketVolume');
+
+        $this->assertSame(3, $volume['matrix'][TicketCategory::Hardware->value][TicketPriority::Critical->value]);
+        $this->assertSame(3, $volume['matrix'][TicketCategory::Hardware->value]['total']);
+        $this->assertSame(1, $volume['matrix'][TicketCategory::Network->value][TicketPriority::Low->value]);
+        $this->assertSame(4, $volume['total']);
+
+        // And the row totals must add up to the headline, or the screen is
+        // visibly contradicting itself again.
+        $this->assertSame(
+            $volume['total'],
+            collect($volume['matrix'])->sum('total'),
+        );
+    }
+
+    public function test_a_chart_without_options_still_draws(): void
+    {
+        /*
+         * `new Chart(canvas, { options: [] })` throws "Cannot convert
+         * undefined or null to object" and renders a blank box. An empty PHP
+         * array serialises to a JS array, not an object.
+         *
+         * Latent in <x-chart> since M5 — every caller until M7 happened to
+         * pass options, so the first chart written without them silently drew
+         * nothing. A blank chart looks like missing data, not like a crash,
+         * which is why it would have gone unnoticed.
+         */
+        $html = $this->blade('<x-chart type="bar" :data="[\'labels\' => [\'a\'], \'datasets\' => [[\'data\' => [1]]]]" />');
+
+        $html->assertSee('options: {}', escape: false);
+    }
+
+    public function test_a_ticket_resolved_before_it_was_opened_is_excluded_and_said_out_loud(): void
+    {
+        /*
+         * `tickets.opened_at` was a MariaDB `timestamp` until 2026-08-29 and
+         * silently rewrote itself to "now" on every status transition, so
+         * rows written before that fix can claim to have been resolved
+         * eight hours before they were opened. One such row is still in the
+         * development database.
+         *
+         * Averaging a negative in pulls the mean toward zero and makes the
+         * SLA look better than it was, so it is excluded. The FIRST version
+         * of this dropped it silently, and the screen then said "nothing
+         * resolved yet" about a priority that had a resolved ticket — the
+         * exact failure this report warns about elsewhere.
+         */
+        $reporter = $this->assistant();
+
+        Ticket::factory()->create([
+            'priority' => TicketPriority::Critical,
+            'status' => TicketStatus::Resolved,
+            'reported_by' => $reporter->id,
+            'opened_at' => now(),
+            'resolved_at' => now()->subHours(8),
+        ]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('admin.reports.index'))
+            ->assertOk();
+
+        $row = $response->viewData('resolution')[TicketPriority::Critical->value];
+
+        $this->assertSame(1, $row['resolved'], 'The ticket is still counted as resolved.');
+        $this->assertSame(0, $row['measurable']);
+        $this->assertSame(1, $row['excluded']);
+        $this->assertNull($row['mean_hours'], 'A corrupt duration must not reach the mean.');
+
+        // "No usable timestamps" rather than "Nothing resolved yet": the
+        // other priorities genuinely have nothing resolved and correctly say
+        // so, but this one has a resolved ticket it cannot measure.
+        $response->assertSee('1 excluded, resolved before opened')
+            ->assertSee('No usable timestamps');
+    }
 }

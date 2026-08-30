@@ -102,11 +102,24 @@
                     <td class="px-4 py-3 text-right tabular-nums text-slate-500">{{ $row['target_hours'] }}</td>
                     <td class="px-4 py-3">
                         @if ($row['mean_hours'] === null)
-                            <span class="text-xs text-slate-400">Nothing resolved yet</span>
+                            <span class="text-xs text-slate-400">
+                                {{ $row['resolved'] === 0 ? 'Nothing resolved yet' : 'No usable timestamps' }}
+                            </span>
                         @else
                             <x-badge :tone="$row['within_target'] ? 'healthy' : 'urgent'">
                                 {{ $row['within_target'] ? 'Within target' : 'Over target' }}
                             </x-badge>
+                        @endif
+
+                        @if ($row['excluded'] > 0)
+                            {{-- Said out loud rather than quietly dropped. These
+                                 rows were written before tickets.opened_at
+                                 stopped rewriting itself on 2026-08-29, so they
+                                 claim to have been resolved before they were
+                                 opened. --}}
+                            <p class="mt-1 text-xs text-amber-700">
+                                {{ $row['excluded'] }} excluded, resolved before opened
+                            </p>
                         @endif
                     </td>
                 </tr>

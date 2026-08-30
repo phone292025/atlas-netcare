@@ -240,7 +240,7 @@ Two more you run yourself.
 
 ## Testing
 
-567 tests, one skipped. Roughly 1,570 assertions.
+570 tests, one skipped. Roughly 1,580 assertions.
 
 
 The suite runs on SQLite in memory, which is fast and has caused three bugs. SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
