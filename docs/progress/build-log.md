@@ -16,6 +16,7 @@
 | **Tests** | 579 passing (1 skipped), 1596 assertions, zero deprecations |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
+| **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |
 | **Next action** | **The report, not the code.** All seven modules are built. The Context Diagram, DFD 0 and consolidated ERD are worth 15 marks and none exist, and each module owes a DFD 1, data dictionary and flowchart from an owner nobody has assigned. Two code items remain: FR-408, the individual shift override M6 did not build, and demo data with something in the top two risk bands. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
