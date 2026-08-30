@@ -240,12 +240,12 @@ Two more you run yourself.
 
 ## Testing
 
-570 tests, one skipped. Roughly 1,580 assertions.
+579 tests, one skipped. Roughly 1,600 assertions.
 
 
 The suite runs on SQLite in memory, which is fast and has caused three bugs. SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
 
-That is what `atlas:check-schema` exists for.
+That is what `atlas:check-schema` exists for. Since 2026-08-30 it also checks the DATA: seven invariants looking for timelines that cannot have happened, because fixing the cause of a corruption does nothing about the rows it already damaged. One ticket was carrying a `closed_at` eight hours before its own `opened_at`, and a green suite, a clean schema audit and a plausible-looking screen all missed it.
 
 Two habits came out of building this.
 

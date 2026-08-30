@@ -34,18 +34,29 @@ class CheckSchema extends Command
     public function handle(): int
     {
         $driver = DB::connection()->getDriverName();
-
-        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
-            $this->warn("Connected to {$driver}. These checks only mean anything on MySQL/MariaDB.");
-
-            return self::SUCCESS;
-        }
-
         $database = DB::connection()->getDatabaseName();
+
         $this->line("Auditing <fg=cyan>{$database}</> on {$driver}.");
         $this->newLine();
 
-        $failures = $this->autoUpdatingTimestamps($database);
+        $failures = 0;
+
+        /*
+         * The schema audit reads information_schema and is meaningless
+         * anywhere else. The data checks below are plain portable SQL and run
+         * everywhere — including under the test suite on SQLite, which is the
+         * only way they can be tested at all. Returning early here would have
+         * left them permanently unexercised.
+         */
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $failures += $this->autoUpdatingTimestamps($database);
+        } else {
+            $this->warn('  Skipping the schema audit: it only means anything on MySQL/MariaDB.');
+        }
+
+        $this->newLine();
+
+        $failures += $this->impossibleTimelines();
 
         $this->newLine();
 
@@ -55,7 +66,7 @@ class CheckSchema extends Command
             return self::FAILURE;
         }
 
-        $this->info('Schema looks clean.');
+        $this->info('Schema and data both look clean.');
 
         return self::SUCCESS;
     }
@@ -97,5 +108,88 @@ class CheckSchema extends Command
         $this->line('   Declare them as <fg=cyan>dateTime</> rather than <fg=cyan>timestamp</> in a new migration.');
 
         return count($offenders);
+    }
+
+    /**
+     * Rows whose own timestamps contradict each other.
+     *
+     * THE SCHEMA CHECK ABOVE STOPS THE CAUSE; THIS FINDS THE DAMAGE. Changing
+     * `tickets.opened_at` to `dateTime` on 2026-08-29 stopped MariaDB
+     * rewriting it, but every row written before that fix kept whatever the
+     * bug had already done to it. One ticket carried a `closed_at` eight hours
+     * BEFORE its own `opened_at`, and nothing in the project noticed: the
+     * suite was green, the schema audit was clean, and the screen showed a
+     * plausible-looking date.
+     *
+     * These checks need no MySQL-specific SQL, so unlike the schema audit they
+     * are meaningful on any driver.
+     *
+     * READ ONLY, like the rest of this command. It reports; repairing is a
+     * decision for a person, because the right correction depends on which
+     * column is the trustworthy one and that is not always obvious.
+     */
+    private function impossibleTimelines(): int
+    {
+        $this->line('  <options=bold>Timelines that cannot have happened</>');
+
+        $checks = [
+            [
+                'A ticket resolved before it was opened',
+                fn () => DB::table('tickets')
+                    ->whereNotNull('resolved_at')
+                    ->whereColumn('resolved_at', '<', 'opened_at'),
+            ],
+            [
+                'A ticket closed before it was resolved',
+                fn () => DB::table('tickets')
+                    ->whereNotNull('closed_at')
+                    ->whereNotNull('resolved_at')
+                    ->whereColumn('closed_at', '<', 'resolved_at'),
+            ],
+            [
+                'A ticket due before it was opened',
+                fn () => DB::table('tickets')->whereColumn('due_at', '<', 'opened_at'),
+            ],
+            [
+                'A ticket carrying a resolution it has not reached',
+                // The state machine forbids this, so a row in this state was
+                // written around the service rather than through it.
+                fn () => DB::table('tickets')
+                    ->whereNotNull('closed_at')
+                    ->whereNotIn('status', ['closed']),
+            ],
+            [
+                'An inspection completed before it was started',
+                fn () => DB::table('inspections')
+                    ->whereNotNull('completed_at')
+                    ->whereColumn('completed_at', '<', 'started_at'),
+            ],
+            [
+                'A shift that ends before it starts',
+                fn () => DB::table('shifts')->whereColumn('end_time', '<=', 'start_time'),
+            ],
+            [
+                'A risk assessment scored outside 0-100',
+                fn () => DB::table('risk_assessments')
+                    ->where(fn ($q) => $q->where('score', '<', 0)->orWhere('score', '>', 100)),
+            ],
+        ];
+
+        $failures = 0;
+
+        foreach ($checks as [$label, $query]) {
+            $count = $query()->count();
+
+            if ($count === 0) {
+                $this->line("   <fg=green>✓</> {$label} — none");
+
+                continue;
+            }
+
+            $failures++;
+            $this->line("   <fg=red>✗</> {$label} — <options=bold>{$count}</>");
+        }
+
+        return $failures;
     }
 }

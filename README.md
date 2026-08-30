@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**All seven modules are built** (M1–M7). Laravel 12 + Breeze, 570 tests passing. What is left is the report: the diagrams are worth 15 marks and none exist yet.
+**All seven modules are built** (M1–M7). Laravel 12 + Breeze, 579 tests passing. What is left is the report: the diagrams are worth 15 marks and none exist yet.
 
 Current build state: [docs/progress/build-log.md](docs/progress/build-log.md).
 

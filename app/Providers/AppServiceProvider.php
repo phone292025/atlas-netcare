@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use App\Services\Telemetry\SimulatedTelemetrySource;
@@ -32,6 +33,18 @@ class AppServiceProvider extends ServiceProvider
         Location::class,
         LabPc::class,
         AccessPoint::class,
+
+        /*
+         * Added 2026-08-30. Tickets carry the only state machine in the
+         * system, and were the one module with no history at all — which was
+         * exactly backwards. It surfaced when a ticket turned up holding a
+         * closed_at eight hours before its own opened_at and there was
+         * nothing to reconstruct what had happened to it.
+         *
+         * Every transition now leaves a row naming the actor, the change and
+         * the IP, which is what makes "who closed this and when" answerable.
+         */
+        Ticket::class,
     ];
 
     /**
