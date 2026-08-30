@@ -303,7 +303,8 @@ The form posts a short key (`lab_pc` / `access_point`), never a class name. Acce
 
 ### `tickets` lifecycle columns
 
-`status` and every `*_at` in the lifecycle are absent from `Ticket::$fillable`. Only `TicketService` writes them, and it refuses any move the state machine does not allow — see [`../modules/M4-ticketing.md`](../modules/M4-ticketing.md). `due_at` is stamped once at creation from `config('atlas.sla_hours')`, so changing a target affects new tickets and leaves existing ones on the promise they were given.
+`status` and every `*_at` in the lifecycle are absent from `Ticket::$fillable`. Only `TicketService` writes them, and it refuses any move the state machine does not allow — see [`../modules/M4-ticketing.md`](modules/M4-ticketing.md)
+. `due_at` is stamped once at creation from `config('atlas.sla_hours')`, so changing a target affects new tickets and leaves existing ones on the promise they were given.
 
 ```php
 // Ticket model

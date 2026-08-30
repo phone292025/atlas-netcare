@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-08-26 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-08-30 · **Worth 10 marks in the report rubric**
 
 Section F item 17 requires a test plan covering unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -58,6 +58,22 @@ At minimum, one test case per functional requirement in [03-requirements.md](03-
 Include **negative cases**. A test plan that only proves things work when used correctly is a weak test plan, and markers notice.
 
 ---
+---
+
+## Four habits that came out of building this
+
+Every one of these was learned by shipping a defect through a fully green suite. They are worth a paragraph in the report's testing section, because they show the difference between having tests and having *useful* tests.
+
+**A route whose tests only assert failures has never been rendered.** M3 shipped three 500 errors onto routes that all had tests, every one asserting a 403 or a redirect. Nothing had ever fetched those pages successfully. Every screen now has a test that loads it, in its empty state as well as its populated one — empty is what every screen looks like on the day it ships.
+
+**A test that only asserts labels has never checked the data.** M7's reports had tests asserting the words "Ticket volume" and "Hardware" appeared. They did — above a matrix where every cell read zero while the heading said "3 tickets". Assert the numbers, the totals, and that the parts sum to the whole.
+
+**A regression test is checked against the bug.** Write the fix, write the test, then put the bug back and watch the test fail. A test that passes against broken code is worse than no test, because it makes you confident. The risk scoring model's clamp and its renormalising were both verified this way.
+
+**A green suite says nothing about MariaDB.** The suite runs on SQLite in memory. That gap has now shipped four defects: MySQL-only `FIELD()`, MySQL-only `DATE_FORMAT`, timestamp columns that rewrote themselves on every update, and rows already damaged before that was fixed. `php artisan atlas:check-schema` audits the live database for all of it — schema traps and contradictory data — and is read only, so it is safe to point at real data. **Run it after any migration and before submission.**
+
+---
+
 
 ## Non-functional test criteria
 

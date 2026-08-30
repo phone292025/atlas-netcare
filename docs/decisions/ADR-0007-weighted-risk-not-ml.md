@@ -1,3 +1,5 @@
+> **The weights this decision introduces are listed for the report's Assumptions section in [../14-simulated-and-real-data.md](../14-simulated-and-real-data.md).** Every one is judgement rather than measurement, and that has to be stated.
+
 # ADR-0007: Score maintenance risk with weighted factors, not machine learning
 
 **Status:** Accepted

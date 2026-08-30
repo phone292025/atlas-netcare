@@ -1,6 +1,9 @@
-# Data Strategy — Mock, Real, or Both
+> **For the report:** [14-simulated-and-real-data.md](14-simulated-and-real-data.md) turns this file's mechanisms into the Limitations and Assumptions wording, with live row counts.
 
-> **Last updated:** 2026-08-26 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
+# Data Strategy
+ — Mock, Real, or Both
+
+> **Last updated:** 2026-08-30 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
 >
 > **Read this before writing any seeder, factory, or anything that produces data.**
 

@@ -1,6 +1,6 @@
 # Team and Ownership
 
-> **Last updated:** 2026-08-28 · **Status:** ⚠️ module assignment still pending. Sprint 0 is done and M1 is built without an owner — the individual report deliverables cannot start until this is filled in.
+> **Last updated:** 2026-08-30 · **Status:** ⚠️ **still nobody owns anything, and all seven modules are now built.** The 21 module diagrams and the three whole-system ones cannot start until this is filled in.
 
 ---
 
@@ -34,15 +34,19 @@ Seven members, seven modules, one owner each. Each person documents the module t
 
 Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix. Live build status is in [progress/build-log.md](progress/build-log.md).
 
-| ID | Module | Track | Owner | Difficulty |
-|---|---|---|---|---|
-| **M1** | Identity, roles and audit log | A | *unassigned* | Medium — ✅ **built 2026-08-28** |
-| **M2** | Locations and asset inventory | B | *unassigned* | Low |
-| **M3** | Checklists and inspections | A | *unassigned* | Medium |
-| **M4** | Workspace ticketing | A | *unassigned* | Medium |
-| **M5** | Telemetry and AP dashboard | B | *unassigned* | **High** |
-| **M6** | Shifts, roster and alarms | A | *unassigned* | Medium |
-| **M7** | Predictive risk and reports | B | *unassigned* | **High** |
+| ID | Module | Track | Owner | Code | Diagrams for the report |
+|---|---|---|---|---|---|
+| **M1** | Identity, roles and audit log | A | *unassigned* | ✅ built | ⬜ DFD 1, data dictionary, flowchart |
+| **M2** | Locations and asset inventory | B | *unassigned* | ✅ built | ⬜ DFD 1, data dictionary, flowchart |
+| **M3** | Checklists and inspections | A | *unassigned* | ✅ built | ⬜ DFD 1, data dictionary, flowchart |
+| **M4** | Workspace ticketing | A | *unassigned* | ✅ built | ⬜ DFD 1, data dictionary, flowchart |
+| **M5** | Telemetry and AP dashboard | B | *unassigned* | ✅ built | ⬜ DFD 1, data dictionary, flowchart |
+| **M6** | Shifts, roster and alarms | A | *unassigned* | ✅ built — FR-408 outstanding | ⬜ DFD 1, data dictionary, flowchart |
+| **M7** | Predictive risk and reports | B | *unassigned* | ✅ built 2026-08-30 | ⬜ DFD 1, data dictionary, flowchart |
+
+> **The code is finished and nobody owns anything.** That was survivable while modules were being built; it is not survivable now, because what remains is 21 diagrams that only a named person will produce. The three whole-system diagrams — Context, DFD 0 and the consolidated ERD — are worth **15 marks** and have no owner either.
+>
+> **Assigning these is the single most valuable thing the next team meeting can do.**
 
 Specs: [modules/](modules/)
 

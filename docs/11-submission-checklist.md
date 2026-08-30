@@ -1,6 +1,6 @@
 # Submission Checklist
 
-> **Last updated:** 2026-08-29 · Tick items as they are genuinely complete, not as they are started.
+> **Last updated:** 2026-08-30 · Tick items as they are genuinely complete, not as they are started.
 
 ## Where this actually stands
 
@@ -90,7 +90,7 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 - [ ] 16. Report Designs and User Manual
 - [ ] 17. Test Plan — unit + UAT, with actual results and **4 documented UAT sessions**
 - [ ] 18. Significant Source Codes — snippets highlighted and explained
-- [ ] 19. Conclusion — Assumptions, Limitations, Enhancements
+- [ ] 19. Conclusion — Assumptions, Limitations, Enhancements — **[14-simulated-and-real-data.md](14-simulated-and-real-data.md) is written to be lifted straight into this section**, with live figures and the "is any of this real?" answer already drafted
 - [ ] 20. References — APA 7
 - [ ] 21. Appendix — all meeting minutes + **Installation Guide**
 

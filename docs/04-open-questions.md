@@ -1,6 +1,6 @@
 # Open Questions
 
-> **Last updated:** 2026-08-29 · **Bring this to every supervisor meeting — it is the agenda.**
+> **Last updated:** 2026-08-30 · **Bring this to every supervisor meeting — it is the agenda.**
 
 Eleven things the approved proposal leaves undefined, or that building it exposed. Nine are settled. Q6 is still open, and Q8 belongs to the report rather than the code. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
@@ -64,7 +64,7 @@ A fixed list is one table and one seeder. An editable list is two tables and a C
 
 **Trade-off:** versioning adds one integer column and a rule that active templates are copied rather than edited. Cheap now, and it prevents the "why does this old inspection have items that no longer exist?" problem later.
 
-**As built:** editing a template that has been used copies it to `version + 1`, carries the items across, and moves `is_active` to the copy — so an edit never leaves the system without an active checklist. An unused draft is edited in place, because there is no history to protect. `ChecklistService` is the only code that may version or activate, and `ReferenceSeeder` ships one active template so a fresh install can start a round on day one. See [`../modules/M3-checklists-and-inspections.md`](../modules/M3-checklists-and-inspections.md).
+**As built:** editing a template that has been used copies it to `version + 1`, carries the items across, and moves `is_active` to the copy — so an edit never leaves the system without an active checklist. An unused draft is edited in place, because there is no history to protect. `ChecklistService` is the only code that may version or activate, and `ReferenceSeeder` ships one active template so a fresh install can start a round on day one. See [`modules/M3-checklists-and-inspections.md`](modules/M3-checklists-and-inspections.md).
 
 ---
 

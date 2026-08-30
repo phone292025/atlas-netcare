@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Last updated:** 2026-08-29
+> **Last updated:** 2026-08-30
 >
 > ## ⚠️ THE DATES BELOW ARE INVENTED AND ALMOST CERTAINLY WRONG
 >
@@ -70,7 +70,8 @@ Nobody builds a feature until every item is ticked. This week exists to prevent 
 | **Track B is one person short** — three members carry inventory, telemetry and analytics, two of which are the hardest modules | High | High | Whoever finishes their Track A module first moves across in week 9. Flag in the weekly report the moment it slips. |
 | **Q3 and Q6 unresolved at Sprint 0** | Medium | High | Both are on the agenda for the next supervisor meeting. Neither takes more than ten minutes to settle. |
 | **Feature freeze slips past 9 Nov** | Medium | **Severe** | Week 12 is the only slack. If it slips, the 4 UAT sessions and Installation Guide get cut — and both are directly marked. Freeze on time even with one feature unfinished. |
-| **Simulator too simplistic** — uncorrelated noise gives M7 nothing to find | Medium | Medium | Correlate latency and loss with saturation. Review the simulator output as a team in week 8 before M7 starts. |
+| ~~**Simulator too simplistic** — uncorrelated noise gives M7 nothing to find~~ **Did not happen.** The simulator models a time-of-day curve and a weekday factor rather than plain noise, and M7's trend scoring reads it correctly. A DIFFERENT version of this risk did land: nothing scores High or Critical, because the seeded assets are neither old nor degrading. That is a data problem, not a simulator one. | — | — | Seed a few aged machines and a degrading access point before the demonstration. See [14-simulated-and-real-data.md](14-simulated-and-real-data.md) §1.4. |
+
 | **Merge conflicts on shared files** | High | Low | `config/atlas.php`, layouts and `routes/web.php` change by announcement. Small, frequent PRs. |
 | **A member falls behind silently** | Medium | High | Weekly progress report per member, and the module map makes it visible immediately. |
 | **Demo fails on the day** | Low | **Severe** | Rehearse the flagship flow from a fresh `migrate:fresh --seed` on the actual demo machine, twice, in week 13. |

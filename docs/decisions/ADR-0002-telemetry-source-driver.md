@@ -1,3 +1,5 @@
+> **The consequences of this decision are written up for the report in [../14-simulated-and-real-data.md](../14-simulated-and-real-data.md).** That is where the Limitations wording lives.
+
 # ADR-0002: Telemetry enters the system through a swappable driver
 
 **Status:** Accepted

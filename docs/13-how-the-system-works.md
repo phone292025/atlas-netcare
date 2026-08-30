@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-08-29 · **Covers:** M1 to M6, built and tested. M7 is not written yet.
+> **Last updated:** 2026-08-30 · **Covers:** all seven modules, built and tested. What remains is the report, not the code.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
