@@ -121,11 +121,29 @@ class AppShellTest extends TestCase
             ->assertSee('href="'.route('admin.users.index').'"', escape: false);
     }
 
+    /**
+     * A nav entry pointing at a route that does not exist.
+     *
+     * Injected rather than borrowed from the real configuration. These two
+     * tests used to rely on `admin.reports.index` being unbuilt, so finishing
+     * M7 broke them — a test that depends on work being incomplete passes
+     * until the day the work is done, which is the worst possible moment for
+     * it to start failing.
+     */
+    private function withBrokenNavEntry(): void
+    {
+        config(['atlas.navigation.admin' => array_merge(
+            config('atlas.navigation.admin'),
+            [['label' => 'Nowhere', 'route' => 'admin.route.that.does.not.exist', 'icon' => 'chart']],
+        )]);
+    }
+
     public function test_an_unregistered_navigation_route_is_flagged_rather_than_hidden_in_debug(): void
     {
         // A silently vanishing menu item is how a mistyped route name costs
         // somebody an afternoon. In debug it must be visible.
         config(['app.debug' => true]);
+        $this->withBrokenNavEntry();
 
         $this->actingAs($this->userWithRole(UserRole::Admin))
             ->get('/profile')
@@ -135,6 +153,7 @@ class AppShellTest extends TestCase
     public function test_an_unregistered_navigation_route_is_hidden_when_debug_is_off(): void
     {
         config(['app.debug' => false]);
+        $this->withBrokenNavEntry();
 
         $this->actingAs($this->userWithRole(UserRole::Admin))
             ->get('/profile')

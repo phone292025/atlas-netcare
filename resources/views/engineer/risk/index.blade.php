@@ -15,7 +15,19 @@
     <x-page-header title="Maintenance priority"
                    :subtitle="$lastRun
                        ? 'Scored '.\Illuminate\Support\Carbon::parse($lastRun)->diffForHumans()
-                       : 'Never scored'" />
+                       : 'Never scored'">
+        {{-- Reports are not in the engineer sidebar: every navigation entry
+             must be namespaced under its own role, and this screen lives at
+             admin.reports.index. Linked from here instead, which is arguably
+             the better place anyway — mean time to resolution means most
+             while you are looking at what is about to break. --}}
+        <x-slot:actions>
+            <a href="{{ route('admin.reports.index') }}"
+               class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
+                Reports
+            </a>
+        </x-slot:actions>
+    </x-page-header>
 
     @if (! $lastRun)
         <x-alert type="warning" class="mb-4" title="Nothing has been scored yet">

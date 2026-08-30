@@ -20,6 +20,7 @@ use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShiftCalendarController;
 use App\Http\Controllers\TicketCommentController;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -163,6 +164,22 @@ Route::middleware('auth')->group(function () {
     Route::prefix('assistant')->name('assistant.')->group(function () {
         Route::resource('tickets', AssistantTicketController::class)
             ->only(['index', 'create', 'store', 'show']);
+    });
+
+    /*
+    | M7 — operational reports (FR-410).
+    |
+    | Named `admin.reports.index` because config/atlas.php has referenced that
+    | exact name since Sprint 0 and the sidebar renders from it. Reachable by
+    | ENGINEERS as well, despite the name: the module specification says
+    | reports are for all roles as permitted, and mean time to resolution is
+    | an engineer's own number. Renaming the route to match its audience would
+    | have meant changing fixed navigation vocabulary to fix a prefix.
+    |
+    | Read only. Nothing here writes, so there is no policy beyond the role.
+    */
+    Route::middleware('role:admin,engineer')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     });
 
     // The queue itself is engineer furniture, so it stays role-guarded.
