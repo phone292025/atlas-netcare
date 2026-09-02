@@ -165,4 +165,78 @@ class GenerateShiftsCommandTest extends TestCase
 
         $this->assertSame(ShiftStatus::Scheduled, $upcoming->fresh()->status);
     }
+
+    public function test_running_it_twice_adds_nothing_even_with_spare_assistants(): void
+    {
+        /*
+         * The version of this above uses ONE assistant, and passed while the
+         * method was not actually idempotent.
+         *
+         * The existence check is per PERSON: it stops one assistant being
+         * double-booked, and does nothing about the SLOT being filled twice.
+         * With a spare assistant available, a second run simply picked them
+         * and created a duplicate. Found on the live roster, where a template
+         * needing one assistant had two shifts on the same Monday morning.
+         *
+         * Three assistants and one slot, so there is always somebody spare to
+         * be wrongly chosen.
+         */
+        $this->assistant();
+        $this->assistant();
+        $this->assistant();
+        $this->template();
+
+        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
+        $after = Shift::count();
+
+        $this->assertSame(1, $after, 'One template needing one assistant is one shift.');
+
+        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
+        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
+
+        $this->assertSame($after, Shift::count(), 'Re-running must not fill the slot again.');
+    }
+
+    public function test_a_slot_needing_two_people_gets_exactly_two(): void
+    {
+        // The other half: under-filling would be just as wrong as duplicating.
+        $this->assistant();
+        $this->assistant();
+        $this->assistant();
+
+        $template = $this->template();
+        $template->forceFill(['required_assistants' => 2])->save();
+
+        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
+
+        $this->assertSame(2, Shift::count());
+
+        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
+
+        $this->assertSame(2, Shift::count());
+    }
+
+    public function test_a_slot_is_topped_up_rather_than_refilled(): void
+    {
+        /*
+         * Somebody deletes a shift, or an assistant is removed from one, and
+         * the roster is regenerated. It should fill the gap and nothing else.
+         */
+        $this->assistant();
+        $this->assistant();
+        $this->assistant();
+
+        $template = $this->template();
+        $template->forceFill(['required_assistants' => 3])->save();
+
+        $this->artisan('atlas:generate-shifts');
+        $this->assertSame(3, Shift::count());
+
+        Shift::latest('id')->first()->delete();
+        $this->assertSame(2, Shift::count());
+
+        $this->artisan('atlas:generate-shifts');
+
+        $this->assertSame(3, Shift::count(), 'The gap should be filled, and only the gap.');
+    }
 }

@@ -72,7 +72,26 @@ class ShiftService
                     ($template->day_of_week + 6) % 7
                 );
 
-                for ($slot = 0; $slot < $template->required_assistants; $slot++) {
+                /*
+                 * Start from what this slot already has, not from zero.
+                 *
+                 * The guard below is per PERSON: it stops one assistant being
+                 * double-booked. It does not stop the SLOT being filled twice,
+                 * so a second run simply picked a different assistant and
+                 * created a duplicate. The docblock claimed idempotence and
+                 * the method delivered it only when there was exactly one
+                 * assistant to choose from, which is why the test missed it.
+                 *
+                 * Found on the live roster: one template needing one assistant
+                 * had two shifts on the same Monday morning, held by different
+                 * people.
+                 */
+                $alreadyFilled = Shift::query()
+                    ->where('shift_template_id', $template->id)
+                    ->whereDate('shift_date', $date)
+                    ->count();
+
+                for ($slot = $alreadyFilled; $slot < $template->required_assistants; $slot++) {
                     $assistant = $assistants
                         ->sortBy(fn (User $u) => $load->get($u->id, 0))
                         ->first(fn (User $u) => ! $this->alreadyRostered($u, $date, $template));
