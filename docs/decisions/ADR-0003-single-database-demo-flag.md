@@ -17,7 +17,7 @@ One MySQL database, one schema, both kinds of data in the same tables.
 - `telemetry_readings.source` and `telemetry_hourly.source` hold `simulated` or `live`.
 - `is_demo` boolean on `users`, `lab_pcs`, `access_points`, `tickets`, set **only** by `DemoDataSeeder`.
 - Seeders split in two: `ReferenceSeeder` always runs and contains the minimum a real deployment needs; `DemoDataSeeder` runs only when `config('atlas.demo_mode')` is true.
-- `php artisan atlas:purge-demo-data` removes every tagged row and every simulated reading, leaving real data untouched. **⚠️ This command does not exist yet** — the decision and the flags it depends on stand, but the tool that acts on them has not been written. See `docs/07-data-strategy.md`.
+- `php artisan atlas:purge-demo-data` removes every tagged row and every simulated reading, leaving real data untouched. **Built 2026-09-02.** Writing it proved the decision: the flags were sufficient, but only for the four tables that carry them — everything else had to be reached by association, and the order is dictated by six RESTRICT constraints.
 
 No global Eloquent scope hides demo rows.
 

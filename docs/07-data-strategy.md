@@ -130,7 +130,7 @@ php artisan atlas:purge-demo-data --force
 
 It is meant to delete every row flagged `is_demo` plus every reading with `source = 'simulated'`, leaving reference data and anything a real user created untouched.
 
-> ⚠️ **NOT BUILT YET.** `app/Console/Commands/` has no such command, so that line fails. Found on 2026-08-29 while auditing the docs against the code. The design above is sound and the flags it relies on are all in place and populated — only the command is missing. **Until somebody writes it, set `ATLAS_DEMO_MODE=false` and reseed a fresh database rather than trying to purge one.**
+**Built 2026-09-02.** It also takes `--dry-run`. Most of the work turned out to be association rather than flags: only four tables carry `is_demo`, so inspections, shifts, alarms, comments, risk assessments and audit rows each have to be found through whatever they belong to. It **refuses** if a real record points at a demonstration asset — `tickets.ticketable` is polymorphic, so no foreign key stops that, and a dangling reference renders as a blank column rather than as the data loss it is.
 
 ---
 

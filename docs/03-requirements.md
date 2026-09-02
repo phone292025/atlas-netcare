@@ -42,7 +42,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
 | FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](04-open-questions.md) |
-| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **partially built.** The role middleware blocks deactivated users from guarded areas, but the login check in `LoginRequest::authenticate()` is M1 work and does not exist yet. |
+| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **fully built.** `LoginRequest::authenticate()` refuses a deactivated account at sign-in, and the role middleware blocks one that already has a session. Both are tested. The note here said the login half did not exist; it did, and the claim was stale rather than the code incomplete. |
 
 ### FR-200 — Student IT Assistant
 

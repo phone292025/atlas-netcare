@@ -260,14 +260,32 @@ class DemoDataSeeder extends Seeder
      */
     private function telemetry(): void
     {
-        if (TelemetryHourly::where('source', 'simulated')->count() > 500) {
-            $this->command?->line('  Telemetry already present.');
+        $aps = AccessPoint::where('is_demo', true)->orderBy('id')->get();
 
+        if ($aps->isEmpty()) {
             return;
         }
 
-        $aps = AccessPoint::where('is_demo', true)->orderBy('id')->get();
-        $start = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
+        /*
+         * REWRITE THE WINDOW RATHER THAN SKIP IT.
+         *
+         * An earlier version skipped whenever the database already held any
+         * simulated telemetry, which meant `atlas:backfill-telemetry` running
+         * first left the three degrading access points with ordinary steady
+         * readings instead. Their trend is the whole reason they exist — a
+         * link that is getting worse is what M7 scores — and without it the
+         * High band was empty.
+         *
+         * Deleting this window first also avoids the unique index on
+         * (access_point_id, hour_bucket), which is what a plain re-run would
+         * otherwise collide with.
+         */
+        $windowStart = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
+
+        TelemetryHourly::whereIn('access_point_id', $aps->pluck('id'))
+            ->where('hour_bucket', '>=', $windowStart)
+            ->delete();
+        $start = $windowStart;
         $hours = self::TELEMETRY_DAYS * 24;
 
         $rows = [];

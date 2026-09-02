@@ -111,7 +111,8 @@ php artisan db:seed --class=DemoDataSeeder
 
 These accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never created — a deployed system gets the administrator and nothing else.
 
-> ⚠️ **`php artisan atlas:purge-demo-data` is referenced throughout these docs and has not been written.** The `is_demo` flags it needs are all there and correctly set; only the command is missing. For now, get a clean system by setting `ATLAS_DEMO_MODE=false` and seeding a fresh database.
+Remove them with `php artisan atlas:purge-demo-data`, which also takes `--dry-run` to show what would go. It refuses if a real record points at a demonstration asset, rather than leaving it dangling.
+
 
 > `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
 

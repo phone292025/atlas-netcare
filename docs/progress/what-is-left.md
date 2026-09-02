@@ -16,7 +16,9 @@
 
 ## 1. Genuinely not built
 
-~~Four~~ **One** thing. FR-408, the demo inventory and the risk spread were all closed on 2026-09-02. Only `atlas:purge-demo-data` is left.
+~~Four~~ **None.** All four were closed on 2026-09-02: FR-408, the demo inventory, the risk spread and `atlas:purge-demo-data`.
+
+**Every functional requirement now has code behind it, and every command the docs promise exists.** What remains is section 2 (the real-data question) and section 3 (the review), plus the diagrams in section 4 — which are not code and are now the largest block of marks outstanding.
 
 ### 1.1 FR-408 — override an individual shift assignment ✅ BUILT 2026-09-02
 
@@ -28,7 +30,13 @@
 
 **This was the last functional gap in the system.** Every functional requirement now has code behind it.
 
-### 1.2 `atlas:purge-demo-data` does not exist
+### 1.2 `atlas:purge-demo-data` ✅ BUILT 2026-09-02
+
+**Status:** done, with `--dry-run`, `--force` and `--allow-orphans`. 13 tests. Verified by seeding a full database and purging it: 9,072 rows removed, reference data and the administrator untouched, and a second run finds nothing.
+
+**It refuses to orphan real records.** `tickets.ticketable` is polymorphic so there is no foreign key to stop a real ticket being left pointing at a deleted demo machine. All three genuine tickets on this machine did exactly that, and the command stopped.
+
+~~Old status below.~~
 
 **Referenced in six places** — README twice, `docs/07-data-strategy.md`, `docs/06-database.md`, `ADR-0003`, and the `DemoDataSeeder` docblock. Running it fails.
 
