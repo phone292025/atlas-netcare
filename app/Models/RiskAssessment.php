@@ -35,7 +35,18 @@ class RiskAssessment extends Model
     protected function casts(): array
     {
         return [
-            'score' => 'float',
+            /*
+             * decimal:2, matching `lab_pcs.risk_score` and
+             * `access_points.risk_score`.
+             *
+             * It was `float` while the cached columns were `decimal:2`, so the
+             * same number came back as 46.75 from the assessment and '46.79'
+             * from the asset — different types for one quantity, which makes
+             * any strict comparison between them false and serialises the two
+             * differently in JSON. The project convention is decimal for
+             * numbers a person reads.
+             */
+            'score' => 'decimal:2',
             'band' => RiskBand::class,
             'factors' => 'array',
             'calculated_at' => 'datetime',

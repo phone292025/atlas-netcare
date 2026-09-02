@@ -8,6 +8,7 @@ use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\Alarm;
 use App\Models\Ticket;
+use App\Models\TicketComment;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use DomainException;
@@ -282,5 +283,73 @@ class TicketService
             'body' => "Moved this ticket from {$from->label()} to {$to->label()}.",
             'is_internal' => true,
         ]);
+    }
+
+    /**
+     * Hand a ticket to a particular engineer, or take the name off it (FR-307).
+     *
+     * The requirement reads "acknowledge, assign, progress, resolve and close",
+     * and every verb but ASSIGN was built. What existed was implicit: whoever
+     * acknowledged a ticket became its owner, in one line of transition().
+     * There was no way to give it to somebody else, so a ticket acknowledged
+     * by the wrong person, or by somebody who then went on leave, could only
+     * be moved by editing the database.
+     *
+     * ASSIGNMENT IS NOT A TRANSITION. It does not appear in TicketService's
+     * state machine and must not: who is doing the work and how far along it
+     * is are different questions, and a reassignment mid-repair should not
+     * move a ticket backwards through its own lifecycle.
+     *
+     * Null unassigns, which is a real need — an engineer going on leave should
+     * be able to put a ticket back in the pool rather than pick a colleague
+     * for it.
+     *
+     * @throws DomainException when the ticket is finished, or the target
+     *                         cannot hold work
+     */
+    public function assign(Ticket $ticket, ?User $engineer, User $actor): Ticket
+    {
+        if ($ticket->status === TicketStatus::Closed) {
+            throw new DomainException('A closed ticket cannot be reassigned.');
+        }
+
+        if ($engineer !== null) {
+            if (! $engineer->is_active) {
+                throw new DomainException('That account is deactivated, so it cannot be given work.');
+            }
+
+            if (! ($engineer->isEngineer() || $engineer->isAdmin())) {
+                throw new DomainException('Only an engineer can be assigned a ticket.');
+            }
+        }
+
+        if ($ticket->assigned_to === $engineer?->id) {
+            throw new DomainException($engineer
+                ? 'That ticket is already assigned to them.'
+                : 'That ticket is already unassigned.');
+        }
+
+        return DB::transaction(function () use ($ticket, $engineer, $actor) {
+            // assigned_to is absent from $fillable — it decides who is
+            // accountable for work, which is not a thing a form may set.
+            $ticket->forceFill(['assigned_to' => $engineer?->id])->save();
+
+            /*
+             * An internal note, so the trail is on the ticket itself and not
+             * only in the audit log. The reporter does not need to see the
+             * engineers reshuffling work between themselves, which is why it
+             * is internal.
+             */
+            TicketComment::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $actor->id,
+                'body' => $engineer
+                    ? "Assigned to {$engineer->name}."
+                    : 'Unassigned and returned to the queue.',
+                'is_internal' => true,
+            ]);
+
+            return $ticket->fresh(['assignee']);
+        });
     }
 }

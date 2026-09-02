@@ -56,6 +56,21 @@ class ReferenceSeeder extends Seeder
      */
     private function firstAdministrator(): void
     {
+        /*
+         * Refuse rather than fall back to a published default.
+         *
+         * config('atlas.first_admin.password') used to default to a value
+         * printed in .env.example. Seeding without ATLAS_ADMIN_PASSWORD set
+         * therefore created the highest privilege account in the system with a
+         * credential anybody who has seen the repository already knows.
+         */
+        if (blank(config('atlas.first_admin.password'))) {
+            $this->command?->error('  ATLAS_ADMIN_PASSWORD is not set. The administrator was NOT created.');
+            $this->command?->line('  Set it in .env, then run this seeder again.');
+
+            return;
+        }
+
         $email = config('atlas.first_admin.email');
 
         $admin = User::withTrashed()->updateOrCreate(

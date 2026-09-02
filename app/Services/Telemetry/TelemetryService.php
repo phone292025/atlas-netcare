@@ -297,4 +297,62 @@ class TelemetryService
             ->get()
             ->keyBy('access_point_id');
     }
+
+    /**
+     * Mark access points offline that have simply stopped being heard from.
+     *
+     * THE GAP THIS CLOSES. Every other status change in this service is driven
+     * by a reading arriving, including `hasBeenSilentTooLong()` — which needs
+     * a reading in order to notice the absence of earlier ones. An access
+     * point that produces NO reading at all therefore keeps its last known
+     * status indefinitely, and the dashboard goes on reporting it online.
+     *
+     * With the simulator that cannot happen, because it invents a reading for
+     * every collectable access point. It is exactly what a real SNMP driver
+     * does, though: a device that does not answer enumeration is simply absent
+     * from the batch, and ADR-0002's whole point is that the driver swaps.
+     *
+     * Runs on the same schedule as collection, so a device that goes quiet is
+     * noticed within the same window as one that answers badly. Returns
+     * transitions in the same shape as store(), so the caller raises the same
+     * ticket and the same alarm — a machine that vanished and one that
+     * answered with a failure are the same problem to whoever is on shift.
+     *
+     * Access points under maintenance are skipped. Being quiet is what
+     * maintenance means.
+     *
+     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     */
+    public function markStaleOffline(): Collection
+    {
+        $cutoff = now()->subMinutes((int) config('atlas.thresholds.offline_after_min'));
+
+        $stale = AccessPoint::query()
+            ->collectable()
+            ->where('status', '!=', ApStatus::Offline->value)
+            ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
+            ->get();
+
+        $transitions = collect();
+
+        foreach ($stale as $ap) {
+            /*
+             * An access point that has NEVER answered is left alone. It is
+             * newly added kit that the collector has not reached yet, not a
+             * device that has gone away, and alarming about it on the minute
+             * it was created would train people to ignore the alarm.
+             */
+            if ($ap->last_seen_at === null) {
+                continue;
+            }
+
+            $from = $ap->status;
+
+            $ap->forceFill(['status' => ApStatus::Offline])->save();
+
+            $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => ApStatus::Offline]);
+        }
+
+        return $transitions;
+    }
 }

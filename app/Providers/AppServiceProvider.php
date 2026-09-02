@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\AccessPoint;
+use App\Models\ChecklistTemplate;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\AuditObserver;
@@ -45,6 +47,18 @@ class AppServiceProvider extends ServiceProvider
          * the IP, which is what makes "who closed this and when" answerable.
          */
         Ticket::class,
+
+        /*
+         * Added 2026-09-02. Both are administrator-editable configuration that
+         * changes what everybody else's work means: a checklist template
+         * decides what an inspection asks, and a shift template decides who is
+         * rostered. Changing either silently was possible until now, and
+         * "who changed the checklist, and when" was unanswerable — which
+         * matters more than usual here, because M3 versions templates
+         * precisely so history stays meaningful.
+         */
+        ChecklistTemplate::class,
+        ShiftTemplate::class,
     ];
 
     /**

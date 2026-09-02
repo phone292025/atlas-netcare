@@ -233,8 +233,31 @@ class ReportController extends Controller
                 continue;
             }
 
+            /*
+             * PassWithIssues COUNTS AS A PASS.
+             *
+             * It is a machine that works with something cosmetic noted — a
+             * loose stand, a mark on the screen. Counting it as a failure,
+             * which this did until 2026-09-02, made every location's pass rate
+             * lower than the truth and put working machines in a column headed
+             * "Failed". The enum has three cases and the report only ever
+             * looked at one of them.
+             */
+            /*
+             * A closure, not `whereIn`.
+             *
+             * `overall_result` is cast to the enum, and the two Collection
+             * helpers disagree about that: `where()` unwraps a BackedEnum
+             * before comparing, `whereIn()` does not — so the obvious
+             * translation from one to the other silently matched nothing and
+             * reported every location at 0%. It looked correct in review and
+             * was caught only because a test asserted the number.
+             */
             $passed = (int) $forLocation
-                ->where('overall_result', InspectionOutcome::Pass->value)
+                ->filter(fn ($row) => in_array($row->overall_result, [
+                    InspectionOutcome::Pass,
+                    InspectionOutcome::PassWithIssues,
+                ], strict: true))
                 ->sum('total');
 
             $report[] = [

@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Tickets;
 
+use App\Enums\DeviceStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Raising a ticket.
@@ -42,6 +44,56 @@ class StoreTicketRequest extends FormRequest
             'location_id' => ['nullable', 'exists:locations,id'],
             'inspection_id' => ['nullable', 'exists:inspections,id'],
         ];
+    }
+
+    /**
+     * The asset has to exist, and has to still be in service.
+     *
+     * `exists:` cannot express this on its own, because which table to look in
+     * depends on `ticketable_type`. Without it, `ticketable_id` was validated
+     * as nothing more than an integer: a request naming lab PC 999999 passed,
+     * `subject()` then returned null, and the ticket was created SILENTLY
+     * DETACHED. The reporter believed they had attached a machine and the
+     * engineer saw a blank asset column.
+     *
+     * Retired and removed assets are refused as well. A ticket is a request to
+     * go and fix something; raising one against a machine that has been taken
+     * out of service is not a fault report, it is a mistake — and the ranking,
+     * the reports and the risk model all exclude retired kit, so the ticket
+     * would sit in the queue attached to something nothing else acknowledges.
+     * Their existing tickets stay readable: this only governs new ones.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->filled('ticketable_type') || ! $this->filled('ticketable_id')) {
+                return;
+            }
+
+            $id = (int) $this->input('ticketable_id');
+
+            $asset = match ($this->input('ticketable_type')) {
+                'lab_pc' => LabPc::find($id),
+                'access_point' => AccessPoint::find($id),
+                default => null,
+            };
+
+            if (! $asset) {
+                $validator->errors()->add(
+                    'ticketable_id',
+                    'That asset does not exist, or has been removed from service.',
+                );
+
+                return;
+            }
+
+            if ($asset instanceof LabPc && $asset->status === DeviceStatus::Retired) {
+                $validator->errors()->add(
+                    'ticketable_id',
+                    'That machine has been retired, so a fault cannot be raised against it.',
+                );
+            }
+        });
     }
 
     /** @return array<string, string> */

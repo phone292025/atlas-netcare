@@ -284,6 +284,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('tickets/{ticket}/transition', [EngineerTicketController::class, 'transition'])
         ->name('tickets.transition');
 
+    /*
+    | FR-307 lists "acknowledge, assign, progress, resolve and close", and
+    | every verb but ASSIGN was built. Ownership used to be implicit — whoever
+    | acknowledged a ticket kept it — so one picked up by the wrong person, or
+    | by somebody who then went on leave, could only be moved in the database.
+    |
+    | Outside the engineer group for the same reason the transitions are: the
+    | TicketPolicy decides who may do this, not the URL prefix.
+    */
+    Route::patch('tickets/{ticket}/assign', [EngineerTicketController::class, 'assign'])
+        ->name('tickets.assign');
+
     Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])
         ->name('tickets.comments.store');
 

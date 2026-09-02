@@ -3,11 +3,13 @@
 namespace App\Services\Maintenance;
 
 use App\Enums\ChecklistResult;
+use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\User;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -33,6 +35,25 @@ class InspectionService
      */
     public function start(LabPc $labPc, User $user, ?ChecklistTemplate $template = null): Inspection
     {
+        /*
+         * A retired machine cannot be inspected.
+         *
+         * Retirement writes `status = retired` AND the soft-delete stamp
+         * together, and every list, report and risk calculation excludes it —
+         * so an inspection against one produces a record nothing else
+         * acknowledges, on a machine that is physically gone from the room.
+         *
+         * There was no guard at all here until 2026-09-02: an inspection could
+         * be started on a machine that was both retired and soft-deleted, and
+         * nothing complained. Completed inspections on retired machines stay
+         * readable; this only governs starting new ones.
+         */
+        if ($labPc->trashed() || $labPc->status === DeviceStatus::Retired) {
+            throw new DomainException(
+                'That machine has been retired, so it can no longer be inspected.'
+            );
+        }
+
         $existing = Inspection::query()
             ->inProgress()
             ->where('lab_pc_id', $labPc->id)

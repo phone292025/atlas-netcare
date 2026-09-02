@@ -154,6 +154,37 @@
                 <div>
                     <dt class="text-slate-500">Assigned to</dt>
                     <dd class="mt-0.5 text-slate-900">{{ $ticket->assignee?->name ?? 'Nobody yet' }}</dd>
+
+                    {{-- FR-307's missing verb. Ownership used to be implicit —
+                         whoever acknowledged a ticket kept it — so one picked
+                         up by the wrong person could only be moved in the
+                         database.
+
+                         Hidden once closed: ownership of finished work is part
+                         of its record. `$engineers` is passed in by the
+                         controller, because a view does not query. --}}
+                    @can('assign', \App\Models\Ticket::class)
+                        @if (isset($engineers) && $ticket->status !== \App\Enums\TicketStatus::Closed)
+                            <form method="POST" action="{{ route('tickets.assign', $ticket) }}" class="mt-2">
+                                @csrf
+                                @method('PATCH')
+
+                                <label for="assign-{{ $ticket->id }}" class="sr-only">
+                                    Reassign {{ $ticket->ticket_number }}
+                                </label>
+
+                                <select id="assign-{{ $ticket->id }}" name="assigned_to"
+                                        onchange="this.form.submit()"
+                                        class="w-full rounded border-slate-300 py-1 text-xs text-slate-600
+                                               focus:border-brand-500 focus:ring-brand-500">
+                                    <option value="">Nobody — return to the queue</option>
+                                    @foreach ($engineers as $id => $name)
+                                        <option value="{{ $id }}" @selected($ticket->assigned_to === $id)>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        @endif
+                    @endcan
                 </div>
                 <div>
                     <dt class="text-slate-500">Due</dt>

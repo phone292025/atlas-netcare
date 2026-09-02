@@ -31,7 +31,21 @@ class CollectTelemetry extends Command
 
     public function handle(TelemetryService $telemetry, TicketService $tickets, AlarmService $alarms): int
     {
-        $transitions = $telemetry->collectAndStore();
+        /*
+         * Two sources of transition, deliberately merged.
+         *
+         * collectAndStore() reacts to readings that arrived. markStaleOffline()
+         * catches the access points that sent NOTHING — a device a real SNMP
+         * driver could not enumerate is simply absent from the batch, and
+         * before this it kept its last known status forever while the
+         * dashboard reported it online.
+         *
+         * The stale sweep runs even when collection returned nothing at all,
+         * which is the case that matters most: a driver failing wholesale used
+         * to leave every access point looking healthy.
+         */
+        $transitions = $telemetry->collectAndStore()
+            ->concat($telemetry->markStaleOffline());
 
         foreach ($transitions as $change) {
             $this->reportTransition($change['access_point'], $change['from'], $change['to']);

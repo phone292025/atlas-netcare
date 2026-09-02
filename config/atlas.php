@@ -73,7 +73,20 @@ return [
     'first_admin' => [
         'name' => env('ATLAS_ADMIN_NAME', 'System Administrator'),
         'email' => env('ATLAS_ADMIN_EMAIL', 'admin@atlas.local'),
-        'password' => env('ATLAS_ADMIN_PASSWORD', 'ChangeMeNow!2026'),
+        /*
+         * NO FALLBACK, DELIBERATELY.
+         *
+         * This used to default to a password that is published in
+         * .env.example and therefore in the public repository. A machine with
+         * no ATLAS_ADMIN_PASSWORD set would silently seed the highest
+         * privilege account in the system with a credential anybody could
+         * read, and nothing on screen would say so.
+         *
+         * Null instead, and ReferenceSeeder refuses to create the account
+         * without one. Failing to seed is a visible problem somebody fixes in
+         * a minute; a known admin password is an invisible one.
+         */
+        'password' => env('ATLAS_ADMIN_PASSWORD'),
     ],
 
     /*

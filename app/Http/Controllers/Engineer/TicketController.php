@@ -6,6 +6,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tickets\AssignTicketRequest;
 use App\Http\Requests\Tickets\TransitionTicketRequest;
 use App\Models\Location;
 use App\Models\Ticket;
@@ -69,6 +70,15 @@ class TicketController extends Controller
             // Buttons render from the machine itself, so the UI can never
             // offer a move the service would then refuse.
             'nextStates' => $this->tickets->nextStates($ticket),
+
+            /*
+             * FR-307. Fetched here rather than in the view, which does not
+             * query. Admins are included because TicketPolicy::assign()
+             * admits them and an admin can legitimately hold a ticket.
+             */
+            'engineers' => User::query()->active()
+                ->whereIn('role', [UserRole::Engineer->value, UserRole::Admin->value])
+                ->orderBy('name')->pluck('name', 'id')->all(),
         ]);
     }
 
@@ -94,6 +104,29 @@ class TicketController extends Controller
         }
 
         return back()->with('success', "{$ticket->ticket_number} is now {$target->label()}.");
+    }
+
+    /**
+     * Hand the ticket to an engineer, or put it back in the pool (FR-307).
+     *
+     * Not a transition. Who is doing the work and how far along it is are
+     * different questions, and reassigning mid-repair must not move the ticket
+     * backwards through its own lifecycle.
+     */
+    public function assign(AssignTicketRequest $request, Ticket $ticket): RedirectResponse
+    {
+        try {
+            $this->tickets->assign($ticket, $request->engineer(), $request->user());
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with(
+            'success',
+            $ticket->fresh()->assignee
+                ? "{$ticket->ticket_number} is now with {$ticket->fresh()->assignee->name}."
+                : "{$ticket->ticket_number} is back in the queue.",
+        );
     }
 
     /** Which policy ability guards each destination state. */
