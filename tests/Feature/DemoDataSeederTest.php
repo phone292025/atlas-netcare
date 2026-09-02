@@ -2,10 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RiskBand;
 use App\Enums\UserRole;
+use App\Models\AccessPoint;
+use App\Models\Inspection;
+use App\Models\LabPc;
+use App\Models\TelemetryHourly;
+use App\Models\Ticket;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
+use Database\Seeders\ReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -138,5 +145,113 @@ class DemoDataSeederTest extends TestCase
             $this->assertAuthenticated();
             $this->post('/logout');
         }
+    }
+
+    /*
+    |---------------------------------------------------------------------
+    | The inventory, added 2026-09-02
+    |---------------------------------------------------------------------
+    |
+    | Until then this seeder made accounts and nothing else, while its own
+    | docblock promised assets, telemetry, inspections and tickets. The tests
+    | above covered the accounts thoroughly, which is why nobody noticed the
+    | rest was missing.
+    */
+
+    /** Reference data first: the assets need locations and a checklist. */
+    private function seedEverything(): void
+    {
+        $this->seed(ReferenceSeeder::class);
+        $this->seed(DemoDataSeeder::class);
+    }
+
+    public function test_no_seeded_asset_escapes_without_its_demo_flag(): void
+    {
+        /*
+         * The regression guard, and it is guarding a real escape. Three
+         * untagged lab PCs shipped in the first version of this: `TicketFactory`
+         * defaults `ticketable_id` to `LabPc::factory()`, and three tickets
+         * were created without naming a subject, so the factory quietly made
+         * machines that this seeder never knew about.
+         *
+         * Being factory-made rather than seeder-made, they carried no is_demo
+         * flag — so they would have survived `atlas:purge-demo-data` looking
+         * exactly like assets somebody had typed in. Nothing caught it except
+         * counting rows after a seed.
+         */
+        $this->seedEverything();
+
+        $this->assertSame(0, LabPc::where('is_demo', false)->count(), 'A lab PC escaped without is_demo.');
+        $this->assertSame(0, AccessPoint::where('is_demo', false)->count(), 'An access point escaped without is_demo.');
+        $this->assertSame(0, Ticket::where('is_demo', false)->count(), 'A ticket escaped without is_demo.');
+    }
+
+    public function test_all_seeded_telemetry_is_marked_simulated(): void
+    {
+        // `source` is what tells a purge which readings were invented. An
+        // unmarked row claims to have come from a real access point.
+        $this->seedEverything();
+
+        $this->assertGreaterThan(0, TelemetryHourly::count());
+        $this->assertSame(0, TelemetryHourly::where('source', '!=', 'simulated')->count());
+    }
+
+    public function test_it_produces_assets_in_every_risk_band(): void
+    {
+        /*
+         * Why the cohorts are designed rather than random. Before this, every
+         * asset scored Low or Medium, so the maintenance priority ranking —
+         * the screen that makes this project answer Case Study Category 4 —
+         * had no red rows at all and demonstrated nothing.
+         */
+        $this->seedEverything();
+
+        $this->artisan('atlas:recalculate-risk', ['--show' => 0])->assertExitCode(0);
+
+        foreach (RiskBand::cases() as $band) {
+            $count = LabPc::where('risk_band', $band->value)->count()
+                + AccessPoint::where('risk_band', $band->value)->count();
+
+            $this->assertGreaterThan(0, $count, "No asset scored {$band->value}.");
+        }
+    }
+
+    public function test_the_worst_machine_is_worst_for_a_readable_reason(): void
+    {
+        // A bare score is not analytics. If the top of the ranking cannot say
+        // why, ADR-0007 chose a weighted model over a trained one for nothing.
+        $this->seedEverything();
+        $this->artisan('atlas:recalculate-risk', ['--show' => 0]);
+
+        $worst = LabPc::orderByDesc('risk_score')->first();
+
+        $this->assertSame(RiskBand::Critical, $worst->risk_band);
+        $this->assertArrayHasKey('age', $worst->latestRiskAssessment->factors);
+        $this->assertArrayHasKey('fault_frequency', $worst->latestRiskAssessment->factors);
+    }
+
+    public function test_it_seeds_history_for_the_reports_to_aggregate(): void
+    {
+        // Five reports over an empty database all correctly say "nothing yet",
+        // and show nothing. They need resolved tickets, open ones, and
+        // completed inspections to have anything to aggregate.
+        $this->seedEverything();
+
+        $this->assertGreaterThan(0, Inspection::whereNotNull('completed_at')->count());
+        $this->assertGreaterThan(0, Ticket::whereNotNull('resolved_at')->count());
+        $this->assertGreaterThan(0, Ticket::whereNull('resolved_at')->count());
+    }
+
+    public function test_reseeding_does_not_double_the_inventory(): void
+    {
+        // Same reasoning as the account test above, but the assets are the
+        // expensive half: a second run adding eighty more machines would be
+        // both wrong and slow.
+        $this->seedEverything();
+        $before = LabPc::count();
+
+        $this->seed(DemoDataSeeder::class);
+
+        $this->assertSame($before, LabPc::count());
     }
 }

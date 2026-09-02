@@ -16,7 +16,7 @@
 
 ## 1. Genuinely not built
 
-~~Four~~ **Three** things. FR-408 was built on 2026-09-02; the rest of this section still stands. Nothing else in the code is missing.
+~~Four~~ **One** thing. FR-408, the demo inventory and the risk spread were all closed on 2026-09-02. Only `atlas:purge-demo-data` is left.
 
 ### 1.1 FR-408 — override an individual shift assignment ✅ BUILT 2026-09-02
 
@@ -49,7 +49,11 @@ Every reference now carries a warning saying so, but the honest fix is to write 
 
 **Re-run the check:** compare `grep -rho "atlas:[a-z-]*" docs/ README.md | sort -u` against `ls app/Console/Commands/`.
 
-### 1.3 `DemoDataSeeder` creates accounts and nothing else
+### 1.3 `DemoDataSeeder` creates accounts and nothing else ✅ BUILT 2026-09-02
+
+**Status:** done. 80 lab PCs in four deliberate age cohorts, 24 access points, a fortnight of hourly telemetry, 25 completed inspections and 43 tickets — in under three seconds. Six new tests, including one that asserts nothing escapes without its `is_demo` flag, which is guarding a real escape: three untagged machines had been created by a factory default.
+
+~~Old status below.~~
 
 Its own docblock promises ~250 lab PCs, ~40 access points, completed inspections, tickets across every state, 90 days of telemetry, and shift templates — "arriving with M2 to M6". They never arrived. It prints that message on every run.
 
@@ -57,7 +61,11 @@ Everything currently in the database was created by hand or by ad-hoc commands, 
 
 **Size:** medium, and it depends on 1.4.
 
-### 1.4 No asset scores High or Critical
+### 1.4 No asset scores High or Critical ✅ FIXED 2026-09-02
+
+**Status:** all four bands populate. Five machines score 92 (Critical), and the top of the ranking reads "age, fault frequency" — the reasons, not just a number.
+
+~~Old status below.~~
 
 ```
 low         7  #######

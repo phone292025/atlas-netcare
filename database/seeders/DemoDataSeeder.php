@@ -2,9 +2,25 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ChecklistResult;
+use App\Enums\DeviceStatus;
+use App\Enums\InspectionOutcome;
+use App\Enums\TicketCategory;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
 use App\Enums\UserRole;
+use App\Models\AccessPoint;
+use App\Models\ChecklistItem;
+use App\Models\ChecklistTemplate;
+use App\Models\Inspection;
+use App\Models\LabPc;
+use App\Models\Location;
+use App\Models\TelemetryHourly;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -19,27 +35,56 @@ use Illuminate\Support\Facades\Hash;
  * That tagging is not optional. A row seeded here without its flag becomes
  * indistinguishable from real data and survives the purge.
  *
- * Still to come with their modules:
+ * THE ASSET AGES AND FAULT HISTORIES ARE DESIGNED, NOT RANDOM. Until
+ * 2026-09-02 this seeder created accounts and nothing else, and the assets
+ * that existed had been made by hand with `LabPcFactory`, whose default is a
+ * purchase date somewhere in the last six years. Averaged out, every machine
+ * landed Low or Medium and the maintenance priority ranking — the screen that
+ * makes this project answer Case Study Category 4 — had no red rows at all.
  *
- *   M2  ~250 lab PCs and ~40 access points
- *   M3  completed inspections with a spread of outcomes
- *   M4  tickets across every state
- *   M5  90 days of simulated telemetry
- *   M6  shift templates and rostered shifts
+ * So the cohorts below are deliberate: a handful of machines that genuinely
+ * should be replaced, some that are getting there, and a majority that are
+ * fine. The scoring is not tuned to produce them; they are built to be the
+ * kind of asset the scoring is meant to find. Running
+ * `atlas:recalculate-risk` afterwards should show every band populated.
  *
- * Use factories for those, not explicit records — the same factories power the
- * feature tests, so there is one set of fixtures rather than two.
+ * Being deterministic matters as much as being realistic: the demonstration
+ * should look the same on the day as it did in rehearsal.
  *
  * @see docs/07-data-strategy.md — Mechanism 2
  * @see docs/decisions/ADR-0003-single-database-demo-flag.md
+ * @see docs/14-simulated-and-real-data.md — what this stands in for
  */
 class DemoDataSeeder extends Seeder
 {
+    /**
+     * How much to make.
+     *
+     * Smaller than the ~250 an earlier version of this docblock promised.
+     * Eighty machines is enough for a ranking to look like a real inventory
+     * and for pagination to matter, and it seeds in seconds — 250 bought
+     * nothing except a slower `migrate --seed` on six other people's laptops.
+     */
+    private const LAB_PCS = 80;
+
+    private const ACCESS_POINTS = 24;
+
+    /** Days of hourly telemetry. Two weeks is what the risk trends read. */
+    private const TELEMETRY_DAYS = 14;
+
     public function run(): void
     {
         $this->demoAccounts();
+        $this->labPcs();
+        $this->accessPoints();
+        $this->telemetry();
+        $this->inspections();
+        $this->tickets();
 
-        $this->command?->info('  Demo assets and telemetry arrive with M2 to M6.');
+        $this->command?->newLine();
+        $this->command?->info('  Demo data seeded. Now score it:');
+        $this->command?->line('    php artisan atlas:recalculate-risk');
+        $this->command?->newLine();
     }
 
     /**
@@ -102,5 +147,363 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->command?->warn('  Demo accounts share one password, from ATLAS_DEMO_PASSWORD.');
+    }
+
+    /**
+     * Lab PCs in four deliberate cohorts.
+     *
+     * The proportions are roughly what a campus inventory looks like: most
+     * machines are fine, a few are overdue, and a small number should have
+     * been replaced already. The point is that the ranking has something at
+     * the top worth acting on.
+     *
+     * `last_inspected_at` is null on the oldest cohort ON PURPOSE. Never
+     * inspected is the strongest version of that risk factor, not an absence
+     * of it, and a machine nobody has looked at in years is exactly what a
+     * maintenance priority screen exists to surface.
+     */
+    private function labPcs(): void
+    {
+        if (LabPc::where('is_demo', true)->count() >= self::LAB_PCS) {
+            $this->command?->line('  Lab PCs already seeded.');
+
+            return;
+        }
+
+        $locations = Location::pluck('id')->all();
+
+        if ($locations === []) {
+            $this->command?->error('  No locations. Run ReferenceSeeder first.');
+
+            return;
+        }
+
+        $cohorts = [
+            // [count, years old, days since inspection or null for never]
+            'past their life' => [5, 6.8, null],
+            'ageing' => [12, 4.8, 45],
+            'mid-life' => [33, 2.5, 12],
+            'nearly new' => [self::LAB_PCS - 50, 0.6, 5],
+        ];
+
+        $n = 0;
+
+        foreach ($cohorts as $label => [$count, $years, $inspectedDaysAgo]) {
+            for ($i = 0; $i < $count; $i++) {
+                $n++;
+
+                LabPc::factory()->demo()->create([
+                    'asset_tag' => sprintf('APU-%04d', 1000 + $n),
+                    'hostname' => sprintf('apu-pc-%03d', $n),
+                    'location_id' => $locations[$n % count($locations)],
+                    'purchase_date' => now()->subDays((int) round($years * 365)),
+                    'warranty_expiry' => now()->subDays((int) round($years * 365))->addYears(3),
+                    'last_inspected_at' => $inspectedDaysAgo === null
+                        ? null
+                        : now()->subDays($inspectedDaysAgo),
+                    'status' => DeviceStatus::Operational->value,
+                ]);
+            }
+
+            $this->command?->line("  {$count} lab PCs — {$label}");
+        }
+    }
+
+    /**
+     * Access points, three of which are quietly getting worse.
+     *
+     * An access point is scored on TRENDS rather than levels, so a demo
+     * dataset where every link is steady — however bad — produces no risk at
+     * all. `telemetry()` gives these three a deteriorating fortnight.
+     */
+    private function accessPoints(): void
+    {
+        if (AccessPoint::where('is_demo', true)->count() >= self::ACCESS_POINTS) {
+            $this->command?->line('  Access points already seeded.');
+
+            return;
+        }
+
+        $locations = Location::pluck('id')->all();
+
+        // Same guard as labPcs(). This seeder must survive being run on its
+        // own — several tests do exactly that to check the accounts, and a
+        // teammate re-running it to reset a demo password should not need
+        // ReferenceSeeder to have gone first.
+        if ($locations === []) {
+            $this->command?->warn('  Skipping access points: no locations. Run ReferenceSeeder first.');
+
+            return;
+        }
+
+        for ($i = 1; $i <= self::ACCESS_POINTS; $i++) {
+            AccessPoint::factory()->demo()->create([
+                'ap_code' => sprintf('AP-%02d', $i),
+                'location_id' => $locations[$i % count($locations)],
+                'client_capacity' => [30, 50, 80][$i % 3],
+            ]);
+        }
+
+        $this->command?->line('  '.self::ACCESS_POINTS.' access points');
+    }
+
+    /**
+     * Two weeks of hourly telemetry.
+     *
+     * Written straight into `telemetry_hourly` rather than by running the
+     * collector for a fortnight. `atlas:backfill-telemetry` does the same job
+     * more thoroughly, including raw readings; this exists so a fresh install
+     * has charts and risk trends immediately, without a second command.
+     *
+     * Bulk inserted in chunks. Eight thousand individual model saves is about
+     * a minute of somebody's life for no benefit.
+     */
+    private function telemetry(): void
+    {
+        if (TelemetryHourly::where('source', 'simulated')->count() > 500) {
+            $this->command?->line('  Telemetry already present.');
+
+            return;
+        }
+
+        $aps = AccessPoint::where('is_demo', true)->orderBy('id')->get();
+        $start = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
+        $hours = self::TELEMETRY_DAYS * 24;
+
+        $rows = [];
+
+        foreach ($aps as $index => $ap) {
+            // The first three deteriorate across the window; the rest hold
+            // steady with ordinary daily variation.
+            $degrading = $index < 3;
+
+            for ($h = 0; $h < $hours; $h++) {
+                $at = $start->copy()->addHours($h);
+                $progress = $h / $hours;
+                $busy = $this->busyness($at);
+
+                $latency = $degrading
+                    ? 18 + ($progress * 130) + ($busy * 25)
+                    : 16 + ($busy * 22) + (($index % 5) * 3);
+
+                $loss = $degrading
+                    ? ($progress * 6.5) + ($busy * 0.6)
+                    : ($busy * 0.7);
+
+                $rows[] = [
+                    'access_point_id' => $ap->id,
+                    'hour_bucket' => $at->toDateTimeString(),
+                    'avg_latency_ms' => round($latency, 2),
+                    'peak_client_count' => (int) round($ap->client_capacity * (0.25 + $busy * 0.7)),
+                    'avg_packet_loss_pct' => round($loss, 2),
+                    'avg_channel_util_pct' => round(20 + $busy * 55, 2),
+                    // A degrading link drops out occasionally, and more often
+                    // as it gets worse. That is the offline_events factor.
+                    'uptime_pct' => $degrading && $progress > 0.5 && $h % 17 === 0 ? 92.5 : 100,
+                    'reading_count' => 60,
+                    'source' => 'simulated',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        foreach (array_chunk($rows, 1000) as $chunk) {
+            DB::table('telemetry_hourly')->insert($chunk);
+        }
+
+        $this->command?->line('  '.number_format(count($rows)).' hourly telemetry rows, '.self::TELEMETRY_DAYS.' days');
+    }
+
+    /**
+     * Completed inspections, with genuine critical failures on the old kit.
+     *
+     * `critical_fail_rate` is a quarter of a lab PC's risk score and reads
+     * `checklist_items.is_critical`, so an inspection that only fails
+     * cosmetic items contributes nothing. The ageing cohort therefore fails
+     * items that actually matter.
+     */
+    private function inspections(): void
+    {
+        if (Inspection::count() > 20) {
+            $this->command?->line('  Inspections already seeded.');
+
+            return;
+        }
+
+        $template = ChecklistTemplate::query()->where('is_active', true)->first();
+        $assistant = User::query()->active()->role(UserRole::Assistant)->first();
+
+        if (! $template || ! $assistant) {
+            $this->command?->warn('  Skipping inspections: no active checklist template or assistant.');
+
+            return;
+        }
+
+        $items = ChecklistItem::where('checklist_template_id', $template->id)->get();
+
+        // The machines that have been inspected, worst first.
+        $pcs = LabPc::where('is_demo', true)
+            ->whereNotNull('last_inspected_at')
+            ->orderBy('purchase_date')
+            ->take(25)
+            ->get();
+
+        foreach ($pcs as $i => $pc) {
+            // The oldest third fail; the rest pass. A pass rate of roughly
+            // 70% is believable and gives the report's per-location chart
+            // something with variation in it.
+            $failing = $i < 8;
+
+            $inspection = Inspection::factory()
+                ->completed($failing ? InspectionOutcome::Fail : InspectionOutcome::Pass)
+                ->create([
+                    'lab_pc_id' => $pc->id,
+                    'user_id' => $assistant->id,
+                    'checklist_template_id' => $template->id,
+                    'completed_at' => $pc->last_inspected_at,
+                    'started_at' => $pc->last_inspected_at?->copy()->subMinutes(12),
+                ]);
+
+            foreach ($items as $item) {
+                $failsThis = $failing && $item->is_critical && $item->id % 2 === 0;
+
+                $inspection->results()->create([
+                    'checklist_item_id' => $item->id,
+                    'result' => $failsThis ? ChecklistResult::Issue : ChecklistResult::Ok,
+                    'remark' => $failsThis ? 'Reproduced twice. Needs a hardware swap.' : null,
+                ]);
+            }
+        }
+
+        $this->command?->line('  '.$pcs->count().' completed inspections');
+    }
+
+    /**
+     * Tickets across every state, weighted onto the machines that deserve them.
+     *
+     * `fault_frequency` counts tickets in the last 90 days, so putting several
+     * against the oldest machines is what makes that factor mean anything.
+     * Spread across statuses so the queue, the SLA report and the mean time to
+     * resolution all have something to show.
+     */
+    private function tickets(): void
+    {
+        if (Ticket::where('is_demo', true)->count() > 10) {
+            $this->command?->line('  Tickets already seeded.');
+
+            return;
+        }
+
+        $assistant = User::query()->active()->role(UserRole::Assistant)->first();
+        $engineer = User::query()->active()->role(UserRole::Engineer)->first();
+
+        if (! $assistant || ! $engineer) {
+            $this->command?->warn('  Skipping tickets: no active assistant or engineer.');
+
+            return;
+        }
+
+        $worst = LabPc::where('is_demo', true)->orderBy('purchase_date')->take(5)->get();
+        $made = 0;
+
+        /*
+         * Eight faults each against the five oldest machines, inside the
+         * 90-day window the risk model counts.
+         *
+         * Eight rather than four because four put them at 76 — High, but not
+         * Critical, and a demonstration with an empty Critical band does not
+         * show what the top of the ranking is for. Eight repairs in three
+         * months is also a fair description of a machine that should have
+         * been replaced.
+         */
+        foreach ($worst as $pc) {
+            for ($i = 0; $i < 8; $i++) {
+                $opened = now()->subDays(random_int(3, 80));
+
+                Ticket::factory()->demo()->create([
+                    'title' => 'Repeated fault on '.$pc->asset_tag,
+                    'category' => TicketCategory::Hardware,
+                    'priority' => TicketPriority::Medium,
+                    'status' => TicketStatus::Closed,
+                    'ticketable_type' => LabPc::class,
+                    'ticketable_id' => $pc->id,
+                    'location_id' => $pc->location_id,
+                    'reported_by' => $assistant->id,
+                    'assigned_to' => $engineer->id,
+                    'opened_at' => $opened,
+                    'due_at' => $opened->copy()->addHours(24),
+                    'acknowledged_at' => $opened->copy()->addHours(2),
+                    'resolved_at' => $opened->copy()->addHours(random_int(6, 30)),
+                    'closed_at' => $opened->copy()->addHours(random_int(31, 40)),
+                    'resolution_notes' => 'Replaced the failing component.',
+                ]);
+
+                $made++;
+            }
+        }
+
+        // A few live ones, so the queue is not empty and the SLA badge has
+        // something to colour.
+        foreach ([TicketStatus::Open, TicketStatus::Acknowledged, TicketStatus::InProgress] as $status) {
+            $opened = now()->subHours(random_int(2, 20));
+
+            Ticket::factory()->demo()->create([
+                'title' => 'Wi-Fi dropping in the lab',
+                'category' => TicketCategory::Network,
+                'priority' => TicketPriority::Critical,
+                'status' => $status,
+
+                /*
+                 * NULLED EXPLICITLY. TicketFactory defaults `ticketable_id` to
+                 * `LabPc::factory()`, so leaving these out silently created
+                 * three extra lab PCs — and being made by a factory rather
+                 * than by this seeder, they carried no is_demo flag. They
+                 * would have survived a purge looking exactly like real
+                 * assets. This is the trap the class docblock warns about,
+                 * found by counting rows after a seed rather than by any test.
+                 *
+                 * A dropping Wi-Fi link is a fault about a place anyway, not
+                 * about one machine.
+                 */
+                'ticketable_type' => null,
+                'ticketable_id' => null,
+
+                'location_id' => Location::value('id'),
+                'reported_by' => $assistant->id,
+                'assigned_to' => $status === TicketStatus::Open ? null : $engineer->id,
+                'opened_at' => $opened,
+                'due_at' => $opened->copy()->addHours(4),
+                'acknowledged_at' => $status === TicketStatus::Open ? null : $opened->copy()->addMinutes(40),
+            ]);
+
+            $made++;
+        }
+
+        $this->command?->line("  {$made} tickets");
+    }
+
+    /**
+     * How busy the campus is at a given hour, 0 to 1.
+     *
+     * Quiet overnight, a peak late morning, a dip at lunch, a second peak mid
+     * afternoon, and quieter at weekends. Shared shape with
+     * SimulatedTelemetrySource so seeded history and collected readings do not
+     * look like two different campuses meeting in the middle.
+     */
+    private function busyness(Carbon $at): float
+    {
+        $hour = (int) $at->format('G');
+
+        $curve = match (true) {
+            $hour < 7, $hour > 21 => 0.05,
+            $hour < 9 => 0.35,
+            $hour < 12 => 0.9,
+            $hour < 14 => 0.6,
+            $hour < 17 => 0.85,
+            default => 0.4,
+        };
+
+        return $at->isWeekend() ? $curve * 0.35 : $curve;
     }
 }

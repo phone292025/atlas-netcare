@@ -1,10 +1,10 @@
 # What Is Simulated, and What Would Make It Real
 
-> **Last updated:** 2026-08-30
+> **Last updated:** 2026-09-02
 >
 > **This file is written to be lifted into the report.** Section 1 is the Limitations section. Section 2 is the Assumptions section. Section 3 is what to say if a marker asks "is any of this real?"
 >
-> Every figure here was read out of the live database on 2026-08-30, not estimated.
+> Every figure here was read out of a database, not estimated. Section 3 describes what `DemoDataSeeder` produces on a fresh install; sections 1 and 2 were checked on 2026-09-02.
 
 ---
 
@@ -42,11 +42,12 @@ Email is no longer a limitation: FR-102 sends password resets through Gmail SMTP
 
 Thin real data is more defensible than thick fake data, but the reports do look sparse. Say which it is.
 
-### 1.4 No asset scores High or Critical
+### 1.4 ~~No asset scores High or Critical~~ — fixed 2026-09-02
 
-Every seeded asset lands Low or Medium. The scoring is correct; the demonstration data has no old machines and no degrading links, so there is nothing dramatic to score.
+`DemoDataSeeder` now builds four deliberate age cohorts and three deteriorating access points, so all four bands populate. Five machines score 92, and the ranking's top rows give their reasons as "age, fault frequency".
 
-**This is worth fixing before the demonstration.** A maintenance priority ranking with no Critical row does not show what the screen is for.
+**The cohorts are designed, and the report should say so.** They are not tuned to make the scoring look good; they are the kind of asset the scoring exists to find — a machine nearly seven years old, never inspected, with eight repairs in three months. That is a fair description of something that should have been replaced, and the model finding it is the point.
+
 
 ---
 
@@ -100,17 +101,22 @@ Each set sums to 1.0, and a unit test enforces that per set — if they drift, e
 
 Everything here is tagged `is_demo` and removable. None of it is a design limitation; each is a record somebody already keeps.
 
+Counts are what `DemoDataSeeder` produces on a fresh install.
+
 | What | Rows | What is fabricated | What would replace it |
 |---|---|---|---|
-| Access points | 5 | MAC addresses, IPs, models, client capacities | The AP inventory from IT |
-| Lab PCs | 9 (8 demo) | Asset tags, hostnames, **purchase dates** | The IT asset register |
-| Accounts | 5 (4 demo) | Nothing much — real names, real deliverable addresses | Nothing; these are fine |
+| Access points | 24 | MAC addresses, IPs, models, client capacities | The AP inventory from IT |
+| Lab PCs | 80 | Asset tags, hostnames, **purchase dates** | The IT asset register |
+| Hourly telemetry | 8,064 | All of it | SNMP, if access is ever granted |
+| Inspections | 25 | Outcomes and remarks | Nothing; real ones accumulate by using the system |
+| Tickets | 43 | Titles and timings | Same |
+| Accounts | 4 (3 demo) | Nothing much — real names, real deliverable addresses | Nothing; these are fine |
 
 **Purchase date is the one that matters.** It is 25% of every lab PC's risk score, and it is currently invented. A machine's age is the single most defensible input the model has, and right now it is the least real.
 
 ### The two worth actually pursuing
 
-**1. The lab PC asset register.** A spreadsheet from IT. No network permission, no security review, no SNMP. It makes every lab PC risk score defensible instead of derived from invented dates — and it fixes the "no Critical rows" problem for free, because real machines have real ages and some of them are old.
+**1. The lab PC asset register.** A spreadsheet from IT. No network permission, no security review, no SNMP. It is the difference between a risk model scored on ages we chose and one scored on ages the campus actually has — and age is 25% of every lab PC's score, so it is the single largest fabricated input in the system.
 
 **2. One latency measurement from campus wifi.** A single `ping` against a real APU access point. It turns `thresholds.latency_ms = 120` from a guess into a checked number. Q1 has had this as an open action since Sprint 0. It costs five minutes and it is exactly the kind of thing a viva asks about.
 
