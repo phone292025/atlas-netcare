@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\UserRole;
 use App\Models\ChecklistTemplate;
 use App\Models\Location;
+use App\Models\ShiftTemplate;
 use App\Models\User;
 use App\Services\Maintenance\ChecklistService;
 use Illuminate\Database\Seeder;
@@ -40,10 +41,7 @@ class ReferenceSeeder extends Seeder
         $this->firstAdministrator();
         $this->campusLocations();
         $this->standardChecklist();
-
-        // Shift templates (M6) belong here too, but their table does not
-        // exist yet. Add that section when the migration lands — this seeder
-        // is where it goes, not a new one.
+        $this->shiftPatterns();
     }
 
     /**
@@ -186,5 +184,73 @@ class ReferenceSeeder extends Seeder
         app(ChecklistService::class)->activate($template);
 
         $this->command?->info('  Checklist template with '.count($items).' items.');
+    }
+
+    /**
+     * The weekly shift patterns the roster is generated from.
+     *
+     * This section was deferred in Sprint 0 with a note saying it belonged
+     * here once the table existed. M6 created the table and the note was never
+     * acted on, so a fresh install had NO templates at all: pressing "Generate
+     * this week" produced nothing, and the roster screen looked broken when it
+     * was only empty. The one template on the development machine had been
+     * typed in by hand through the admin screen.
+     *
+     * Five days, six slots, with Monday double-covered. That is enough for the
+     * roster to look like a real week rather than a single row stranded in a
+     * seven-column grid, and it exercises the generator's load balancing,
+     * which only shows when one assistant would otherwise take everything.
+     *
+     * These are configuration, not demonstration data. An administrator edits
+     * them, and a deployed system needs its own patterns whatever they are, so
+     * they belong here rather than in DemoDataSeeder. `shift_templates` has no
+     * `is_demo` column for the same reason.
+     *
+     * Keyed on name, so running this twice changes nothing.
+     */
+    private function shiftPatterns(): void
+    {
+        $locations = Location::pluck('id', 'code');
+
+        if ($locations->isEmpty()) {
+            $this->command?->warn('  Skipping shift patterns: no locations.');
+
+            return;
+        }
+
+        // day_of_week follows Carbon: 0 is Sunday, so 1 to 5 is Monday to
+        // Friday. Getting this wrong shifts the whole roster by six days.
+        $patterns = [
+            ['Monday morning lab cover', 1, '09:00:00', '13:00:00', 'L6-IT-01'],
+            ['Monday afternoon lab cover', 1, '13:00:00', '17:00:00', 'L6-IT-02'],
+            ['Tuesday networking lab', 2, '09:00:00', '13:00:00', 'L5-NET-01'],
+            ['Wednesday library desk', 3, '13:00:00', '17:00:00', 'LIB-L3'],
+            ['Thursday morning lab cover', 4, '09:00:00', '13:00:00', 'L6-IT-01'],
+            ['Friday cafeteria zone', 5, '13:00:00', '17:00:00', 'CAF-GF'],
+        ];
+
+        $made = 0;
+
+        foreach ($patterns as [$name, $day, $start, $end, $code]) {
+            if (! $locations->has($code)) {
+                continue;
+            }
+
+            ShiftTemplate::updateOrCreate(
+                ['name' => $name],
+                [
+                    'day_of_week' => $day,
+                    'start_time' => $start,
+                    'end_time' => $end,
+                    'location_id' => $locations[$code],
+                    'required_assistants' => 1,
+                    'is_active' => true,
+                ],
+            );
+
+            $made++;
+        }
+
+        $this->command?->info("  {$made} shift patterns, Monday to Friday.");
     }
 }

@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\Location;
+use App\Models\ShiftTemplate;
 use App\Models\User;
+use App\Services\Shifts\ShiftService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -118,5 +121,63 @@ class ReferenceSeederTest extends TestCase
         ])->assertRedirect();
 
         $this->assertAuthenticated();
+    }
+
+    public function test_it_seeds_a_week_of_shift_patterns(): void
+    {
+        /*
+         * These were deferred in Sprint 0 with a comment saying they belonged
+         * in this seeder once the table existed. M6 created the table and the
+         * comment was never acted on, so a fresh install had NO templates:
+         * pressing "Generate this week" produced nothing at all, and the
+         * roster looked broken when it was only empty.
+         */
+        $this->seed(ReferenceSeeder::class);
+
+        $templates = ShiftTemplate::where('is_active', true)->get();
+
+        $this->assertGreaterThanOrEqual(5, $templates->count());
+
+        // Monday to Friday, so a generated week fills a grid rather than one
+        // row stranded in seven columns.
+        $this->assertGreaterThanOrEqual(
+            5,
+            $templates->pluck('day_of_week')->unique()->count(),
+            'The patterns should cover at least five different days.',
+        );
+    }
+
+    public function test_a_generated_week_covers_several_days(): void
+    {
+        // The end of the same problem: patterns exist, so generation produces
+        // a week somebody would recognise as a roster.
+        $this->seed(ReferenceSeeder::class);
+
+        $assistant = User::factory()->create();
+        $assistant->forceFill([
+            'role' => UserRole::Assistant,
+            'is_active' => true,
+        ])->save();
+
+        $created = app(ShiftService::class)
+            ->generateWeek(Carbon::now()->startOfWeek()->addWeek());
+
+        $this->assertGreaterThanOrEqual(5, $created->count());
+        $this->assertGreaterThanOrEqual(
+            5,
+            $created->pluck('shift_date')->unique()->count(),
+            'A generated week should touch at least five separate days.',
+        );
+    }
+
+    public function test_seeding_the_patterns_twice_changes_nothing(): void
+    {
+        // Keyed on name. A second run must not double the roster patterns.
+        $this->seed(ReferenceSeeder::class);
+        $before = ShiftTemplate::count();
+
+        $this->seed(ReferenceSeeder::class);
+
+        $this->assertSame($before, ShiftTemplate::count());
     }
 }
