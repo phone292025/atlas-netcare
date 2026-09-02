@@ -78,8 +78,10 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 
 | | |
 |---|---|
-| Email | `ATLAS_ADMIN_EMAIL` |
-| Password | `ATLAS_ADMIN_PASSWORD` |
+| Email | `admin@atlas.local` |
+| Password | `ChangeMeNow!2026` |
+
+Both come from `.env.example`, so a fresh clone works with no editing. If you set your own `ATLAS_ADMIN_PASSWORD` first, which you should, use that.
 
 > **The administrator does not share the demo password.** `ATLAS_ADMIN_PASSWORD` and `ATLAS_DEMO_PASSWORD` are different values, and typing the demo one at the admin login gives "These credentials do not match our records" with nothing to explain why. If a sign-in fails, check which of the two the account uses before assuming the account is broken.
 
