@@ -52,6 +52,42 @@
                                     · {{ $shift->location?->code }}
                                 </p>
                                 <x-status-badge :status="$shift->status" class="mt-1" />
+
+                                {{-- FR-408. Only a scheduled shift can move: a
+                                     checked-in one has somebody standing in the
+                                     room, and `checked_in_at` says who, so
+                                     reassigning it would put their attendance
+                                     against a different name.
+
+                                     Shown as a form rather than a link because
+                                     it changes data, and inline rather than on
+                                     its own screen because the decision is made
+                                     while looking at the week. --}}
+                                @if ($shift->status === \App\Enums\ShiftStatus::Scheduled && $assistants->count() > 1)
+                                    <form method="POST"
+                                          action="{{ route('admin.roster.reassign', $shift) }}"
+                                          class="mt-1.5">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <label class="sr-only" for="reassign-{{ $shift->id }}">
+                                            Reassign the {{ $shift->label() }} shift on
+                                            {{ $shift->shift_date->format('D j M') }}
+                                        </label>
+
+                                        <select id="reassign-{{ $shift->id }}"
+                                                name="user_id"
+                                                onchange="this.form.submit()"
+                                                class="w-full rounded border-slate-300 py-1 text-xs text-slate-600
+                                                       focus:border-brand-500 focus:ring-brand-500">
+                                            <option value="">Reassign to…</option>
+                                            @foreach ($assistants as $candidate)
+                                                @continue($candidate->id === $shift->user_id)
+                                                <option value="{{ $candidate->id }}">{{ $candidate->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @endif
                             </li>
                         @endforeach
                     </ul>

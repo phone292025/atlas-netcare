@@ -135,6 +135,15 @@ Route::middleware('auth')->group(function () {
 
         Route::get('roster', [RosterController::class, 'index'])->name('roster.index');
         Route::post('roster/generate', [RosterController::class, 'generate'])->name('roster.generate');
+
+        /*
+        | FR-408 — the override half of Q4. generateWeek() produces the
+        | pattern; this is how a real week diverges from it, which it always
+        | does. PATCH rather than POST because it changes one field on an
+        | existing row rather than creating anything.
+        */
+        Route::patch('roster/{shift}/reassign', [RosterController::class, 'reassign'])
+            ->name('roster.reassign');
     });
 
     /*

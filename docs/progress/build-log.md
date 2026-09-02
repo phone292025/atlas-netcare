@@ -13,7 +13,7 @@
 | **Phase** | Sprint 0 complete. Building modules. |
 | **Last session** | 2026-08-30 |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | 579 passing (1 skipped), 1596 assertions, zero deprecations |
+| **Tests** | 592 passing (1 skipped), 1613 assertions, zero deprecations |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |

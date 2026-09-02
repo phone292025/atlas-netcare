@@ -51,7 +51,9 @@ Admin: shift template index/create/edit · roster generator with week preview an
 - [x] Notification bell shows an accurate unread count and marks read on open
 - [x] M4 and M5 can raise alarms through `AlarmService` without touching M6 internals
 - [x] Feature tests: generate roster, check in/out, alarm dispatch, unread count
+- [x] **FR-408, overriding an individual assignment** — built 2026-09-02. `ShiftService::reassign()`, from the roster screen.
 - [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.**
+
 
 ## How it was built
 

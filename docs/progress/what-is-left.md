@@ -1,8 +1,8 @@
 # What Is Left
 
-> **Last updated:** 2026-08-30 · **Written as the handover into the review session planned for Wednesday.**
+> **Last updated:** 2026-09-02 · **Written as the handover into the review session planned for Wednesday.**
 >
-> Every line below was checked against the code and the live database on 2026-08-30, not recalled. Where something is missing, the check that found it is named so it can be re-run.
+> Every line below was checked against the code and the live database, not recalled. §1.1 was closed on 2026-09-02; everything else was verified on 2026-08-30. Where something is missing, the check that found it is named so it can be re-run.
 
 ---
 
@@ -16,17 +16,17 @@
 
 ## 1. Genuinely not built
 
-Four things. Nothing else in the code is missing.
+~~Four~~ **Three** things. FR-408 was built on 2026-09-02; the rest of this section still stands. Nothing else in the code is missing.
 
-### 1.1 FR-408 — override an individual shift assignment
+### 1.1 FR-408 — override an individual shift assignment ✅ BUILT 2026-09-02
 
-**Status:** the "generate dated shifts from templates" half is built; the "override individual assignments" half is not.
+**Status:** done. `ShiftService::reassign()`, reachable from the roster screen. Scheduled shifts only, active assistants only, no double-booking, and the previous person keeps any reminder already delivered while their unsent one is removed. 13 tests.
 
-M6 built `ShiftService::generateWeek()`, which materialises next week's roster from templates. There is no way to reassign one shift to a different person without editing the database.
+`generateWeek()` produces the pattern; `reassign()` is how a real week diverges from it, which it always does — somebody is ill, somebody swaps, somebody is on leave.
 
-**Why it matters:** it is a functional requirement in the approved proposal, currently marked `Assumed — Q4`. It is also the last functional gap in the entire system.
+**One thing worth remembering from building it.** The first version guarded with `! $shift->status->isOutstanding()`, which was wrong and passed review by eye. `isOutstanding()` answers *"is this still work to do"*, and a **checked-in** shift is — but it also has somebody standing in the room, with `checked_in_at` recording who. Reassigning it would put their attendance against a different name. The guard is now `status !== Scheduled`, and a test pins it.
 
-**Size:** small. A form on the roster screen, a service method that writes `user_id` on one shift, a policy check, and tests. The shift already copies its times from the template rather than reading through it, so overriding one does not disturb the pattern.
+**This was the last functional gap in the system.** Every functional requirement now has code behind it.
 
 ### 1.2 `atlas:purge-demo-data` does not exist
 

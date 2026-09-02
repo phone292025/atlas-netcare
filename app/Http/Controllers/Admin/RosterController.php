@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
+use App\Models\User;
 use App\Services\Shifts\ShiftService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -39,6 +41,11 @@ class RosterController extends Controller
             'days' => collect(range(0, 6))->map(fn ($i) => $week->copy()->addDays($i)),
             'templateCount' => ShiftTemplate::query()->active()->count(),
             'shiftCount' => $shifts->count(),
+
+            // FR-408. Fetched once for the whole week rather than per shift:
+            // a fortnight of shifts would otherwise be a query each.
+            'assistants' => User::query()->active()->role(UserRole::Assistant)
+                ->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -66,6 +73,33 @@ class RosterController extends Controller
                     ? 'Nothing new to add — this week is already rostered from the current templates.'
                     : "{$created->count()} ".str('shift')->plural($created->count()).' created for the week of '.$week->format('j M').'.',
             );
+    }
+
+    /**
+     * Move one shift to a different assistant (FR-408).
+     *
+     * The rules live in ShiftService, not here. A DomainException from it is
+     * an expected outcome — "that shift has already started" is information,
+     * not a crash — so it comes back as a flash message, the same shape as
+     * generate() above.
+     */
+    public function reassign(Request $request, Shift $shift): RedirectResponse
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        try {
+            $this->shifts->reassign($shift, User::findOrFail($validated['user_id']));
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with(
+            'success',
+            $shift->fresh()->user?->name.' now has the '.$shift->label().' shift on '
+                .$shift->shift_date->format('D j M').'.',
+        );
     }
 
     /**

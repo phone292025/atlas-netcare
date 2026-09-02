@@ -88,7 +88,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-405 | Add, update and retire access point inventory records. | Approved |
 | FR-406 | Create and version checklist templates and their items. | Assumed — [Q2](04-open-questions.md) |
 | FR-407 | Configure recurring shift templates. | Approved |
-| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](04-open-questions.md) |
+| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](04-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who. |
 | FR-409 | View a system audit log of significant actions. | Approved |
 | FR-410 | Generate and view operational reports and descriptive statistics. | Approved — **built 2026-08-30.** Five reports. Admin and engineer. |
 

@@ -278,4 +278,95 @@ class ShiftService
             ->orderBy('start_time')
             ->first();
     }
+
+    /**
+     * Move one shift to a different assistant (FR-408).
+     *
+     * The other half of Q4. `generateWeek()` materialises a roster from
+     * templates; this is how a real week diverges from the pattern, which it
+     * always does — somebody is ill, somebody swaps, somebody is on leave.
+     * Without it the only way to change an assignment is to edit the database.
+     *
+     * FOUR RULES, and each one exists because breaking it loses information:
+     *
+     * A shift that has been STARTED cannot be reassigned. `checked_in_at`
+     * records that a particular person was physically there, and handing the
+     * shift to somebody else would attach their name to work they did not do.
+     * The same reasoning covers completed and missed shifts: all three are
+     * history, and history is not reassignable.
+     *
+     * ONLY TO AN ACTIVE ASSISTANT. Rostering a deactivated account, or an
+     * engineer, produces a shift nobody will ever check in to — and it would
+     * be invisible until the morning it was needed.
+     *
+     * NOT ONTO A CLASH. `shifts` has a unique index on
+     * (user_id, shift_date, start_time), so a double-booking would surface as
+     * a raw integrity error. Checked here so the user gets a sentence instead.
+     *
+     * THE ORIGINAL PERSON'S ALARMS GO. A pre-shift reminder written for
+     * somebody who is no longer on the shift is worse than no reminder: they
+     * turn up, and the person actually rostered does not. The new assignee
+     * gets their own reminder through the same path generateWeek() uses.
+     *
+     * @throws DomainException when any of the four rules is broken
+     */
+    public function reassign(Shift $shift, User $to): Shift
+    {
+        /*
+         * Scheduled only, deliberately narrower than isOutstanding().
+         *
+         * That helper answers "is this still work to do", and a CHECKED-IN
+         * shift is — but it is also a shift somebody is standing in the room
+         * doing right now, and `checked_in_at` says who. Reassigning it would
+         * attach their attendance to a different name.
+         */
+        if ($shift->status !== ShiftStatus::Scheduled) {
+            throw new DomainException(
+                'This shift has already started or finished, so it cannot be reassigned.'
+            );
+        }
+
+        if ($to->role !== UserRole::Assistant || ! $to->is_active) {
+            throw new DomainException('Shifts can only be assigned to an active assistant.');
+        }
+
+        if ($to->id === $shift->user_id) {
+            throw new DomainException('That shift is already assigned to them.');
+        }
+
+        $clash = Shift::query()
+            ->where('user_id', $to->id)
+            ->where('shift_date', $shift->shift_date)
+            ->where('start_time', $shift->start_time)
+            ->exists();
+
+        if ($clash) {
+            throw new DomainException($to->name.' is already rostered at that time.');
+        }
+
+        return DB::transaction(function () use ($shift, $to) {
+            $from = $shift->user;
+
+            $shift->forceFill(['user_id' => $to->id])->save();
+
+            // Drop the old reminder before writing the new one. Only unsent
+            // alarms: one already delivered is a record of something that
+            // happened and is not ours to erase.
+            $shift->alarms()->whereNull('sent_at')->delete();
+
+            $this->alarms->raise(
+                AlarmType::ShiftStart,
+                $to,
+                'You have been given a shift',
+                trim(($shift->location?->label() ?? 'No location').', '.$shift->label()
+                    .($from ? ' — taken over from '.$from->name : '')),
+                at: $shift->startsAt()->copy()->subMinutes(
+                    (int) config('atlas.shifts.reminder_before_min', 30)
+                ),
+                shift: $shift,
+            );
+
+            return $shift->fresh(['user', 'location']);
+        });
+    }
 }
