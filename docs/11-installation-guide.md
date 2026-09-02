@@ -112,10 +112,18 @@ Then browse to `http://<your-machine-ip>:8000`. `ipconfig` gives the IP. Windows
 
 ## 6. Sign in
 
+Straight from `.env.example`, so a fresh clone can sign in immediately:
+
 | Role | Email | Password |
 |---|---|---|
-| Administrator | `ATLAS_ADMIN_EMAIL` from `.env` | `ATLAS_ADMIN_PASSWORD` from `.env` |
-| Engineer, assistant ×2 | The `ATLAS_DEMO_*_EMAIL` values | `ATLAS_DEMO_PASSWORD` |
+| Administrator | `admin@atlas.local` | `ChangeMeNow!2026` |
+| Network Engineer | `engineer@atlas.local` | `AtlasDemo!2026` |
+| Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
+| Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
+
+If you changed `ATLAS_ADMIN_PASSWORD` in step 2, which you should have, use that instead of `ChangeMeNow!2026`.
+
+**These addresses are login identifiers, not mailboxes.** Nothing is ever sent to them, so signing in needs no mail account. Section 8 covers pointing them at a real mailbox if you want the password reset to deliver.
 
 The administrator is flagged `must_change_password`, so it asks for a new one immediately. **Put the new password back into `.env`**, or the next `db:seed` resets the account to what that file still says.
 

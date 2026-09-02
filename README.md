@@ -91,13 +91,23 @@ While `ATLAS_DEMO_MODE=true`, seeding also creates one sign-in per role. Most of
 
 | Role | Email | Password |
 |---|---|---|
-| Network Engineer | `${ATLAS_MAIL_ACCOUNT}+yar@gmail.com` | `ATLAS_DEMO_PASSWORD` |
-| Student IT Assistant | `${ATLAS_MAIL_ACCOUNT}+swan@gmail.com` | `ATLAS_DEMO_PASSWORD` |
-| Student IT Assistant | `${ATLAS_MAIL_ACCOUNT}+nyan@gmail.com` | `ATLAS_DEMO_PASSWORD` |
+| Network Engineer | `engineer@atlas.local` | `AtlasDemo!2026` |
+| Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
+| Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
 
-Those are **your own** Gmail address, four times. Set `ATLAS_MAIL_ACCOUNT` to your Gmail account name in `.env` and every address above follows, including the administrator's. Gmail ignores everything after a `+`, so all four land in the inbox you already own.
+Those are the values a fresh clone gets from `.env.example`. They are **login identifiers only**. Nothing is sent to them and they never have to be deliverable, so you can sign in without owning any mailbox.
 
-They were `@apu.test` until 2026-08-29, which was tidier to read and could never receive mail — and FR-102 promises a password reset link *by email*. See [Q11](docs/02-open-questions.md#q11).
+### If you want the password reset to actually deliver
+
+FR-102 sends a reset link by email, and `@atlas.local` can never receive one. To demonstrate it, point the four addresses at a real mailbox instead. Gmail ignores everything after a `+`, so one account covers all four and nobody has to share a personal address:
+
+```
+ATLAS_MAIL_ACCOUNT=your.gmail.name
+ATLAS_ADMIN_EMAIL="${ATLAS_MAIL_ACCOUNT}+admin@gmail.com"
+ATLAS_DEMO_ENGINEER_EMAIL="${ATLAS_MAIL_ACCOUNT}+engineer@gmail.com"
+```
+
+The example file ships the `@atlas.local` versions on purpose. Deriving the login from a Gmail account meant anybody cloning this saw `your.gmail.name+admin@gmail.com` on the sign-in screen, which works and reads like a mistake. See [Q11](docs/02-open-questions.md#q11).
 
 > **Changing one of these on a database that is already seeded gives you a second account, not a renamed one.** Both seeders match on email, so the old row keeps its tickets and shifts and you sign in to an empty copy. Rename the existing rows instead.
 
