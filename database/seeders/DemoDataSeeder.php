@@ -330,6 +330,28 @@ class DemoDataSeeder extends Seeder
             DB::table('telemetry_hourly')->insert($chunk);
         }
 
+        /*
+         * TELL THE ACCESS POINTS THEY HAVE BEEN HEARD FROM.
+         *
+         * Writing telemetry without this left 24 access points reporting
+         * status "online" with `last_seen_at` null — so the inventory screen
+         * said "Never polled" beside a green Online badge, and the dashboard
+         * counted them as healthy devices nothing had ever contacted. Found by
+         * looking at the screen, not by any test.
+         *
+         * `last_seen_at` is what drives staleness, so leaving it null also
+         * made these invisible to `markStaleOffline()`, which deliberately
+         * skips kit that has never answered.
+         *
+         * The three degrading access points are left ONLINE rather than
+         * offline: their fortnight ends with high latency and occasional
+         * downtime, which is degradation, not absence. The risk model is what
+         * surfaces them, and it does.
+         */
+        AccessPoint::whereIn('id', $aps->pluck('id'))->update([
+            'last_seen_at' => $start->copy()->addHours($hours - 1),
+        ]);
+
         $this->command?->line('  '.number_format(count($rows)).' hourly telemetry rows, '.self::TELEMETRY_DAYS.' days');
     }
 

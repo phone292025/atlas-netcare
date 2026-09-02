@@ -79,12 +79,12 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 - [ ] 5. Workload Matrix
 - [ ] 6. Introduction — background, problem context, proposed solution, objectives, scope
 - [ ] 7. Project Plan — SDLC methodology, Gantt chart
-- [ ] 8. System Hierarchy Chart
-- [ ] 9. Context Diagram
-- [ ] 10. Data Flow Diagram Level 0
+- [x] 8. System Hierarchy Chart — **[16-system-diagrams.md](16-system-diagrams.md) Figure 4**, derived from the routes
+- [x] 9. Context Diagram — **[16-system-diagrams.md](16-system-diagrams.md) Figure 1**
+- [x] 10. Data Flow Diagram Level 0 — **[16-system-diagrams.md](16-system-diagrams.md) Figure 2**. Its numbered processes are the module numbers, so each member's DFD 1 is their process expanded
 - [ ] 11. **Data Flow Diagram Level 1 — one per member**
 - [ ] 12. **Data Dictionary — one per member**
-- [ ] 13. Entity Relationship Diagram — one consolidated ERD
+- [x] 13. Entity Relationship Diagram — **[16-system-diagrams.md](16-system-diagrams.md) Figure 3**, all sixteen domain tables from the live schema
 - [ ] 14. **Pseudocode or Flowcharts — one per member**
 - [ ] 15. Screens Design and User Manual — every screen, described as a manual
 - [ ] 16. Report Designs and User Manual

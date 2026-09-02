@@ -27,7 +27,9 @@ Then read the module spec for whatever you are working on: [modules/](modules/).
 |---|---|
 | [13-how-the-system-works.md](13-how-the-system-works.md) | **The whole system, start to finish.** What each role does, how the parts fit, why they are built that way. Read this if you did not build it. |
 | [12-what-the-proposal-did-not-say.md](12-what-the-proposal-did-not-say.md) | **Every decision made during the build that the proposal never specified.** Roughly forty of them, none agreed by the team yet. Go through it as a group before the viva. |
-| [15-installation-guide.md](15-installation-guide.md) | **How to install and run Atlas NetCare from a clean clone**, with what each failure looks like. Written for the report's Appendix, and verified against the running system. |
+| [16-system-diagrams.md](16-system-diagrams.md) | **The four whole-system diagrams — Context, DFD 0, consolidated ERD and System Hierarchy — as Mermaid**, derived from the code and the live schema. Worth 15 marks between them. The per-member DFD 1s hang off Figure 2's numbered processes. |
+| [15-installation-guide.md](15-installation-guide.md) |
+ **How to install and run Atlas NetCare from a clean clone**, with what each failure looks like. Written for the report's Appendix, and verified against the running system. |
 | [progress/what-is-left.md](progress/what-is-left.md) |
  **Everything still outstanding, checked against the code rather than recalled.** Four things are genuinely unbuilt; the rest is diagrams. Start here before a review session. |
 | [14-simulated-and-real-data.md](14-simulated-and-real-data.md) | **What is simulated, what is real, and what would replace it.** Written to be lifted straight into the report's Limitations and Assumptions sections, with the answer to "is any of this real?" already drafted. |
