@@ -126,14 +126,39 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::toMailUsing(function (User $user, string $token) {
             $minutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
 
+            $url = url(route('password.reset', [
+                'token' => $token,
+                'email' => $user->getEmailForPasswordReset(),
+            ], false));
+
+            /*
+             * On a machine that cannot send mail, put the link on the screen.
+             *
+             * Delivery needs a Google app password, which is a key to a
+             * personal account and can never be committed, so nobody cloning
+             * this project can send mail. Without this, a reviewer clicking
+             * "forgot password" reaches a dead end and FR-102 looks broken
+             * when it is only undelivered.
+             *
+             * The token is real, single-use and still expires. This changes
+             * where the link is shown, not how the flow works.
+             *
+             * THREE CONDITIONS, ALL REQUIRED. Local environment, debug on,
+             * and no working mailer. A deployment fails the first two, and a
+             * machine that can genuinely send mail has no reason to print a
+             * reset token on a page anybody can open.
+             */
+            if (app()->environment('local')
+                && config('app.debug')
+                && ! config('atlas.mail_configured')) {
+                session()->flash('reset_link', $url);
+            }
+
             return (new MailMessage)
                 ->subject('Reset your Atlas NetCare password')
                 ->greeting("Hello {$user->name},")
                 ->line('Somebody asked to reset the password on your Atlas NetCare account.')
-                ->action('Choose a new password', url(route('password.reset', [
-                    'token' => $token,
-                    'email' => $user->getEmailForPasswordReset(),
-                ], false)))
+                ->action('Choose a new password', $url)
                 ->line("This link stops working in {$minutes} minutes, and once you have used it.")
                 ->line('If that was not you, your password has not changed and nothing has happened yet. Tell an administrator, because on this system only an administrator can create an account, so somebody knows your address.')
                 ->salutation('Atlas NetCare, Asia Pacific University');

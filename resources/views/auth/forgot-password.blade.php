@@ -27,6 +27,11 @@
                 Nothing will be sent. Laravel writes the reset link into
                 <code class="font-mono text-xs">storage/logs/laravel.log</code>
                 instead of delivering it.
+                <span class="mt-1 block">
+                    The link still works. Run
+                    <code class="font-mono text-xs">php artisan atlas:reset-link</code>
+                    to print it.
+                </span>
             @else
                 <code class="font-mono text-xs">MAIL_PASSWORD</code> is empty, so
                 the send will fail. Paste a Google app password into
@@ -36,6 +41,30 @@
         </x-alert>
     @endif
 
+    {{-- The link itself, when this machine cannot send mail.
+
+         Delivery needs a Google app password, which is a key to a personal
+         account and can never be committed, so nobody cloning this project can
+         send email. Without this a reviewer reaches a dead end and FR-102 looks
+         broken when it is only undelivered.
+
+         The token behind it is real, single-use and still expires. Only where
+         the link appears changes. AppServiceProvider flashes it, and only when
+         the environment is local, debug is on, and no mailer is configured.
+
+         @see docs/02-open-questions.md Q11 --}}
+    @if (session('reset_link'))
+        <x-alert type="info" class="mb-4" title="Here is the reset link">
+            <p class="mb-2">
+                No mail was sent, so the link is here instead. It expires like any other.
+            </p>
+
+            <a href="{{ session('reset_link') }}"
+               class="break-all font-mono text-xs text-brand-700 underline hover:text-brand-900">
+                {{ session('reset_link') }}
+            </a>
+        </x-alert>
+    @endif
     <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
         @csrf
 
