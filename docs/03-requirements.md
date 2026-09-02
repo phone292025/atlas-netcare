@@ -1,10 +1,22 @@
 # Requirements
 
-> **Last updated:** 2026-08-27 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-09-02 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
 
-**Status key:** `Approved` (in the submitted proposal) · `Added` (design phase, needs supervisor awareness) · `Assumed` (depends on an open question)
+**Status key:** `Approved` (in the submitted proposal) · `Added` (design phase, needs supervisor awareness) · `Assumed` (depends on an open question). **The status column records how a requirement was AGREED, not whether it is finished** — that is what this next paragraph is for.
+
+## Build status, as of 2026-09-02
+
+**Every functional requirement listed below has code behind it and at least one test.** The last two gaps closed on 2026-09-02: FR-307 was missing its *assign* verb, and FR-408 was missing the individual shift override.
+
+Three carry a caveat worth stating rather than hiding:
+
+- **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](04-open-questions.md#q11).
+- **FR-301, FR-303, FR-304, FR-305** all read **simulated** telemetry. The driver is swappable and the real one is a documented stub; see [14-simulated-and-real-data.md](14-simulated-and-real-data.md).
+- **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file. Stated in the report Limitations.
+
+The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They are listed in [11-submission-checklist.md](11-submission-checklist.md) and remain outstanding.
 
 ---
 
@@ -71,7 +83,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-304 | Drill into a single access point and view its recent telemetry as a chart. | Added |
 | FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved |
 | FR-306 | View, filter and sort the full incident ticket queue. | Approved |
-| FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](04-open-questions.md) |
+| FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](04-open-questions.md) · **complete 2026-09-02.** Every verb but *assign* was built; ownership was implicit, so a ticket picked up by the wrong person could only be moved in the database. Assignment is deliberately **not** a transition — who is doing the work and how far along it is are different questions. |
 | FR-308 | Add comments to a ticket, optionally internal-only. | Added |
 | FR-309 | View assets ranked by predictive risk score. | Added — **built 2026-08-30.** Lab PCs and access points in one queue, ranked on the same 0-100 scale. |
 | FR-310 | View the contributing factors behind any asset's risk score. | Added — **built 2026-08-30.** Stored as JSON at the time of scoring, so an old score still explains itself after the weights change. |
@@ -96,7 +108,8 @@ Stated in the proposal and not to be extended without supervisor agreement:
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-501 | Collect one telemetry reading per active access point every minute. | Added |
+| FR-501 |
+ Collect one telemetry reading per active access point every minute. | Added |
 | FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](04-open-questions.md) |
 | FR-503 | Automatically raise a ticket when an access point goes offline. | Added |
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](04-open-questions.md) |
