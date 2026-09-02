@@ -92,7 +92,7 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 - [ ] 18. Significant Source Codes — snippets highlighted and explained
 - [ ] 19. Conclusion — Assumptions, Limitations, Enhancements — **[14-simulated-and-real-data.md](14-simulated-and-real-data.md) is written to be lifted straight into this section**, with live figures and the "is any of this real?" answer already drafted
 - [ ] 20. References — APA 7
-- [ ] 21. Appendix — all meeting minutes + **Installation Guide**
+- [ ] 21. Appendix — all meeting minutes (**human input**) + Installation Guide — **[15-installation-guide.md](15-installation-guide.md) is written and verified against the running system; paste it in.**
 
 ### Formatting
 
