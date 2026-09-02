@@ -18,7 +18,7 @@ use Tests\TestCase;
  * form rule, because those are the ones nobody notices are missing until a
  * demo produces two machines with the same asset tag.
  *
- * @see docs/06-database.md — Conventions
+ * @see docs/04-database.md — Conventions
  */
 class FoundationSchemaTest extends TestCase
 {

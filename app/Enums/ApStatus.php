@@ -12,7 +12,7 @@ use App\Enums\Contracts\HasTone;
  * Derived from telemetry by TelemetryService, not set by hand — except
  * Maintenance, which an engineer sets to suppress alarms during planned work.
  *
- * @see docs/04-open-questions.md Q1 for the thresholds
+ * @see docs/02-open-questions.md Q1 for the thresholds
  */
 enum ApStatus: string implements HasLabel, HasTone
 {

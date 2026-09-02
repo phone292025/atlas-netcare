@@ -19,7 +19,7 @@ use Tests\TestCase;
  * M6 — generating the roster, and working a shift.
  *
  * @see App\Services\Shifts\ShiftService
- * @see docs/04-open-questions.md Q4
+ * @see docs/02-open-questions.md Q4
  */
 class ShiftRosterTest extends TestCase
 {

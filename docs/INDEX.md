@@ -1,98 +1,71 @@
-# Documentation Index
+# Documentation index
 
-> **Last updated:** 2026-08-30 · **Phase:** 2 — System Design
+> **Last updated:** 2026-09-02 · **All seven modules are built. What remains is the report.**
 
-This folder is the project's source of truth. Conversation history and memory are not — they get lost. If something matters beyond today, it belongs in here.
+This folder documents the system. Conversation history and memory do not survive, so anything that matters beyond today belongs here.
+
+**Coursework administration lives in [`../coursework/`](../coursework/), not here.** The marking brief, module ownership, the roadmap, the submission checklist and the weekly progress reports moved out on 2026-09-02. They are still needed for the submission. They just are not documentation of how the system works, and mixing the two made both harder to find.
 
 ---
 
-## Read in this order
+## Read these four first
 
-New to the project (human or AI agent), read these four in order. Twenty minutes total.
+Twenty minutes, and you will be able to work on any part of it.
 
 | # | Document | What you get |
 |---|---|---|
-| 1 | [01-brief-and-marking.md](01-brief-and-marking.md) | What the university requires and how marks are awarded |
-| 2 | [03-requirements.md](03-requirements.md) | What the system must do, with traceable IDs |
-| 3 | [05-architecture.md](05-architecture.md) | How the code is organised and why |
-| 4 | [06-database.md](06-database.md) | Every table, column and relationship |
+| 1 | [01-requirements.md](01-requirements.md) | What the system must do, with traceable IDs, and which requirements are finished |
+| 2 | [03-architecture.md](03-architecture.md) | How the code is organised, and why it is organised that way |
+| 3 | [04-database.md](04-database.md) | Every table, column and relationship |
+| 4 | [09-how-the-system-works.md](09-how-the-system-works.md) | The whole system end to end, written for somebody who did not build it |
 
-Then read the module spec for whatever you are working on: [modules/](modules/).
-
----
-
-## Start here if you are writing the report or preparing for the viva
-
-| Document | Contents |
-|---|---|
-| [13-how-the-system-works.md](13-how-the-system-works.md) | **The whole system, start to finish.** What each role does, how the parts fit, why they are built that way. Read this if you did not build it. |
-| [12-what-the-proposal-did-not-say.md](12-what-the-proposal-did-not-say.md) | **Every decision made during the build that the proposal never specified.** Roughly forty of them, none agreed by the team yet. Go through it as a group before the viva. |
-| [16-system-diagrams.md](16-system-diagrams.md) | **The four whole-system diagrams — Context, DFD 0, consolidated ERD and System Hierarchy — as Mermaid**, derived from the code and the live schema. Worth 15 marks between them. The per-member DFD 1s hang off Figure 2's numbered processes. |
-| [15-installation-guide.md](15-installation-guide.md) |
- **How to install and run Atlas NetCare from a clean clone**, with what each failure looks like. Written for the report's Appendix, and verified against the running system. |
-| [progress/what-is-left.md](progress/what-is-left.md) |
- **Everything still outstanding, checked against the code rather than recalled.** Four things are genuinely unbuilt; the rest is diagrams. Start here before a review session. |
-| [14-simulated-and-real-data.md](14-simulated-and-real-data.md) | **What is simulated, what is real, and what would replace it.** Written to be lifted straight into the report's Limitations and Assumptions sections, with the answer to "is any of this real?" already drafted. |
+Then read the module spec for whatever you are touching: [modules/](modules/).
 
 ---
 
-## Everything, by purpose
+## The system
 
-### Governance and compliance
 | Document | Contents |
 |---|---|
-| [01-brief-and-marking.md](01-brief-and-marking.md) | Module brief, CLOs, deliverable weights, rubric criteria, guideline Sections E and F |
-| [02-team-and-ownership.md](02-team-and-ownership.md) | Members, module ownership, tracks, communication rules, workload matrix |
-| [11-submission-checklist.md](11-submission-checklist.md) | Every required artefact as a checkbox, mapped to the rubric |
-
-### Requirements
-| Document | Contents |
-|---|---|
-| [03-requirements.md](03-requirements.md) | Functional requirements (FR-###) by role, non-functional requirements (NFR-###), scope in/out |
-| [04-open-questions.md](04-open-questions.md) | Q1–Q10 — what is still undecided, the working assumption, and who decides |
-| [glossary.md](glossary.md) | Domain vocabulary. Seven people writing one document need one word per concept. |
-
-### Design
-| Document | Contents |
-|---|---|
-| [05-architecture.md](05-architecture.md) | Layers, request lifecycle, folder structure, coding conventions |
-| [06-database.md](06-database.md) | Schema for all 17 tables, ERD, indexing and constraint conventions |
-| [07-data-strategy.md](07-data-strategy.md) | How mock and real data coexist and how to switch between them |
-| [08-ui-conventions.md](08-ui-conventions.md) | Layouts, Blade components, design tokens, status colours, responsive rules |
-| [decisions/](decisions/) | Architecture Decision Records — the *why* behind every significant call |
-
-### Building
-| Document | Contents |
-|---|---|
-| [modules/](modules/) | One spec per module: owner, tables, routes, screens, definition of done |
-| [09-roadmap.md](09-roadmap.md) | Two-track schedule, sprint contents, milestones, scheduling risks |
-| [10-testing.md](10-testing.md) | Unit test approach, UAT protocol, test case format |
-| [progress/build-log.md](progress/build-log.md) | **Where the build actually is.** Read first in any new development session. |
-| [progress/](progress/) | Weekly progress reports and the running decision log |
+| [01-requirements.md](01-requirements.md) | Functional and non-functional requirements. The status column records how each was agreed; a section at the top records what is actually built |
+| [02-open-questions.md](02-open-questions.md) | Eleven things the proposal left undefined. Ten are settled, and each records what was decided and why |
+| [03-architecture.md](03-architecture.md) | Layers, request lifecycle, service boundaries, scheduled commands |
+| [04-database.md](04-database.md) | Schema, indexes, soft deletes, and the MariaDB traps that have already cost this project |
+| [05-data-strategy.md](05-data-strategy.md) | How demonstration data is tagged and removed, and how simulated telemetry is marked |
+| [06-ui-conventions.md](06-ui-conventions.md) | The component vocabulary. Read before adding a screen, or you will invent a fourth button style |
+| [07-testing.md](07-testing.md) | Test strategy, plus four habits learned by shipping defects through a green suite |
+| [08-design-decisions.md](08-design-decisions.md) | Roughly forty decisions made during the build that the proposal never specified. Worth going through as a group before the viva |
+| [10-simulated-and-real-data.md](10-simulated-and-real-data.md) | What is simulated, what is real, and what would replace it. Written to be lifted into the report's Limitations and Assumptions sections |
+| [11-installation-guide.md](11-installation-guide.md) | Installing and running from a clean clone, including what each failure looks like |
+| [12-system-diagrams.md](12-system-diagrams.md) | Context Diagram, DFD Level 0, consolidated ERD and System Hierarchy Chart, as Mermaid source |
+| [glossary.md](glossary.md) | Terms that mean something specific here |
 
 ---
 
-## How to use this as an AI agent
+## Decisions and modules
 
-1. **Load [`../AGENTS.md`](../AGENTS.md)** — the rules, conventions and prohibitions.
-2. **Read [progress/build-log.md](progress/build-log.md)** — what exists, what is half-done, what is next. Conversation history does not survive between sessions; this file does.
-3. **Check [04-open-questions.md](04-open-questions.md)** before assuming anything about behaviour that is not in the requirements.
-4. **Check [decisions/](decisions/)** before proposing an architectural change — it may already have been considered and rejected, with reasons.
-5. **Check the module spec** in [modules/](modules/) for whatever you are touching, and respect its owner.
-6. **Update the docs in the same change** as the code. A schema change without a `06-database.md` update is an incomplete change.
-
-## How to use this as a team member
-
-- Bring [04-open-questions.md](04-open-questions.md) to every supervisor meeting — it is the agenda.
-- Fill in your week in [progress/](progress/) before the weekly report deadline. It is directly marked.
-- When you make a call that affects someone else, write it in [progress/decision-log.md](progress/decision-log.md). One line is enough.
-- When your module is done, tick it off in [11-submission-checklist.md](11-submission-checklist.md).
+| Folder | Contents |
+|---|---|
+| [decisions/](decisions/) | Eight architecture decision records. Each says what was chosen, what was rejected, and what it costs |
+| [modules/](modules/) | One spec per module, M1 to M7. Components, screens, requirements covered, definition of done |
+| [progress/](progress/) | Build log, decision log, and what is still outstanding |
 
 ---
 
-## Conventions used in these documents
+## Where the build is
 
-- **`FR-###` / `NFR-###`** — requirement IDs. Referenced by test cases and module specs.
-- **`ADR-####`** — architecture decision record. Immutable once accepted; superseded rather than edited.
-- **`Q#`** — open question. Status is one of `Open`, `Assumed`, or `Decided`.
-- **`M#`** — module number, 1 to 7. Maps 1:1 to a team member.
+| Document | Use it for |
+|---|---|
+| [progress/build-log.md](progress/build-log.md) | Session handover. Read first in a new development session |
+| [progress/decision-log.md](progress/decision-log.md) | Every decision with a date and a reason, newest first. Nothing is deleted, only superseded |
+| [progress/what-is-left.md](progress/what-is-left.md) | Everything outstanding, checked against the code rather than recalled |
+
+---
+
+## Rules that survive
+
+Two, and both were learned the hard way.
+
+**Never delete a resolved question or a superseded decision.** Change its status and record what replaced it. The history is the evidence of design reasoning, and a marker asking "why did you do it this way" is asking for exactly that.
+
+**A document that contradicts the code is worse than no document.** Six of these had drifted out of step by 2026-08-30, including one claiming a command existed that had never been written. If you change behaviour, change the document in the same commit.

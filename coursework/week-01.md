@@ -55,7 +55,7 @@ Anything blocking, at risk, or uncovered this week. Guidelines require issues to
 
 ## Section 4 — Scheduled workload
 
-Attach or embed the current Gantt chart with this week highlighted. See [../09-roadmap.md](../09-roadmap.md).
+Attach or embed the current Gantt chart with this week highlighted. See [../09-roadmap.md](09-roadmap.md).
 
 | Member | Module | This week | % complete |
 |---|---|---|---|

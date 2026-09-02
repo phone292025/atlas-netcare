@@ -18,7 +18,7 @@ use Tests\TestCase;
  *
  * These tests pin what the migration had to preserve and what it gained.
  *
- * @see docs/03-requirements.md NFR-10
+ * @see docs/01-requirements.md NFR-10
  */
 class AuthFormMigrationTest extends TestCase
 {

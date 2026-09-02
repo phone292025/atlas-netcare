@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Artisan;
  * rather than inventing history and stamping it `live`.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
- * @see docs/07-data-strategy.md
+ * @see docs/05-data-strategy.md
  */
 class BackfillTelemetry extends Command
 {

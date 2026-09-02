@@ -11,7 +11,7 @@
 | This is a SHARED file. Announce changes to the team before merging — a
 | conflict here blocks everyone.
 |
-| Reference: docs/05-architecture.md, docs/07-data-strategy.md
+| Reference: docs/03-architecture.md, docs/05-data-strategy.md
 |
 */
 
@@ -151,7 +151,7 @@ return [
     | ever changes what the user is TOLD — a false value never stops a send
     | being attempted, because a wrong guess here must not disable the feature.
     |
-    | @see docs/04-open-questions.md Q11
+    | @see docs/02-open-questions.md Q11
     |
     */
 
@@ -186,7 +186,7 @@ return [
     |
     | PROVISIONAL: these numbers are the working assumption recorded against
     | open question Q1. They have not been ratified by the team or checked
-    | against a real APU access point. See docs/04-open-questions.md
+    | against a real APU access point. See docs/02-open-questions.md
     |
     */
 
@@ -305,7 +305,7 @@ return [
     | ones on the target they were given.
     |
     | These three lines are the whole SLA. If the team decides the targets are
-    | wrong, this is the edit. See docs/04-open-questions.md
+    | wrong, this is the edit. See docs/02-open-questions.md
     |
     */
 
@@ -324,7 +324,7 @@ return [
     | roughly 1.7 million rows a month. Raw readings are pruned after
     | `raw_days`; hourly aggregates are kept far longer because they are small.
     |
-    | See open question Q10 in docs/04-open-questions.md
+    | See open question Q10 in docs/02-open-questions.md
     |
     */
 
@@ -424,7 +424,7 @@ return [
     | registered, so this map can be complete from day one without breaking
     | the application.
     |
-    | See docs/08-ui-conventions.md
+    | See docs/06-ui-conventions.md
     |
     */
 

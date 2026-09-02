@@ -33,7 +33,7 @@ enum DeviceStatus: string implements HasLabel, HasTone
 
     /**
      * Semantic tone, mapped to Tailwind classes in one place by
-     * <x-status-badge>. See docs/08-ui-conventions.md.
+     * <x-status-badge>. See docs/06-ui-conventions.md.
      */
     public function tone(): string
     {

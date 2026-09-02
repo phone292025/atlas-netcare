@@ -21,7 +21,7 @@ use Tests\TestCase;
  * template would rewrite what somebody recorded standing at a machine.
  *
  * @see docs/modules/M3-checklists-and-inspections.md
- * @see docs/04-open-questions.md Q2
+ * @see docs/02-open-questions.md Q2
  */
 class ChecklistTemplateTest extends TestCase
 {

@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Hash;
  * anyone checking what the system ships with — a factory would hide it behind
  * randomness.
  *
- * @see docs/07-data-strategy.md — Mechanism 2
+ * @see docs/05-data-strategy.md — Mechanism 2
  * @see docs/decisions/ADR-0003-single-database-demo-flag.md
  */
 class ReferenceSeeder extends Seeder

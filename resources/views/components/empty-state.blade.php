@@ -19,7 +19,7 @@
             </x-slot:action>
         </x-empty-state>
 
-    @see docs/08-ui-conventions.md — "every list view needs a real <x-empty-state>"
+    @see docs/06-ui-conventions.md — "every list view needs a real <x-empty-state>"
 --}}
 
 <div {{ $attributes->merge(['class' => 'px-6 py-12 text-center']) }}>

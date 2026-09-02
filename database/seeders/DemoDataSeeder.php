@@ -51,9 +51,9 @@ use Illuminate\Support\Facades\Hash;
  * Being deterministic matters as much as being realistic: the demonstration
  * should look the same on the day as it did in rehearsal.
  *
- * @see docs/07-data-strategy.md — Mechanism 2
+ * @see docs/05-data-strategy.md — Mechanism 2
  * @see docs/decisions/ADR-0003-single-database-demo-flag.md
- * @see docs/14-simulated-and-real-data.md — what this stands in for
+ * @see docs/10-simulated-and-real-data.md — what this stands in for
  */
 class DemoDataSeeder extends Seeder
 {

@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Route names are fixed vocabulary. Before adding one, check the table in
-| docs/08-ui-conventions.md — the sidebar renders from those exact names, and a
+| docs/06-ui-conventions.md — the sidebar renders from those exact names, and a
 | route named anything else will not appear in the menu.
 |
 | Role-guarded groups arrive with their modules:
@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
     /*
     | M1 — Identity, roles and audit log.
     |
-    | Route names come from the table in docs/08-ui-conventions.md. The sidebar
+    | Route names come from the table in docs/06-ui-conventions.md. The sidebar
     | renders from those exact names; anything else silently vanishes from the
     | menu.
     */
@@ -82,7 +82,7 @@ Route::middleware('auth')->group(function () {
         | M2 — locations and asset inventory.
         |
         | `aps` rather than `access-points` in the URL and route name, because
-        | docs/08-ui-conventions.md fixes it as admin.aps.index and the sidebar
+        | docs/06-ui-conventions.md fixes it as admin.aps.index and the sidebar
         | renders from that exact name.
         */
         Route::resource('locations', LocationController::class)->except('show');
@@ -109,7 +109,7 @@ Route::middleware('auth')->group(function () {
         | M3 — checklist templates.
         |
         | `checklists` in the URL and route name, because
-        | docs/08-ui-conventions.md fixes it as admin.checklists.index.
+        | docs/06-ui-conventions.md fixes it as admin.checklists.index.
         | The model is ChecklistTemplate, so the parameter is spelled out.
         |
         | No `show`: a template's only readable form is the edit screen, and
@@ -127,7 +127,7 @@ Route::middleware('auth')->group(function () {
         | M6 — shift patterns and the roster.
         |
         | `admin.shift-templates.index` and `admin.roster.index` are fixed
-        | vocabulary from docs/08-ui-conventions.md.
+        | vocabulary from docs/06-ui-conventions.md.
         */
         Route::resource('shift-templates', ShiftTemplateController::class)
             ->parameters(['shift-templates' => 'shift_template'])
@@ -218,7 +218,7 @@ Route::middleware('auth')->group(function () {
         |
         | `engineer.dashboard`, `engineer.aps.index` and
         | `engineer.traffic.index` are fixed vocabulary from
-        | docs/08-ui-conventions.md; the sidebar renders from those exact
+        | docs/06-ui-conventions.md; the sidebar renders from those exact
         | names.
         */
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -61,9 +61,9 @@ flowchart LR
 
 **Two things to be able to say about this diagram.**
 
-The access points are dashed because the connection is real in design and simulated in fact. `TelemetrySource` has two implementations and the live one is a documented stub — see [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md) and [14-simulated-and-real-data.md](14-simulated-and-real-data.md).
+The access points are dashed because the connection is real in design and simulated in fact. `TelemetrySource` has two implementations and the live one is a documented stub — see [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md) and [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 
-The phone calendar is an external system rather than a feature, and that is the point. Rather than build push notifications, the system hands a shift to the phone as an `.ics` file and the phone's own alarm does the reminding — with the app closed and no internet. See [Q5](04-open-questions.md#q5).
+The phone calendar is an external system rather than a feature, and that is the point. Rather than build push notifications, the system hands a shift to the phone as an `.ics` file and the phone's own alarm does the reminding — with the app closed and no internet. See [Q5](02-open-questions.md#q5).
 
 ---
 
@@ -446,4 +446,4 @@ These four are done. **Twenty-one per-member artefacts are not**, and they canno
 | Data Dictionary | member | The matching tables in Figure 3, plus the module spec in [modules/](modules/) |
 | Pseudocode or Flowchart | member | That module's service class — the rules live there, not in the controllers |
 
-**Assigning the seven modules is the blocker.** Every module spec still says *unassigned*, and each of these is individually marked, so nobody can be credited for one until it is theirs. See [02-team-and-ownership.md](02-team-and-ownership.md).
+**Assigning the seven modules is the blocker.** Every module spec still says *unassigned*, and each of these is individually marked, so nobody can be credited for one until it is theirs. See [02-team-and-ownership.md](../coursework/02-team-and-ownership.md).

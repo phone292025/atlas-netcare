@@ -12,7 +12,7 @@ use Tests\TestCase;
  * The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline
  * and chart.
  *
- * @see docs/08-ui-conventions.md — Blade components
+ * @see docs/06-ui-conventions.md — Blade components
  */
 class DisplayComponentsTest extends TestCase
 {

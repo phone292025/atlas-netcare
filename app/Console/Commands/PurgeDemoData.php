@@ -46,7 +46,7 @@ use Illuminate\Support\Facades\DB;
  *   php artisan atlas:purge-demo-data --force
  *
  * @see docs/decisions/ADR-0003-single-database-demo-flag.md
- * @see docs/07-data-strategy.md — Mechanism 2
+ * @see docs/05-data-strategy.md — Mechanism 2
  */
 class PurgeDemoData extends Command
 {

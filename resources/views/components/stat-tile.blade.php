@@ -35,7 +35,7 @@
     simulator or a live access point, and that is what lets the data source
     change without touching a dashboard.
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 @php

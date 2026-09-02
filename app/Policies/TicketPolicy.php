@@ -15,7 +15,7 @@ use App\Models\User;
  * machine's business, "may this assistant close it?" is this file's.
  *
  * @see App\Services\Tickets\TicketService
- * @see docs/05-architecture.md — Authorisation
+ * @see docs/03-architecture.md — Authorisation
  */
 class TicketPolicy
 {

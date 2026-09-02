@@ -16,7 +16,7 @@ use Tests\TestCase;
  * after pasting an app password, because nothing automated will.
  *
  * @see app/Console/Commands/MailTest.php
- * @see docs/04-open-questions.md Q11
+ * @see docs/02-open-questions.md Q11
  */
 class MailTestCommandTest extends TestCase
 {

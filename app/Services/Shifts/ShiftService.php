@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * Generating the roster, and an assistant's day on it.
  *
  * @see docs/modules/M6-shifts-and-alarms.md
- * @see docs/04-open-questions.md Q4
+ * @see docs/02-open-questions.md Q4
  */
 class ShiftService
 {

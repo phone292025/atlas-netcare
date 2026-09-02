@@ -28,7 +28,7 @@ namespace App\Support;
  * ADDING A SURFACE: add a method here. Never write a match on $tone anywhere
  * else — that is how 'urgent' ends up as two different reds.
  *
- * @see docs/08-ui-conventions.md — Design tokens
+ * @see docs/06-ui-conventions.md — Design tokens
  */
 final class Tone
 {

@@ -22,7 +22,7 @@ use Tests\TestCase;
  * None of this proves SMTP works — the suite fakes the mailer, so it never
  * can. `php artisan atlas:mail-test` is the only thing that proves that.
  *
- * @see docs/04-open-questions.md Q11
+ * @see docs/02-open-questions.md Q11
  */
 class PasswordResetDeliveryTest extends TestCase
 {

@@ -38,7 +38,7 @@
 
 ~~Old status below.~~
 
-**Referenced in six places** — README twice, `docs/07-data-strategy.md`, `docs/06-database.md`, `ADR-0003`, and the `DemoDataSeeder` docblock. Running it fails.
+**Referenced in six places** — README twice, `docs/05-data-strategy.md`, `docs/04-database.md`, `ADR-0003`, and the `DemoDataSeeder` docblock. Running it fails.
 
 Every reference now carries a warning saying so, but the honest fix is to write it. The `is_demo` flags and `source = 'simulated'` markers it needs are all present and correctly populated:
 
@@ -92,7 +92,7 @@ The scoring is correct. The seeded assets are neither old nor degrading, so ther
 
 ## 2. The real-data question
 
-Full detail is in [../14-simulated-and-real-data.md](../14-simulated-and-real-data.md). What matters for the review session:
+Full detail is in [../10-simulated-and-real-data.md](../10-simulated-and-real-data.md). What matters for the review session:
 
 ### 2.1 If SNMP access arrives, this is the test
 

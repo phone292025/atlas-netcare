@@ -24,7 +24,7 @@ use Tests\TestCase;
  * way to open the inspection form or the ticket queue at all.
  *
  * @see database/seeders/DemoDataSeeder.php
- * @see docs/07-data-strategy.md
+ * @see docs/05-data-strategy.md
  */
 class DemoDataSeederTest extends TestCase
 {

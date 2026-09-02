@@ -23,7 +23,7 @@
     retypes work they already did — the single most common complaint in a UAT
     session. Pass `value` for the current model value; old input still wins.
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 @php

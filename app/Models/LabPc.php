@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * inspection history, ticket history and age rather than live telemetry.
  *
  * @see docs/modules/M2-locations-and-assets.md
- * @see docs/04-open-questions.md Q7
+ * @see docs/02-open-questions.md Q7
  */
 class LabPc extends Model
 {

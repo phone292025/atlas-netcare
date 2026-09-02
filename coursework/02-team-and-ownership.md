@@ -32,7 +32,7 @@ Seven members, seven modules, one owner each. Each person documents the module t
 
 ## Module assignment
 
-Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix. Live build status is in [progress/build-log.md](progress/build-log.md).
+Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix. Live build status is in [progress/build-log.md](../docs/progress/build-log.md).
 
 | ID | Module | Track | Owner | Code | Diagrams for the report |
 |---|---|---|---|---|---|
@@ -48,7 +48,7 @@ Fill in the Owner column at the next team meeting, then mirror it into `README.m
 >
 > **Assigning these is the single most valuable thing the next team meeting can do.**
 
-Specs: [modules/](modules/)
+Specs: [modules/](../docs/modules/)
 
 ### Assignment guidance
 
@@ -76,7 +76,7 @@ The two tracks work in parallel on files that do not overlap, then converge in w
 
 - **All supervisor contact goes through the group leader.** This is a guidelines requirement, not a preference.
 - Weekly team meeting, minuted. Minutes go in `docs/progress/week-NN.md` and eventually into the report appendix.
-- Anything decided in a meeting that affects code gets written down the same day — [progress/decision-log.md](progress/decision-log.md) for small calls, [decisions/](decisions/) for architectural ones.
+- Anything decided in a meeting that affects code gets written down the same day — [progress/decision-log.md](../docs/progress/decision-log.md) for small calls, [decisions/](../docs/decisions/) for architectural ones.
 
 ### Code
 

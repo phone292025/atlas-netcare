@@ -19,7 +19,7 @@ use Tests\TestCase;
  * colour at all.
  *
  * @see docs/modules/M3-checklists-and-inspections.md
- * @see docs/03-requirements.md FR-205, NFR-05
+ * @see docs/01-requirements.md FR-205, NFR-05
  */
 class ChecklistItemTest extends TestCase
 {

@@ -19,8 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
  * questions ("may this engineer close THIS ticket?") belong in a Policy, never
  * here and never as an inline role check inside a controller.
  *
- * @see docs/05-architecture.md — Authorisation
- * @see docs/03-requirements.md FR-104, FR-106
+ * @see docs/03-architecture.md — Authorisation
+ * @see docs/01-requirements.md FR-104, FR-106
  */
 class EnsureUserHasRole
 {

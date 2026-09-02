@@ -22,7 +22,7 @@
     desktop, so the shell has to work properly at both ends rather than being a
     desktop layout that merely survives being squashed.
 
-    @see docs/08-ui-conventions.md — The app shell
+    @see docs/06-ui-conventions.md — The app shell
 --}}
 
 <div x-data="{ sidebarOpen: false }" class="min-h-screen">

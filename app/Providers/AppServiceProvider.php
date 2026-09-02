@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
      * tables arrive.
      *
      * @see App\Observers\AuditObserver
-     * @see docs/03-requirements.md FR-509, NFR-06
+     * @see docs/01-requirements.md FR-509, NFR-06
      */
     private const AUDITED = [
         User::class,
@@ -118,8 +118,8 @@ class AppServiceProvider extends ServiceProvider
      * Someone will change auth.passwords.users.expire eventually, and an
      * email that states the wrong number is worse than one that omits it.
      *
-     * @see docs/03-requirements.md FR-102
-     * @see docs/04-open-questions.md Q11
+     * @see docs/01-requirements.md FR-102
+     * @see docs/02-open-questions.md Q11
      */
     private function composeResetPasswordEmail(): void
     {

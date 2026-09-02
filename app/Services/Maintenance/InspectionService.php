@@ -22,7 +22,7 @@ use RuntimeException;
  * no inspection, because it looks like the machine was checked.
  *
  * @see docs/modules/M3-checklists-and-inspections.md
- * @see docs/05-architecture.md — services hold the rules
+ * @see docs/03-architecture.md — services hold the rules
  */
 class InspectionService
 {

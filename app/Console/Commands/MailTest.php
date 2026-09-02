@@ -25,7 +25,7 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
  * demonstration — an app password can be revoked from the Google account
  * without anything here changing.
  *
- * @see docs/04-open-questions.md Q11
+ * @see docs/02-open-questions.md Q11
  */
 class MailTest extends Command
 {

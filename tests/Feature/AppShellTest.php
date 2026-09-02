@@ -24,7 +24,7 @@ use Tests\TestCase;
  * is stale and `Route::has()` returns false. `refreshNameLookups()` rebuilds
  * it. The route itself works either way — only lookup by name is affected.
  *
- * @see docs/08-ui-conventions.md
+ * @see docs/06-ui-conventions.md
  */
 class AppShellTest extends TestCase
 {

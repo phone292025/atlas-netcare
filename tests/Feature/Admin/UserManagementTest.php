@@ -213,7 +213,7 @@ class UserManagementTest extends TestCase
     public function test_a_deactivated_user_cannot_sign_in(): void
     {
         // FR-106 at the login form, which is the half the middleware cannot
-        // cover. See the note against FR-106 in docs/03-requirements.md.
+        // cover. See the note against FR-106 in docs/01-requirements.md.
         $user = $this->userWith(UserRole::Engineer, active: false);
 
         $this->post('/login', ['email' => $user->email, 'password' => 'password'])

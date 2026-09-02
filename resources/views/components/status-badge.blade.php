@@ -11,7 +11,7 @@
             <x-status-badge :status="$ap->status" />
             <x-status-badge :status="$alarm->type" />
 
-    @see docs/08-ui-conventions.md
+    @see docs/06-ui-conventions.md
 --}}
 
 <x-badge :tone="$status->tone()" {{ $attributes }}>

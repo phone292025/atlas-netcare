@@ -139,5 +139,5 @@ Neither depends on a permission anybody has to grant.
 - [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md) — why telemetry is behind an interface
 - [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md) — how demonstration data is tagged and removed
 - [ADR-0007](decisions/ADR-0007-weighted-risk-not-ml.md) — why weights rather than a trained model
-- [Q1](04-open-questions.md#q1) — the degraded thresholds, and the sanity check still outstanding
-- [07-data-strategy.md](07-data-strategy.md) — the mechanisms behind `is_demo` and `source`
+- [Q1](02-open-questions.md#q1) — the degraded thresholds, and the sanity check still outstanding
+- [05-data-strategy.md](05-data-strategy.md) — the mechanisms behind `is_demo` and `source`

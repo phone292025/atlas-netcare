@@ -12,7 +12,7 @@ use App\Enums\Contracts\HasTone;
  * Stored on `inspection_results`. An assistant taps one of these per item
  * while standing at the machine, so the set is deliberately tiny.
  *
- * @see docs/03-requirements.md FR-205
+ * @see docs/01-requirements.md FR-205
  */
 enum ChecklistResult: string implements HasLabel, HasTone
 {

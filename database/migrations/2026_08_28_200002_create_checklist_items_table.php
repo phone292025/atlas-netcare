@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * One question on a checklist template.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 return new class extends Migration

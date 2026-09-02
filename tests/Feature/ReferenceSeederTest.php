@@ -15,7 +15,7 @@ use Tests\TestCase;
  * `php artisan migrate --seed`, and what a marker runs from the Installation
  * Guide. If it is wrong, nobody can sign in.
  *
- * @see docs/07-data-strategy.md — Mechanism 2
+ * @see docs/05-data-strategy.md — Mechanism 2
  */
 class ReferenceSeederTest extends TestCase
 {

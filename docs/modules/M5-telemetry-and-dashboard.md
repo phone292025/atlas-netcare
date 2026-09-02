@@ -36,7 +36,7 @@ Assistant: AP status, read-only
 
 ## Key decisions
 
-- **The driver swap is the whole design.** Read [../07-data-strategy.md](../07-data-strategy.md) and [ADR-0002](../decisions/ADR-0002-telemetry-source-driver.md) before writing a line.
+- **The driver swap is the whole design.** Read [../05-data-strategy.md](../05-data-strategy.md) and [ADR-0002](../decisions/ADR-0002-telemetry-source-driver.md) before writing a line.
 - **Polling, not WebSockets.** See [ADR-0005](../decisions/ADR-0005-ajax-polling-not-websockets.md). Poll interval from config.
 - **Charts read `telemetry_hourly`, not raw readings.** At 40 APs × 1 reading/minute, raw telemetry is ~1.7M rows a month. Charting off it will be visibly slow during the demo.
 - **Classification is a service method, not a database trigger**, and uses `consecutive_breach` so one noisy sample cannot flip an AP's state.
@@ -45,9 +45,9 @@ Assistant: AP status, read-only
 
 ## Open questions
 
-- ✅ [Q1](../04-open-questions.md) — **settled**, built as assumed. Thresholds are five lines in `config/atlas.php`. Still worth sanity-checking 120 ms against a real APU access point.
-- ✅ [Q9](../04-open-questions.md) — **settled**: both, from one screen.
-- ✅ [Q10](../04-open-questions.md) — **settled**: 90 days raw, 12 months aggregated.
+- ✅ [Q1](../02-open-questions.md) — **settled**, built as assumed. Thresholds are five lines in `config/atlas.php`. Still worth sanity-checking 120 ms against a real APU access point.
+- ✅ [Q9](../02-open-questions.md) — **settled**: both, from one screen.
+- ✅ [Q10](../02-open-questions.md) — **settled**: 90 days raw, 12 months aggregated.
 
 ## Definition of done
 

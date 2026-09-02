@@ -21,7 +21,7 @@ use Tests\TestCase;
  * M6 — alarms: the delivery mechanism for the whole system (FR-506, FR-212).
  *
  * @see App\Services\Shifts\AlarmService
- * @see docs/04-open-questions.md Q5
+ * @see docs/02-open-questions.md Q5
  */
 class AlarmTest extends TestCase
 {

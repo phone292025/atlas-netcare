@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Request;
  *
  * Registered models are listed in AppServiceProvider::AUDITED.
  *
- * @see docs/03-requirements.md FR-509, NFR-06
+ * @see docs/01-requirements.md FR-509, NFR-06
  */
 class AuditObserver
 {

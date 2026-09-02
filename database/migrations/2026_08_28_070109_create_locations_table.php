@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  * Reference data, not demo data — seeded by ReferenceSeeder and never tagged
  * is_demo, because a real deployment needs these on day one.
  *
- * @see docs/06-database.md — Cluster A
+ * @see docs/04-database.md — Cluster A
  * @see docs/modules/M2-locations-and-assets.md
  */
 return new class extends Migration

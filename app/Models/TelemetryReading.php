@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * decision about the access point rather than something anyone measured.
  * Casting here would let a reading claim a device is under maintenance.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/progress/decision-log.md — 2026-08-27
  */
 class TelemetryReading extends Model

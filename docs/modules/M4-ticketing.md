@@ -41,7 +41,7 @@ Engineer: ticket queue with filters (status, priority, location, assignee) · ti
 
 ## Open questions
 
-- ✅ [Q3](../04-open-questions.md) — **settled 2026-08-28.** The proposed lifecycle and SLA were adopted as written and built. The team never met on it, so this was adopted rather than ratified: **if a different lifecycle is wanted, the state machine is one array in `TicketService::TRANSITIONS` and the SLA is three lines in `config/atlas.php`.**
+- ✅ [Q3](../02-open-questions.md) — **settled 2026-08-28.** The proposed lifecycle and SLA were adopted as written and built. The team never met on it, so this was adopted rather than ratified: **if a different lifecycle is wanted, the state machine is one array in `TicketService::TRANSITIONS` and the SLA is three lines in `config/atlas.php`.**
 
 ## Definition of done
 

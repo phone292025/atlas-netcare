@@ -171,7 +171,7 @@ Automatic reporting would require an agent installed on every campus lab machine
 
 The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 minutes and response time under 7 seconds. Neither number appears in the proposal body.
 
-**Working assumption:** carried into [03-requirements.md](03-requirements.md) as NFR-01 and NFR-02, written into a new Non-Functional Requirements section in the final report, and used as explicit pass criteria in the test plan.
+**Working assumption:** carried into [01-requirements.md](01-requirements.md) as NFR-01 and NFR-02, written into a new Non-Functional Requirements section in the final report, and used as explicit pass criteria in the test plan.
 
 ---
 

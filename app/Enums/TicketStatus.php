@@ -17,7 +17,7 @@ use App\Enums\Contracts\HasTone;
  * would disagree within a fortnight.
  *
  * @see App\Services\Tickets\TicketService
- * @see docs/04-open-questions.md Q3
+ * @see docs/02-open-questions.md Q3
  */
 enum TicketStatus: string implements HasLabel, HasTone
 {
@@ -49,7 +49,7 @@ enum TicketStatus: string implements HasLabel, HasTone
             // Every outstanding state is 'attention'. Urgency is the job of the
             // PRIORITY pill, not the status badge — otherwise a brand-new
             // low-priority ticket renders the same red as an offline access
-            // point. See docs/08-ui-conventions.md.
+            // point. See docs/06-ui-conventions.md.
             self::Open, self::Acknowledged, self::InProgress, self::Reopened => 'attention',
         };
     }

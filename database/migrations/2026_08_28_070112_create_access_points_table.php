@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * telemetry_readings.status, which records a MEASURED state and only ever
  * holds online / degraded / offline. The two must not share an enum.
  *
- * @see docs/06-database.md — Cluster A
+ * @see docs/04-database.md — Cluster A
  * @see docs/progress/decision-log.md — 2026-08-27, telemetry_readings.status
  */
 return new class extends Migration

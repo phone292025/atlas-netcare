@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * — which a driver does not have.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
- * @see docs/04-open-questions.md Q1
+ * @see docs/02-open-questions.md Q1
  */
 class TelemetryService
 {

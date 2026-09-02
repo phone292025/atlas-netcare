@@ -10,7 +10,7 @@ window.Alpine = Alpine;
 
 // Chart.js draws every graph in the system. Blade components pass data in as a
 // prop; the chart never knows whether the numbers came from the simulator or
-// from live access points. See docs/07-data-strategy.md
+// from live access points. See docs/05-data-strategy.md
 window.Chart = Chart;
 
 // Shared chart defaults so every graph in the system looks like it belongs to

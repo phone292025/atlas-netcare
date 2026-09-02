@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Schema;
  * a pattern once and a scheduled command generates dated shifts from it,
  * instead of entering shifts forever.
  *
- * @see docs/06-database.md
- * @see docs/04-open-questions.md Q4
+ * @see docs/04-database.md
+ * @see docs/02-open-questions.md Q4
  */
 return new class extends Migration
 {

@@ -20,7 +20,7 @@
          deployment. A feature that quietly does nothing is worse than one
          that admits it.
 
-         @see docs/04-open-questions.md Q11 --}}
+         @see docs/02-open-questions.md Q11 --}}
     @if (config('app.debug') && ! config('atlas.mail_configured'))
         <x-alert type="warning" class="mb-4" title="No mail server is configured">
             @if (config('mail.default') === 'log')

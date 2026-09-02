@@ -38,14 +38,14 @@ Admin: checklist template index/create/edit · item management with drag-to-reor
 
 ## Key decisions
 
-- **Templates are versioned.** Editing an active template creates a new version rather than mutating it, so historical inspections do not reference items that no longer exist. Blocked on [Q2](../04-open-questions.md).
+- **Templates are versioned.** Editing an active template creates a new version rather than mutating it, so historical inspections do not reference items that no longer exist. Blocked on [Q2](../02-open-questions.md).
 - **Overall result is derived, not entered.** Any critical item failing means `fail`; any non-critical issue means `pass_with_issues`; otherwise `pass`.
 - **A failed item offers a pre-filled ticket** with asset, location, failed item and suggested priority already populated. This is the hand-off to M4 and it is the demo's best moment — agree the interface with M4's owner early.
 - **Mobile-first is a requirement, not a preference.** NFR-05 is tested at 375 px.
 
 ## Open questions
 
-- [Q2](../04-open-questions.md) — fixed or admin-editable checklist, and is versioning wanted?
+- [Q2](../02-open-questions.md) — fixed or admin-editable checklist, and is versioning wanted?
 
 ## Definition of done
 

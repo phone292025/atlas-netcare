@@ -23,7 +23,7 @@ use Tests\TestCase;
  * arrive with the M1 migration in Stage 4. Until then the role is set as an
  * in-memory attribute, which is enough to exercise the middleware.
  *
- * @see docs/03-requirements.md FR-104, FR-106
+ * @see docs/01-requirements.md FR-104, FR-106
  */
 class EnsureUserHasRoleTest extends TestCase
 {

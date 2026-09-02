@@ -23,7 +23,7 @@ use Tests\TestCase;
  * these tests pin the class name, and the components are still checked in a
  * real browser before the stage is called done.
  *
- * @see docs/08-ui-conventions.md — Blade components
+ * @see docs/06-ui-conventions.md — Blade components
  */
 class ComponentLibraryTest extends TestCase
 {

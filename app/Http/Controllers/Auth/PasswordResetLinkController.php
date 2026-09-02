@@ -14,7 +14,7 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 /**
  * FR-102, step one: ask for a link.
  *
- * @see docs/04-open-questions.md Q11 for why delivery was the hard part
+ * @see docs/02-open-questions.md Q11 for why delivery was the hard part
  */
 class PasswordResetLinkController extends Controller
 {

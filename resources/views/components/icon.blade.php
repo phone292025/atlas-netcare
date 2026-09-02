@@ -13,7 +13,7 @@
     An unknown name renders a visible "?" rather than nothing, so a typo shows
     up on screen instead of leaving a silent gap in the sidebar.
 
-    @see docs/08-ui-conventions.md
+    @see docs/06-ui-conventions.md
 --}}
 
 @php

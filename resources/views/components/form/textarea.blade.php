@@ -20,7 +20,7 @@
                          required rows="5"
                          help="What you did, so the next person does not repeat it." />
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 @php

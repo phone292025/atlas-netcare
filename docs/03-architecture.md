@@ -209,7 +209,7 @@ return [
     'retention' => ['raw_days' => 90, 'aggregate_months' => 12],
 
     // Sidebar entries per role, built once and filtered by the signed-in
-    // user's role. See docs/08-ui-conventions.md.
+    // user's role. See docs/06-ui-conventions.md.
     'navigation' => [
         'assistant' => [/* label, route, icon */],
         'engineer' => [/* … */],
@@ -246,7 +246,7 @@ Locally, one Windows Task Scheduler entry running `php artisan schedule:run` eve
 |---|---|---|
 | **Unit** | Services with real logic — `RiskScoringService` above all, plus `TicketService` state transitions and `TelemetryService` classification | `tests/Unit/` |
 | **Feature** | One happy path and one authorisation failure per controller | `tests/Feature/{Module}/` |
-| **Manual / UAT** | 4 documented sessions, required by the guidelines | [10-testing.md](10-testing.md) |
+| **Manual / UAT** | 4 documented sessions, required by the guidelines | [07-testing.md](07-testing.md) |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of test fixtures.
 

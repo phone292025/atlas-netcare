@@ -136,4 +136,4 @@ Required contents (guidelines Section I):
 3. **Section 3** — minutes of group discussion: positive decisions made, problems solved
 4. **Section 4** — scheduled workload of all members (Gantt or similar chart)
 
-Template and log: [progress/](progress/).
+Template and log: [progress/](../docs/progress/).

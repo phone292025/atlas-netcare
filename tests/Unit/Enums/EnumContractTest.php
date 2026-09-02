@@ -62,7 +62,7 @@ class EnumContractTest extends TestCase
 
     public function test_the_documented_enums_all_exist(): void
     {
-        // docs/05-architecture.md and ADR-0004 both promise exactly these.
+        // docs/03-architecture.md and ADR-0004 both promise exactly these.
         //
         // InspectionOutcome, not InspectionResult: the original name collided
         // with the model for the inspection_results table. ChecklistCategory

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * it. Editing a merged migration silently breaks their local databases — hard
  * rule 4.
  *
- * @see docs/06-database.md — Cluster A
+ * @see docs/04-database.md — Cluster A
  * @see docs/modules/M1-identity-and-audit.md
  */
 return new class extends Migration
@@ -35,7 +35,7 @@ return new class extends Migration
             // this is never a delete.
             $table->boolean('is_active')->default(true)->after('phone');
 
-            // Q6 is unresolved. The column exists because docs/06-database.md
+            // Q6 is unresolved. The column exists because docs/04-database.md
             // specifies it; NO first-login enforcement is built until the team
             // ratifies Q6. See docs/progress/decision-log.md.
             $table->boolean('must_change_password')->default(false)->after('is_active');

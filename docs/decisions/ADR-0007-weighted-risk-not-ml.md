@@ -1,4 +1,4 @@
-> **The weights this decision introduces are listed for the report's Assumptions section in [../14-simulated-and-real-data.md](../14-simulated-and-real-data.md).** Every one is judgement rather than measurement, and that has to be stated.
+> **The weights this decision introduces are listed for the report's Assumptions section in [../10-simulated-and-real-data.md](../10-simulated-and-real-data.md).** Every one is judgement rather than measurement, and that has to be stated.
 
 # ADR-0007: Score maintenance risk with weighted factors, not machine learning
 
@@ -51,4 +51,4 @@ The contributing factors are stored as JSON on `risk_assessments` and **displaye
 
 **Simple threshold rules ("older than 5 years = high risk").** Rejected: not analytics, and it produces no ranking, which is the useful output.
 
-**No predictive module at all.** Rejected: it is the module that aligns the project with Case Study Category 4. See [../01-brief-and-marking.md](../01-brief-and-marking.md).
+**No predictive module at all.** Rejected: it is the module that aligns the project with Case Study Category 4. See [../01-brief-and-marking.md](../../coursework/01-brief-and-marking.md).

@@ -20,7 +20,7 @@ use Illuminate\Support\Collection;
  * not write to the database, and does not know what a threshold is.
  *
  * @see docs/decisions/ADR-0002-telemetry-source-driver.md
- * @see docs/07-data-strategy.md
+ * @see docs/05-data-strategy.md
  */
 interface TelemetrySource
 {

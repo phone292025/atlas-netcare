@@ -84,7 +84,7 @@ class NewPasswordController extends Controller
      * either way, and signing in once with the new password is the proof it
      * worked.
      *
-     * @see docs/04-open-questions.md Q11
+     * @see docs/02-open-questions.md Q11
      */
     private function signOutEverywhere(User $user): void
     {

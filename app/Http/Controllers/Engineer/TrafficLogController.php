@@ -21,7 +21,7 @@ use Illuminate\Support\Carbon;
  * Served from `telemetry_hourly`. Scanning raw readings for a month of trend
  * would be slow enough to notice during the demo.
  *
- * @see docs/04-open-questions.md Q9
+ * @see docs/02-open-questions.md Q9
  */
 class TrafficLogController extends Controller
 {

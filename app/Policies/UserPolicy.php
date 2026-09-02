@@ -11,7 +11,7 @@ use App\Models\User;
  * EnsureUserHasRole. This answers the finer question the middleware cannot:
  * may THIS administrator act on THIS account?
  *
- * @see docs/05-architecture.md — Authorisation
+ * @see docs/03-architecture.md — Authorisation
  */
 class UserPolicy
 {

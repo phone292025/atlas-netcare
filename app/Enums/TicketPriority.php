@@ -9,7 +9,7 @@ use App\Enums\Contracts\HasTone;
 /**
  * How urgent a ticket is. Drives the service level target.
  *
- * @see docs/04-open-questions.md Q3 — settled 2026-08-28
+ * @see docs/02-open-questions.md Q3 — settled 2026-08-28
  */
 enum TicketPriority: string implements HasLabel, HasTone
 {

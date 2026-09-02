@@ -21,7 +21,7 @@ use Illuminate\Console\Command;
  * command and a browser request share exactly the same logic.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
- * @see docs/05-architecture.md
+ * @see docs/03-architecture.md
  */
 class CollectTelemetry extends Command
 {

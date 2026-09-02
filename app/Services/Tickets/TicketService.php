@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  * one array precisely so ratifying a different lifecycle is a small edit
  * rather than an archaeology exercise.
  *
- * @see docs/04-open-questions.md Q3
+ * @see docs/02-open-questions.md Q3
  * @see docs/modules/M4-ticketing.md
  */
 class TicketService

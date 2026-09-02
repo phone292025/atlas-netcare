@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * colour family for a given tone — rather than pinning the hex values, so a
  * deliberate palette change stays a one-line edit.
  *
- * @see docs/08-ui-conventions.md — Design tokens
+ * @see docs/06-ui-conventions.md — Design tokens
  */
 class ToneTest extends TestCase
 {

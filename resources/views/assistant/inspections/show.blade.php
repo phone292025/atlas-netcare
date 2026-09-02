@@ -22,7 +22,7 @@
                 which is what building a hand-off ahead of the module that
                 receives it is supposed to cost.
 
-                @see docs/03-requirements.md FR-207
+                @see docs/01-requirements.md FR-207
             --}}
             <x-card title="{{ $issues->count() }} {{ Str::plural('issue', $issues->count()) }} found"
                     subtitle="Each of these can become a ticket without retyping anything."

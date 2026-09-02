@@ -50,7 +50,7 @@
     md breakpoint an engineer table should degrade to stacked cards rather than
     scroll — that is the page's decision, not this component's.
 
-    @see docs/08-ui-conventions.md — Blade components, Responsive rules
+    @see docs/06-ui-conventions.md — Blade components, Responsive rules
 --}}
 
 @php

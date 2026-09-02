@@ -25,7 +25,7 @@
     rather than lost.
 
     @see docs/modules/M4-ticketing.md
-    @see docs/03-requirements.md NFR-06
+    @see docs/01-requirements.md NFR-06
 --}}
 
 @php

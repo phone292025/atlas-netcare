@@ -19,7 +19,7 @@
             </x-slot:footer>
         </x-card>
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 <div {{ $attributes->merge(['class' => 'bg-white rounded-lg ring-1 ring-slate-200 shadow-sm']) }}>

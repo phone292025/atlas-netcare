@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Schema;
  * template therefore copies it to version + 1 and deactivates the old one,
  * which stays in the database forever so old inspections still render.
  *
- * @see docs/06-database.md
- * @see docs/04-open-questions.md Q2
+ * @see docs/04-database.md
+ * @see docs/02-open-questions.md Q2
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 return new class extends Migration

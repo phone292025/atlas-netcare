@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * What every chart reads. See the migration for why.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  */
 class TelemetryHourly extends Model
 {

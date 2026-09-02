@@ -42,4 +42,4 @@ Backdating a stack of reports in week 12 is transparent and scores badly. Fill e
 | "We chose Agile over Waterfall" | An ADR — architectural, permanent |
 | "We renamed `pc_checks` to `inspections`" | [decision-log.md](decision-log.md) |
 | "Nyan was blocked three days waiting for M1" | The weekly report, Section 2 |
-| "The ticket lifecycle is now decided" | Update [../04-open-questions.md](../04-open-questions.md), note it in the weekly report |
+| "The ticket lifecycle is now decided" | Update [../02-open-questions.md](../02-open-questions.md), note it in the weekly report |

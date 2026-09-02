@@ -17,7 +17,7 @@ use Illuminate\Console\Command;
  * million rows locks the table for long enough to notice, and this is
  * scheduled to run while the system is up.
  *
- * @see docs/04-open-questions.md Q10
+ * @see docs/02-open-questions.md Q10
  */
 class PruneTelemetry extends Command
 {

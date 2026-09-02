@@ -74,7 +74,7 @@ Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and
 
 **The problem.** M6's alarms only reach the notification bell inside the app. An assistant who is not looking at Atlas NetCare does not know their shift starts in 30 minutes, which is most of the point of having shift alarms at all.
 
-**Rejected: email.** *(Half of this reasoning expired on 2026-08-29, when accounts moved to deliverable Gmail plus-addresses for FR-102. The calendar decision does not depend on it — a calendar file still needs no address, no SMTP account and no service worker, and still alarms with the app closed. See [Q11](../04-open-questions.md#q11).)* Every account in the system used `@apu.test` or `@atlas.local`. Both are reserved domains that can never receive mail, chosen deliberately in M1 so a stray notification could never reach a real person.
+**Rejected: email.** *(Half of this reasoning expired on 2026-08-29, when accounts moved to deliverable Gmail plus-addresses for FR-102. The calendar decision does not depend on it — a calendar file still needs no address, no SMTP account and no service worker, and still alarms with the app closed. See [Q11](../02-open-questions.md#q11).)* Every account in the system used `@apu.test` or `@atlas.local`. Both are reserved domains that can never receive mail, chosen deliberately in M1 so a stray notification could never reach a real person.
  Sending email would mean putting seven teammates' personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message.
 
 **Agreed instead: hand the shift to the phone's own calendar.** iOS and Android already have reminder systems that work with the app closed, the phone locked, and no internet. Nothing we build will beat them. A calendar file needs no email address, no SMTP account, no bot, and no service worker.
@@ -237,7 +237,7 @@ These do not move when modules get built, and one of them has a date.
 
 | | Status |
 |---|---|
-| **Design freeze — date unknown** | 🟠 Context Diagram, DFD 0 and the consolidated ERD. **15 marks, not started.** The 15 Sep 2026 date was invented, not taken from the brief — see docs/09-roadmap.md. Still needed; the urgency is unverified. |
+| **Design freeze — date unknown** | 🟠 Context Diagram, DFD 0 and the consolidated ERD. **15 marks, not started.** The 15 Sep 2026 date was invented, not taken from the brief — see coursework/09-roadmap.md. Still needed; the urgency is unverified. |
 | **Q3 — ticket lifecycle** | 🟠 Adopted as proposed and built in M4, but **never actually agreed by the team.** Confirm it or change it — the code is written to make either cheap. |
 | **Module owners** | 🔴 Seven unassigned. **Four modules are now built with nobody named as their author.** Blocks the individual report deliverables. |
 | **Per-module diagrams** | 🔴 DFD 1, data dictionary and flowchart now owed for M1, M2, M3 and M4. |
@@ -285,7 +285,7 @@ Oldest first — append new entries at the end. One entry per development sessio
 
 **Decided**
 - Sprint 0 split into five reviewable stages, recorded above.
-- Provisional-values rule for blocked questions: values already documented in `06-database.md` and `05-architecture.md` may be written into enums and config, marked provisional in a code comment, but **no behaviour that depends on an undecided question is built**. So `TicketStatus` cases and `atlas.sla_hours` can exist; the state machine, transition guards and SLA breach logic cannot. Same for Q6: `register` removed and `must_change_password` column created, but no first-login enforcement middleware.
+- Provisional-values rule for blocked questions: values already documented in `04-database.md` and `03-architecture.md` may be written into enums and config, marked provisional in a code comment, but **no behaviour that depends on an undecided question is built**. So `TicketStatus` cases and `atlas.sla_hours` can exist; the state machine, transition guards and SLA breach logic cannot. Same for Q6: `register` removed and `must_change_password` column created, but no first-login enforcement middleware.
 
 **Next**
 - Install Composer, then Stage 1.
@@ -313,7 +313,7 @@ Oldest first — append new entries at the end. One entry per development sessio
 - **Registration removed** per Q6 working assumption: `register` routes, `RegisteredUserController`, `register.blade.php`, `RegistrationTest` and the welcome-page link are all gone. A comment at the top of `routes/auth.php` explains why, so nobody re-adds it.
 - **Self-delete-account removed**: Breeze lets a user delete their own account, which contradicts M1's "deactivate, never delete" and NFR-06 auditability. Route, controller method, form partial and test removed; `ProfileTest` rewritten to assert DELETE `/profile` returns 405.
 - Chart.js installed and wired into `resources/js/app.js` with shared defaults, so every graph in the system looks consistent
-- Unused `@tailwindcss/vite` v4 dependency removed — Breeze installed a Tailwind **3** setup with `tailwind.config.js`, which is what `08-ui-conventions.md` already specifies
+- Unused `@tailwindcss/vite` v4 dependency removed — Breeze installed a Tailwind **3** setup with `tailwind.config.js`, which is what `06-ui-conventions.md` already specifies
 - `README.md` now carries verified setup steps for teammates; these become the Installation Guide in the report appendix
 
 **Verified**
@@ -336,7 +336,7 @@ Oldest first — append new entries at the end. One entry per development sessio
 ### 2026-08-27 — Stage 2
 
 **Done**
-- `config/atlas.php` written to the specification in `05-architecture.md`, plus the navigation map from `08-ui-conventions.md`. Every value carries a comment explaining what it does and which document or open question it comes from.
+- `config/atlas.php` written to the specification in `03-architecture.md`, plus the navigation map from `06-ui-conventions.md`. Every value carries a comment explaining what it does and which document or open question it comes from.
 - All **eleven enums** created in `app/Enums/`, matching the documented list exactly. Each has `label()`; every status enum also has `tone()` returning one of `healthy` / `attention` / `urgent` / `inactive`, which `<x-status-badge>` will map to Tailwind classes in one place (Stage 3).
 - Shared `HasValues` trait giving every enum `values()` and `options()` — used by seeders, factories and select inputs. One file rather than 33 lines duplicated across eleven.
 - `EnsureUserHasRole` middleware, registered as the `role` alias in `bootstrap/app.php`. Accepts a comma list: `role:engineer,admin`.
@@ -381,7 +381,7 @@ An independent review of Stage 2 found a real defect. All findings were re-verif
 - `EnumContractTest` now **discovers** enums by globbing `app/Enums/*.php` instead of a hand-maintained list, so a new enum is covered the moment it exists. It also asserts the discovered set still matches the eleven the docs promise. Note: data providers run before Laravel boots, so `app_path()` is unavailable — the glob walks up from `__DIR__`.
 
 **Documentation — corrected**
-- `05-architecture.md`: enum `Concerns/` and `Contracts/` added to the folder tree; `navigation` added to the config snippet; casts and Pint formatting noted.
+- `03-architecture.md`: enum `Concerns/` and `Contracts/` added to the folder tree; `navigation` added to the config snippet; casts and Pint formatting noted.
 - `ADR-0004`: corrected the claim that the schema has eleven enumerated fields. Eleven get an enum class; three more (`locations.type`, `checklist_items.category`, `telemetry_readings.source`) are enumerated in the schema but deliberately do not, because nothing branches on them. Added a warning that `telemetry_readings.source` (`simulated`/`live`) is **not** the same vocabulary as `atlas.telemetry_driver` (`simulated`/`snmp`).
 - Minor: `RiskBand::fromScore()` docblock claimed scores were clamped; nothing clamps, the comparison chain handles out-of-range on its own. Redundant ternary removed from `AtlasConfigTest`.
 
@@ -401,18 +401,18 @@ A follow-up review found seven issues. All were verified against the code before
 - `docs/INDEX.md` had been broken since Stage 0 (`c91325f`). A botched `perl` edit left three stray table rows above the file and glued `# Documentation Index` onto the end of line 3, so the H1 rendered as body text. This is the first file every agent and teammate is told to open, and it sat broken through two stages without anyone noticing. Repaired.
 
 **Overclaiming — corrected**
-- The middleware comment and commit message read as though FR-106 was satisfied. It is not: `LoginRequest::authenticate()` has **no** `is_active` check, and **no route currently uses the `role` middleware**, so a deactivated user can still sign in and reach everything that exists today. The guard fix was real; the traceability claim was premature. Comment rewritten, and FR-106 marked **partially built** in `03-requirements.md`.
+- The middleware comment and commit message read as though FR-106 was satisfied. It is not: `LoginRequest::authenticate()` has **no** `is_active` check, and **no route currently uses the `role` middleware**, so a deactivated user can still sign in and reach everything that exists today. The guard fix was real; the traceability claim was premature. Comment rewritten, and FR-106 marked **partially built** in `01-requirements.md`.
 - Two docblocks described code that does not exist, in the present tense: `atlas.php` said the driver is "Bound in AppServiceProvider" (that provider is empty) and `UserRole::homeRoute()` referred to `DashboardRedirect` (no such class). Both now say PLANNED and name the stage that will build them.
 
 **Coordination risk — closed**
-- Twelve route names were coined in `config/atlas.php` during Stage 2 and recorded nowhere else; `08-ui-conventions.md` documented only the assistant menu. With seven owners naming their own routes, and a sidebar that **silently skips unregistered routes**, a mismatch would make a menu item vanish with no error. All eighteen route names are now a documented table in `08-ui-conventions.md`, mapped to the owning module.
+- Twelve route names were coined in `config/atlas.php` during Stage 2 and recorded nowhere else; `06-ui-conventions.md` documented only the assistant menu. With seven owners naming their own routes, and a sidebar that **silently skips unregistered routes**, a mismatch would make a menu item vanish with no error. All eighteen route names are now a documented table in `06-ui-conventions.md`, mapped to the owning module.
 
 **Design tokens — settled before Stage 3 bakes them in**
 - The tone `inactive` is renamed **`neutral`**. It has to cover both "out of play" (`retired`, `maintenance`) and "deliberately quiet" (`low` priority, `scheduled`); `inactive` was wrong for a low-priority ticket, which is very much active.
 - `TicketStatus::Open` and `Reopened` were `urgent`, making every brand-new ticket render the same red as an offline access point. All outstanding ticket states are now `attention`. **Status carries progress; priority carries urgency.**
 - `ShiftStatus::CheckedIn` was `attention` — a shift running normally is a good state. Now `healthy`.
 - `AlarmType` keeps `HasTone` (severity in the notification list is genuinely useful), but the docs no longer describe tone as status-only, and `<x-status-badge>` is specced as accepting any `HasTone` enum.
-- The design-token table in `08-ui-conventions.md` is now the authority and covers every case, so Stage 3 has nothing left to guess.
+- The design-token table in `06-ui-conventions.md` is now the authority and covers every case, so Stage 3 has nothing left to guess.
 
 **Minor**
 - `glob()` returns `false` on failure, which would have produced a `TypeError` instead of a clean assertion failure. Now `glob(...) ?: []`.
@@ -436,7 +436,7 @@ Stage 3 is the largest of the five, so it is split. **3a is the foundation every
 - `<x-badge>` — **the single place that turns a tone into classes.** `<x-status-badge>` and `<x-priority-pill>` both delegate to it, so `urgent` is one red everywhere. An unrecognised tone renders fuchsia on purpose: a bug should be visible, not silently grey.
 - `<x-sidebar>`: role-filtered navigation built from `config('atlas.navigation')`. Active state matches the whole `admin.users.*` section so create/edit screens keep their parent highlighted.
 - `layouts/app.blade.php`: full shell — fixed sidebar on desktop, Alpine slide-over drawer on mobile, sticky topbar, user block with role, sign-out. Replaces Breeze's top-nav.
-- `DashboardRedirect` + `/home`: sends each role to its own landing screen, falling back to the profile page for routes that do not exist yet. This is the class `05-architecture.md` referenced and `UserRole::homeRoute()` was written for — both now real rather than PLANNED.
+- `DashboardRedirect` + `/home`: sends each role to its own landing screen, falling back to the profile page for routes that do not exist yet. This is the class `03-architecture.md` referenced and `UserRole::homeRoute()` was written for — both now real rather than PLANNED.
 - Breeze leftovers removed: `layouts/navigation.blade.php` and `dashboard.blade.php`. The `dashboard` route is replaced by `home`; nine references updated.
 - `profile/edit.blade.php` rebuilt — it had unbalanced `<div>`s and an empty card left behind when the delete-account form was removed in Stage 1.
 
@@ -629,7 +629,7 @@ A review of everything built in Sprint 0 so far, checking the code against what 
 
 **Documentation drift closed**
 - `app/Support/` was **not in the architecture folder tree at all**, despite holding `Tone.php` — the single most rule-bound file in the codebase — and `FormField.php`. Added, with what each is for.
-- `<x-form.field>` was missing from the component table in `08-ui-conventions.md`. Added and marked internal.
+- `<x-form.field>` was missing from the component table in `06-ui-conventions.md`. Added and marked internal.
 
 **AGENTS.md brought up to date.** It was accurate about Stage 0 and stale about everything since. Changes:
 - **Stack section replaced with pinned versions** verified against the lock file: Laravel 12.68.0, PHP 8.2.12, Breeze 2.4.2, Tailwind 3.4.19, Alpine 3.16, MariaDB 10.4.32. It previously said only "Laravel", "Tailwind CSS", "MySQL" — and MySQL was wrong.
@@ -701,7 +701,7 @@ Every visual check so far had been made while signed in. **Check the signed-out 
 **The database currently has no user accounts at all.** The two throwaway accounts used for visual checks were deleted. That is deliberate — Stage 4's `ReferenceSeeder` creates the first real administrator, and a hand-made account would have muddied it. Until then nobody can sign in, which is the correct state rather than a fault.
 
 **Stage 4 scope**
-- Migrations for `users` (adding `role`, `is_active`, `tp_number`, `phone`, `must_change_password`, soft deletes), `locations`, `lab_pcs`, `access_points` — to the schema in `06-database.md`
+- Migrations for `users` (adding `role`, `is_active`, `tp_number`, `phone`, `must_change_password`, soft deletes), `locations`, `lab_pcs`, `access_points` — to the schema in `04-database.md`
 - Model casts, including `'role' => UserRole::class` and `'is_active' => 'boolean'` (see the Stage 2 review — the middleware guard is written to survive a missing cast, but the cast should exist)
 - `ReferenceSeeder` — first admin, campus locations, checklist templates, shift templates
 - `DemoDataSeeder` — created empty, wired to `config('atlas.demo_mode')`
@@ -719,9 +719,9 @@ Every visual check so far had been made while signed in. **Check the signed-out 
 
 **Decisions settled first, both deferred since Stage 1**
 - **`DB_CONNECTION=mariadb`.** XAMPP ships MariaDB 10.4.32 and Laravel 12 has a dedicated `MariaDbConnector`. Settled *before* the first migration rather than after, because MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than a native type, and M7's `risk_assessments.factors` is a JSON column. Verified with `php artisan db:show`, which now reports `Connection: mariadb`.
-- **Q6 handled under the provisional-values rule.** `must_change_password` exists as a column because `06-database.md` specifies it, and the seeded administrator is flagged with it — but **no first-login enforcement middleware was built**, because the team has not ratified Q6.
+- **Q6 handled under the provisional-values rule.** `must_change_password` exists as a column because `04-database.md` specifies it, and the seeded administrator is flagged with it — but **no first-login enforcement middleware was built**, because the team has not ratified Q6.
 
-**Migrations — four, matching `06-database.md`**
+**Migrations — four, matching `04-database.md`**
 - `add_atlas_columns_to_users_table` — a **separate** migration rather than an edit to Laravel's `create_users_table`, which is already merged and has been run on other machines. Hard rule 4.
 - `create_locations_table`, `create_lab_pcs_table`, `create_access_points_table`
 

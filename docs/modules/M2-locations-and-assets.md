@@ -14,7 +14,7 @@ FR-403, FR-404, FR-405 · NFR-08
 
 ## Tables owned
 
-`locations` · `lab_pcs` · `access_points` — see [../06-database.md](../06-database.md)
+`locations` · `lab_pcs` · `access_points` — see [../04-database.md](../04-database.md)
 
 ## Components
 

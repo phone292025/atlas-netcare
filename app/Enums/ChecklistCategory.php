@@ -17,7 +17,7 @@ use App\Enums\Contracts\HasLabel;
  * No tone(). A category is not a state — it never colours anything, and giving
  * it a tone would invite somebody to badge it.
  *
- * @see docs/06-database.md — checklist_items
+ * @see docs/04-database.md — checklist_items
  * @see docs/decisions/ADR-0004-string-columns-not-mysql-enum.md
  */
 enum ChecklistCategory: string implements HasLabel

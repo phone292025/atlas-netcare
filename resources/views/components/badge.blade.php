@@ -16,7 +16,7 @@
     <x-priority-pill>, so the tone always comes from an enum rather than a
     hand-typed string.
 
-    @see docs/08-ui-conventions.md — Design tokens
+    @see docs/06-ui-conventions.md — Design tokens
 --}}
 
 @php

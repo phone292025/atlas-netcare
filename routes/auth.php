@@ -3,7 +3,7 @@
 /*
 | Registration is intentionally absent. Atlas NetCare is an internal,
 | privilege-based system: administrators create every account (FR-105, FR-401).
-| See docs/04-open-questions.md Q6 and the project Keynote in the proposal.
+| See docs/02-open-questions.md Q6 and the project Keynote in the proposal.
 |
 | PASSWORD RESET IS FR-102 AND IS APPROVED IN THE PROPOSAL, which lists
 | "recover password" for all three roles. It was briefly removed on 2026-08-29
@@ -19,10 +19,10 @@
 | Both are fixed. Accounts now use Gmail plus-addresses, which are real and all
 | land in one inbox, and the mailer is Gmail SMTP. The one manual step left is
 | pasting a Google app password into MAIL_PASSWORD; until somebody does, the
-| screen says so rather than pretending. See docs/04-open-questions.md Q11.
+| screen says so rather than pretending. See docs/02-open-questions.md Q11.
 |
 | EMAIL VERIFICATION AND PASSWORD CONFIRMATION stay removed. Neither appears in
-| the proposal or in docs/03-requirements.md, and neither could ever run: User
+| the proposal or in docs/01-requirements.md, and neither could ever run: User
 | does not implement MustVerifyEmail, and no route carried either middleware.
 | RemovedAuthFeaturesTest keeps them out.
 |

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Schema;
  * offline. It must NOT be cast to ApStatus, which also has `maintenance` — an
  * administrative state that belongs to the access point, not to a reading.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/decisions/ADR-0002-telemetry-source-driver.md
  */
 return new class extends Migration
@@ -51,7 +51,7 @@ return new class extends Migration
              * what lets the driver be swapped without a second database and
              * lets simulated rows be charted or purged separately.
              *
-             * See ADR-0002 and docs/07-data-strategy.md.
+             * See ADR-0002 and docs/05-data-strategy.md.
              */
             $table->string('source', 20)->default('simulated');
 

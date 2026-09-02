@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  * record that matters; which shift it happened on is context.
  *
  * @see database/migrations/2026_08_28_200003_create_inspections_table.php
- * @see docs/06-database.md
+ * @see docs/04-database.md
  */
 return new class extends Migration
 {

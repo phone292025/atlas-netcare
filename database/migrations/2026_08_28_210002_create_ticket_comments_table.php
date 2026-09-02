@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * A note on a ticket, optionally visible only to staff (FR-308).
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/modules/M4-ticketing.md
  */
 return new class extends Migration

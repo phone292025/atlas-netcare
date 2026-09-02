@@ -18,7 +18,7 @@ use Tests\TestCase;
  * readings rather than against whatever the simulator happens to produce.
  *
  * @see App\Services\Telemetry\TelemetryService::classify()
- * @see docs/04-open-questions.md Q1
+ * @see docs/02-open-questions.md Q1
  */
 class TelemetryClassificationTest extends TestCase
 {

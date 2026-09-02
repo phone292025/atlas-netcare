@@ -18,7 +18,7 @@ use Illuminate\Validation\Validator;
  * purpose — they belong to TicketService. A request that accepted `status`
  * would let somebody open a ticket already closed.
  *
- * @see docs/03-requirements.md FR-206, FR-207
+ * @see docs/01-requirements.md FR-206, FR-207
  */
 class StoreTicketRequest extends FormRequest
 {

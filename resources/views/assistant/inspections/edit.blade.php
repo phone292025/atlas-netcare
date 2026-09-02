@@ -15,7 +15,7 @@
             lists rather than one list of thirteen
           - <x-checklist-item> owns the tap targets and the remark box
 
-        @see docs/03-requirements.md FR-204, FR-205, NFR-05
+        @see docs/01-requirements.md FR-204, FR-205, NFR-05
     --}}
 
     <div class="mx-auto max-w-2xl">

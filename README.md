@@ -97,7 +97,7 @@ While `ATLAS_DEMO_MODE=true`, seeding also creates one sign-in per role. Most of
 
 Those are **your own** Gmail address, four times. Set `ATLAS_MAIL_ACCOUNT` to your Gmail account name in `.env` and every address above follows, including the administrator's. Gmail ignores everything after a `+`, so all four land in the inbox you already own.
 
-They were `@apu.test` until 2026-08-29, which was tidier to read and could never receive mail — and FR-102 promises a password reset link *by email*. See [Q11](docs/04-open-questions.md#q11).
+They were `@apu.test` until 2026-08-29, which was tidier to read and could never receive mail — and FR-102 promises a password reset link *by email*. See [Q11](docs/02-open-questions.md#q11).
 
 > **Changing one of these on a database that is already seeded gives you a second account, not a renamed one.** Both seeders match on email, so the old row keeps its tickets and shifts and you sign in to an empty copy. Rename the existing rows instead.
 
@@ -114,7 +114,7 @@ These accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never
 Remove them with `php artisan atlas:purge-demo-data`, which also takes `--dry-run` to show what would go. It refuses if a real record points at a demonstration asset, rather than leaving it dangling.
 
 
-> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system. See [docs/07-data-strategy.md](docs/07-data-strategy.md).
+> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system. See [docs/05-data-strategy.md](docs/05-data-strategy.md).
 
 ### Email
 

@@ -33,7 +33,7 @@ use Illuminate\Support\Collection;
  * reminder expressible at all. `raise()` defaults to now, so a caller who
  * wants "tell them straight away" writes nothing extra.
  *
- * @see docs/04-open-questions.md Q5
+ * @see docs/02-open-questions.md Q5
  * @see docs/modules/M6-shifts-and-alarms.md
  */
 class AlarmService

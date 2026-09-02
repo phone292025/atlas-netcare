@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  * rather than doubling every point on the chart.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
- * @see docs/04-open-questions.md Q9
+ * @see docs/02-open-questions.md Q9
  */
 class AggregateTelemetry extends Command
 {

@@ -18,7 +18,7 @@ import forms from '@tailwindcss/forms';
  * deliberately none of the four status hues, so a coloured button never reads
  * as a status.
  *
- * @see docs/08-ui-conventions.md
+ * @see docs/06-ui-conventions.md
  */
 export default {
     content: [

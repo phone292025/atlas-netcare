@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Schema;
  * wants the detail chart in under two seconds, and scanning raw readings for
  * it is visibly slow during a demo — which is the moment it would be noticed.
  *
- * @see docs/06-database.md
- * @see docs/04-open-questions.md Q9
+ * @see docs/04-database.md
+ * @see docs/02-open-questions.md Q9
  */
 return new class extends Migration
 {

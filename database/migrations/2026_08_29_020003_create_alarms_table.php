@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Schema;
  * breaches here and M5 raises access-point outages, both through
  * AlarmService — neither touches this table directly.
  *
- * @see docs/06-database.md
- * @see docs/04-open-questions.md Q5
+ * @see docs/04-database.md
+ * @see docs/02-open-questions.md Q5
  */
 return new class extends Migration
 {

@@ -2,7 +2,7 @@
     Role-filtered navigation, built once from config('atlas.navigation').
 
     Nobody hand-writes a menu. A module owner adds their route to the table in
-    docs/08-ui-conventions.md and to config/atlas.php, and it appears here.
+    docs/06-ui-conventions.md and to config/atlas.php, and it appears here.
 
     Routes arrive with their modules, so most entries point at routes that do
     not exist yet. Rather than skipping those silently — which would make a
@@ -11,7 +11,7 @@
     entirely when it is off. A typo is then visible during development and
     invisible to a marker.
 
-    @see docs/08-ui-conventions.md — Route names are fixed vocabulary
+    @see docs/06-ui-conventions.md — Route names are fixed vocabulary
 --}}
 
 @php

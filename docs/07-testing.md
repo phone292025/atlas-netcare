@@ -53,7 +53,7 @@ Number cases as `TC-{module}-{seq}` so they trace back to modules and requiremen
 
 ## Coverage to aim for
 
-At minimum, one test case per functional requirement in [03-requirements.md](03-requirements.md). That is roughly 50 cases across seven modules — about 7 each, which is achievable if each owner writes theirs as they build rather than in week 12.
+At minimum, one test case per functional requirement in [01-requirements.md](01-requirements.md). That is roughly 50 cases across seven modules — about 7 each, which is achievable if each owner writes theirs as they build rather than in week 12.
 
 Include **negative cases**. A test plan that only proves things work when used correctly is a weak test plan, and markers notice.
 

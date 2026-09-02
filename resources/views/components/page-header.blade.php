@@ -19,7 +19,7 @@
             </x-slot:actions>
         </x-page-header>
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 <div {{ $attributes->merge(['class' => 'mb-6 sm:flex sm:items-start sm:justify-between sm:gap-4']) }}>

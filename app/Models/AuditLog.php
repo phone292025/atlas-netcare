@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * because editing an audit row defeats the point of having one.
  *
  * @see docs/modules/M1-identity-and-audit.md
- * @see docs/03-requirements.md NFR-06, FR-409, FR-509
+ * @see docs/01-requirements.md NFR-06, FR-409, FR-509
  */
 class AuditLog extends Model
 {

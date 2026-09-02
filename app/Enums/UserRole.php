@@ -11,7 +11,7 @@ use App\Enums\Contracts\HasLabel;
  * Stored as a string column on `users`. There is no roles table: the set is
  * fixed by the case study and is never managed at runtime.
  *
- * @see docs/03-requirements.md FR-104, FR-402
+ * @see docs/01-requirements.md FR-104, FR-402
  */
 enum UserRole: string implements HasLabel
 {
@@ -36,7 +36,7 @@ enum UserRole: string implements HasLabel
      * PLANNED (Stage 3): none of these routes exist yet, and nothing calls this
      * method. The DashboardRedirect controller that will use it — and which
      * must fall back gracefully for routes not yet registered — is specified in
-     * docs/05-architecture.md but not built.
+     * docs/03-architecture.md but not built.
      *
      * The specific targets were chosen in Stage 2 and are recorded in
      * docs/progress/decision-log.md; the docs do not otherwise specify them.

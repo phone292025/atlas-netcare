@@ -277,8 +277,8 @@ Email is no longer on this list. FR-102 sends a password reset link through Gmai
 | Question | File |
 |---|---|
 | Why is it built this way? | `docs/decisions/` |
-| What did we assume rather than decide? | `docs/12-what-the-proposal-did-not-say.md` |
-| What is the schema? | `docs/06-database.md` |
+| What did we assume rather than decide? | `docs/08-design-decisions.md` |
+| What is the schema? | `docs/04-database.md` |
 | What does this module do? | `docs/modules/` |
 | What changed and why? | `docs/progress/decision-log.md` |
 | What is the current state? | `docs/progress/build-log.md` |

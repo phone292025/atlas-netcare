@@ -79,20 +79,20 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 - [ ] 5. Workload Matrix
 - [ ] 6. Introduction — background, problem context, proposed solution, objectives, scope
 - [ ] 7. Project Plan — SDLC methodology, Gantt chart
-- [x] 8. System Hierarchy Chart — **[16-system-diagrams.md](16-system-diagrams.md) Figure 4**, derived from the routes
-- [x] 9. Context Diagram — **[16-system-diagrams.md](16-system-diagrams.md) Figure 1**
-- [x] 10. Data Flow Diagram Level 0 — **[16-system-diagrams.md](16-system-diagrams.md) Figure 2**. Its numbered processes are the module numbers, so each member's DFD 1 is their process expanded
+- [x] 8. System Hierarchy Chart — **[12-system-diagrams.md](../docs/12-system-diagrams.md) Figure 4**, derived from the routes
+- [x] 9. Context Diagram — **[12-system-diagrams.md](../docs/12-system-diagrams.md) Figure 1**
+- [x] 10. Data Flow Diagram Level 0 — **[12-system-diagrams.md](../docs/12-system-diagrams.md) Figure 2**. Its numbered processes are the module numbers, so each member's DFD 1 is their process expanded
 - [ ] 11. **Data Flow Diagram Level 1 — one per member**
 - [ ] 12. **Data Dictionary — one per member**
-- [x] 13. Entity Relationship Diagram — **[16-system-diagrams.md](16-system-diagrams.md) Figure 3**, all sixteen domain tables from the live schema
+- [x] 13. Entity Relationship Diagram — **[12-system-diagrams.md](../docs/12-system-diagrams.md) Figure 3**, all sixteen domain tables from the live schema
 - [ ] 14. **Pseudocode or Flowcharts — one per member**
 - [ ] 15. Screens Design and User Manual — every screen, described as a manual
 - [ ] 16. Report Designs and User Manual
 - [ ] 17. Test Plan — unit + UAT, with actual results and **4 documented UAT sessions**
 - [ ] 18. Significant Source Codes — snippets highlighted and explained
-- [ ] 19. Conclusion — Assumptions, Limitations, Enhancements — **[14-simulated-and-real-data.md](14-simulated-and-real-data.md) is written to be lifted straight into this section**, with live figures and the "is any of this real?" answer already drafted
+- [ ] 19. Conclusion — Assumptions, Limitations, Enhancements — **[10-simulated-and-real-data.md](../docs/10-simulated-and-real-data.md) is written to be lifted straight into this section**, with live figures and the "is any of this real?" answer already drafted
 - [ ] 20. References — APA 7
-- [ ] 21. Appendix — all meeting minutes (**human input**) + Installation Guide — **[15-installation-guide.md](15-installation-guide.md) is written and verified against the running system; paste it in.**
+- [ ] 21. Appendix — all meeting minutes (**human input**) + Installation Guide — **[11-installation-guide.md](../docs/11-installation-guide.md) is written and verified against the running system; paste it in.**
 
 ### Formatting
 
@@ -108,7 +108,7 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 ## Part 3 — Implementation and Presentation (40%)
 
 - [x] System runs complete, without errors, from a fresh install — 579 tests, `atlas:check-schema` clean, `atlas:mail-test` sends
-- [ ] All functional requirements in [03-requirements.md](03-requirements.md) achieved or explicitly descoped with a reason — **M7's FRs are the remaining gap**
+- [ ] All functional requirements in [01-requirements.md](../docs/01-requirements.md) achieved or explicitly descoped with a reason — **M7's FRs are the remaining gap**
 - [x] Validation on every form — every write goes through a Form Request
 - [x] Consistent navigation across all three roles — one sidebar built from `config/atlas.php`
 - [x] Code neat, readable and **commented** — explicitly in the rubric
@@ -116,10 +116,10 @@ Guidelines Section F. **Bold = individual deliverable per member.**
 - [x] Demo database seeds reproducibly: `php artisan migrate:fresh --seed`
 - [ ] Flagship flow rehearsed twice on the actual demo machine — inspection to pre-filled ticket is the flow
 - [ ] Every member can explain their own module under questioning — **blocked: no module owners**
-- [ ] Every member can answer "why did you build it this way?" from [decisions/](decisions/) and [12-what-the-proposal-did-not-say.md](12-what-the-proposal-did-not-say.md)
+- [ ] Every member can answer "why did you build it this way?" from [decisions/](../docs/decisions/) and [08-design-decisions.md](../docs/08-design-decisions.md)
 
 ---
 
 ## Weekly, from week 1 to week 12
 
-- [ ] Progress report submitted to the supervisor — 10 marks, see [progress/](progress/)
+- [ ] Progress report submitted to the supervisor — 10 marks, see [progress/](../docs/progress/)

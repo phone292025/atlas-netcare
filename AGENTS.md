@@ -16,17 +16,19 @@ It serves three roles — Student IT Assistants, Network Engineers, and System A
 4. Automated duty rosters and shift alarms
 5. Predictive maintenance risk scoring (the module that aligns the project to Case Study Category 4)
 
-This is **academic coursework assessed against a published rubric**. Documentation quality, diagram correctness, and consistency are directly marked — they are not overhead. See `docs/01-brief-and-marking.md`.
+This is **academic coursework assessed against a published rubric**. Documentation quality, diagram correctness, and consistency are directly marked — they are not overhead. See `coursework/01-brief-and-marking.md`.
 
 ## Current status
 
 | | |
 |---|---|
-| **Phase** | Building modules. **Diagrams not started** — Context Diagram, DFD 0, consolidated ERD, 15 marks. The "15 Sep 2026 design freeze" in older docs was an invented date, not from the brief; see `docs/09-roadmap.md`. |
-| **Build stage** | Sprint 0 complete. **Modules: 6 of 7 done** — only M7 (predictive risk and reports) remains. See `docs/progress/build-log.md` — **read it before doing anything.** |
-| **Code written** | Sprint 0 + M1–M6. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, the asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, and calendar export. 509 tests passing. |
-| **Last updated** | 2026-08-29 |
-| **Blocking** | **Q6** only. Q1–Q5, Q9 and Q10 were all built from their working assumptions without the team agreeing them — confirm or change. See `docs/04-open-questions.md`. |
+| **Phase** | The code is finished. What remains is the report. |
+| **Build stage** | **All seven modules built.** Every functional requirement has code and at least one test. See `docs/progress/build-log.md`, and read it before doing anything. |
+| **Code written** | Sprint 0 plus M1 to M7. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, calendar export, predictive risk scoring and five operational reports. 684 tests passing, 1 skipped. |
+| **Diagrams** | Context Diagram, DFD 0, consolidated ERD and System Hierarchy are done, in `docs/12-system-diagrams.md`. **The 21 per-member diagrams are not**, and cannot start until modules have owners. |
+| **Last updated** | 2026-09-02 |
+| **Blocking** | **Nobody owns a module.** Every spec says unassigned, which blocks 21 individually assessed deliverables. That is now the largest thing standing between this project and its marks. See `coursework/02-team-and-ownership.md`. |
+| **Also open** | **Q6** only, of the eleven design questions. Q1 to Q5 and Q9 to Q11 were built from their working assumptions without the team agreeing them, so confirm or change. See `docs/02-open-questions.md`. |
 
 ## Stack
 
@@ -53,15 +55,15 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 | If you are about to… | Read first |
 |---|---|
 | Do anything at all | `docs/INDEX.md` |
-| Write a migration or model | `docs/06-database.md` |
-| Add a controller, route, or service | `docs/05-architecture.md` |
-| Touch anything to do with mock/fake/seeded data | `docs/07-data-strategy.md` |
-| Build a screen or Blade component | `docs/08-ui-conventions.md`, then look at `/dev/gallery` — the component probably already exists |
+| Write a migration or model | `docs/04-database.md` |
+| Add a controller, route, or service | `docs/03-architecture.md` |
+| Touch anything to do with mock/fake/seeded data | `docs/05-data-strategy.md` |
+| Build a screen or Blade component | `docs/06-ui-conventions.md`, then look at `/dev/gallery` — the component probably already exists |
 | Give something a status colour | `app/Support/Tone.php` — one method per surface, and nowhere else |
 | Work on one specific feature area | `docs/modules/` — find its owner and spec. Progress tracker: `docs/progress/build-log.md` |
 | Understand *why* something is built this way | `docs/decisions/` |
-| Check whether a requirement exists | `docs/03-requirements.md` |
-| Know what is still undecided | `docs/04-open-questions.md` |
+| Check whether a requirement exists | `docs/01-requirements.md` |
+| Know what is still undecided | `docs/02-open-questions.md` |
 | Use a domain word correctly | `docs/glossary.md` |
 
 ---
@@ -97,7 +99,7 @@ These are not stylistic preferences. Breaking them creates work for six other pe
 
 - **Never create a second database** for mock or test data. One schema, one database, tagged rows. See ADR-0003.
 - **Never add a repository interface** for an Eloquent model. Eloquent is already the data-access layer. See ADR-0001.
-- **Never hardcode arrays of fake data** in a controller, service, or Blade file. Seeders and factories only. See `docs/07-data-strategy.md`.
+- **Never hardcode arrays of fake data** in a controller, service, or Blade file. Seeders and factories only. See `docs/05-data-strategy.md`.
 - **Never write a `match` on a tone outside `app/Support/Tone.php`.** One file owns tone to Tailwind classes, one method per surface. A second mapping is how `urgent` becomes two different reds.
 - **Never use MySQL's `ENUM` column type.** Use a `string` column cast to a PHP backed enum. See ADR-0004.
 - **Never use `float` for a number a user reads.** Use `decimal`.
@@ -155,9 +157,9 @@ Documentation that drifts is worse than none, because people trust it.
 
 - **A decision that changes how code is written** → write an ADR in `docs/decisions/`, then update the affected doc.
 - **A small call made in passing** → one line in `docs/progress/decision-log.md`.
-- **A schema change** → update `docs/06-database.md` in the *same* commit as the migration.
-- **A new requirement** → give it an ID in `docs/03-requirements.md`. Requirements without IDs cannot be tested or traced.
-- **An open question resolved** → update its status in `docs/04-open-questions.md`; do not delete it. The history is evidence for the report.
+- **A schema change** → update `docs/04-database.md` in the *same* commit as the migration.
+- **A new requirement** → give it an ID in `docs/01-requirements.md`. Requirements without IDs cannot be tested or traced.
+- **An open question resolved** → update its status in `docs/02-open-questions.md`; do not delete it. The history is evidence for the report.
 - **Finishing a week** → fill in `docs/progress/week-NN.md`. This is worth 10% of the report mark.
 
 When you change a doc, update the `Last updated` line at its top.

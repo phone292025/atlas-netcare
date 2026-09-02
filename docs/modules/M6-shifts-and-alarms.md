@@ -31,16 +31,16 @@ Admin: shift template index/create/edit · roster generator with week preview an
 
 ## Key decisions
 
-- **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../04-open-questions.md).
+- **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../02-open-questions.md).
 - **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for AP-offline alerts. Publish a small, stable interface and tell the other owners.
-- **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. Say so in the report's Limitations. See [Q5](../04-open-questions.md).
+- **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. Say so in the report's Limitations. See [Q5](../02-open-questions.md).
 - **Alarms are scheduled, not immediate.** A row with `trigger_at` in the future is normal; the dispatcher sends it when due. This is what makes inspection-round reminders possible.
 - **A missed shift is a status**, set by the generator when a scheduled shift's end time passes with no check-in.
 
 ## Open questions
 
-- ✅ [Q4](../04-open-questions.md) — **settled**: recurring weekly templates, exactly as assumed.
-- ✅ [Q5](../04-open-questions.md) — **settled**: in-app bell only. **This belongs in the report's Limitations** — mobile push needs a native app or service-worker infrastructure this project does not have time for, and saying so is better than a marker noticing.
+- ✅ [Q4](../02-open-questions.md) — **settled**: recurring weekly templates, exactly as assumed.
+- ✅ [Q5](../02-open-questions.md) — **settled**: in-app bell only. **This belongs in the report's Limitations** — mobile push needs a native app or service-worker infrastructure this project does not have time for, and saying so is better than a marker noticing.
 
 ## Definition of done
 
@@ -79,7 +79,7 @@ Added 2026-08-29, after M6. The alarms above only reach the bell inside the app,
 
 Rather than push messages out, the system hands the shift to the phone and the phone does the reminding. That alarm system already works with the app closed, the screen locked and no internet.
 
-**Email was considered and rejected.** *(Updated 2026-08-29: the first of these reasons no longer holds. Accounts moved to deliverable Gmail plus-addresses so FR-102 could send a password reset link — see [Q11](../04-open-questions.md#q11). The decision stands on the reasons that follow it, not on this one.)* Every account used `@apu.test` or `@atlas.local`, both reserved domains that can never receive mail. Sending email would mean putting seven personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message. A calendar file needs no address at all.
+**Email was considered and rejected.** *(Updated 2026-08-29: the first of these reasons no longer holds. Accounts moved to deliverable Gmail plus-addresses so FR-102 could send a password reset link — see [Q11](../02-open-questions.md#q11). The decision stands on the reasons that follow it, not on this one.)* Every account used `@apu.test` or `@atlas.local`, both reserved domains that can never receive mail. Sending email would mean putting seven personal addresses into a public repository, or routing everything to one inbox and no longer proving the right person gets the right message. A calendar file needs no address at all.
 
 **Two ways in, sharing one generator** in `ShiftCalendar`.
 

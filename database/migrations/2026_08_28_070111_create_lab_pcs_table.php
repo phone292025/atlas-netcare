@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * campus PCs, so everything the system knows about one arrives through an
  * assistant completing a checklist or raising a ticket.
  *
- * @see docs/06-database.md — Cluster A
+ * @see docs/04-database.md — Cluster A
  * @see docs/modules/M2-locations-and-assets.md
  */
 return new class extends Migration

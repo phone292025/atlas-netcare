@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-08-29 · **Status:** schema changes need an ADR after the design freeze — see docs/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-08-29 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -340,7 +340,7 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 ### `telemetry_readings.source`
 
-`simulated` or `live`. Both can sit in the same table. This is what makes the mock/real strategy work without a second database — see [07-data-strategy.md](07-data-strategy.md).
+`simulated` or `live`. Both can sit in the same table. This is what makes the mock/real strategy work without a second database — see [05-data-strategy.md](05-data-strategy.md).
 
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
 

@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
  * unregistered target falls back to the profile page rather than throwing —
  * this controller must never be the reason the application is unreachable.
  *
- * @see docs/05-architecture.md — Authorisation
+ * @see docs/03-architecture.md — Authorisation
  * @see App\Enums\UserRole::homeRoute()
  */
 class DashboardRedirect extends Controller

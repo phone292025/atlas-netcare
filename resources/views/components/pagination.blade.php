@@ -24,7 +24,7 @@
     Renders nothing at all when there is only one page, so an index screen with
     six rows does not carry a dead control.
 
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 @php

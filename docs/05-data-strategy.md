@@ -1,4 +1,4 @@
-> **For the report:** [14-simulated-and-real-data.md](14-simulated-and-real-data.md) turns this file's mechanisms into the Limitations and Assumptions wording, with live row counts.
+> **For the report:** [10-simulated-and-real-data.md](10-simulated-and-real-data.md) turns this file's mechanisms into the Limitations and Assumptions wording, with live row counts.
 
 # Data Strategy
  — Mock, Real, or Both

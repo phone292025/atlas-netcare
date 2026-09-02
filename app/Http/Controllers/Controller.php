@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
  * this user act on this record?". Never write `if ($user->role === ...)` in a
  * controller — that condition belongs in one of the two.
  *
- * @see docs/05-architecture.md — Authorisation
+ * @see docs/03-architecture.md — Authorisation
  */
 abstract class Controller
 {

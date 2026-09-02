@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Schema;
  * changing the lifecycle is a code change in TicketService rather than an
  * ALTER TABLE on a table six other people have locally (ADR-0004).
  *
- * @see docs/06-database.md
- * @see docs/04-open-questions.md Q3
+ * @see docs/04-database.md
+ * @see docs/02-open-questions.md Q3
  * @see docs/modules/M4-ticketing.md
  */
 return new class extends Migration

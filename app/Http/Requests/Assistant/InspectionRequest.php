@@ -13,7 +13,7 @@ use Illuminate\Validation\Validator;
  * Authorisation is InspectionPolicy, applied in the controller — the rule is
  * about this inspection and this person, which middleware cannot express.
  *
- * @see docs/03-requirements.md FR-204, FR-205
+ * @see docs/01-requirements.md FR-204, FR-205
  */
 class InspectionRequest extends FormRequest
 {

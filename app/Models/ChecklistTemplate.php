@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * somebody activate two templates at once.
  *
  * @see docs/modules/M3-checklists-and-inspections.md
- * @see docs/04-open-questions.md Q2
+ * @see docs/02-open-questions.md Q2
  */
 class ChecklistTemplate extends Model
 {

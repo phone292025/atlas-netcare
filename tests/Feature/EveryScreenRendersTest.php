@@ -21,7 +21,7 @@ use Tests\TestCase;
  * This is the sweep that makes that class of bug impossible to reintroduce
  * quietly: add a screen, add a row here.
  *
- * @see docs/10-testing.md — the four habits
+ * @see docs/07-testing.md — the four habits
  */
 class EveryScreenRendersTest extends TestCase
 {

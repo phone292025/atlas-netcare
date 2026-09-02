@@ -11,7 +11,7 @@ namespace App\Enums\Contracts;
  *
  * Valid tones: healthy, attention, urgent, neutral.
  *
- * @see docs/08-ui-conventions.md — Design tokens
+ * @see docs/06-ui-conventions.md — Design tokens
  */
 interface HasTone
 {

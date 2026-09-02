@@ -16,7 +16,7 @@ use App\Models\User;
  * nobody edits it — not the assistant who wrote it, not an administrator.
  * Getting it wrong means inspecting the machine again, which is honest.
  *
- * @see docs/05-architecture.md — Authorisation
+ * @see docs/03-architecture.md — Authorisation
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 class InspectionPolicy

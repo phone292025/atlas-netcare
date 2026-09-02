@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  * chart(), which is the only surface that leaves the Tailwind vocabulary
  * entirely and so cannot be checked the same way.
  *
- * @see docs/08-ui-conventions.md — Design tokens
+ * @see docs/06-ui-conventions.md — Design tokens
  */
 class ToneSurfacesTest extends TestCase
 {

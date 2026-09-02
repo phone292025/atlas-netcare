@@ -18,7 +18,7 @@ Seven modules, one owner each. The split exists because Section F of the guideli
 
 **All seven modules are coded.** What is outstanding is not code: every module still owes a DFD 1, a data dictionary and a flowchart for the report, and **nobody owns any module.** The diagrams are worth 15 marks between them.
 
-**Assign owners at the next team meeting**, then mirror into [../02-team-and-ownership.md](../02-team-and-ownership.md), `README.md` and the Workload Matrix.
+**Assign owners at the next team meeting**, then mirror into [../02-team-and-ownership.md](../../coursework/02-team-and-ownership.md), `README.md` and the Workload Matrix.
 
 ## Working in a module
 
@@ -31,7 +31,7 @@ Seven modules, one owner each. The split exists because Section F of the guideli
 
 A module is not done until all seven are true:
 
-1. Migrations written, and [../06-database.md](../06-database.md) updated in the same commit
+1. Migrations written, and [../04-database.md](../04-database.md) updated in the same commit
 2. Model with relationships, enum casts and any scopes
 3. Service holding the business logic, with unit tests for anything non-trivial
 4. Controllers thin, Form Requests validating, Policy authorising

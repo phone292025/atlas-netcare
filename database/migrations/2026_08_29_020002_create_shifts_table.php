@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Schema;
  * through it. Changing "Mondays 09:00" to 10:00 must not silently rewrite what
  * somebody already worked last week.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/modules/M6-shifts-and-alarms.md
  */
 return new class extends Migration

@@ -10,7 +10,7 @@
 
     Usage:  <x-priority-pill :priority="$ticket->priority" />
 
-    @see docs/08-ui-conventions.md — "Status carries progress; priority carries urgency"
+    @see docs/06-ui-conventions.md — "Status carries progress; priority carries urgency"
 --}}
 
 <x-badge :tone="$priority->tone()" pill {{ $attributes }}>

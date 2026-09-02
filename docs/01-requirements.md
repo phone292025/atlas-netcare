@@ -12,11 +12,11 @@ Every requirement has an ID. Test cases reference these IDs; module specs list t
 
 Three carry a caveat worth stating rather than hiding:
 
-- **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](04-open-questions.md#q11).
-- **FR-301, FR-303, FR-304, FR-305** all read **simulated** telemetry. The driver is swappable and the real one is a documented stub; see [14-simulated-and-real-data.md](14-simulated-and-real-data.md).
+- **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
+- **FR-301, FR-303, FR-304, FR-305** all read **simulated** telemetry. The driver is swappable and the real one is a documented stub; see [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 - **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file. Stated in the report Limitations.
 
-The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They are listed in [11-submission-checklist.md](11-submission-checklist.md) and remain outstanding.
+The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They are listed in [11-submission-checklist.md](../coursework/11-submission-checklist.md) and remain outstanding.
 
 ---
 
@@ -39,7 +39,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 - Physical network cabling
 - Technical servicing of students' personal devices
 - Public or student-facing access — the system is privilege-based and internal only
-- Any software agent installed on lab PCs (see [Q7](04-open-questions.md))
+- Any software agent installed on lab PCs (see [Q7](02-open-questions.md))
 
 ---
 
@@ -50,10 +50,10 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A user can sign in with an email address and password. | Approved |
-| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery is Gmail SMTP with plus-addressed demo accounts, built the same day — see [Q11](04-open-questions.md#q11). One manual step remains: an app password has to be pasted into `MAIL_PASSWORD` and checked with `php artisan atlas:mail-test`. Until it is, the screen says so instead of pretending. |
+| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery is Gmail SMTP with plus-addressed demo accounts, built the same day — see [Q11](02-open-questions.md#q11). One manual step remains: an app password has to be pasted into `MAIL_PASSWORD` and checked with `php artisan atlas:mail-test`. Until it is, the screen says so instead of pretending. |
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
-| FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](04-open-questions.md) |
+| FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](02-open-questions.md) |
 | FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **fully built.** `LoginRequest::authenticate()` refuses a deactivated account at sign-in, and the role middleware blocks one that already has a session. Both are tested. The note here said the login half did not exist; it did, and the claim was stale rather than the code incomplete. |
 
 ### FR-200 — Student IT Assistant
@@ -64,7 +64,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-202 | Receive automated shift alarms and inspection reminders. | Approved |
 | FR-203 | Start an inspection round for a location during an active shift. | Added |
 | FR-204 | Complete and submit a digital maintenance checklist for a lab workstation. | Approved |
-| FR-205 | Record a result of OK, Issue, or N/A per checklist item, with an optional remark. | Assumed — [Q2](04-open-questions.md) |
+| FR-205 | Record a result of OK, Issue, or N/A per checklist item, with an optional remark. | Assumed — [Q2](02-open-questions.md) |
 | FR-206 | Raise a workspace incident ticket for faulty hardware or a network drop. | Approved |
 | FR-207 | Raise a ticket pre-filled from a failed checklist item, without re-entering the asset, location or fault. | Added |
 | FR-208 | View own submitted tickets and their current status. | Added |
@@ -83,7 +83,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-304 | Drill into a single access point and view its recent telemetry as a chart. | Added |
 | FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved |
 | FR-306 | View, filter and sort the full incident ticket queue. | Approved |
-| FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](04-open-questions.md) · **complete 2026-09-02.** Every verb but *assign* was built; ownership was implicit, so a ticket picked up by the wrong person could only be moved in the database. Assignment is deliberately **not** a transition — who is doing the work and how far along it is are different questions. |
+| FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](02-open-questions.md) · **complete 2026-09-02.** Every verb but *assign* was built; ownership was implicit, so a ticket picked up by the wrong person could only be moved in the database. Assignment is deliberately **not** a transition — who is doing the work and how far along it is are different questions. |
 | FR-308 | Add comments to a ticket, optionally internal-only. | Added |
 | FR-309 | View assets ranked by predictive risk score. | Added — **built 2026-08-30.** Lab PCs and access points in one queue, ranked on the same 0-100 scale. |
 | FR-310 | View the contributing factors behind any asset's risk score. | Added — **built 2026-08-30.** Stored as JSON at the time of scoring, so an old score still explains itself after the weights change. |
@@ -98,9 +98,9 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-403 | Create and maintain campus locations. | Added |
 | FR-404 | Add, update and retire lab PC hardware inventory records. | Approved |
 | FR-405 | Add, update and retire access point inventory records. | Approved |
-| FR-406 | Create and version checklist templates and their items. | Assumed — [Q2](04-open-questions.md) |
+| FR-406 | Create and version checklist templates and their items. | Assumed — [Q2](02-open-questions.md) |
 | FR-407 | Configure recurring shift templates. | Approved |
-| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](04-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who. |
+| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](02-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who. |
 | FR-409 | View a system audit log of significant actions. | Approved |
 | FR-410 | Generate and view operational reports and descriptive statistics. | Approved — **built 2026-08-30.** Five reports. Admin and engineer. |
 
@@ -110,13 +110,13 @@ Stated in the proposal and not to be extended without supervisor agreement:
 |---|---|---|
 | FR-501 |
  Collect one telemetry reading per active access point every minute. | Added |
-| FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](04-open-questions.md) |
+| FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
 | FR-503 | Automatically raise a ticket when an access point goes offline. | Added |
-| FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](04-open-questions.md) |
+| FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) |
 | FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |
-| FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](04-open-questions.md) |
-| FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](04-open-questions.md) |
+| FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](02-open-questions.md) |
+| FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](02-open-questions.md) |
 | FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added |
 
 ---
@@ -138,7 +138,7 @@ Two of these come from the Meeting 2 minutes recorded in the proposal appendix b
 | NFR-09 | **Compatibility** — runs on the current stable Chrome, Edge and Firefox | Manual check during UAT | Added |
 | NFR-10 | **Accessibility** — all interactive elements keyboard-reachable with a visible focus state | Manual check during UAT | Added |
 
-> NFR-01 and NFR-02 are **test criteria**, not aspirations. They appear as pass conditions in [10-testing.md](10-testing.md).
+> NFR-01 and NFR-02 are **test criteria**, not aspirations. They appear as pass conditions in [07-testing.md](07-testing.md).
 
 ---
 

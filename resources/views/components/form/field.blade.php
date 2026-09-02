@@ -19,8 +19,8 @@
         reader reads them as part of the field rather than as stray paragraphs
       - `aria-invalid` marks the field itself as failing, not just the message
 
-    @see docs/08-ui-conventions.md — Blade components
-    @see docs/03-requirements.md NFR-10
+    @see docs/06-ui-conventions.md — Blade components
+    @see docs/01-requirements.md NFR-10
 --}}
 
 @php

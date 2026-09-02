@@ -40,7 +40,7 @@
     greyed out.
 
     @see App\Enums\Concerns\HasValues::options()
-    @see docs/08-ui-conventions.md — Blade components
+    @see docs/06-ui-conventions.md — Blade components
 --}}
 
 @php

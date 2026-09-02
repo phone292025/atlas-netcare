@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Area-level authorisation. Usage: middleware('role:engineer,admin')
-        // See docs/05-architecture.md
+        // See docs/03-architecture.md
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);

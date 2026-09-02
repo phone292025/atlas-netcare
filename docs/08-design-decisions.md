@@ -262,7 +262,7 @@ A status rather than an absence of one, so the roster can show it and a report c
 
 **Say this in your Limitations section.** Mobile push needs a native app or service worker infrastructure this project does not have time for. Stating the limit honestly is better than a marker noticing it.
 
-Phone Myat Ko has said the team is willing to add email. **As of 2026-08-29 nothing stands in the way of it:** FR-102 needed a working mailer, so one exists, and every account now has a deliverable address. Emailing alarms is a decision nobody has taken rather than infrastructure nobody has. See [Q11](04-open-questions.md#q11).
+Phone Myat Ko has said the team is willing to add email. **As of 2026-08-29 nothing stands in the way of it:** FR-102 needed a working mailer, so one exists, and every account now has a deliverable address. Emailing alarms is a decision nobody has taken rather than infrastructure nobody has. See [Q11](02-open-questions.md#q11).
 
 
 ---

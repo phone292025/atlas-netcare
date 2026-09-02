@@ -26,7 +26,7 @@
     getting tab containment right is fiddly and theirs is correct; the header,
     footer slot, close button and dialog semantics are new.
 
-    @see docs/08-ui-conventions.md — Interaction conventions
+    @see docs/06-ui-conventions.md — Interaction conventions
 --}}
 
 @php

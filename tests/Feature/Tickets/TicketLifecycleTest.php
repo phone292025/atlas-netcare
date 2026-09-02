@@ -22,7 +22,7 @@ use Tests\TestCase;
  * button in Blade is a suggestion and a hand-written POST ignores it.
  *
  * @see App\Services\Tickets\TicketService
- * @see docs/04-open-questions.md Q3
+ * @see docs/02-open-questions.md Q3
  */
 class TicketLifecycleTest extends TestCase
 {

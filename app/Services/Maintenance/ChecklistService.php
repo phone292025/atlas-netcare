@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  * because there is no history to protect and versioning a draft nobody has
  * used just fills the list with noise.
  *
- * @see docs/04-open-questions.md Q2
+ * @see docs/02-open-questions.md Q2
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 class ChecklistService

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * One assistant completing one checklist against one lab PC.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 return new class extends Migration
@@ -54,7 +54,7 @@ return new class extends Migration
             $table->timestamps();
 
             // "This machine's inspection history, newest first" — the show
-            // page, and M7's scoring input. Named in docs/06-database.md.
+            // page, and M7's scoring input. Named in docs/04-database.md.
             $table->index(['lab_pc_id', 'completed_at']);
 
             // "What am I part-way through?" — the assistant's resume path.

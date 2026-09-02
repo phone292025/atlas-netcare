@@ -24,7 +24,7 @@
             Asset tag APU-1042 is already in use.
         </x-alert>
 
-    @see docs/08-ui-conventions.md — Design tokens, Interaction conventions
+    @see docs/06-ui-conventions.md — Design tokens, Interaction conventions
 --}}
 
 @php

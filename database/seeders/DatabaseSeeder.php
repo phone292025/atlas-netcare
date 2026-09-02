@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
  * developer's machine, and the same command with ATLAS_DEMO_MODE=false gives a
  * clean deployable one. No second database, no separate migration path.
  *
- * @see docs/07-data-strategy.md
+ * @see docs/05-data-strategy.md
  */
 class DatabaseSeeder extends Seeder
 {

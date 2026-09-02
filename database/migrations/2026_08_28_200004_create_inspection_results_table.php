@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * One answer to one checklist item within one inspection.
  *
- * @see docs/06-database.md
+ * @see docs/04-database.md
  * @see docs/modules/M3-checklists-and-inspections.md
  */
 return new class extends Migration

@@ -13,7 +13,7 @@ use Tests\TestCase;
  * otherwise surface as confusing behaviour rather than an error: a missing key,
  * and weights that no longer sum to 1.
  *
- * @see docs/05-architecture.md — Configuration
+ * @see docs/03-architecture.md — Configuration
  */
 class AtlasConfigTest extends TestCase
 {
