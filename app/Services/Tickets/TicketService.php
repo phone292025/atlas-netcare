@@ -307,18 +307,11 @@ class TicketService
      */
     protected function reserveNumber(): string
     {
-        $year = now()->year;
-
-        $lastNumber = Ticket::withTrashed()
-            ->where('ticket_number', 'like', "TKT-{$year}-%")
-            ->orderByDesc('ticket_number')
-            ->value('ticket_number');
-
-        $sequence = $lastNumber
-            ? ((int) substr($lastNumber, -5)) + 1
-            : 1;
-
-        return sprintf('TKT-%d-%05d', $year, $sequence);
+        // The format and the "what is the highest so far" question both live
+        // on the model, because TicketFactory needs the same two answers and
+        // a second implementation of them is how the demonstration data ended
+        // up numbering tickets at random.
+        return Ticket::formatNumber(Ticket::highestSequenceThisYear() + 1);
     }
 
     /**

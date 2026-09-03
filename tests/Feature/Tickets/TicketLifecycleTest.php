@@ -403,4 +403,91 @@ class TicketLifecycleTest extends TestCase
 
         $this->assertSame(1, Ticket::count(), 'A failed attempt must not leave half a ticket behind.');
     }
+
+    /*
+    |---------------------------------------------------------------------
+    | One format, one counter
+    |---------------------------------------------------------------------
+    |
+    | The reference format was written twice: in TicketService and again in
+    | TicketFactory, where it invented a RANDOM number between 1 and 99999.
+    | Seeding pushed the highest to around 96,000, and reserveNumber() takes
+    | the highest and adds one, so the first ticket raised by hand on the
+    | development machine came out as TKT-2026-96851. Nothing broke; the
+    | numbers just stopped being a sequence.
+    */
+
+    public function test_the_factory_counts_rather_than_inventing(): void
+    {
+        $tickets = Ticket::factory()->count(5)->create();
+
+        $numbers = $tickets->pluck('ticket_number')->all();
+
+        $this->assertSame(count($numbers), count(array_unique($numbers)), 'Two tickets share a reference.');
+
+        foreach ($numbers as $number) {
+            $this->assertMatchesRegularExpression('/^TKT-\d{4}-\d{5}$/', $number);
+
+            // The old version could produce anything up to 99999 from five
+            // tickets. A counter cannot.
+            $this->assertLessThan(1000, (int) substr($number, -5), "{$number} is not a counted sequence.");
+        }
+    }
+
+    public function test_a_batch_does_not_hand_out_the_same_number_to_everyone(): void
+    {
+        /*
+         * The trap this design exists for. `count(n)->create()` resolves every
+         * definition() BEFORE inserting any of them, so a factory that asked
+         * the database for the highest number each time would read the same
+         * answer n times and every insert but the first would fail on the
+         * unique index.
+         */
+        $numbers = Ticket::factory()->count(25)->create()->pluck('ticket_number');
+
+        $this->assertCount(25, $numbers->unique(), 'A batch reused a reference.');
+    }
+
+    public function test_the_factory_does_not_collide_with_a_ticket_that_already_exists(): void
+    {
+        /*
+         * A real ticket raised before any seeding occupies the first number.
+         * A counter starting blindly at 1 would try to take it.
+         */
+        $first = $this->service()->open($this->attributes(), $this->userWith(UserRole::Assistant));
+
+        $seeded = Ticket::factory()->count(3)->create();
+
+        $this->assertNotContains($first->ticket_number, $seeded->pluck('ticket_number')->all());
+        $this->assertSame(4, Ticket::count());
+    }
+
+    public function test_the_service_and_the_factory_agree_on_the_format(): void
+    {
+        // They are the two callers of Ticket::formatNumber(). If one drifts,
+        // the demonstration data stops looking like the real thing.
+        $fromFactory = Ticket::factory()->create()->ticket_number;
+        $fromService = $this->service()->open($this->attributes(), $this->userWith(UserRole::Assistant))->ticket_number;
+
+        $shape = fn (string $n) => preg_replace('/\d/', 'N', $n);
+
+        $this->assertSame($shape($fromFactory), $shape($fromService));
+    }
+
+    public function test_an_archived_ticket_does_not_have_its_number_reissued(): void
+    {
+        /*
+         * Two tickets sharing a reference would make the audit trail
+         * ambiguous, so a soft-deleted number stays used.
+         */
+        $reporter = $this->userWith(UserRole::Assistant);
+
+        $first = $this->service()->open($this->attributes(), $reporter);
+        $taken = $first->ticket_number;
+        $first->delete();
+
+        $next = $this->service()->open($this->attributes(), $reporter);
+
+        $this->assertNotSame($taken, $next->ticket_number);
+    }
 }

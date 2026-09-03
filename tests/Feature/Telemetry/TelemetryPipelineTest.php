@@ -110,13 +110,28 @@ class TelemetryPipelineTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
         $source = new SimulatedTelemetrySource;
 
-        $noon = now()->next('Tuesday')->setTime(11, 0);
-        $night = now()->next('Tuesday')->setTime(3, 0);
+        $tuesday = now()->next('Tuesday');
 
-        $this->assertGreaterThan(
-            $source->reading($ap, $night)->clientCount,
-            $source->reading($ap, $noon)->clientCount,
-        );
+        /*
+         * Sampled across the hour, skipping outages. A single reading at one
+         * instant is a bet that the instant is not inside an outage window,
+         * and an unreachable reading reports ZERO clients — so an outage at
+         * 11:00 makes midday look quieter than 03:00 and the assertion
+         * inverts. Outage windows are 20 minutes and seeded from the row ID,
+         * which is why that bet lands differently on MariaDB than on SQLite.
+         */
+        $meanClientsAt = fn (int $hour) => collect(range(0, 11))
+            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 5)))
+            ->reject(fn ($reading) => $reading->unreachable)
+            ->avg(fn ($reading) => $reading->clientCount);
+
+        $night = $meanClientsAt(3);
+        $noon = $meanClientsAt(11);
+
+        $this->assertNotNull($night, 'Every overnight reading was an outage.');
+        $this->assertNotNull($noon, 'Every midday reading was an outage.');
+
+        $this->assertGreaterThan($night, $noon);
     }
 
     public function test_latency_rises_with_saturation(): void
@@ -178,13 +193,58 @@ class TelemetryPipelineTest extends TestCase
 
     public function test_the_collector_updates_the_access_points_own_status(): void
     {
-        // The denormalised cache the dashboard and inventory read, written in
-        // the same transaction as the reading so the two cannot disagree.
-        $ap = AccessPoint::factory()->create();
+        /*
+         * The denormalised cache the dashboard and inventory read, written in
+         * the same transaction as the reading so the two cannot disagree.
+         *
+         * ASSERTS THE PAIRING, not that one access point answered. The earlier
+         * version created a single AP and required `last_seen_at` to be set,
+         * which is a bet that the AP is not in an outage — and `isOutage()` is
+         * seeded from the row ID, so the bet lands differently on MariaDB
+         * (where auto-increment keeps climbing) than on in-memory SQLite. It
+         * passed alone and failed in a full MariaDB run, which reads like a
+         * driver bug and is not one.
+         *
+         * The real contract is narrower and does not depend on luck: an access
+         * point that ANSWERED gets a timestamp, and one that did not keeps the
+         * one it had. Stamping a failed poll would mean nothing is ever
+         * offline.
+         */
+        AccessPoint::factory()->count(6)->create();
 
         Artisan::call('atlas:collect-telemetry');
 
-        $this->assertNotNull($ap->fresh()->last_seen_at);
+        $readings = TelemetryReading::all()->keyBy('access_point_id');
+
+        $this->assertCount(6, $readings, 'Every access point should have been polled.');
+
+        $answered = 0;
+
+        foreach (AccessPoint::all() as $ap) {
+            // packet_loss_pct 100 with no latency is what unreachable() writes.
+            $reading = $readings[$ap->id];
+            $unreachable = $reading->latency_ms === null;
+
+            if ($unreachable) {
+                $this->assertNull(
+                    $ap->last_seen_at,
+                    "{$ap->ap_code} did not answer but was stamped as seen.",
+                );
+
+                continue;
+            }
+
+            $answered++;
+
+            $this->assertNotNull(
+                $ap->last_seen_at,
+                "{$ap->ap_code} answered but was not stamped as seen.",
+            );
+        }
+
+        // Outages run at a few percent, so six all failing at once would mean
+        // the simulator is broken rather than unlucky.
+        $this->assertGreaterThan(0, $answered, 'Every access point was unreachable at once.');
     }
 
     public function test_an_access_point_going_offline_raises_exactly_one_ticket(): void

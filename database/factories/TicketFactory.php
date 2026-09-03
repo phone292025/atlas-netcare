@@ -25,6 +25,43 @@ class TicketFactory extends Factory
 {
     protected $model = Ticket::class;
 
+    /**
+     * The last sequence number this process has handed out.
+     *
+     * IN MEMORY, NOT A QUERY PER TICKET, and that is the load-bearing part.
+     * `Ticket::factory()->count(40)->create()` resolves every `definition()`
+     * BEFORE it inserts any of them, so a factory that asked the database for
+     * the highest number each time would read the same answer forty times and
+     * hand out forty identical references, every one but the first failing on
+     * the unique index.
+     *
+     * Seeded once from the database so it does not collide with tickets that
+     * already exist — a real ticket raised before seeding would otherwise
+     * occupy TKT-YYYY-00001 and the first seeded one would try to take it.
+     *
+     * It is never reset. Across a test run the numbers climb past whatever the
+     * database has been truncated back to, which keeps them unique and is
+     * harmless: no test asserts a factory-made reference, and the ones that
+     * check the sequence use TicketService on an empty database.
+     */
+    private static ?int $sequence = null;
+
+    /**
+     * The next reference, counted rather than invented.
+     *
+     * This used to be `numberBetween(1, 99999)`, which made seeded tickets
+     * random and pushed the highest to around 96,000 — so every real ticket
+     * raised afterwards continued from there, because `reserveNumber()` takes
+     * the highest and adds one. Nothing broke; the numbers simply stopped
+     * being the readable sequence the format exists for.
+     */
+    private function nextNumber(): string
+    {
+        self::$sequence ??= Ticket::highestSequenceThisYear();
+
+        return Ticket::formatNumber(++self::$sequence);
+    }
+
     /** @return array<string, mixed> */
     public function definition(): array
     {
@@ -32,7 +69,7 @@ class TicketFactory extends Factory
         $priority = $this->faker->randomElement(TicketPriority::cases());
 
         return [
-            'ticket_number' => 'TKT-'.now()->year.'-'.str_pad((string) $this->faker->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT),
+            'ticket_number' => $this->nextNumber(),
             'title' => $this->faker->randomElement([
                 'Machine will not power on',
                 'Monitor flickering badly',

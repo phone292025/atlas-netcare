@@ -161,4 +161,49 @@ class Ticket extends Model
 
         return $this->location?->code ?? 'Unassigned';
     }
+
+    /**
+     * "TKT-2026-00417" — the one place the reference format is written.
+     *
+     * It used to be written twice: once in `TicketService::reserveNumber()`
+     * and once in `TicketFactory`, which invented a RANDOM number between 1
+     * and 99999 instead of counting. Seeding a demonstration database
+     * therefore pushed the highest number to around 96,000, and because
+     * `reserveNumber()` takes the highest and adds one, every real ticket
+     * raised afterwards continued from there. The first ticket raised by hand
+     * on the development machine came out as TKT-2026-96851.
+     *
+     * Nothing broke. The numbers were unique and the column is wide enough.
+     * They simply stopped being the readable sequence the format exists for,
+     * and no test noticed because the tests that check the sequence use the
+     * service on an empty database.
+     *
+     * Two implementations of one format is the actual defect; the random range
+     * was the symptom.
+     *
+     * @param  int  $sequence  the count within the year, from 1
+     */
+    public static function formatNumber(int $sequence, ?int $year = null): string
+    {
+        return sprintf('TKT-%d-%05d', $year ?? now()->year, $sequence);
+    }
+
+    /**
+     * The highest sequence number used this year, or 0 if there is none.
+     *
+     * Includes soft-deleted rows: a number belonging to an archived ticket has
+     * still been used, and reissuing it would make two tickets share a
+     * reference in the audit trail.
+     */
+    public static function highestSequenceThisYear(?int $year = null): int
+    {
+        $year ??= now()->year;
+
+        $highest = static::withTrashed()
+            ->where('ticket_number', 'like', "TKT-{$year}-%")
+            ->orderByDesc('ticket_number')
+            ->value('ticket_number');
+
+        return $highest ? (int) substr($highest, -5) : 0;
+    }
 }
