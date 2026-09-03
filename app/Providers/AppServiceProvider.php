@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
         AccessPoint::class,
 
         /*
-         * Added 2026-08-30. Tickets carry the only state machine in the
+         * Tickets carry the only state machine in the
          * system, and were the one module with no history at all — which was
          * exactly backwards. It surfaced when a ticket turned up holding a
          * closed_at eight hours before its own opened_at and there was
@@ -49,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
         Ticket::class,
 
         /*
-         * Added 2026-09-02. Both are administrator-editable configuration that
+         * Both are administrator-editable configuration that
          * changes what everybody else's work means: a checklist template
          * decides what an inspection asks, and a shift template decides who is
          * rostered. Changing either silently was possible until now, and

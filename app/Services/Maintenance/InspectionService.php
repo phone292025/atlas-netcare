@@ -43,7 +43,7 @@ class InspectionService
          * so an inspection against one produces a record nothing else
          * acknowledges, on a machine that is physically gone from the room.
          *
-         * There was no guard at all here until 2026-09-02: an inspection could
+         * There was no guard at all here once: an inspection could
          * be started on a machine that was both retired and soft-deleted, and
          * nothing complained. Completed inspections on retired machines stay
          * readable; this only governs starting new ones.

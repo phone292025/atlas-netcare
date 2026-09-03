@@ -49,8 +49,9 @@ class ReferenceSeeder extends Seeder
      * administrators create all accounts (FR-105), so somebody has to create
      * the first administrator.
      *
-     * updateOrCreate keyed on email, so re-running the seeder on an existing
-     * database is safe and does not fail on the unique index.
+     * Keyed on email, so re-running the seeder on an existing database is safe
+     * and does not fail on the unique index. Re-running also does NOT touch the
+     * password or the change-password flag — see the note inside.
      */
     private function firstAdministrator(): void
     {
@@ -71,15 +72,45 @@ class ReferenceSeeder extends Seeder
 
         $email = config('atlas.first_admin.email');
 
-        $admin = User::withTrashed()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => config('atlas.first_admin.name'),
-                'password' => Hash::make(config('atlas.first_admin.password')),
-                'email_verified_at' => now(),
+        $admin = User::withTrashed()->firstWhere('email', $email);
+
+        /*
+         * AN EXISTING ADMINISTRATOR KEEPS ITS PASSWORD.
+         *
+         * This used to pass the hashed env password into the update half of
+         * `updateOrCreate` and set `must_change_password` unconditionally, so
+         * EVERY `db:seed` silently overwrote whatever password the
+         * administrator had chosen and put the flag back. `db:seed` is routine
+         * — the README tells people to run it and DemoDataSeeder depends on it
+         * — and once EnsurePasswordIsChanged existed, re-seeding also locked
+         * the account back onto the change screen.
+         *
+         * The idempotency test could not see any of it: it counts rows, and
+         * the row count never changed.
+         *
+         * Role, activation and the soft delete ARE restored, because those are
+         * how you get back in after locking yourself out. The password is not.
+         * To reset it, use the reset link (`php artisan atlas:reset-link`
+         * locally) rather than a seeder.
+         */
+        if ($admin) {
+            $admin->forceFill([
+                'role' => UserRole::Admin,
+                'is_active' => true,
+                'is_demo' => false,
                 'deleted_at' => null,
-            ],
-        );
+            ])->save();
+
+            $this->command?->warn("  Administrator: {$email} (already exists, password left alone)");
+
+            return;
+        }
+
+        $admin = User::create([
+            'name' => config('atlas.first_admin.name'),
+            'email' => $email,
+            'password' => Hash::make(config('atlas.first_admin.password')),
+        ]);
 
         // Not mass assignable on purpose — privilege is never set from input.
         // See the $fillable docblock on App\Models\User.
@@ -88,10 +119,11 @@ class ReferenceSeeder extends Seeder
             'is_active' => true,
             'is_demo' => false,
             'must_change_password' => true,
+            'email_verified_at' => now(),
         ])->save();
 
-        $this->command?->warn("  Administrator: {$email}");
-        $this->command?->warn('  Change this password immediately after signing in.');
+        $this->command?->warn("  Administrator created: {$email}");
+        $this->command?->warn('  It will ask for a new password at first sign-in.');
     }
 
     /**

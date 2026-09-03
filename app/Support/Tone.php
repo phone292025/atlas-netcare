@@ -39,7 +39,7 @@ final class Tone
     /**
      * Worse than ATTENTION, not yet URGENT.
      *
-     * Added 2026-09-04 because four risk bands were sharing three tones.
+     * Added because four risk bands were sharing three tones.
      * `RiskBand::Medium` and `RiskBand::High` both returned ATTENTION, so on
      * M7's headline chart — the figure that makes this project answer Case
      * Study Category 4 — two of the four bars were the same amber and a reader

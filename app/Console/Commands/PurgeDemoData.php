@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Remove every demonstration row, leaving a system somebody could deploy.
  *
  * Referenced in the README, ADR-0003, the data strategy and the database
- * document since Sprint 0, and not written until 2026-09-02. Every one of
+ * document since Sprint 0, and not written for weeks after. Every one of
  * those references was a promise that running this would work.
  *
  * WHAT IT DELETES. Anything tagged `is_demo` — users, lab PCs, access points,

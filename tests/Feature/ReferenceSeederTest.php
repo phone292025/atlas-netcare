@@ -11,6 +11,7 @@ use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
@@ -179,5 +180,78 @@ class ReferenceSeederTest extends TestCase
         $this->seed(ReferenceSeeder::class);
 
         $this->assertSame($before, ShiftTemplate::count());
+    }
+
+    /*
+    |---------------------------------------------------------------------
+    | Re-seeding must not undo the administrator, added 2026-09-04
+    |---------------------------------------------------------------------
+    |
+    | `test_running_it_twice_does_not_duplicate_anything` above counts ROWS,
+    | and the row count never changed — so it could not see that every run was
+    | overwriting the administrator's password and re-raising the
+    | must_change_password flag.
+    */
+
+    public function test_reseeding_does_not_overwrite_a_password_the_admin_chose(): void
+    {
+        /*
+         * `db:seed` is routine: the README tells people to run it and
+         * DemoDataSeeder depends on it. Silently resetting the highest
+         * privilege account's password back to whatever `.env` still says is
+         * not something a seeder should do behind somebody's back.
+         */
+        $this->seed(ReferenceSeeder::class);
+
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+        $admin->forceFill(['password' => Hash::make('the-one-they-chose')])->save();
+        $chosen = $admin->fresh()->password;
+
+        $this->seed(ReferenceSeeder::class);
+
+        $this->assertSame($chosen, $admin->fresh()->password, 'Re-seeding reset the chosen password.');
+        $this->assertTrue(Hash::check('the-one-they-chose', $admin->fresh()->password));
+    }
+
+    public function test_reseeding_does_not_lock_the_admin_back_onto_the_change_screen(): void
+    {
+        /*
+         * The half that only started to hurt once EnsurePasswordIsChanged
+         * existed. Before the middleware, re-raising the flag did nothing
+         * visible. Now it bounces the administrator to the profile screen from
+         * every other page — after they had already done what it asked.
+         */
+        $this->seed(ReferenceSeeder::class);
+
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+        $admin->forceFill(['must_change_password' => false])->save();
+
+        $this->seed(ReferenceSeeder::class);
+
+        $this->assertFalse($admin->fresh()->must_change_password, 'Re-seeding re-flagged the account.');
+    }
+
+    public function test_reseeding_does_restore_a_locked_out_administrator(): void
+    {
+        /*
+         * The other side of it, and the reason this is not simply "skip the
+         * row if it exists". Deactivating or archiving the only administrator
+         * is exactly the mistake somebody makes at 2am, and re-seeding is the
+         * documented way back in. Access is restored; the password is not
+         * touched.
+         */
+        $this->seed(ReferenceSeeder::class);
+
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+        $admin->forceFill(['is_active' => false, 'role' => UserRole::Assistant])->save();
+        $admin->delete();
+
+        $this->seed(ReferenceSeeder::class);
+
+        $restored = User::withTrashed()->where('email', config('atlas.first_admin.email'))->firstOrFail();
+
+        $this->assertTrue($restored->is_active);
+        $this->assertSame(UserRole::Admin, $restored->role);
+        $this->assertNull($restored->deleted_at);
     }
 }

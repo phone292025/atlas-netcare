@@ -1,6 +1,6 @@
 # What Is Left
 
-> **Last updated:** 2026-09-02 · **Written as the handover into the review session planned for Wednesday.**
+> **Last updated:** 2026-09-04 · **Sections 1 to 3 are CLOSED. Section 4 is what remains.**
 >
 > Every line below was checked against the code and the live database, not recalled. §1.1 was closed on 2026-09-02; everything else was verified on 2026-08-30. Where something is missing, the check that found it is named so it can be re-run.
 
@@ -8,13 +8,17 @@
 
 ## The plan this file supports
 
-1. **Fix what is known to be missing** — the list in section 1.
-2. **Settle the real-data question** — section 2. If SNMP access ever arrives, make sure the swap actually works rather than assuming it does.
-3. **Review M1 to M7 feature by feature**, file by file, finding and fixing bugs live — section 3 is the running order and what to watch for.
+1. **Fix what is known to be missing** — the list in section 1. **Done.**
+2. **Settle the real-data question** — section 2. Still open in the sense that matters: the SNMP driver has never been exercised against real hardware, because there is none to exercise it against.
+3. **Review M1 to M7 feature by feature** — section 3 was the running order. **Executed on 2026-09-02, and again against an external review on 2026-09-03 and 2026-09-04.**
+
+> **Sections 1 to 3 are history now, kept because the reasoning is evidence for the report.** What they produced is in [decision-log.md](decision-log.md); the code items they listed are built and the review they planned has been run twice. Two defects that only a MariaDB run could find, a forced-password-change control that was written but never enforced, and a live calendar token sitting in the audit log all came out of it.
+>
+> **Section 4 is the part that is still true**, and it needs people rather than commits.
 
 ---
 
-## 1. Genuinely not built
+## 1. Genuinely not built *(closed 2026-09-04 — every item here is now built)*
 
 ~~Four~~ **None.** All four were closed on 2026-09-02: FR-408, the demo inventory, the risk spread and `atlas:purge-demo-data`.
 
@@ -112,7 +116,7 @@ That claim has never been exercised. It is very likely true — the binding is o
 
 ---
 
-## 3. The M1 to M7 review — suggested running order
+## 3. The M1 to M7 review — suggested running order *(executed; kept as a record)*
 
 The audit above covers what is *missing*. The review is about what is *wrong*, which is a different question and needs the system exercised rather than read.
 

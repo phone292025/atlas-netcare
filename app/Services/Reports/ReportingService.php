@@ -29,7 +29,7 @@ use Illuminate\Support\Carbon;
  * hard rule that says a controller "calls one service method". Every other
  * module in Atlas NetCare has a service; reports was the one place where the
  * aggregation had nowhere to go, so it stayed in the controller and the rule
- * quietly stopped describing the code. Moved 2026-09-04.
+ * quietly stopped describing the code.
  *
  * NO VENDOR-SPECIFIC SQL ANYWHERE IN HERE. The suite runs on SQLite and the
  * system runs on MariaDB, and that gap has already shipped three defects
@@ -86,7 +86,7 @@ class ReportingService
 
     /*
     |---------------------------------------------------------------------
-    | Chart and table shapes, added 2026-09-04
+    | Chart and table shapes
     |---------------------------------------------------------------------
     |
     | Chart.js datasets and table headers used to be assembled inside
@@ -315,7 +315,7 @@ class ReportingService
              *
              * It is a machine that works with something cosmetic noted — a
              * loose stand, a mark on the screen. Counting it as a failure,
-             * which this did until 2026-09-02, made every location's pass rate
+             * which this once did, made every location's pass rate
              * lower than the truth and put working machines in a column headed
              * "Failed". The enum has three cases and the report only ever
              * looked at one of them.

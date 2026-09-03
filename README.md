@@ -81,13 +81,17 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 | | |
 |---|---|
 | Email | `admin@atlas.local` |
-| Password | `ChangeMeNow!2026` |
+| Password | whatever you set as `ATLAS_ADMIN_PASSWORD` |
 
-Both come from `.env.example`, so a fresh clone works with no editing. If you set your own `ATLAS_ADMIN_PASSWORD` first, which you should, use that.
+**`.env.example` ships that blank on purpose**, and the seeder refuses to create the administrator until you set it. It used to ship `ChangeMeNow!2026`, which put the highest privilege account in the system behind a password printed in a public repository.
 
 > **The administrator does not share the demo password.** `ATLAS_ADMIN_PASSWORD` and `ATLAS_DEMO_PASSWORD` are different values, and typing the demo one at the admin login gives "These credentials do not match our records" with nothing to explain why. If a sign-in fails, check which of the two the account uses before assuming the account is broken.
 
-**Set your own password in `.env` before seeding**, and change it again after signing in — the account is flagged `must_change_password`. **Put the new value back in `.env` when you change it**, or the next `migrate --seed` resets the account to whatever that file still says and you are locked out wondering why. Every other real account is created from the admin's user-management screen.
+**Set your own password in `.env` before seeding.** The account is flagged `must_change_password`, so the first sign-in lands on the profile screen and every other page redirects back there until you choose a new one.
+
+Re-running `migrate --seed` after that is safe: since 2026-09-04 the seeder leaves an existing administrator's password and flag alone. It used to overwrite both on every run, which silently undid the password you had just chosen. Role, activation and the soft delete **are** still restored, so re-seeding remains the way back in if you lock yourself out. To reset a forgotten administrator password, use the reset link rather than a seeder.
+
+Every other real account is created from the admin's user-management screen.
 
 ### Demo accounts
 
