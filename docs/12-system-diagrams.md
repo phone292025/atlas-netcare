@@ -1,6 +1,6 @@
 # System Diagrams
 
-> **Last updated:** 2026-09-02 · **For report sections 8, 9, 10 and 13.**
+> **Last updated:** 2026-09-04 · **For report sections 8, 9, 10 and 13.**
 >
 > **These four are the whole-system diagrams, worth 15 marks between them.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 >
@@ -355,7 +355,8 @@ erDiagram
         string action "created|updated|archived|deleted"
         string auditable_type "polymorphic"
         bigint auditable_id
-        json changes
+        json changes "what the fields became"
+        json previous "what they had been"
         string ip_address
     }
 ```

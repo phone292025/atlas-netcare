@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-08-29 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-09-04 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -120,6 +120,8 @@ erDiagram
         string auditable_type
         bigint auditable_id
         text description
+        json changes "what the fields became"
+        json previous "what they had been, nullable"
         string ip_address
         timestamp created_at
     }
@@ -351,6 +353,16 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 Not merely indexed. Aggregation is re-runnable by design — scheduled hourly, rebuilding the last three hours, and runnable by hand — and without the unique constraint a second pass over the same hour silently doubles every point on the chart.
 
 Aggregated latency **excludes offline readings**: an unreachable access point has no latency, and counting it as zero makes an outage read as the best hour that AP ever had. Uptime is carried as its own column instead, which is also the figure the report quotes.
+
+### `audit_logs` stores both sides of a change
+
+`changes` is what the fields became, `previous` is what they had been, and the two always describe the same field names.
+
+The observer originally wrote only `changes`, from `getChanges()`. That answers "who changed this" and cannot answer "from what", which is the question an audit trail actually gets asked — "role changed to admin" is not evidence of anything without knowing it had been assistant. `previous` was added on 2026-09-04.
+
+**`previous` is nullable and rows written before that date have none.** There is no honest way to backfill a value nobody recorded, so those rows render as the new value alone rather than claiming a change from nothing.
+
+**Both halves are filtered by the same exclusion list** (`updated_at`, `remember_token`, `password`). Building `previous` from the whole original model instead of from the already-filtered `changes` would write the old password hash into a table administrators can read.
 
 ### `is_demo`
 

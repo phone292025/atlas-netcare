@@ -38,7 +38,22 @@ class AuditObserver
             return;
         }
 
-        $this->record($model, 'updated', $changes);
+        /*
+         * What each of those was beforehand. Keyed off $changes rather than
+         * off getRawOriginal() wholesale, so the exclusions above apply to
+         * both halves — otherwise the OLD password hash would be written into
+         * the audit log while the new one was correctly kept out, which is a
+         * worse leak than the one the exclusion list exists to prevent.
+         *
+         * getRawOriginal, not getOriginal: getChanges() holds raw attribute
+         * values, and a pair where one side is cast and the other is not would
+         * render as "open changed to open".
+         */
+        $previous = collect($changes)
+            ->map(fn ($value, string $key) => $model->getRawOriginal($key))
+            ->all();
+
+        $this->record($model, 'updated', $changes, $previous);
     }
 
     public function deleted(Model $model): void
@@ -53,9 +68,16 @@ class AuditObserver
         $this->record($model, 'restored');
     }
 
-    /** @param  array<string, mixed>|null  $changes */
-    private function record(Model $model, string $action, ?array $changes = null): void
-    {
+    /**
+     * @param  array<string, mixed>|null  $changes  what the fields became
+     * @param  array<string, mixed>|null  $previous  what they had been
+     */
+    private function record(
+        Model $model,
+        string $action,
+        ?array $changes = null,
+        ?array $previous = null,
+    ): void {
         AuditLog::create([
             // Null for a seeder or a scheduled command — nobody was signed in.
             'user_id' => Auth::id(),
@@ -64,6 +86,7 @@ class AuditObserver
             'auditable_id' => $model->getKey(),
             'description' => $this->describe($model),
             'changes' => $changes,
+            'previous' => $previous,
             'ip_address' => Request::ip(),
             'created_at' => now(),
         ]);

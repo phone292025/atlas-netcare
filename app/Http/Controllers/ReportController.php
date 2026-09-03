@@ -22,12 +22,22 @@ class ReportController extends Controller
 {
     public function index(ReportingService $reports): View
     {
+        $riskSpread = $reports->riskSpread();
+        $ticketVolume = $reports->ticketVolume();
+        $inspections = $reports->inspectionPassRates();
+
         return view('reports.index', [
-            'riskSpread' => $reports->riskSpread(),
-            'ticketVolume' => $reports->ticketVolume(),
+            'riskSpread' => $riskSpread,
+            'ticketVolume' => $ticketVolume,
+            'inspections' => $inspections,
             'resolution' => $reports->resolutionTimes(),
-            'inspections' => $reports->inspectionPassRates(),
             'congestion' => $reports->congestionByLocation(),
+
+            // Chart and table shapes, so the view renders rather than decides.
+            'riskChart' => $reports->riskSpreadChart($riskSpread),
+            'inspectionChart' => $reports->inspectionChart($inspections),
+            'ticketHeaders' => $reports->ticketMatrixHeaders($ticketVolume),
+
             'generated' => now(),
         ]);
     }

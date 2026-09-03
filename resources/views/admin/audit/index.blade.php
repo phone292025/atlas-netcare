@@ -51,12 +51,15 @@
                     <span class="text-slate-900">{{ $log->subjectLabel() }}</span>
                     <span class="block text-xs">{{ $log->description }}</span>
                 </td>
+                {{-- "priority: low → critical", not just "priority". The model
+                     builds the strings; this decides nothing.
+                     @see App\Models\AuditLog::changeSummary() --}}
                 <td class="px-4 py-3 text-xs text-slate-500">
-                    @if ($log->changes)
-                        {{ implode(', ', array_keys($log->changes)) }}
-                    @else
+                    @forelse ($log->changeSummary() as $line)
+                        <span class="block">{{ $line }}</span>
+                    @empty
                         —
-                    @endif
+                    @endforelse
                 </td>
             </tr>
         @endforeach

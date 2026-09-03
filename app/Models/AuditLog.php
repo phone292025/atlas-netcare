@@ -22,7 +22,7 @@ class AuditLog extends Model
 
     protected $fillable = [
         'user_id', 'action', 'auditable_type', 'auditable_id',
-        'description', 'changes', 'ip_address', 'created_at',
+        'description', 'changes', 'previous', 'ip_address', 'created_at',
     ];
 
     /** @return array<string, string> */
@@ -30,6 +30,7 @@ class AuditLog extends Model
     {
         return [
             'changes' => 'array',
+            'previous' => 'array',
             'created_at' => 'datetime',
         ];
     }
@@ -59,5 +60,60 @@ class AuditLog extends Model
     {
         $query->where('auditable_type', $subject->getMorphClass())
             ->where('auditable_id', $subject->getKey());
+    }
+
+    /**
+     * One readable line per changed field: "priority: low → critical".
+     *
+     * Here rather than in the Blade file so the audit screen prints strings
+     * and decides nothing.
+     *
+     * **`getAttribute('changes')`, never `$this->changes`.** Eloquent's
+     * HasAttributes trait has its own protected `$changes` property for dirty
+     * tracking, so inside this class `$this->changes` reads that array and
+     * never reaches the column of the same name. It works from Blade only
+     * because a protected property is invisible from outside and `__get()`
+     * takes over. A real trap, and the reason this method exists rather than
+     * an accessor named after the column.
+     *
+     * Rows written before 2026-09-04 have no `previous`, so they degrade to
+     * "field: newvalue" rather than pretending to know what it had been.
+     *
+     * @return list<string>
+     */
+    public function changeSummary(): array
+    {
+        $changes = $this->getAttribute('changes');
+
+        if (! is_array($changes) || $changes === []) {
+            return [];
+        }
+
+        $previous = $this->getAttribute('previous');
+        $previous = is_array($previous) ? $previous : [];
+
+        return collect($changes)
+            ->map(function (mixed $new, string $field) use ($previous): string {
+                $label = str($field)->replace('_', ' ')->toString();
+
+                if (! array_key_exists($field, $previous)) {
+                    return $label.': '.$this->readable($new);
+                }
+
+                return $label.': '.$this->readable($previous[$field]).' → '.$this->readable($new);
+            })
+            ->values()
+            ->all();
+    }
+
+    /** A value a person can read, short enough for a table cell. */
+    private function readable(mixed $value): string
+    {
+        return match (true) {
+            $value === null, $value === '' => 'empty',
+            is_bool($value) => $value ? 'yes' : 'no',
+            is_array($value) => '('.count($value).' items)',
+            default => str((string) $value)->limit(40)->toString(),
+        };
     }
 }

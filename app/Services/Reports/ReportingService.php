@@ -12,6 +12,7 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\TelemetryHourly;
 use App\Models\Ticket;
+use App\Support\Tone;
 use Illuminate\Support\Carbon;
 
 /**
@@ -81,6 +82,88 @@ class ReportingService
         $rows['unscored']['total'] = $rows['unscored']['lab_pcs'] + $rows['unscored']['access_points'];
 
         return $rows;
+    }
+
+    /*
+    |---------------------------------------------------------------------
+    | Chart and table shapes, added 2026-09-04
+    |---------------------------------------------------------------------
+    |
+    | Chart.js datasets and table headers used to be assembled inside
+    | `reports/index.blade.php`, in an `@php` block and four inline
+    | `collect()->pluck()` chains. None of it queried anything, so hard rule 2
+    | held, but it left the view deciding what the figures were made of — and
+    | the one place a `->pluck()` had to skip the "unscored" row was six lines
+    | of Blade away from the method that put the row there.
+    |
+    | These take a figure and return it in the shape the component wants. No
+    | queries, no rules, nothing a test cannot read.
+    */
+
+    /**
+     * `riskSpread()` as a Chart.js bar dataset.
+     *
+     * The unscored row is deliberately dropped: "not yet scored" is not a risk
+     * band, and charting it alongside four that are makes the axis meaningless.
+     * It stays in the table underneath, where the total has to add up.
+     *
+     * @param  array<string, array<string, int|string>>  $spread
+     * @return array{labels: list<string>, data: list<int>, colours: list<string>, anyScored: bool}
+     */
+    public function riskSpreadChart(array $spread): array
+    {
+        $bands = collect($spread)->except('unscored');
+
+        $data = $bands->pluck('total')->map(fn ($total) => (int) $total)->values()->all();
+
+        return [
+            'labels' => $bands->pluck('label')->map(fn ($l) => (string) $l)->values()->all(),
+            'data' => $data,
+            'colours' => collect(RiskBand::cases())
+                ->map(fn (RiskBand $band) => Tone::chart($band->tone()))
+                ->values()
+                ->all(),
+
+            // Every band at zero means nothing has been scored yet, which is
+            // an empty state rather than a chart of four zero-height bars.
+            'anyScored' => array_sum($data) > 0,
+        ];
+    }
+
+    /**
+     * `inspectionPassRates()` as a Chart.js bar dataset.
+     *
+     * @param  list<array<string, mixed>>  $rates
+     * @return array{labels: list<string>, data: list<float>, colour: string}
+     */
+    public function inspectionChart(array $rates): array
+    {
+        return [
+            'labels' => collect($rates)->pluck('location')->map(fn ($l) => (string) $l)->values()->all(),
+            'data' => collect($rates)->pluck('rate')->map(fn ($r) => (float) $r)->values()->all(),
+            'colour' => Tone::chart('healthy'),
+        ];
+    }
+
+    /**
+     * Column headers for the ticket matrix: Category, one per priority, Total.
+     *
+     * The priorities are enum cases, and only this knows that the header wants
+     * `label()` rather than the case itself.
+     *
+     * @param  array<string, mixed>  $volume
+     * @return list<string|array{label: string, align: string}>
+     */
+    public function ticketMatrixHeaders(array $volume): array
+    {
+        return array_merge(
+            ['Category'],
+            collect($volume['priorities'] ?? [])
+                ->map(fn (TicketPriority $priority) => ['label' => $priority->label(), 'align' => 'right'])
+                ->values()
+                ->all(),
+            [['label' => 'Total', 'align' => 'right']],
+        );
     }
 
     /**

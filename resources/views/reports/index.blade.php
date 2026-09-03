@@ -18,13 +18,7 @@
     <x-card title="Assets by risk band"
             subtitle="Predictive maintenance risk across every asset in service."
             class="mb-4">
-        @php
-            $bandLabels = collect($riskSpread)->except('unscored')->pluck('label')->values()->all();
-            $bandTotals = collect($riskSpread)->except('unscored')->pluck('total')->values()->all();
-            $anyScored = array_sum($bandTotals) > 0;
-        @endphp
-
-        @if (! $anyScored)
+        @if (! $riskChart['anyScored'])
             <x-empty-state title="Nothing has been scored yet"
                            message="Run php artisan atlas:recalculate-risk. It also runs daily at 02:00."
                            icon="wrench" />
@@ -33,12 +27,11 @@
                 <x-chart type="bar" :height="240"
                          label="Count of assets in each predictive risk band"
                          :data="[
-                             'labels' => $bandLabels,
+                             'labels' => $riskChart['labels'],
                              'datasets' => [[
                                  'label' => 'Assets',
-                                 'data' => $bandTotals,
-                                 'backgroundColor' => collect(\App\Enums\RiskBand::cases())
-                                     ->map(fn ($b) => \App\Support\Tone::chart($b->tone()))->values()->all(),
+                                 'data' => $riskChart['data'],
+                                 'backgroundColor' => $riskChart['colours'],
                              ]],
                          ]" />
 
@@ -63,11 +56,7 @@
         @if ($ticketVolume['total'] === 0)
             <x-empty-state title="No tickets yet" icon="ticket" />
         @else
-            <x-data-table :headers="array_merge(
-                ['Category'],
-                collect($ticketVolume['priorities'])->map(fn ($p) => ['label' => $p->label(), 'align' => 'right'])->all(),
-                [['label' => 'Total', 'align' => 'right']],
-            )">
+            <x-data-table :headers="$ticketHeaders">
                 @foreach ($ticketVolume['matrix'] as $row)
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3">{{ $row['label'] }}</td>
@@ -143,11 +132,11 @@
                 <x-chart type="bar" :height="240"
                          label="Percentage of inspections passed, by location"
                          :data="[
-                             'labels' => collect($inspections)->pluck('location')->all(),
+                             'labels' => $inspectionChart['labels'],
                              'datasets' => [[
                                  'label' => 'Pass rate %',
-                                 'data' => collect($inspections)->pluck('rate')->all(),
-                                 'backgroundColor' => \App\Support\Tone::chart('healthy'),
+                                 'data' => $inspectionChart['data'],
+                                 'backgroundColor' => $inspectionChart['colour'],
                              ]],
                          ]"
                          :options="['scales' => ['y' => ['min' => 0, 'max' => 100]]]" />

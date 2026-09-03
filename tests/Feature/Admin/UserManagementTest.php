@@ -287,4 +287,111 @@ class UserManagementTest extends TestCase
             ->get(route('admin.audit.index'))
             ->assertOk();
     }
+
+    /*
+    |---------------------------------------------------------------------
+    | What a value WAS, added 2026-09-04
+    |---------------------------------------------------------------------
+    |
+    | The observer wrote getChanges(), which is new values only, so the log
+    | could answer "who changed this" and not "from what". For a trail meant
+    | to satisfy NFR-06 the second question is the one that gets asked, and
+    | "role changed to admin" is not evidence of anything without knowing it
+    | had been assistant.
+    */
+
+    public function test_the_log_records_what_a_value_was_before(): void
+    {
+        $admin = $this->admin();
+        $target = $this->userWith(UserRole::Assistant);
+        AuditLog::query()->delete();
+
+        $this->actingAs($admin)->patch(route('admin.users.update', $target), [
+            'name' => 'A New Name',
+            'email' => $target->email,
+            'role' => UserRole::Assistant->value,
+        ]);
+
+        $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+
+        $this->assertSame('A New Name', $log->changes['name']);
+        $this->assertSame($target->name, $log->previous['name']);
+    }
+
+    public function test_the_two_halves_always_describe_the_same_fields(): void
+    {
+        /*
+         * The guard that keeps a pair renderable. If `previous` were taken
+         * from the whole original model rather than keyed off what changed,
+         * it would carry fields that did not move — and, far worse, the OLD
+         * password hash, which the exclusion list is there to keep out.
+         */
+        $admin = $this->admin();
+        $target = $this->userWith(UserRole::Assistant);
+        AuditLog::query()->delete();
+
+        $target->forceFill([
+            'name' => 'Renamed',
+            'password' => bcrypt('a-brand-new-password'),
+        ])->save();
+
+        $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+
+        $this->assertSame(array_keys($log->changes), array_keys($log->previous));
+        $this->assertArrayNotHasKey('password', $log->previous);
+        $this->assertArrayNotHasKey('password', $log->changes);
+    }
+
+    public function test_the_summary_reads_as_a_sentence(): void
+    {
+        // What the audit screen actually prints. Before this it printed the
+        // field name alone, which told a reader nothing they could act on.
+        $target = $this->userWith(UserRole::Assistant);
+        AuditLog::query()->delete();
+
+        // Captured before the save: Eloquent re-syncs its originals afterwards,
+        // so getOriginal() would hand back the new name.
+        $wasCalled = $target->name;
+
+        $target->forceFill(['name' => 'Second Name'])->save();
+
+        $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+
+        $this->assertContains("name: {$wasCalled} → Second Name", $log->changeSummary());
+    }
+
+    public function test_a_row_written_before_the_column_existed_still_renders(): void
+    {
+        /*
+         * Every audit row already in the live database has no `previous`, and
+         * there is no honest way to backfill one. They must degrade to the new
+         * value rather than claiming a change from nothing.
+         */
+        $log = AuditLog::create([
+            'user_id' => null,
+            'action' => 'updated',
+            'auditable_type' => 'user',
+            'auditable_id' => 1,
+            'description' => 'someone@atlas.local',
+            'changes' => ['role' => 'admin'],
+            'previous' => null,
+            'created_at' => now(),
+        ]);
+
+        $this->assertSame(['role: admin'], $log->changeSummary());
+    }
+
+    public function test_the_audit_screen_shows_the_change_not_just_the_field(): void
+    {
+        $admin = $this->admin();
+        $target = $this->userWith(UserRole::Assistant);
+        AuditLog::query()->delete();
+
+        $target->forceFill(['name' => 'Visible On Screen'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.audit.index'))
+            ->assertOk()
+            ->assertSee('→ Visible On Screen');
+    }
 }

@@ -14,6 +14,7 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Reports\ReportingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -307,5 +308,94 @@ class ReportsTest extends TestCase
         // so, but this one has a resolved ticket it cannot measure.
         $response->assertSee('1 excluded, resolved before opened')
             ->assertSee('No usable timestamps');
+    }
+
+    /*
+    |---------------------------------------------------------------------
+    | Chart and table shapes, added 2026-09-04
+    |---------------------------------------------------------------------
+    |
+    | These used to be assembled in an `@php` block and four inline
+    | `collect()->pluck()` chains inside the Blade file. Nothing queried, so
+    | hard rule 2 held, but the view was deciding what the figures contained
+    | and none of it could be tested without rendering a page.
+    */
+
+    public function test_the_risk_chart_leaves_unscored_assets_out(): void
+    {
+        /*
+         * "Not yet scored" is not a risk band. Charting it beside four that
+         * are makes the axis meaningless, and it was the one piece of shaping
+         * in the Blade file that had a rule behind it. It stays in the table
+         * underneath, where the total has to add up.
+         */
+        $reports = app(ReportingService::class);
+
+        LabPc::factory()->count(2)->create(['risk_band' => RiskBand::Critical->value]);
+        LabPc::factory()->create(['risk_band' => null]);
+
+        $chart = $reports->riskSpreadChart($reports->riskSpread());
+
+        $this->assertNotContains('Not yet scored', $chart['labels']);
+        $this->assertCount(count(RiskBand::cases()), $chart['labels']);
+        $this->assertCount(count(RiskBand::cases()), $chart['data']);
+        $this->assertTrue($chart['anyScored']);
+    }
+
+    public function test_the_risk_chart_reports_an_empty_state_when_nothing_is_scored(): void
+    {
+        // Four zero-height bars is not a chart. This is the flag the view
+        // renders an empty state from.
+        $reports = app(ReportingService::class);
+
+        LabPc::factory()->count(3)->create(['risk_band' => null]);
+
+        $this->assertFalse($reports->riskSpreadChart($reports->riskSpread())['anyScored']);
+    }
+
+    public function test_a_chart_dataset_is_a_list_not_a_keyed_map(): void
+    {
+        /*
+         * The reason every one of these ends in `values()`. `pluck()` on a
+         * keyed array keeps the keys, PHP encodes that as a JSON OBJECT rather
+         * than an array, and Chart.js silently draws nothing from an object
+         * where it expects a list. Nothing on screen and no error.
+         */
+        $reports = app(ReportingService::class);
+
+        LabPc::factory()->create(['risk_band' => RiskBand::High->value]);
+
+        $chart = $reports->riskSpreadChart($reports->riskSpread());
+
+        $this->assertSame(array_keys($chart['data']), range(0, count($chart['data']) - 1));
+        $this->assertStringStartsWith('[', json_encode($chart['data']));
+        $this->assertStringStartsWith('[', json_encode($chart['labels']));
+    }
+
+    public function test_the_ticket_matrix_headers_name_every_priority(): void
+    {
+        $reports = app(ReportingService::class);
+
+        $headers = $reports->ticketMatrixHeaders($reports->ticketVolume());
+
+        // Category, one per priority, Total.
+        $this->assertCount(count(TicketPriority::cases()) + 2, $headers);
+        $this->assertSame('Category', $headers[0]);
+        $this->assertSame(['label' => 'Total', 'align' => 'right'], end($headers));
+    }
+
+    public function test_the_shaped_figures_reach_the_page(): void
+    {
+        // The join between the service and the view. A shape the controller
+        // does not pass through is a shape nothing renders.
+        LabPc::factory()->create(['risk_band' => RiskBand::Medium->value]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('admin.reports.index'))
+            ->assertOk();
+
+        $this->assertIsArray($response->viewData('riskChart'));
+        $this->assertIsArray($response->viewData('inspectionChart'));
+        $this->assertIsArray($response->viewData('ticketHeaders'));
     }
 }
