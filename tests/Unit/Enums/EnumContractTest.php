@@ -4,6 +4,7 @@ namespace Tests\Unit\Enums;
 
 use App\Enums\Contracts\HasLabel;
 use App\Enums\Contracts\HasTone;
+use App\Support\Tone;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -116,7 +117,10 @@ class EnumContractTest extends TestCase
     #[DataProvider('toneEnums')]
     public function test_every_status_case_maps_to_a_known_tone(string $enum): void
     {
-        $tones = ['healthy', 'attention', 'urgent', 'neutral'];
+        // From Tone::all(), not a copy of it. This list was written out by
+        // hand and went stale the moment a fifth tone was added, failing for
+        // a tone that was perfectly valid.
+        $tones = Tone::all();
 
         foreach ($enum::cases() as $case) {
             $this->assertContains(

@@ -33,6 +33,10 @@ class AuditLogController extends Controller
 
         return view('admin.audit.index', [
             'logs' => $logs,
+
+            // Names for the foreign keys on this page, resolved in one query
+            // per model. Without it the log reads "assigned to: empty → 5".
+            'labels' => AuditLog::labelsFor($logs),
             'actions' => AuditLog::query()->distinct()->orderBy('action')->pluck('action', 'action')->all(),
             'types' => AuditLog::query()->distinct()->orderBy('auditable_type')->pluck('auditable_type')
                 ->mapWithKeys(fn ($t) => [$t => str(class_basename($t))->headline()->toString()])->all(),

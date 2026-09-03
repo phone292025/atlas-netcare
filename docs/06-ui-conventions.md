@@ -1,6 +1,6 @@
 # UI Conventions
 
-> **Last updated:** 2026-08-28 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-04 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 >
 > Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
 
@@ -170,6 +170,10 @@ The same mapping in badges, gauges, charts and tables. If `critical` is one red 
 | `Tone::accent()` | foreground tint only | icons and rules sitting on a tinted surface |
 
 Adding a surface means adding a method there. **Never write a `match` on a tone anywhere else** — that is how `urgent` ends up as two different reds, one of which nobody notices until a marker does.
+
+The tones are `healthy`, `attention`, `elevated`, `urgent` and `neutral`, running emerald, amber, orange, red, slate.
+
+**Adding one is a real decision, not a tweak.** `elevated` was added on 2026-09-04 because `RiskBand::Medium` and `RiskBand::High` both returned `attention`, so M7's headline chart drew two of its four bars identically and a reader could not tell a High-risk machine from a Medium one. Every surface method needs a case for a new tone, `Tone::all()` needs it, and two tests deliberately spell the list out so that adding one fails loudly until every surface is covered. Two other tests had written the vocabulary out by hand instead of reading `Tone::all()`, and both broke — they now read from the source.
 
 Every class string is written out in full, and `./app/**/*.php` is in the `content` array of `tailwind.config.js` so the file is scanned. Tailwind reads source for literal class names: a class assembled at runtime (`bg-{$colour}-50`) is generated as nothing, purged from the build, and renders unstyled **with no error at all**. This is the one place where a "no magic values in code" instinct produces a broken build.
 

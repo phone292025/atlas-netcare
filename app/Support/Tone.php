@@ -5,7 +5,7 @@ namespace App\Support;
 /**
  * The single source of truth for what a tone looks like.
  *
- * Enums return a tone — 'healthy', 'attention', 'urgent', 'neutral' — and never
+ * Enums return a tone — 'healthy', 'attention', 'elevated', 'urgent', 'neutral' — and never
  * a colour. This class turns a tone into Tailwind classes. Change a colour here
  * and it changes in every badge, pill, banner and table at once.
  *
@@ -36,6 +36,18 @@ final class Tone
 
     public const ATTENTION = 'attention';
 
+    /**
+     * Worse than ATTENTION, not yet URGENT.
+     *
+     * Added 2026-09-04 because four risk bands were sharing three tones.
+     * `RiskBand::Medium` and `RiskBand::High` both returned ATTENTION, so on
+     * M7's headline chart — the figure that makes this project answer Case
+     * Study Category 4 — two of the four bars were the same amber and a reader
+     * could not tell them apart. Three tones are enough for a status pill and
+     * one short of enough for a four-step scale.
+     */
+    public const ELEVATED = 'elevated';
+
     public const URGENT = 'urgent';
 
     public const NEUTRAL = 'neutral';
@@ -47,7 +59,7 @@ final class Tone
      */
     public static function all(): array
     {
-        return [self::HEALTHY, self::ATTENTION, self::URGENT, self::NEUTRAL];
+        return [self::HEALTHY, self::ATTENTION, self::ELEVATED, self::URGENT, self::NEUTRAL];
     }
 
     /**
@@ -58,6 +70,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
             self::ATTENTION => 'bg-amber-50 text-amber-800 ring-amber-600/20',
+            self::ELEVATED => 'bg-orange-50 text-orange-800 ring-orange-600/20',
             self::URGENT => 'bg-red-50 text-red-700 ring-red-600/20',
             self::NEUTRAL => 'bg-slate-50 text-slate-600 ring-slate-500/20',
             default => self::unknown(),
@@ -76,6 +89,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => 'bg-emerald-50 text-emerald-900 ring-emerald-600/20',
             self::ATTENTION => 'bg-amber-50 text-amber-900 ring-amber-600/20',
+            self::ELEVATED => 'bg-orange-50 text-orange-900 ring-orange-600/20',
             self::URGENT => 'bg-red-50 text-red-900 ring-red-600/20',
             self::NEUTRAL => 'bg-slate-50 text-slate-800 ring-slate-500/20',
             default => self::unknown(),
@@ -90,6 +104,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => 'text-emerald-600',
             self::ATTENTION => 'text-amber-600',
+            self::ELEVATED => 'text-orange-600',
             self::URGENT => 'text-red-600',
             self::NEUTRAL => 'text-slate-500',
             default => 'text-fuchsia-600',
@@ -108,6 +123,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => 'bg-emerald-500',
             self::ATTENTION => 'bg-amber-500',
+            self::ELEVATED => 'bg-orange-500',
             self::URGENT => 'bg-red-500',
             self::NEUTRAL => 'bg-slate-400',
             default => 'bg-fuchsia-500',
@@ -127,6 +143,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => 'peer-checked:bg-emerald-50 peer-checked:text-emerald-700 peer-checked:ring-emerald-600',
             self::ATTENTION => 'peer-checked:bg-amber-50 peer-checked:text-amber-800 peer-checked:ring-amber-600',
+            self::ELEVATED => 'peer-checked:bg-orange-50 peer-checked:text-orange-800 peer-checked:ring-orange-600',
             self::URGENT => 'peer-checked:bg-red-50 peer-checked:text-red-700 peer-checked:ring-red-600',
             self::NEUTRAL => 'peer-checked:bg-slate-100 peer-checked:text-slate-700 peer-checked:ring-slate-400',
             default => 'peer-checked:bg-fuchsia-100 peer-checked:text-fuchsia-900 peer-checked:ring-fuchsia-600',
@@ -147,6 +164,7 @@ final class Tone
         return match ($tone) {
             self::HEALTHY => '#10b981',   // emerald-500
             self::ATTENTION => '#f59e0b', // amber-500
+            self::ELEVATED => '#f97316',  // orange-500
             self::URGENT => '#ef4444',    // red-500
             self::NEUTRAL => '#94a3b8',   // slate-400
             default => '#d946ef',         // fuchsia-500

@@ -37,7 +37,13 @@ enum RiskBand: string implements HasLabel, HasTone
     {
         return match ($this) {
             self::Low => 'healthy',
-            self::Medium, self::High => 'attention',
+            self::Medium => 'attention',
+
+            // Its own tone since 2026-09-04. Medium and High shared
+            // 'attention', so the risk chart drew two of its four bars in the
+            // same amber and the ranking screen gave them the same badge.
+            self::High => 'elevated',
+
             self::Critical => 'urgent',
         };
     }

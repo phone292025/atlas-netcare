@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RiskBand;
+use App\Support\Tone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ViewErrorBag;
@@ -68,7 +69,11 @@ class DisplayComponentsTest extends TestCase
         $html = Blade::render('<x-risk-gauge :score="78" />');
 
         $this->assertStringContainsString(RiskBand::High->label(), $html);
-        $this->assertStringContainsString('bg-amber-500', $html);
+
+        // From Tone, not a literal. This asserted 'bg-amber-500' and broke when
+        // High got its own tone on 2026-09-04 — a test failing for a colour
+        // change that was the entire point of the change.
+        $this->assertStringContainsString(Tone::solid(RiskBand::High->tone()), $html);
     }
 
     public function test_risk_gauge_reports_itself_as_a_meter_with_its_range(): void

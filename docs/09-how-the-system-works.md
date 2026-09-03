@@ -140,7 +140,9 @@ The same thinking runs through the whole system. Privilege columns are not mass-
 
 ### One vocabulary for colour
 
-Enums return a tone, never a colour. Four of them: healthy, attention, urgent, neutral. `app/Support/Tone.php` turns a tone into Tailwind classes, one method per surface.
+Enums return a tone, never a colour. Five of them: healthy, attention, elevated, urgent, neutral. `app/Support/Tone.php` turns a tone into Tailwind classes, one method per surface.
+
+`elevated` was added on 2026-09-04. There were four, and the four risk bands did not fit: Medium and High both returned `attention`, so the risk chart drew two of its four bars in the same amber and the maintenance ranking gave them the same badge. Three tones are enough for a status pill and one short of enough for a four-step scale.
 
 Nothing else in the system is allowed to write a match statement on a tone. That is how "urgent" ends up as two different reds in two different modules.
 

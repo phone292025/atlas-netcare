@@ -362,7 +362,9 @@ The observer originally wrote only `changes`, from `getChanges()`. That answers 
 
 **`previous` is nullable and rows written before that date have none.** There is no honest way to backfill a value nobody recorded, so those rows render as the new value alone rather than claiming a change from nothing.
 
-**Both halves are filtered by the same exclusion list** (`updated_at`, `remember_token`, `password`). Building `previous` from the whole original model instead of from the already-filtered `changes` would write the old password hash into a table administrators can read.
+**Both halves are filtered by the same exclusion list.** Building `previous` from the whole original model instead of from the already-filtered `changes` would write the old password hash into a table administrators can read.
+
+**That list is the model's own `$hidden`, not a list kept in the observer.** It used to be a hand-written `['updated_at', 'remember_token', 'password']`, and it missed `users.calendar_token` — the key that reads somebody's roster feed without signing in. Regenerating a calendar link put a working token into `audit_logs` in plain text. Keying off `$hidden` means the next secret column is covered by the act of declaring it secret. `updated_at` stays excluded separately: it is not a secret, just noise that would make every row look like something happened.
 
 ### `is_demo`
 

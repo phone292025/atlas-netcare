@@ -55,7 +55,7 @@
                      builds the strings; this decides nothing.
                      @see App\Models\AuditLog::changeSummary() --}}
                 <td class="px-4 py-3 text-xs text-slate-500">
-                    @forelse ($log->changeSummary() as $line)
+                    @forelse ($log->changeSummary($labels) as $line)
                         <span class="block">{{ $line }}</span>
                     @empty
                         —

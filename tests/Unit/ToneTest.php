@@ -25,9 +25,21 @@ class ToneTest extends TestCase
         return array_map(fn ($tone) => [$tone], Tone::all());
     }
 
-    public function test_it_knows_the_four_documented_tones(): void
+    public function test_it_knows_the_documented_tones(): void
     {
-        $this->assertSame(['healthy', 'attention', 'urgent', 'neutral'], Tone::all());
+        /*
+         * ELEVATED joined on 2026-09-04. Four risk bands were sharing three
+         * tones, so RiskBand::Medium and RiskBand::High both came back amber
+         * and M7's headline chart drew two of its four bars identically.
+         *
+         * Deliberately spelled out rather than counted: adding a tone should
+         * be a decision somebody makes on purpose, and this failing is the
+         * prompt to check every surface has a case for it.
+         */
+        $this->assertSame(
+            ['healthy', 'attention', 'elevated', 'urgent', 'neutral'],
+            Tone::all(),
+        );
     }
 
     #[DataProvider('tones')]

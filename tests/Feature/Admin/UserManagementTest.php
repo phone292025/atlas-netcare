@@ -4,8 +4,10 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\UserRole;
 use App\Models\AuditLog;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -342,6 +344,72 @@ class UserManagementTest extends TestCase
         $this->assertArrayNotHasKey('password', $log->changes);
     }
 
+    public function test_a_calendar_token_never_reaches_the_audit_log(): void
+    {
+        /*
+         * A REAL LEAK, found on the live database on 2026-09-04.
+         *
+         * `users.calendar_token` is a 48-character key that reads somebody's
+         * roster feed without signing in — the model's own docblock says it
+         * must never reach a JSON response or a log line. The observer's
+         * exclusion list was a hardcoded `['updated_at', 'remember_token',
+         * 'password']`, so regenerating a calendar link wrote the new token
+         * into `audit_logs` in plain text, where every administrator can read
+         * it. One was sitting there and still worked.
+         *
+         * The list now comes from the model's `$hidden`, so a secret is
+         * covered by the act of declaring it secret.
+         */
+        $target = $this->userWith(UserRole::Assistant);
+        $target->forceFill(['calendar_token' => 'the-old-token-value'])->save();
+        AuditLog::query()->delete();
+
+        /*
+         * The name changes alongside the token, so a row IS written and there
+         * is something to inspect. Changing only the token writes nothing at
+         * all — correct, but it makes the assertion loop over an empty set and
+         * pass without checking anything. PHPUnit called that out as risky.
+         */
+        $target->forceFill([
+            'calendar_token' => 'the-new-token-value',
+            'name' => 'Rotated Their Calendar Link',
+        ])->save();
+
+        $row = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+        $written = json_encode([$row->changes, $row->previous]);
+
+        $this->assertStringContainsString('Rotated Their Calendar Link', $written, 'The row should exist.');
+        $this->assertStringNotContainsString('the-new-token-value', $written, 'The new token reached the audit log.');
+        $this->assertStringNotContainsString('the-old-token-value', $written, 'The old token reached the audit log.');
+        $this->assertArrayNotHasKey('calendar_token', $row->changes);
+    }
+
+    public function test_no_hidden_attribute_of_any_kind_is_logged(): void
+    {
+        /*
+         * The general form, so the next secret column is covered without
+         * anybody editing the observer. Changing every hidden attribute at
+         * once must produce no audit row at all, because after the exclusions
+         * nothing is left to report.
+         */
+        $target = $this->userWith(UserRole::Assistant);
+        AuditLog::query()->delete();
+
+        $secrets = collect($target->getHidden())
+            ->mapWithKeys(fn (string $attribute) => [$attribute => 'secret-'.$attribute])
+            ->all();
+
+        $this->assertNotEmpty($secrets, 'The User model should declare hidden attributes.');
+
+        $target->forceFill($secrets)->save();
+
+        $this->assertSame(
+            0,
+            AuditLog::where('action', 'updated')->count(),
+            'A save touching only hidden attributes must write nothing.',
+        );
+    }
+
     public function test_the_summary_reads_as_a_sentence(): void
     {
         // What the audit screen actually prints. Before this it printed the
@@ -379,6 +447,78 @@ class UserManagementTest extends TestCase
         ]);
 
         $this->assertSame(['role: admin'], $log->changeSummary());
+    }
+
+    public function test_a_foreign_key_is_shown_as_a_name_not_a_number(): void
+    {
+        /*
+         * "assigned to: empty → 5" is accurate and useless. Nobody reading an
+         * audit log knows who 5 is, and an audit trail nobody can read is not
+         * evidence of anything.
+         *
+         * Resolved at READ time rather than written into the log: `changes`
+         * has to stay a record of what was actually put in the column.
+         */
+        $engineer = $this->userWith(UserRole::Engineer);
+        $ticket = Ticket::factory()->create(['assigned_to' => null]);
+        AuditLog::query()->delete();
+
+        $ticket->forceFill(['assigned_to' => $engineer->id])->save();
+
+        $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+
+        $this->assertContains(
+            "assigned to: empty → {$engineer->name}",
+            $log->changeSummary(AuditLog::labelsFor([$log])),
+        );
+
+        // And without the map it still renders, just as a number.
+        $this->assertContains("assigned to: empty → {$engineer->id}", $log->changeSummary());
+    }
+
+    public function test_names_are_resolved_in_one_query_per_model(): void
+    {
+        /*
+         * The audit screen paginates fifty rows. Resolving per row would be
+         * fifty queries for one column, which is how a log page becomes the
+         * slowest screen in the system.
+         */
+        $engineers = collect(range(1, 4))->map(fn () => $this->userWith(UserRole::Engineer));
+        AuditLog::query()->delete();
+
+        foreach ($engineers as $engineer) {
+            Ticket::factory()->create(['assigned_to' => null])
+                ->forceFill(['assigned_to' => $engineer->id])->save();
+        }
+
+        $logs = AuditLog::where('action', 'updated')->get();
+        $this->assertCount(4, $logs);
+
+        DB::enableQueryLog();
+        $labels = AuditLog::labelsFor($logs);
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(1, $queries, 'Four rows naming four users should cost one query.');
+        $this->assertCount(4, $labels['assigned_to']);
+    }
+
+    public function test_a_deactivated_user_is_still_named(): void
+    {
+        // An account being deactivated is exactly when its history matters.
+        $engineer = $this->userWith(UserRole::Engineer);
+        $ticket = Ticket::factory()->create(['assigned_to' => null]);
+        AuditLog::query()->delete();
+
+        $ticket->forceFill(['assigned_to' => $engineer->id])->save();
+        $engineer->delete();
+
+        $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
+
+        $this->assertContains(
+            "assigned to: empty → {$engineer->name}",
+            $log->changeSummary(AuditLog::labelsFor([$log])),
+        );
     }
 
     public function test_the_audit_screen_shows_the_change_not_just_the_field(): void

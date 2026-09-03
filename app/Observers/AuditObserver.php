@@ -31,7 +31,7 @@ class AuditObserver
         // getChanges() is what actually changed, not everything that was set.
         // A save that alters nothing should not produce a log row.
         $changes = collect($model->getChanges())
-            ->except(['updated_at', 'remember_token', 'password'])
+            ->except($this->neverLog($model))
             ->all();
 
         if ($changes === []) {
@@ -90,6 +90,36 @@ class AuditObserver
             'ip_address' => Request::ip(),
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Attributes whose VALUES must never be written into an audit row.
+     *
+     * Taken from the model's own `$hidden` rather than from a list kept here,
+     * and that is the whole point. The hardcoded list was
+     * `['updated_at', 'remember_token', 'password']`, which missed
+     * `users.calendar_token` — a 48-character key that reads somebody's roster
+     * feed without signing in, and whose own docblock says it must never reach
+     * a log line. Regenerating a calendar link wrote the new token into
+     * `audit_logs` in plain text, where every administrator can read it. Found
+     * on the live database on 2026-09-04, holding a token that still worked.
+     *
+     * `$hidden` is where a developer already has to declare a secret for it to
+     * stay out of JSON, so keying off it means the next secret column is
+     * covered by the act of adding it rather than by somebody remembering to
+     * edit this class.
+     *
+     * `updated_at` is not a secret, just noise: it changes on every save and
+     * would make every row look like something happened to it.
+     *
+     * @return list<string>
+     */
+    private function neverLog(Model $model): array
+    {
+        return array_values(array_unique([
+            'updated_at',
+            ...$model->getHidden(),
+        ]));
     }
 
     /**
