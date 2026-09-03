@@ -42,7 +42,9 @@ Below that, the handover from whoever was in that room last. Notes appear on arr
 
 **The checklist screen matters more than any other in the system.** It is used standing up, on a phone, one-handed, thirty times an hour. Everything about it follows from that. Questions are grouped into four sections in the order you actually check a machine. Each question has three full-width buttons, OK, Issue, N/A, at 44 pixels tall. The submit bar sticks to the bottom of the screen so finishing a machine never means scrolling back past thirteen questions.
 
-A remark box appears only when you tap Issue. A clean machine is three taps. A rack of thirty clean machines is the normal case, so making people write a note on every OK would double the work for nothing.
+A remark box appears only when you tap Issue, so a clean answer is one tap and a faulty one is a tap plus a sentence. A rack of thirty clean machines is the normal case, and making people write a note on every OK would double the work for nothing.
+
+**A clean machine is still thirteen taps and a submit**, one per question. Measured at 375px on 2026-09-04. There is no "mark all OK", which is the obvious thing to want on a thirty-machine round and the obvious thing to get wrong: a button that answers every question at once makes it possible to submit a full inspection without looking at the machine.
 
 **Submitting.** The system decides the result. An Issue on a critical item is a fail. Any other Issue is a pass with issues. Everything else passes. There is no dropdown for this and no form can set it.
 

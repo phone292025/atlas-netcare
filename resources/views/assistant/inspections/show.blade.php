@@ -46,7 +46,11 @@
                                    'inspection' => $inspection->id,
                                    'item' => $result->checklist_item_id,
                                ]) }}"
-                               class="flex-none rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                               {{-- py-3, not py-2: this lands at 44px like the
+                                    checklist buttons. It was 36px, measured at
+                                    375px on 2026-09-04, and it is the one tap
+                                    that carries a fault into a ticket. --}}
+                               class="flex-none rounded-md bg-brand-600 px-3 py-3 text-sm font-medium text-white hover:bg-brand-700">
                                 Raise ticket
                             </a>
                         </li>

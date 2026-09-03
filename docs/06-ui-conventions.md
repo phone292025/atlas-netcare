@@ -195,7 +195,7 @@ Different roles use different devices. Design for both, differently.
 
 | Role | Primary device | Requirements |
 |---|---|---|
-| **Assistant** | 📱 **Mobile first** | The checklist must be fully operable one-handed at 375 px. Large tap targets, one item per row, no horizontal scroll, no hover-only interactions. This is NFR-05 and it is tested. |
+| **Assistant** | 📱 **Mobile first** | The checklist must be fully operable one-handed at 375 px. Large tap targets, one item per row, no horizontal scroll, no hover-only interactions. This is NFR-05. **Measured at 375px on 2026-09-04**: all 39 choice buttons exactly 44px tall, three across at 98px each, no horizontal scroll, submit bar genuinely `position: sticky`, and the remark box hidden until Issue is tapped. |
 | **Engineer** | 🖥️ **Desktop first** | Dense tables, multi-series charts, filter bars, keyboard-navigable. Degrade to stacked cards below 768 px rather than horizontally scrolling tables. |
 | **Admin** | 🖥️ Desktop | Standard CRUD. Consistent index / create / edit / show pattern throughout. |
 

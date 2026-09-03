@@ -134,7 +134,7 @@ Two of these come from the Meeting 2 minutes recorded in the proposal appendix b
 | NFR-05 | **Usability** — the inspection checklist is fully operable on a mobile phone one-handed | Tested at 375 px width | Proposal §1.4.2 |
 | NFR-06 | **Auditability** — every significant state change is attributable to a user and a timestamp | `audit_logs` table | Proposal §Admin Module |
 | NFR-07 | **Maintainability** — all business thresholds configurable without code change | `config/atlas.php` | ADR-0002 |
-| NFR-08 | **Data integrity** — referential integrity enforced at database level, not only in application code | Foreign key constraints on every relationship | Added |
+| NFR-08 | **Data integrity** — referential integrity enforced at database level, not only in application code | 24 foreign key constraints, one on every single-target relationship. The four polymorphic ones (`tickets.ticketable`, `alarms.related`, `risk_assessments.assessable`, `audit_logs.auditable`) **cannot carry one** — a column pointing at two tables has nothing to reference. Those are guarded in the application instead: the morph type is whitelisted in the Form Request, and assets are soft-deleted rather than removed. | Added |
 | NFR-09 | **Compatibility** — runs on the current stable Chrome, Edge and Firefox | Manual check during UAT | Added |
 | NFR-10 | **Accessibility** — all interactive elements keyboard-reachable with a visible focus state | Manual check during UAT | Added |
 
