@@ -2,6 +2,8 @@
 
 **Track:** A · **Owner:** *unassigned* · **Sprint:** 1 · **Depends on:** nothing · **Blocks:** everything
 
+> **Last updated:** 2026-09-04
+
 > This module must be first and must be solid. Every other module has foreign keys into `users`.
 
 ## Purpose
@@ -24,7 +26,7 @@ NFR-03, NFR-04, NFR-06
 | Models | `User`, `AuditLog` |
 | Enums | `UserRole` |
 | Controllers | `Auth\*` (Breeze, register removed), `Admin\UserController`, `Admin\AuditLogController` |
-| Middleware | `EnsureUserHasRole` |
+| Middleware | `EnsureUserHasRole` · `EnsurePasswordIsChanged` — stops anybody still on an administrator-set password (Q6, decided 2026-09-04) |
 | Services | — (thin enough for the controller plus an observer) |
 | Observer | `AuditObserver`, registered for every auditable model |
 | Policies | `UserPolicy` |

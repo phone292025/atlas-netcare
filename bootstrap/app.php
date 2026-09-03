@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
+
+        // Nobody uses the system on a password an administrator chose for them
+        // (Q6, decided 2026-09-04). Appended to the group rather than aliased,
+        // because a control you have to remember to apply is one somebody will
+        // forget on the next screen they add.
+        $middleware->appendToGroup('web', EnsurePasswordIsChanged::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

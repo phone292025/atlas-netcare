@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The same suite, against the database Atlas NetCare actually runs on.
+
+    phpunit.xml uses SQLite in memory, because it is fast and needs nothing
+    installed. That has a cost the project has already paid three times: MySQL
+    only FIELD(), MySQL only DATE_FORMAT, and MariaDB's implicit
+    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP on the first timestamp
+    column. All three reached the live database through a completely green
+    suite, because SQLite does not have any of those behaviours to get wrong.
+
+    SchemaIntegrityTest is the sharpest example: the test that guards the
+    timestamp trap skips itself on SQLite, so on the normal suite it has never
+    once run.
+
+    Run it locally when a change touches migrations, raw SQL or date arithmetic:
+
+        php artisan test -c phpunit.mariadb.xml
+
+    It needs a database called atlas_netcare_test, which is NOT the development
+    database — every test truncates what it touches, and pointing this at
+    atlas_netcare would erase real work:
+
+        CREATE DATABASE atlas_netcare_test
+            CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    CI runs this on every push. See .github/workflows/tests.yml.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+
+        <!-- The only lines that differ from phpunit.xml. -->
+        <env name="DB_CONNECTION" value="mariadb" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="3306" force="true"/>
+        <env name="DB_DATABASE" value="atlas_netcare_test" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="ATLAS_ADMIN_EMAIL" value="admin@atlas.test"/>
+        <env name="ATLAS_ADMIN_PASSWORD" value="testing-only-not-a-real-password"/>
+    </php>
+</phpunit>

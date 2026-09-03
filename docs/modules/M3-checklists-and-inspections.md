@@ -2,6 +2,8 @@
 
 **Track:** A · **Owner:** *unassigned* · **Sprint:** 2 · **Depends on:** M1, M2 · **Blocks:** M4, M7
 
+> **Last updated:** 2026-09-04
+
 ## Purpose
 
 Replace the paper lab-inspection log. An administrator defines a versioned checklist; an assistant completes it against a lab PC during a shift, on a phone.

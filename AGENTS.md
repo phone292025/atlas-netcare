@@ -24,11 +24,11 @@ This is **academic coursework assessed against a published rubric**. Documentati
 |---|---|
 | **Phase** | The code is finished. What remains is the report. |
 | **Build stage** | **All seven modules built.** Every functional requirement has code and at least one test. See `docs/progress/build-log.md`, and read it before doing anything. |
-| **Code written** | Sprint 0 plus M1 to M7. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, calendar export, predictive risk scoring and five operational reports. 684 tests passing, 1 skipped. |
+| **Code written** | Sprint 0 plus M1 to M7. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, calendar export, predictive risk scoring and five operational reports. The test count lives in `docs/progress/build-log.md` and nowhere else — it was stated in five documents and three of them disagreed. |
 | **Diagrams** | Context Diagram, DFD 0, consolidated ERD and System Hierarchy are done, in `docs/12-system-diagrams.md`. **The 21 per-member diagrams are not**, and cannot start until modules have owners. |
-| **Last updated** | 2026-09-02 |
+| **Last updated** | 2026-09-04 |
 | **Blocking** | **Nobody owns a module.** Every spec says unassigned, which blocks 21 individually assessed deliverables. That is now the largest thing standing between this project and its marks. See `coursework/02-team-and-ownership.md`. |
-| **Also open** | **Q6** only, of the eleven design questions. Q1 to Q5 and Q9 to Q11 were built from their working assumptions without the team agreeing them, so confirm or change. See `docs/02-open-questions.md`. |
+| **Also open** | None of the eleven design questions are open. Q6 was decided by the project lead on 2026-09-04 and built. The other ten were built from their working assumptions **without the team agreeing them**, so confirm or change. See `docs/02-open-questions.md`. |
 
 ## Stack
 
@@ -72,7 +72,7 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 
 These are not stylistic preferences. Breaking them creates work for six other people.
 
-1. **No business logic in controllers.** A controller validates via a Form Request, calls one service method, and returns a view or JSON. If an action exceeds ~15 lines, the excess belongs in `app/Services/`.
+1. **No business logic in controllers.** Anything that decides, computes or changes state goes in `app/Services/`: state machines, scoring, SLA arithmetic, aggregation for a report. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action — roughly twenty `index` methods build a query from request filters, and moving those to services would buy nothing. The test is whether a second caller would need the same answer: if yes, it is a service. `ReportController` failed that test at 309 lines and became `ReportingService` on 2026-09-04.
 2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or a relationship that triggers a query.
 3. **No magic numbers.** Every threshold, weight, SLA hour, and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead.
 4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every teammate's local database.

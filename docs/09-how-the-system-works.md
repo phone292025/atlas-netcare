@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-08-30 · **Covers:** all seven modules, built and tested. What remains is the report, not the code.
+> **Last updated:** 2026-09-04 · **Covers:** all seven modules, built and tested. What remains is the report, not the code.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -102,7 +102,7 @@ Routes
 Middleware
    |     auth, then role. Nothing reaches a controller unverified
 Controller
-   |     validate, call one service method, return a view. Target: 15 lines
+   |     validate, call a service, return a view. Decisions live in services
 Service
    |     all the rules live here
 Model
@@ -114,9 +114,9 @@ Scheduled commands enter at the service layer and skip the top three entirely. T
 
 ### The rules live in services
 
-Four of them, and each owns one thing.
+Eight of them, and each owns one thing.
 
-`InspectionService` starts an inspection, saves answers, and derives the result. `ChecklistService` handles versioning and activation. `TicketService` owns the ticket state machine. `ShiftService` generates the roster and handles check-in and check-out. `AlarmService` is how anything in the system tells a person something.
+`InspectionService` starts an inspection, saves answers, and derives the result. `ChecklistService` handles versioning and activation. `TicketService` owns the ticket state machine. `ShiftService` generates the roster and handles check-in and check-out. `AlarmService` is how anything in the system tells a person something. `TelemetryService` classifies a reading into a status. `RiskScoringService` turns measurements into a risk band. `ReportingService` builds the five report figures.
 
 The pattern that matters: **a controller never decides anything.** It validates the shape of a request, asks a service, and renders the answer.
 
@@ -240,10 +240,11 @@ Two more you run yourself.
 
 ## Testing
 
-579 tests, one skipped. Roughly 1,600 assertions.
+The current count is in [progress/build-log.md](progress/build-log.md), which is the one place that states it.
 
+The suite runs twice. Locally it uses SQLite in memory, which is fast and has caused three bugs: SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
 
-The suite runs on SQLite in memory, which is fast and has caused three bugs. SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
+Since 2026-09-04, CI also runs the whole suite against MariaDB 10.4 on every push, using `phpunit.mariadb.xml`. That closes the gap the three bugs came through, and it found a fourth on its first run: a telemetry test that claimed to prove latency rises with congestion was actually comparing two access points' ID-derived personalities, and passed on SQLite only because in-memory SQLite hands out the same two IDs every time.
 
 That is what `atlas:check-schema` exists for. Since 2026-08-30 it also checks the DATA: seven invariants looking for timelines that cannot have happened, because fixing the cause of a corruption does nothing about the rows it already damaged. One ticket was carrying a `closed_at` eight hours before its own `opened_at`, and a green suite, a clean schema audit and a plausible-looking screen all missed it.
 

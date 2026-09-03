@@ -2,6 +2,8 @@
 
 **Track:** A · **Owner:** *unassigned* · **Sprint:** 3 · **Depends on:** M1 · **Blocks:** nothing
 
+> **Last updated:** 2026-09-04
+
 ## Purpose
 
 Schedule student IT assistants, remind them of inspection rounds, and track handover between shifts. Also the delivery mechanism for every other module's alerts.

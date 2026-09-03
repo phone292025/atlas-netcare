@@ -47,6 +47,12 @@ class NewPasswordController extends Controller
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
+
+                    // Somebody who reset through the emailed link chose this
+                    // password themselves, so there is nothing left to force.
+                    // Without this they would sign in and be sent straight
+                    // back to the profile screen to change it again.
+                    'must_change_password' => false,
                 ])->save();
 
                 $this->signOutEverywhere($user);

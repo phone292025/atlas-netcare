@@ -32,5 +32,14 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!-- ReferenceSeeder refuses to seed an administrator without a password,
+             so every test that seeds it was silently reading the developer's own
+             .env. That works on a machine that has one and fails on a fresh
+             clone or a CI runner, which is the kind of dependency you find out
+             about at the worst moment. Not a real credential: nothing outside
+             the in-memory test database ever sees it. -->
+        <env name="ATLAS_ADMIN_EMAIL" value="admin@atlas.test"/>
+        <env name="ATLAS_ADMIN_PASSWORD" value="testing-only-not-a-real-password"/>
     </php>
 </phpunit>

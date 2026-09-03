@@ -22,9 +22,11 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**All seven modules are built** (M1–M7). Laravel 12 + Breeze, 579 tests passing. What is left is the report: the diagrams are worth 15 marks and none exist yet.
+**All seven modules are built** (M1–M7) on Laravel 12 + Breeze, and the suite runs on both SQLite and MariaDB in CI.
 
-Current build state: [docs/progress/build-log.md](docs/progress/build-log.md).
+The four whole-system diagrams are drawn: [docs/12-system-diagrams.md](docs/12-system-diagrams.md). What is left is the written report and the per-member artefacts, tracked in [docs/progress/what-is-left.md](docs/progress/what-is-left.md).
+
+Current build state, including the test count: [docs/progress/build-log.md](docs/progress/build-log.md).
 
 ## Documentation
 

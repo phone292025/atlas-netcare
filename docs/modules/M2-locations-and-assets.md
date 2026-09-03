@@ -2,6 +2,8 @@
 
 **Track:** B · **Owner:** *unassigned* · **Sprint:** 1 · **Depends on:** M1 · **Blocks:** M3, M5
 
+> **Last updated:** 2026-09-04
+
 > The lightest module. Whoever owns it should expect to help M5 from around week 9.
 
 ## Purpose

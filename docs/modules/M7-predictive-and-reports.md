@@ -2,6 +2,8 @@
 
 **Track:** B · **Owner:** *unassigned* · **Sprint:** 4 · **Depends on:** M3, M4, M5 · **Blocks:** nothing
 
+> **Last updated:** 2026-09-04
+
 > **This module is why the project answers Case Study Category 4.** Without it, Atlas NetCare is monitoring and ticketing — not predictive maintenance. It is not optional.
 
 ## Purpose
@@ -22,7 +24,7 @@ FR-309, FR-310, FR-311, FR-410, FR-505
 |---|---|
 | Models | `RiskAssessment` |
 | Enums | `RiskBand` |
-| Services | `RiskScoringService` — `scoreLabPc()`, `scoreAccessPoint()`, `recalculateAll()` |
+| Services | `RiskScoringService` — `scoreLabPc()`, `scoreAccessPoint()`, `recalculateAll()` · `Reports\ReportingService` — the five report figures |
 | Controllers | `Engineer\RiskController`, `ReportController` |
 | Commands | `atlas:recalculate-risk` |
 | Components | `<x-risk-gauge>`, `<x-chart>` |

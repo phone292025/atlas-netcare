@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-08-28 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-04 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -23,7 +23,7 @@ Middleware        auth → role:admin|engineer|assistant
   │               nothing reaches a controller without a verified role
   ▼
 Controller        HTTP only. Validate via Form Request, call one service
-  │               method, return a view or JSON. Target: under 15 lines.
+  │               method, return a view or JSON. Decisions go to a service;
   ▼
 Service           ALL business logic lives here. This is what unit tests
   │               point at.
@@ -79,7 +79,8 @@ app/
 │   │   ├── Api/         DashboardDataController — the polling endpoint
 │   │   └── Auth/        Breeze, with register removed
 │   ├── Middleware/
-│   │   └── EnsureUserHasRole.php         ← NEW
+│   │   ├── EnsureUserHasRole.php         ← NEW
+│   │   └── EnsurePasswordIsChanged.php   on the web GROUP, not an alias
 │   └── Requests/                         one Form Request per write action
 ├── Models/                               17 Eloquent models
 ├── Observers/
@@ -107,6 +108,8 @@ app/
     ├── Tickets/
     │   └── TicketService.php             the ticket state machine, and the
     │                                     only thing that may write `status`
+    ├── Reports/
+    │   └── ReportingService.php          the five FR-410 figures
     └── Shifts/
         ├── ShiftService.php
         └── AlarmService.php
@@ -136,7 +139,7 @@ Keep the tree **shallow**. Deep nesting is where student projects lose people.
 
 ## The five hard rules
 
-1. **No business logic in controllers.** A controller validates via a Form Request, calls one service method, and returns a view or JSON. If an action exceeds ~15 lines, the excess belongs in a service.
+1. **No business logic in controllers.** Anything that decides, computes or changes state belongs in a service: state machines, scoring, SLA arithmetic, report aggregation. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action. The test is whether a second caller would need the same answer. `ReportController` failed it at 309 lines and became `ReportingService` on 2026-09-04.
 
 2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or traverse a relationship that triggers a query. This is the single most common cause of N+1 problems in student projects, and it will be visible to anyone who opens the debug bar during your demo.
 
@@ -154,7 +157,7 @@ Two layers, and they do different jobs:
 
 | Layer | Answers | Implementation |
 |---|---|---|
-| **Middleware** | "May this role reach this area at all?" | `EnsureUserHasRole`, applied to route groups |
+| **Middleware** | "May this role reach this area at all?" | `EnsureUserHasRole`, applied to route groups. `EnsurePasswordIsChanged` is on the whole `web` group instead, because a control you have to remember to apply is one somebody will forget. |
 | **Policy** | "May this specific user act on this specific record?" | Laravel Policies, e.g. `TicketPolicy::close()` |
 
 Never use middleware for record-level checks, and never scatter `if ($user->role === ...)` through controllers. If you find yourself writing that condition, it belongs in a Policy.

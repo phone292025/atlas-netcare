@@ -10,6 +10,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Tickets\TicketService;
 use DomainException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -320,5 +321,86 @@ class TicketLifecycleTest extends TestCase
             'category' => 'hardware',
             'priority' => TicketPriority::Medium->value,
         ];
+    }
+
+    /*
+    |---------------------------------------------------------------------
+    | Two people pressing Submit at once
+    |---------------------------------------------------------------------
+    |
+    | `reserveNumber()` reads the highest number and adds one, so two requests
+    | that read before either writes compute the same string and the loser hits
+    | the unique index. Until 2026-09-04 that became a 500: the assistant had
+    | typed a fault description, got an error page, and the fault was still
+    | there. Rare on a campus this size, and trivially demonstrable wrong.
+    |
+    | Real concurrency cannot be reproduced in PHPUnit, so `reserveNumber()` is
+    | protected and these subclass it to hand back a number that is already
+    | taken. That is exactly what losing the race looks like from inside the
+    | method.
+    */
+
+    public function test_a_taken_ticket_number_is_retried_rather_than_thrown(): void
+    {
+        $reporter = $this->userWith(UserRole::Assistant);
+
+        // The winner of the race, holding the number the loser will compute.
+        $taken = $this->service()->open($this->attributes(), $reporter);
+
+        $loser = new class extends TicketService
+        {
+            public int $reads = 0;
+
+            public string $collideWith = '';
+
+            protected function reserveNumber(): string
+            {
+                $this->reads++;
+
+                // Collide once, then behave — the second read sees what the
+                // winner committed, which is what a real retry gets.
+                return $this->reads === 1 ? $this->collideWith : parent::reserveNumber();
+            }
+        };
+
+        $loser->collideWith = $taken->ticket_number;
+
+        $ticket = $loser->open($this->attributes(), $reporter);
+
+        $this->assertSame(2, $loser->reads, 'It should have re-read the number after the collision.');
+        $this->assertSame('TKT-'.now()->year.'-00002', $ticket->ticket_number);
+        $this->assertSame(2, Ticket::count());
+    }
+
+    public function test_it_gives_up_instead_of_looping_forever(): void
+    {
+        /*
+         * The other half, and the more important one: a retry that never stops
+         * is worse than the 500 it replaced, because it hangs the request
+         * instead of failing it. This subclass never yields a free number.
+         */
+        $reporter = $this->userWith(UserRole::Assistant);
+        $taken = $this->service()->open($this->attributes(), $reporter);
+
+        $doomed = new class extends TicketService
+        {
+            public string $collideWith = '';
+
+            protected function reserveNumber(): string
+            {
+                return $this->collideWith;
+            }
+        };
+
+        $doomed->collideWith = $taken->ticket_number;
+
+        try {
+            $doomed->open($this->attributes(), $reporter);
+            $this->fail('It should have given up after the retry limit.');
+        } catch (UniqueConstraintViolationException) {
+            // What we want: it stops, and it stops loudly.
+        }
+
+        $this->assertSame(1, Ticket::count(), 'A failed attempt must not leave half a ticket behind.');
     }
 }

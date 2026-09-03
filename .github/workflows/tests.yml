@@ -1,0 +1,126 @@
+name: Tests
+
+# Runs the suite twice: once on SQLite, which is what a developer runs, and
+# once on MariaDB, which is what the system actually runs on.
+#
+# The second one is the point. Three defects have reached the live database
+# through a completely green suite, all of them things SQLite does not have to
+# get wrong: MySQL-only FIELD(), MySQL-only DATE_FORMAT, and MariaDB's implicit
+# DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP on the first timestamp
+# column in a table. SchemaIntegrityTest guards the last one and skips itself on
+# SQLite, so before this workflow existed it had never run at all.
+#
+# It earned its keep the first time it was run: two tests failed on MariaDB and
+# not on SQLite, and one of them was real (see tests/Feature/Telemetry).
+#
+# @see phpunit.mariadb.xml
+# @see docs/07-testing.md
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: ${{ matrix.database }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Both results wanted. Stopping the MariaDB run because SQLite failed
+      # hides exactly the comparison this workflow exists to make.
+      fail-fast: false
+      matrix:
+        include:
+          - database: SQLite
+            config: phpunit.xml
+          - database: MariaDB
+            config: phpunit.mariadb.xml
+
+    services:
+      mariadb:
+        # Pinned to the version in the lab: 10.4 is what XAMPP ships and what
+        # the project is developed against. Testing on 11.x would defeat the
+        # object.
+        image: mariadb:10.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: atlas_netcare_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # ADR-0008 pins Laravel 12; this is the PHP the lab machines run.
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_mysql, pdo_sqlite, bcmath, gd, zip
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Install PHP dependencies
+        # --no-interaction because a prompt in CI hangs until the job times out.
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Build front-end assets
+        # public/build is gitignored and both layouts call @vite, so without
+        # this every test that renders a page dies on a missing manifest
+        # rather than on anything to do with the code.
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run the suite
+        env:
+          DB_USERNAME: root
+          DB_PASSWORD: root
+        # Real environment variables win over phpunit.xml's <env> entries and
+        # over .env, which is how the same config file works here and on a
+        # developer's machine with different credentials.
+        run: php artisan test -c ${{ matrix.config }}
+
+  style:
+    name: Pint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Check formatting
+        # --test reports rather than rewrites: CI says what is wrong and the
+        # author fixes it, so nobody is surprised by a commit they did not make.
+        run: vendor/bin/pint --test

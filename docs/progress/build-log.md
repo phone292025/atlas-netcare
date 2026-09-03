@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-08-29
+> **Last updated:** 2026-09-04
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -10,14 +10,15 @@
 
 | | |
 |---|---|
-| **Phase** | Sprint 0 complete. Building modules. |
-| **Last session** | 2026-08-30 |
+| **Phase** | The code is finished. What remains is the report. |
+| **Last session** | 2026-09-04 |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | 684 passing (1 skipped), 1764 assertions, zero deprecations |
+| **Tests** | **713 passing (1 skipped), 1840 assertions** on SQLite; **714 passing, none skipped, 1841 assertions** on MariaDB. Zero deprecations. This is the only place in the project that states a test count. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |
-| **Next action** | **The report, not the code.** All seven modules are built. The Context Diagram, DFD 0 and consolidated ERD are worth 15 marks and none exist, and each module owes a DFD 1, data dictionary and flowchart from an owner nobody has assigned. Two code items remain: FR-408, the individual shift override M6 did not build, and demo data with something in the top two risk bands. |
+| **Next action** | **The report, not the code.** All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. What is left needs people rather than commits: each module owes a DFD 1, data dictionary and flowchart from an owner **nobody has assigned**, and four UAT sessions need real participants. |
+| **CI** | GitHub Actions runs the suite on SQLite **and** MariaDB 10.4, plus Pint, on every push. `.github/workflows/tests.yml`. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---

@@ -2,6 +2,8 @@
 
 **Track:** B · **Owner:** *unassigned* · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
 
+> **Last updated:** 2026-09-04
+
 > **The hardest module, and the project's headline feature.** Give it to whoever is strongest with data. It cannot slip.
 
 ## Purpose

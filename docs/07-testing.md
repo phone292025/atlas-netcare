@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-08-30 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-09-04 · **Worth 10 marks in the report rubric**
 
 Section F item 17 requires a test plan covering unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -70,7 +70,18 @@ Every one of these was learned by shipping a defect through a fully green suite.
 
 **A regression test is checked against the bug.** Write the fix, write the test, then put the bug back and watch the test fail. A test that passes against broken code is worse than no test, because it makes you confident. The risk scoring model's clamp and its renormalising were both verified this way.
 
-**A green suite says nothing about MariaDB.** The suite runs on SQLite in memory. That gap has now shipped four defects: MySQL-only `FIELD()`, MySQL-only `DATE_FORMAT`, timestamp columns that rewrote themselves on every update, and rows already damaged before that was fixed. `php artisan atlas:check-schema` audits the live database for all of it — schema traps and contradictory data — and is read only, so it is safe to point at real data. **Run it after any migration and before submission.**
+**A green suite said nothing about MariaDB, so now it is run on both.** `php artisan test` uses SQLite in memory because it is fast and needs nothing installed. That gap shipped four defects: MySQL-only `FIELD()`, MySQL-only `DATE_FORMAT`, timestamp columns that rewrote themselves on every update, and rows already damaged before that was fixed.
+
+Since 2026-09-04 there is a second config, `phpunit.mariadb.xml`, and CI runs both on every push:
+
+```bash
+php artisan test                          # SQLite, 1 skipped
+php artisan test -c phpunit.mariadb.xml   # MariaDB, nothing skipped
+```
+
+The skip matters: `SchemaIntegrityTest` guards the timestamp trap and skips itself on SQLite, so until CI existed **the test protecting against the worst of the four had never run**. The MariaDB job earned itself on its first run by failing a telemetry test that had been green for weeks while measuring the wrong thing.
+
+`php artisan atlas:check-schema` still audits the live database for schema traps and contradictory data, and is read only, so it is safe to point at real data. **Run it after any migration and before submission.**
 
 ---
 

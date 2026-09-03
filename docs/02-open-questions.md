@@ -1,8 +1,8 @@
 # Open Questions
 
-> **Last updated:** 2026-08-30 · **Bring this to every supervisor meeting — it is the agenda.**
+> **Last updated:** 2026-09-04 · **Bring this to every supervisor meeting — it is the agenda.**
 
-Eleven things the approved proposal leaves undefined, or that building it exposed. Nine are settled. Q6 is still open, and Q8 belongs to the report rather than the code. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
+Eleven things the approved proposal leaves undefined, or that building it exposed. Ten are settled; Q8 belongs to the report rather than the code. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
 **Status key:** `Open` — no assumption safe enough to build on · `Assumed` — building on a stated default · `Decided` — settled, recorded, safe
 
@@ -12,7 +12,7 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 
 ## Summary
 
-> **Eight of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because they are the ones a marker is most likely to ask you to justify.
+> **Nine of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because they are the ones a marker is most likely to ask you to justify. Q6 is the one exception: it was put to the project lead and answered, on 2026-09-04.
 
 | # | Question | Status | Built in | Where to change it |
 |---|---|---|---|---|
@@ -21,7 +21,7 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 | [Q3](#q3) | What is the full ticket lifecycle and SLA? | ✅ Settled | M4 | `TicketService::TRANSITIONS`, `config/atlas.php` → `sla_hours` |
 | [Q4](#q4) | Are shifts recurring or assigned individually? | ✅ Settled | M6 | `ShiftService::generateWeek()` |
 | [Q5](#q5) | How does an alarm reach an assistant? | ✅ Settled | M6 | `AlarmService` — **state the in-app-only limit in the report** |
-| [Q6](#q6) | Who creates user accounts? | **🔴 Open** | — | **Still needs a decision** |
+| [Q6](#q6) | Who creates user accounts? | ✅ Decided | M1 | `EnsurePasswordIsChanged` middleware |
 | [Q7](#q7) | Do lab PCs self-report health? | ✅ Settled | M2, M3 | — inspections are the only health source |
 | [Q8](#q8) | Where do the NFRs live? | `Assumed` | Report | Week 12 |
 | [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
@@ -139,7 +139,7 @@ Recurring templates mean the admin sets up a pattern once instead of entering sh
 <a id="q6"></a>
 ## Q6 — Who creates user accounts?
 
-**Status:** 🔴 **`Open`** · **Owner:** M1 owner · **Blocks:** auth scaffolding in Sprint 0 · **Decide before Sprint 0**
+**Status:** ✅ **`Decided`** 2026-09-04 · **Owner:** M1 owner · **Built in:** M1
 
 The proposal's Keynote states the system is "for professional use only" and "will refrain from sharing with public." Taken literally that means **self-registration must not exist** — which changes what you install in week one.
 
@@ -148,6 +148,14 @@ The proposal's Keynote states the system is "for professional use only" and "wil
 **Why it matters now:** getting this wrong means either building a registration flow nobody wants, or retro-fitting admin account creation after other modules already depend on `users`. Five minutes of agreement now saves a day later.
 
 **Question for the team:** on first login, should a user be forced to change an admin-set password? *(Recommendation: yes — it is one middleware and it is a good answer when a marker asks about security.)*
+
+### Decided 2026-09-04: yes
+
+`EnsurePasswordIsChanged` is appended to the `web` middleware group. A user carrying `must_change_password` is redirected to **Profile** from every other screen until they set their own password; `logout` and the profile screen itself stay reachable, so the control is not a trap. Changing the password through the profile form or through the emailed reset link both clear the flag.
+
+**Why this was worth doing rather than deleting the column.** The flag was already written in three places and shown on the account screen as a badge reading "Must be changed at next sign-in", and `11-installation-guide.md` told anybody installing the system that the administrator "asks for a new one immediately". Neither was true. The column had been created under the provisional-values rule and the enforcement deliberately left out pending this answer, which was correct process, but it left two documents describing behaviour that did not exist. A visible control that does nothing is worse than no control, and a marker who reads the badge will test it.
+
+Decided by the project lead rather than the full team, which is a weaker basis than Q1 to Q5 deserve but stronger than leaving a false claim on screen.
 
 ---
 
@@ -252,4 +260,4 @@ The rejected alternatives were Mailpit, which proves the code path but demonstra
 
 | Date | Question | Resolution | Recorded by |
 |---|---|---|---|
-| *(none yet)* | | | |
+| 2026-09-04 | Q6 — forced password change on first login | **Yes.** `EnsurePasswordIsChanged` on the `web` group. The column had been written since Sprint 0 and read by nothing, while the account badge and the installation guide both claimed it worked. | Project lead |

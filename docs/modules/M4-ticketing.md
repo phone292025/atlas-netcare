@@ -2,6 +2,8 @@
 
 **Track:** A · **Owner:** *unassigned* · **Sprint:** 3 · **Depends on:** M1, M2, M3 · **Blocks:** M7
 
+> **Last updated:** 2026-09-04
+
 ## Purpose
 
 One traceable queue from an assistant's fault report to an engineer's resolution, replacing ad-hoc email and verbal reporting.

@@ -125,17 +125,44 @@ class TelemetryPipelineTest extends TestCase
          * ADR-0002 is explicit: if latency is noise uncorrelated with client
          * count, M7 has nothing real to detect and a sharp marker will notice.
          * This is that correlation, asserted.
+         *
+         * ONE ACCESS POINT AT TWO HOURS, not two access points. The earlier
+         * version compared a capacity-500 AP against a capacity-10 one and
+         * assumed the small one would be saturated. It is not: `clientCount()`
+         * is `capacity x popularity x curve`, so saturation does not depend on
+         * capacity at all and the two APs differed only in the `popularity`
+         * that `personality()` derives from their ID. The test was a coin toss
+         * on two md5 hashes, and it landed differently on MariaDB than on
+         * SQLite because in-memory SQLite hands out IDs 1 and 2 every time
+         * while a real auto-increment keeps counting. Found 2026-09-04 by
+         * running the suite against MariaDB for the first time.
+         *
+         * The same AP has one fixed personality, so the only thing changing
+         * here is the time of day, which is exactly the variable the claim is
+         * about.
          */
-        $quiet = AccessPoint::factory()->create(['client_capacity' => 500]);
-        $packed = AccessPoint::factory()->create(['client_capacity' => 10]);
-
+        $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
         $source = new SimulatedTelemetrySource;
-        $at = now()->next('Tuesday')->setTime(11, 0);
+        $tuesday = now()->next('Tuesday');
 
-        $quietLatency = collect(range(1, 15))->map(fn () => $source->reading($quiet, $at)->latencyMs)->avg();
-        $packedLatency = collect(range(1, 15))->map(fn () => $source->reading($packed, $at)->latencyMs)->avg();
+        // Spread across the hour: outages are sticky for a 20-minute window,
+        // so sampling one instant fifteen times would lose all fifteen.
+        $meanLatencyAt = fn (int $hour) => collect(range(0, 14))
+            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 4))->latencyMs)
+            ->filter()
+            ->avg();
 
-        $this->assertGreaterThan($quietLatency, $packedLatency);
+        $overnight = $meanLatencyAt(3);
+        $lateMorning = $meanLatencyAt(11);
+
+        $this->assertNotNull($overnight, 'Every overnight reading was an outage.');
+        $this->assertNotNull($lateMorning, 'Every late-morning reading was an outage.');
+
+        $this->assertGreaterThan(
+            $overnight,
+            $lateMorning,
+            'A busy access point must be slower than the same one at 3am.',
+        );
     }
 
     // ------------------------------------------------------- the collector

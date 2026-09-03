@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -64,44 +65,87 @@ class TicketService
     ];
 
     /**
+     * How many times to re-attempt a ticket number before giving up.
+     *
+     * Three, because each retry only loses to a request that committed in the
+     * microseconds since the last read. Two colliding is plausible on a busy
+     * Monday morning; three is a stretch; four in a row means something other
+     * than contention is wrong and looping is the wrong answer.
+     */
+    private const NUMBER_ATTEMPTS = 3;
+
+    /**
      * Raise a ticket.
      *
      * `$subject` is the lab PC or access point it is about, or null for a
      * fault that belongs to a place rather than a machine.
      *
+     * RETRIED ON PURPOSE. `reserveNumber()` reads the highest number and adds
+     * one, so two people pressing Submit in the same moment compute the same
+     * one and the loser hits the unique index. This method used to let that
+     * become a 500, which is the worst possible place to lose: the assistant
+     * has typed a fault description and gets an error page, and the thing they
+     * were reporting is still broken.
+     *
+     * Retrying re-reads the number, so the second attempt gets the one the
+     * winner has now committed. `ticket_number` is the only unique column on
+     * the table, so a unique violation here is always this and nothing else.
+     *
      * @param  array<string, mixed>  $attributes
+     *
+     * @throws UniqueConstraintViolationException after NUMBER_ATTEMPTS
      */
     public function open(array $attributes, User $reporter, ?Model $subject = null): Ticket
     {
-        return DB::transaction(function () use ($attributes, $reporter, $subject) {
-            $priority = $attributes['priority'] instanceof TicketPriority
-                ? $attributes['priority']
-                : TicketPriority::from($attributes['priority']);
-
-            $ticket = new Ticket($attributes);
-
-            if ($subject) {
-                $ticket->ticketable()->associate($subject);
-
-                // Denormalise the location off the asset so the queue can
-                // filter by place without joining through a polymorphic
-                // relation to two different tables.
-                $ticket->location_id = $attributes['location_id'] ?? $subject->location_id ?? null;
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return DB::transaction(fn () => $this->insert($attributes, $reporter, $subject));
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= self::NUMBER_ATTEMPTS) {
+                    throw $e;
+                }
             }
+        }
+    }
 
-            $ticket->reported_by = $reporter->id;
+    /**
+     * One attempt at writing the ticket, inside its own transaction.
+     *
+     * Separate from open() only so the retry has something to call again. A
+     * failed attempt must not leave half a ticket behind, which is what the
+     * transaction around it is for.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function insert(array $attributes, User $reporter, ?Model $subject): Ticket
+    {
+        $priority = $attributes['priority'] instanceof TicketPriority
+            ? $attributes['priority']
+            : TicketPriority::from($attributes['priority']);
 
-            $openedAt = now();
+        $ticket = new Ticket($attributes);
 
-            $ticket->forceFill([
-                'ticket_number' => $this->reserveNumber(),
-                'status' => TicketStatus::Open,
-                'opened_at' => $openedAt,
-                'due_at' => $openedAt->copy()->addHours($priority->slaHours()),
-            ])->save();
+        if ($subject) {
+            $ticket->ticketable()->associate($subject);
 
-            return $ticket;
-        });
+            // Denormalise the location off the asset so the queue can
+            // filter by place without joining through a polymorphic
+            // relation to two different tables.
+            $ticket->location_id = $attributes['location_id'] ?? $subject->location_id ?? null;
+        }
+
+        $ticket->reported_by = $reporter->id;
+
+        $openedAt = now();
+
+        $ticket->forceFill([
+            'ticket_number' => $this->reserveNumber(),
+            'status' => TicketStatus::Open,
+            'opened_at' => $openedAt,
+            'due_at' => $openedAt->copy()->addHours($priority->slaHours()),
+        ])->save();
+
+        return $ticket;
     }
 
     /**
@@ -248,11 +292,20 @@ class TicketService
      * readable line of PHP instead of vendor-specific SQL. The count is per
      * calendar year, so the number stays short for the life of the project.
      *
-     * Called inside the transaction opened by open(), and the column is unique,
-     * so two simultaneous requests cannot both take the same number — the
-     * loser hits the unique index rather than silently duplicating.
+     * NOT SAFE ON ITS OWN, and deliberately left that way. This reads the
+     * highest number and adds one, so two callers reading before either writes
+     * compute the same string. The unique index stops the duplicate; open()
+     * retries so the loser gets the next number instead of an error page.
+     *
+     * A transaction does not fix this by itself, which is what the previous
+     * version of this comment assumed: both readers see the same maximum, and
+     * serialising them properly would mean locking the whole year's tickets on
+     * every raise.
+     *
+     * `protected` so a test can subclass and force the collision. Concurrency
+     * cannot be reproduced in PHPUnit any other way.
      */
-    private function reserveNumber(): string
+    protected function reserveNumber(): string
     {
         $year = now()->year;
 
