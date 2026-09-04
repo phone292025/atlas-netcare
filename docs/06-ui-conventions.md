@@ -196,7 +196,7 @@ Different roles use different devices. Design for both, differently.
 | Role | Primary device | Requirements |
 |---|---|---|
 | **Assistant** | 📱 **Mobile first** | The checklist must be fully operable one-handed at 375 px. Large tap targets, one item per row, no horizontal scroll, no hover-only interactions. This is NFR-05. **Measured at 375px on 2026-09-04**: all 39 choice buttons exactly 44px tall, three across at 98px each, no horizontal scroll, submit bar genuinely `position: sticky`, and the remark box hidden until Issue is tapped. |
-| **Engineer** | 🖥️ **Desktop first** | Dense tables, multi-series charts, filter bars, keyboard-navigable. Degrade to stacked cards below 768 px rather than horizontally scrolling tables. |
+| **Engineer** | 🖥️ **Desktop first** | Dense tables, multi-series charts, filter bars, keyboard-navigable. Degrade to stacked cards below 768 px rather than horizontally scrolling tables. The assistant's My Tickets does this (`md:hidden` cards, `max-md:hidden` table, one query); it is the pattern for any list an assistant reads on a phone. |
 | **Admin** | 🖥️ Desktop | Standard CRUD. Consistent index / create / edit / show pattern throughout. |
 
 Any table wider than the viewport gets `overflow-x: auto` on **its own container** — the page body must never scroll sideways.
@@ -252,4 +252,6 @@ AP health dashboard · AP detail with 24h chart · Traffic & congestion logs · 
 Users · Locations · Lab PC inventory · Access point inventory · Checklist templates · Checklist items · Shift templates · Roster generator · Audit log · Reports
 
 ### Shared
-Login · Forgot password · Reset password · Profile · 403 · 404
+Login · Forgot password · Reset password · Profile · 403 · 404 · 419 · 429 · 500 · 503
+
+The error pages live in `resources/views/errors/` on their own shell, not `layouts/app.blade.php`, so they render when the thing that failed is the signed-in user. Until 2026-09-04 they were Laravel's stock pages.

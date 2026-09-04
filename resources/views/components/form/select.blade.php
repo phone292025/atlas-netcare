@@ -24,6 +24,13 @@
     read their labels from the same enum, so they cannot disagree about what a
     value is called.
 
+    A NESTED map renders as groups — the key becomes the <optgroup> label:
+
+        ['Level 6 IT Lab 01' => [12 => 'APU-1007', 13 => 'APU-1008'], ...]
+
+    Native grouping, no JavaScript: it works on a phone, with a keyboard, and
+    with a screen reader, which a filtered-by-Alpine select would not.
+
     `placeholder` renders a DISABLED first option — use it when no value is a
     valid answer ("Choose a location"), not as a fake empty choice on a
     required field.
@@ -81,9 +88,19 @@
         @endif
 
         @foreach ($options as $optionValue => $optionLabel)
-            <option value="{{ $optionValue }}" @selected((string) $current === (string) $optionValue)>
-                {{ $optionLabel }}
-            </option>
+            @if (is_array($optionLabel))
+                <optgroup label="{{ $optionValue }}">
+                    @foreach ($optionLabel as $groupedValue => $groupedLabel)
+                        <option value="{{ $groupedValue }}" @selected((string) $current === (string) $groupedValue)>
+                            {{ $groupedLabel }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            @else
+                <option value="{{ $optionValue }}" @selected((string) $current === (string) $optionValue)>
+                    {{ $optionLabel }}
+                </option>
+            @endif
         @endforeach
     </select>
 </x-form.field>

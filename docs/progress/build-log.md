@@ -11,9 +11,9 @@
 | | |
 |---|---|
 | **Phase** | The code is finished. What remains is the report. |
-| **Last session** | 2026-09-04 |
+| **Last session** | 2026-09-04 (end-to-end review) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **745 passing (1 skipped), 1930 assertions** on SQLite; **746 passing, none skipped, 1931 assertions** on MariaDB. Zero deprecations. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
+| **Tests** | **760 passing (1 skipped), 2025 assertions** on SQLite; **761 passing, none skipped, 2026 assertions** on MariaDB. Zero deprecations. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |
@@ -22,6 +22,18 @@
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---
+
+## End-to-end review — 2026-09-04
+
+The system was driven rather than read: every screen with full demo volume on MariaDB, every workflow through the HTTP layer as each role, and the assistant's round in a browser at desktop and 375px. Seven scenarios, 158 assertions, every screen under 16 queries. What that found, and what was done:
+
+- **The collector, after any pause, marked every access point offline and raised a ticket for each.** `classify()` consulted `last_seen_at` on readings that had just arrived. Reproduced on a fresh seed; the live database was primed for it. Fixed in `TelemetryService`, with the regression test named for the demo-day case. **This is the one that would have happened on the morning of the demonstration**, the moment somebody started `schedule:work`.
+- **Auto-raised tickets about demo assets were real rows**, so the purge refused after one collection round. They carry `is_demo` now.
+- **"Updated 1s ago" over two-day-old readings.** Both status screens now state the reading age and warn when the collector has stopped.
+- **The live database numbered tickets from 96 thousand.** `atlas:renumber-tickets`, run here after a backup: 48 tickets renumbered.
+- **Stock error pages**, replaced. "Coming up" repeating today, fixed. Machine picker grouped by location. My Tickets stacks on a phone.
+
+**Not code, still true.** The scheduler is not running on this machine and has not since 2 September; the notification bell is empty because nothing has dispatched. Start `php artisan schedule:work` before the demonstration. With the collector fix it is now safe to do so on stale data.
 
 ## M7 built — 2026-08-30
 

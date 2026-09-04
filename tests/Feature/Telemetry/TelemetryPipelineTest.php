@@ -9,10 +9,12 @@ use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetrySource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use RuntimeException;
 use Tests\TestCase;
@@ -33,6 +35,30 @@ class TelemetryPipelineTest extends TestCase
         $user->forceFill(['role' => $role, 'is_active' => true])->save();
 
         return $user->fresh();
+    }
+
+    /**
+     * A driver whose every access point fails to answer, bound in place of the
+     * simulator so a test can force "offline" without betting on the
+     * simulator's outage lottery — and without relying on a stale
+     * `last_seen_at`, which is exactly the thing classify() must ignore.
+     */
+    private function driverWhereNothingAnswers(): void
+    {
+        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        {
+            public function sourceLabel(): string
+            {
+                return 'simulated';
+            }
+
+            /** @return Collection<int, ReadingData> */
+            public function collect(): Collection
+            {
+                return AccessPoint::query()->collectable()->get()
+                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+            }
+        });
     }
 
     // ------------------------------------------------------- the driver swap
@@ -256,10 +282,8 @@ class TelemetryPipelineTest extends TestCase
          * is still open. Without them a six-hour outage files 360 tickets.
          */
         $this->userWith(UserRole::Admin);
-        $ap = AccessPoint::factory()->create([
-            'status' => ApStatus::Online->value,
-            'last_seen_at' => now()->subHours(3),
-        ]);
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $this->driverWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
         $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
@@ -275,15 +299,102 @@ class TelemetryPipelineTest extends TestCase
         // reported_by is not nullable, and the reading itself must still be
         // stored — losing telemetry because nobody can own a ticket would be
         // the wrong trade.
-        AccessPoint::factory()->create([
-            'status' => ApStatus::Online->value,
-            'last_seen_at' => now()->subHours(3),
-        ]);
+        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $this->driverWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
 
         $this->assertSame(0, Ticket::count());
         $this->assertSame(1, TelemetryReading::count());
+    }
+
+    public function test_the_first_run_after_a_collection_gap_raises_no_tickets(): void
+    {
+        /*
+         * REGRESSION, and the one that would have been seen on demo day. With
+         * the collector stopped for two days — a laptop asleep, a scheduler
+         * nobody started — every access point's `last_seen_at` is stale. The
+         * first run afterwards used to mark all of them offline on readings
+         * that proved they were up, raise one ticket per access point to the
+         * administrator, and flip them all back online a minute later.
+         *
+         * Uses the real simulator, so an access point in one of its outages
+         * may legitimately go offline. The contract is therefore per access
+         * point: one that ANSWERED is online and has no ticket.
+         */
+        $this->userWith(UserRole::Admin);
+        AccessPoint::factory()->count(6)->create([
+            'status' => ApStatus::Online->value,
+            'last_seen_at' => now()->subDays(2),
+        ]);
+
+        Artisan::call('atlas:collect-telemetry');
+
+        $readings = TelemetryReading::all()->keyBy('access_point_id');
+        $answered = 0;
+
+        foreach (AccessPoint::all() as $ap) {
+            if ($readings[$ap->id]->latency_ms === null) {
+                continue; // an outage in the simulator, not the bug
+            }
+
+            $answered++;
+            $this->assertSame(ApStatus::Online, $ap->status, "{$ap->ap_code} answered but was marked offline.");
+            $this->assertSame(0, Ticket::where('ticketable_id', $ap->id)->count(), "{$ap->ap_code} answered but got a ticket.");
+        }
+
+        $this->assertGreaterThan(0, $answered, 'Every access point was unreachable at once.');
+    }
+
+    public function test_an_automatic_ticket_about_a_demo_access_point_is_demo_data(): void
+    {
+        /*
+         * Otherwise the collector, running in demo mode, writes real tickets
+         * that point at demo assets, and `atlas:purge-demo-data` refuses to
+         * run after a single round because deleting the assets would orphan
+         * them. A ticket the SYSTEM raised about demonstration kit is
+         * demonstration data; one a person raised is not, whatever the asset.
+         */
+        $this->userWith(UserRole::Admin);
+        $demo = AccessPoint::factory()->create(['status' => ApStatus::Online->value, 'ap_code' => 'AP-DEMO']);
+        $real = AccessPoint::factory()->create(['status' => ApStatus::Online->value, 'ap_code' => 'AP-REAL']);
+        // Set explicitly on both: is_demo is not fillable, and the factory's
+        // default is deliberately not what this test is about.
+        $demo->forceFill(['is_demo' => true])->save();
+        $real->forceFill(['is_demo' => false])->save();
+        $this->driverWhereNothingAnswers();
+
+        Artisan::call('atlas:collect-telemetry');
+
+        $this->assertTrue(Ticket::where('ticketable_id', $demo->id)->firstOrFail()->is_demo);
+        $this->assertFalse(Ticket::where('ticketable_id', $real->id)->firstOrFail()->is_demo);
+    }
+
+    public function test_the_polling_endpoint_says_how_old_the_readings_are(): void
+    {
+        /*
+         * `generated_at` is when the payload was built, which is always "just
+         * now". The screens used to show only that, so a dashboard on a
+         * machine whose collector had stopped two days earlier said "updated
+         * 1s ago" over 29 green rows. `readings_as_of` is when the newest
+         * reading was taken, and `stale` says whether that is too long ago
+         * to trust.
+         */
+        $engineer = $this->userWith(UserRole::Engineer);
+        $ap = AccessPoint::factory()->create();
+
+        $empty = $this->actingAs($engineer)->getJson(route('api.dashboard'))->json();
+        $this->assertNull($empty['readings_as_of']);
+        $this->assertFalse($empty['stale']);
+
+        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()->subHours(3)]);
+        $old = $this->actingAs($engineer)->getJson(route('api.dashboard'))->json();
+        $this->assertNotNull($old['readings_as_of']);
+        $this->assertTrue($old['stale']);
+
+        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()]);
+        $fresh = $this->actingAs($engineer)->getJson(route('api.dashboard'))->json();
+        $this->assertFalse($fresh['stale']);
     }
 
     // ------------------------------------------------------- aggregation

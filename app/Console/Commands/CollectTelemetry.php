@@ -111,7 +111,9 @@ class CollectTelemetry extends Command
             'category' => TicketCategory::Network->value,
             'priority' => TicketPriority::Critical->value,
             'location_id' => $ap->location_id,
-        ], $reporter, $ap);
+        ], $reporter, $ap, isDemo: (bool) $ap->is_demo);
+        // isDemo: a ticket the system raised about a demonstration access
+        // point is demonstration data, and goes when the purge runs.
 
         $this->warn("Raised a ticket for {$ap->ap_code}.");
     }

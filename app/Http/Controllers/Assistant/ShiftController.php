@@ -35,7 +35,11 @@ class ShiftController extends Controller
             'shift' => $shift,
             // The handover left by whoever was in this location before.
             'handover' => $shift ? $this->previousHandover($shift) : null,
+            // What comes AFTER the shift shown above, so today's does not
+            // appear twice. Two shifts on one day is possible, so exclude by
+            // id rather than by date.
             'upcoming' => Shift::query()->forUser($user)->upcoming()
+                ->when($shift, fn ($q) => $q->whereKeyNot($shift->id))
                 ->with('location')->limit(5)->get(),
         ]);
     }

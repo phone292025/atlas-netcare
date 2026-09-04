@@ -18,14 +18,35 @@
             <x-slot:actions>
                 {{-- Say when the numbers are from. A dashboard that might be
                      stale and does not admit it is worse than no dashboard. --}}
+                {{-- Two different times, and both matter. "Updated" is when
+                     this page last fetched; "readings" is when the collector
+                     last measured anything. Only the second one says whether
+                     the statuses below are current. --}}
                 <span class="text-xs text-slate-500">
                     Updated <span x-text="updatedAgo">just now</span>
+                    <template x-if="data.readings_age">
+                        <span> · readings from <span x-text="data.readings_age"></span></span>
+                    </template>
+                    <template x-if="!data.readings_age">
+                        <span> · no readings yet</span>
+                    </template>
                     <template x-if="failing">
                         <span class="ml-1 font-medium text-red-600">— refresh failed</span>
                     </template>
                 </span>
             </x-slot:actions>
         </x-page-header>
+
+        <template x-if="data.stale">
+            <div class="mb-4">
+                <x-alert type="warning">
+                    <strong>The collector has stopped.</strong> The newest reading is from
+                    <span x-text="data.readings_age"></span>, so the statuses below are the last
+                    known state, not a measurement. Start it with
+                    <code class="font-mono text-xs">php artisan schedule:work</code>.
+                </x-alert>
+            </div>
+        </template>
 
         <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {{-- The number is passed as a SLOT, not the `value` prop, so Alpine

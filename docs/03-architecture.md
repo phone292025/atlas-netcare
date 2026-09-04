@@ -234,6 +234,7 @@ return [
 | `atlas:aggregate-telemetry` | hourly | Rolls raw readings into `telemetry_hourly` |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Runs after aggregation, so trends do not stop hours short of now |
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
+| `atlas:renumber-tickets` | never — run by hand | Repairs a database seeded with random ticket references: sequential per year, references rewritten, `--dry-run` first |
 
 
 | `atlas:generate-shifts` | weekly, Sunday | Materialises next week's shifts from templates |

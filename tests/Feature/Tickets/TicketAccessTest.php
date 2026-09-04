@@ -408,4 +408,44 @@ class TicketAccessTest extends TestCase
 
         $this->assertSame(TicketStatus::Reopened, $ticket->fresh()->status);
     }
+
+    // ------------------------------------------------------------ the form's shape
+
+    public function test_the_machine_picker_is_grouped_by_location(): void
+    {
+        // One select of every machine in the estate was fine at 9 machines and
+        // is not at 250. Native <optgroup>s, so it works on a phone and with a
+        // screen reader, without JavaScript.
+        $lab = LabPc::factory()->create(['asset_tag' => 'GRP-LAB-01']);
+        $library = LabPc::factory()->create(['asset_tag' => 'GRP-LIB-01']);
+
+        $page = $this->actingAs($this->userWith(UserRole::Assistant))
+            ->get(route('assistant.tickets.create'))
+            ->assertOk();
+
+        $page->assertSee('<optgroup label="'.e($lab->location->label()).'"', escape: false);
+        $page->assertSee('<optgroup label="'.e($library->location->label()).'"', escape: false);
+        $page->assertSee('GRP-LAB-01');
+        $page->assertSee('GRP-LIB-01');
+    }
+
+    public function test_the_assistant_list_is_cards_on_a_phone_and_a_table_on_a_desk(): void
+    {
+        // Both are in the markup; CSS decides which shows at which width —
+        // md:hidden on the cards, max-md:hidden on the table. A six-column
+        // table at 375px showed one column and hid the rest behind a sideways
+        // scroll nobody could see.
+        $assistant = $this->userWith(UserRole::Assistant);
+        Ticket::factory()->create(['reported_by' => $assistant->id, 'title' => 'Card and row']);
+
+        $page = $this->actingAs($assistant)->get(route('assistant.tickets.index'))->assertOk();
+
+        $page->assertSee('id="mobile-ticket-list"', escape: false);
+        $page->assertSee('max-md:hidden');
+        $this->assertSame(
+            2,
+            substr_count($page->getContent(), 'Card and row'),
+            'The ticket should appear once as a card and once as a row.',
+        );
+    }
 }

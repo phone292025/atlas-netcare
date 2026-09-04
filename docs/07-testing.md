@@ -143,3 +143,7 @@ Date · participant role · tasks attempted · completion rate · verbatim feedb
 - [ ] 4 UAT sessions documented with feedback and resulting changes
 - [ ] Screenshots of failures alongside successes
 - [ ] Test data sets included, as the guidelines require
+
+## A fifth habit, from the end-to-end review of 2026-09-04
+
+**Test the first run after a gap.** Every telemetry test started from a fresh database or a running collector. None started from a database the collector had not touched for two days, which is the state of every development machine on the morning of a demonstration. That state marked all 24 access points offline and raised 24 tickets, and the classification test had been asserting exactly that behaviour under the name "silent past the window is offline". A green test that pins a bug is worse than no test, because it argues for the bug. `test_the_first_run_after_a_collection_gap_raises_no_tickets` now holds the door.

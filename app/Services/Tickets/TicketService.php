@@ -91,15 +91,21 @@ class TicketService
      * winner has now committed. `ticket_number` is the only unique column on
      * the table, so a unique violation here is always this and nothing else.
      *
+     * `$isDemo` marks a ticket the SYSTEM raised about demonstration data — the
+     * collector auto-ticketing a demo access point from simulated readings.
+     * Without it those tickets were real rows pointing at demo assets, and
+     * `atlas:purge-demo-data` refused to run after a single collection round.
+     * A person raising a ticket by hand is never demo data, whatever the asset.
+     *
      * @param  array<string, mixed>  $attributes
      *
      * @throws UniqueConstraintViolationException after NUMBER_ATTEMPTS
      */
-    public function open(array $attributes, User $reporter, ?Model $subject = null): Ticket
+    public function open(array $attributes, User $reporter, ?Model $subject = null, bool $isDemo = false): Ticket
     {
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(fn () => $this->insert($attributes, $reporter, $subject));
+                return DB::transaction(fn () => $this->insert($attributes, $reporter, $subject, $isDemo));
             } catch (UniqueConstraintViolationException $e) {
                 if ($attempt >= self::NUMBER_ATTEMPTS) {
                     throw $e;
@@ -117,7 +123,7 @@ class TicketService
      *
      * @param  array<string, mixed>  $attributes
      */
-    private function insert(array $attributes, User $reporter, ?Model $subject): Ticket
+    private function insert(array $attributes, User $reporter, ?Model $subject, bool $isDemo): Ticket
     {
         $priority = $attributes['priority'] instanceof TicketPriority
             ? $attributes['priority']
@@ -143,6 +149,7 @@ class TicketService
             'status' => TicketStatus::Open,
             'opened_at' => $openedAt,
             'due_at' => $openedAt->copy()->addHours($priority->slaHours()),
+            'is_demo' => $isDemo,
         ])->save();
 
         return $ticket;

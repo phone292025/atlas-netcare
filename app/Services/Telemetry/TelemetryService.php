@@ -107,7 +107,9 @@ class TelemetryService
     /**
      * What this reading means for this access point (Q1).
      *
-     *   offline   — did not answer, or has not answered for offline_after_min
+     *   offline   — did not answer. (Not answering AT ALL, for longer than
+     *               offline_after_min, is markStaleOffline()'s job, not this
+     *               method's — see below.)
      *   degraded  — latency, loss or saturation over threshold for
      *               `consecutive_breach` readings in a row
      *   online    — neither
@@ -126,7 +128,16 @@ class TelemetryService
             return ApStatus::Maintenance;
         }
 
-        if ($reading->unreachable || $this->hasBeenSilentTooLong($ap, $reading)) {
+        /*
+         * A reading that arrived is proof of life, whatever `last_seen_at`
+         * says. This used to ALSO consult last_seen_at, so that after any pause
+         * in collection — a stopped scheduler, a laptop asleep, a demo restart
+         * — the first run marked every access point offline on a reading that
+         * proved it was up, raised one ticket per access point, and flipped
+         * them all back online a minute later. Silence is judged only where
+         * no reading arrives: markStaleOffline().
+         */
+        if ($reading->unreachable) {
             return ApStatus::Offline;
         }
 
@@ -204,25 +215,6 @@ class TelemetryService
     }
 
     /**
-     * Answered, but not for longer than the offline window.
-     *
-     * Covers the case a failed poll does not: the collector itself stopped
-     * running. Without this an access point that has not been heard from since
-     * Tuesday still shows online, because no reading ever arrived to say
-     * otherwise.
-     */
-    private function hasBeenSilentTooLong(AccessPoint $ap, ReadingData $reading): bool
-    {
-        if ($ap->last_seen_at === null) {
-            return false;
-        }
-
-        $minutes = (int) config('atlas.thresholds.offline_after_min');
-
-        return $ap->last_seen_at->lt($reading->recordedAt->copy()->subMinutes($minutes));
-    }
-
-    /**
      * The dashboard payload — counts by state, plus every access point's
      * current reading.
      *
@@ -240,8 +232,23 @@ class TelemetryService
 
         $latest = $this->latestReadings($accessPoints->pluck('id'));
 
+        /*
+         * When the newest reading was actually taken. `generated_at` is when
+         * THIS payload was built, which is always "just now", and a screen
+         * that reported only that said "updated 1s ago" over readings two days
+         * old while calling every access point online. Stale means older than
+         * the offline window: the collector has stopped, and the statuses on
+         * this page are history, not measurement.
+         */
+        $newest = $latest->max('recorded_at');
+        $stale = $newest !== null
+            && $newest->lt(now()->subMinutes((int) config('atlas.thresholds.offline_after_min')));
+
         return [
             'generated_at' => now()->toIso8601String(),
+            'readings_as_of' => $newest?->toIso8601String(),
+            'readings_age' => $newest?->diffForHumans(),
+            'stale' => $stale,
             'counts' => [
                 'total' => $accessPoints->count(),
                 'online' => $accessPoints->where('status', ApStatus::Online)->count(),
@@ -302,10 +309,14 @@ class TelemetryService
      * Mark access points offline that have simply stopped being heard from.
      *
      * THE GAP THIS CLOSES. Every other status change in this service is driven
-     * by a reading arriving, including `hasBeenSilentTooLong()` — which needs
-     * a reading in order to notice the absence of earlier ones. An access
-     * point that produces NO reading at all therefore keeps its last known
-     * status indefinitely, and the dashboard goes on reporting it online.
+     * by a reading arriving. An access point that produces NO reading at all
+     * would therefore keep its last known status indefinitely, and the
+     * dashboard would go on reporting it online.
+     *
+     * This sweep is the ONLY place silence is judged. classify() used to check
+     * `last_seen_at` as well, on readings that had just arrived, and after any
+     * pause in collection it marked every access point offline and raised a
+     * ticket for each one. See the decision log for 2026-09-04.
      *
      * With the simulator that cannot happen, because it invents a reading for
      * every collectable access point. It is exactly what a real SNMP driver

@@ -13,7 +13,10 @@ use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
+use App\Services\Telemetry\ReadingData;
+use App\Services\Telemetry\TelemetrySource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
@@ -195,10 +198,26 @@ class AlarmTest extends TestCase
         $this->userWith(UserRole::Admin);
         $engineer = $this->userWith(UserRole::Engineer);
 
-        AccessPoint::factory()->create([
-            'status' => ApStatus::Online->value,
-            'last_seen_at' => now()->subHours(3),
-        ]);
+        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+
+        // A driver whose access point does not answer. Until 2026-09-04 this
+        // test forced "offline" with a stale last_seen_at instead, which only
+        // worked because classify() had a bug: it marked a reachable reading
+        // offline after any pause in collection.
+        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        {
+            public function sourceLabel(): string
+            {
+                return 'simulated';
+            }
+
+            /** @return Collection<int, ReadingData> */
+            public function collect(): Collection
+            {
+                return AccessPoint::query()->collectable()->get()
+                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+            }
+        });
 
         Artisan::call('atlas:collect-telemetry');
 

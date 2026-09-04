@@ -60,7 +60,7 @@ A remark box appears only when you tap Issue, so a clean answer is one tap and a
 
 **The dashboard.** Four tiles across the top, online, degraded, offline, and total clients connected. Below them every access point with its latest reading, latency, packet loss, and when it was last heard from.
 
-The page refreshes itself every twenty seconds without reloading. It says when the numbers are from, and if a refresh fails it keeps the last good numbers and says so rather than blanking. A dashboard that might be stale and does not admit it is worse than no dashboard.
+The page refreshes itself every twenty seconds without reloading. It shows two times, because they answer different questions: when the page last fetched, and when the newest reading was actually taken. If the collector has stopped, the second one is old and a banner says so, because the statuses on the page are then the last known state rather than a measurement. If a refresh fails it keeps the last good numbers and says so rather than blanking. A dashboard that might be stale and does not admit it is worse than no dashboard, and until 2026-09-04 this one said "updated 1s ago" over readings two days old.
 
 It stops polling when you switch tabs.
 

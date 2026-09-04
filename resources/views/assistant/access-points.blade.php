@@ -12,9 +12,21 @@
             <x-slot:actions>
                 <span class="text-xs text-slate-500">
                     Updated <span x-text="updatedAgo">just now</span>
+                    <template x-if="data.readings_age">
+                        <span> · readings from <span x-text="data.readings_age"></span></span>
+                    </template>
                 </span>
             </x-slot:actions>
         </x-page-header>
+
+        <template x-if="data.stale">
+            <div class="mb-4">
+                <x-alert type="warning">
+                    These statuses are from <span x-text="data.readings_age"></span> and may be
+                    out of date. Ask an engineer to check the collector.
+                </x-alert>
+            </div>
+        </template>
 
         <div class="mb-4 grid gap-3 grid-cols-3">
             <x-stat-tile label="Online" tone="healthy">

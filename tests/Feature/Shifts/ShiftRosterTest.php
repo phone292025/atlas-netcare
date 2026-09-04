@@ -375,4 +375,33 @@ class ShiftRosterTest extends TestCase
 
         $this->assertSame(ShiftStatus::Scheduled, $shift->fresh()->status);
     }
+
+    // ------------------------------------------------------------ the today screen
+
+    public function test_todays_shift_is_not_repeated_under_coming_up(): void
+    {
+        // "Coming up" lists what comes AFTER the shift shown at the top of the
+        // screen. It used to include today's shift a second time.
+        $assistant = $this->userWith(UserRole::Assistant);
+        $location = Location::factory()->create();
+
+        $today = Shift::factory()->create([
+            'user_id' => $assistant->id,
+            'location_id' => $location->id,
+            'shift_date' => today()->toDateString(),
+        ]);
+        $tomorrow = Shift::factory()->create([
+            'user_id' => $assistant->id,
+            'location_id' => $location->id,
+            'shift_date' => today()->addDay()->toDateString(),
+        ]);
+
+        $upcoming = $this->actingAs($assistant)
+            ->get(route('assistant.shifts.today'))
+            ->assertOk()
+            ->viewData('upcoming');
+
+        $this->assertFalse($upcoming->contains('id', $today->id), 'Today is shown at the top; it must not repeat below.');
+        $this->assertTrue($upcoming->contains('id', $tomorrow->id));
+    }
 }

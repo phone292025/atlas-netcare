@@ -184,7 +184,7 @@ php artisan atlas:check-schema
 php artisan migrate:status
 ```
 
-Expect **745 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
+Expect **760 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
 
 The skip is deliberate: `SchemaIntegrityTest` only means anything on MariaDB, and `php artisan test` runs on SQLite. To run everything against a real MariaDB, create the test database once and use the other config:
 
@@ -193,7 +193,7 @@ mysql -u root -e "CREATE DATABASE atlas_netcare_test CHARACTER SET utf8mb4 COLLA
 php artisan test -c phpunit.mariadb.xml
 ```
 
-That is **746 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
+That is **761 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
 
 `atlas:check-schema` is read-only and safe against real data. It catches two things the test suite cannot, because the suite runs on SQLite and the system runs on MariaDB: columns MariaDB silently rewrites on every update, and rows whose own timestamps contradict each other. **Run it after any migration and before submission.**
 
@@ -223,3 +223,14 @@ Removes every demonstration row and leaves the reference data, the administrator
 **Charts are blank** — no telemetry. `php artisan atlas:backfill-telemetry --days=14`, then run the aggregator.
 
 **Styles look broken** — the front end has not been built. `php artisan view:clear && npm run build`.
+
+## If ticket numbers look like TKT-2026-96851
+
+A database seeded before 2026-09-04 got random ticket references from the old factory, and every real ticket raised since continued from the highest one. The numbers are unique and nothing is broken; they are just not the readable sequence the format exists for.
+
+```bash
+php artisan atlas:renumber-tickets --dry-run
+php artisan atlas:renumber-tickets
+```
+
+Sequential per year in the order tickets were opened. Any comment, alarm or audit row that quoted an old number is rewritten to the new one, and each renumbered ticket gets an audit row carrying the number it had. Safe to re-run: a sequential database reports nothing to do.

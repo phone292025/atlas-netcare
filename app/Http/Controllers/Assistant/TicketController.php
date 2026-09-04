@@ -67,8 +67,14 @@ class TicketController extends Controller
             'categories' => TicketCategory::options(),
             'priorities' => TicketPriority::options(),
             'locations' => Location::orderBy('code')->get()->mapWithKeys(fn ($l) => [$l->id => $l->label()])->all(),
-            'labPcs' => LabPc::query()->inService()->orderBy('asset_tag')
-                ->get()->mapWithKeys(fn ($pc) => [$pc->id => $pc->asset_tag])->all(),
+            // Grouped by location, so a 250-machine estate is a short list
+            // under the room you are standing in rather than one long select.
+            // <x-form.select> renders a nested map as <optgroup>s.
+            'labPcs' => LabPc::query()->inService()->with('location')->orderBy('asset_tag')->get()
+                ->groupBy(fn (LabPc $pc) => $pc->location?->label() ?? 'No location')
+                ->sortKeys()
+                ->map(fn ($group) => $group->mapWithKeys(fn (LabPc $pc) => [$pc->id => $pc->asset_tag])->all())
+                ->all(),
             'prefill' => $prefill,
         ]);
     }

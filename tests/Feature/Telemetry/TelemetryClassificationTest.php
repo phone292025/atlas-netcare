@@ -80,22 +80,28 @@ class TelemetryClassificationTest extends TestCase
         );
     }
 
-    public function test_an_access_point_silent_past_the_window_is_offline(): void
+    public function test_a_reading_that_arrived_is_proof_of_life_however_long_the_silence(): void
     {
         /*
-         * Covers the case a failed poll does not: the collector itself stopped
-         * running. Without this an access point nobody has heard from since
-         * Tuesday still shows online, because no reading ever arrived to say
-         * otherwise.
+         * REGRESSION. This test used to assert the opposite: a healthy reading
+         * on an access point last seen 30 minutes ago was classified Offline,
+         * because classify() consulted `last_seen_at` as well as the reading.
+         * After any pause in collection the first run therefore marked EVERY
+         * access point offline on readings that proved they were up, raised a
+         * ticket for each, and flipped them all back a minute later.
+         *
+         * Silence is markStaleOffline()'s question, asked when NO reading
+         * arrives. A reading that did arrive answers it.
          */
-        $ap = AccessPoint::factory()->create([
-            'last_seen_at' => now()->subMinutes(30),
-        ]);
+        foreach ([now()->subMinutes(30), now()->subDays(3)] as $lastSeen) {
+            $ap = AccessPoint::factory()->create(['client_capacity' => 50, 'last_seen_at' => $lastSeen]);
 
-        $this->assertSame(
-            ApStatus::Offline,
-            $this->service()->classify($ap, $this->reading($ap))
-        );
+            $this->assertSame(
+                ApStatus::Online,
+                $this->service()->classify($ap, $this->reading($ap)),
+                'A reachable reading must not be overruled by a stale last_seen_at.'
+            );
+        }
     }
 
     public function test_a_recently_seen_access_point_is_not_offline(): void
