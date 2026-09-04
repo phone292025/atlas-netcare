@@ -13,7 +13,7 @@
 | **Phase** | The code is finished. What remains is the report. |
 | **Last session** | 2026-09-04 (end-to-end review) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **760 passing (1 skipped), 2025 assertions** on SQLite; **761 passing, none skipped, 2026 assertions** on MariaDB. Zero deprecations. |
+| **Tests** | **764 passing (1 skipped), 2036 assertions** on SQLite; **765 passing, none skipped, 2037 assertions** on MariaDB. Zero deprecations. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |

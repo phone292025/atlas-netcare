@@ -125,7 +125,7 @@ Re-running `db:seed` later will **not** reset the administrator's password back 
 
 **These addresses are login identifiers, not mailboxes.** Nothing is ever sent to them, so signing in needs no mail account. Section 8 covers pointing them at a real mailbox if you want the password reset to deliver.
 
-The administrator is flagged `must_change_password`, so the first sign-in lands on **Profile** and every other screen redirects back there until a new password is set. **Put the new password back into `.env`**, or the next `db:seed` resets the account to what that file still says.
+The administrator is flagged `must_change_password`, so the first sign-in lands on **Profile** and every other screen redirects back there until a new password is set. Keeping `.env` up to date is still worth doing, because that is where you will look for it in a month — but re-seeding no longer overwrites it, so forgetting is no longer a way to lock yourself out.
 
 Demonstration accounts are not flagged, so they sign straight in.
 
@@ -184,7 +184,7 @@ php artisan atlas:check-schema
 php artisan migrate:status
 ```
 
-Expect **760 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
+Expect **764 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
 
 The skip is deliberate: `SchemaIntegrityTest` only means anything on MariaDB, and `php artisan test` runs on SQLite. To run everything against a real MariaDB, create the test database once and use the other config:
 
@@ -193,7 +193,7 @@ mysql -u root -e "CREATE DATABASE atlas_netcare_test CHARACTER SET utf8mb4 COLLA
 php artisan test -c phpunit.mariadb.xml
 ```
 
-That is **761 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
+That is **765 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
 
 `atlas:check-schema` is read-only and safe against real data. It catches two things the test suite cannot, because the suite runs on SQLite and the system runs on MariaDB: columns MariaDB silently rewrites on every update, and rows whose own timestamps contradict each other. **Run it after any migration and before submission.**
 

@@ -135,4 +135,100 @@ class RenumberTicketsCommandTest extends TestCase
 
         $this->assertSame('TKT-2026-96851', Ticket::first()->ticket_number);
     }
+
+    /*
+    |---------------------------------------------------------------------
+    | References it must not touch, added 2026-09-04
+    |---------------------------------------------------------------------
+    |
+    | The shape guard used to sit in rewriteReferences(), AFTER the rename had
+    | already been applied. A reference outside TKT-YYYY-NNNNN was therefore
+    | renumbered while every comment, alarm and audit row quoting it kept a
+    | number that no longer existed — the one thing the command promises not
+    | to do. The guard is now in plan(), so such a ticket is left alone.
+    */
+
+    public function test_a_reference_it_cannot_rewrite_is_left_alone(): void
+    {
+        $odd = $this->ticket('TKT-REAL-001', '2026-02-01 09:00:00');
+        $normal = $this->ticket('TKT-2026-96851', '2026-03-01 09:00:00');
+
+        TicketComment::create([
+            'ticket_id' => $odd->id,
+            'user_id' => $this->user()->id,
+            'body' => 'Duplicate of TKT-REAL-001, see that one.',
+            'is_internal' => false,
+        ]);
+
+        Artisan::call('atlas:renumber-tickets', ['--force' => true]);
+
+        // Untouched, so the comment still points at something real.
+        $this->assertSame('TKT-REAL-001', $odd->fresh()->ticket_number);
+        $this->assertStringContainsString('TKT-REAL-001', TicketComment::first()->body);
+
+        // And it did not block the ticket that COULD be renumbered.
+        $this->assertSame('TKT-2026-00002', $normal->fresh()->ticket_number);
+    }
+
+    public function test_it_says_which_references_it_left_alone(): void
+    {
+        /*
+         * Silently skipping would leave somebody wondering why one ticket is
+         * still out of sequence after the command reported success.
+         *
+         * Asserts the EXPLANATION, not just the number. The number alone
+         * appears in the rename table too, so a weaker assertion passed even
+         * when the ticket was being renumbered rather than skipped.
+         */
+        $this->ticket('TKT-REAL-001', '2026-02-01 09:00:00');
+
+        Artisan::call('atlas:renumber-tickets', ['--force' => true]);
+
+        $output = Artisan::output();
+
+        $this->assertStringContainsString('left alone', $output);
+        $this->assertStringContainsString('TKT-YYYY-NNNNN', $output);
+        $this->assertStringContainsString('TKT-REAL-001', $output);
+    }
+
+    public function test_a_six_figure_sequence_is_still_rewritten(): void
+    {
+        /*
+         * The pattern accepts five digits OR MORE. A year past 99,999 tickets
+         * produces TKT-2026-100000 from formatNumber(), and the old five-digit
+         * guard would have refused to rewrite references to it — the exact
+         * case the guard was supposed to cover.
+         */
+        $this->assertSame('TKT-2026-100000', Ticket::formatNumber(100000, 2026));
+
+        $ticket = $this->ticket('TKT-2026-100000', '2026-02-01 09:00:00');
+
+        TicketComment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $this->user()->id,
+            'body' => 'Follows on from TKT-2026-100000.',
+            'is_internal' => false,
+        ]);
+
+        Artisan::call('atlas:renumber-tickets', ['--force' => true]);
+
+        $this->assertSame('TKT-2026-00001', $ticket->fresh()->ticket_number);
+        $this->assertStringContainsString('TKT-2026-00001', TicketComment::first()->body);
+        $this->assertStringNotContainsString('TKT-2026-100000', TicketComment::first()->body);
+    }
+
+    public function test_a_quote_in_a_reference_cannot_reach_the_statement(): void
+    {
+        /*
+         * rewriteReferences() binds its parameters now rather than
+         * interpolating them. This is the belt to that braces: a reference
+         * carrying a quote is refused by the shape guard long before it gets
+         * near SQL, and the comment survives intact either way.
+         */
+        $this->ticket("TKT-2026-0'01", '2026-02-01 09:00:00');
+
+        Artisan::call('atlas:renumber-tickets', ['--force' => true]);
+
+        $this->assertSame("TKT-2026-0'01", Ticket::first()->ticket_number);
+    }
 }

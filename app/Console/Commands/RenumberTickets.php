@@ -21,6 +21,12 @@ use Illuminate\Support\Facades\DB;
  * number that no longer exists. Order is `opened_at` then id, per year, which
  * is the order the numbers would have had if they had been issued correctly.
  *
+ * WHAT IT REFUSES TO TOUCH. A reference outside the `TKT-YYYY-NNNNN` shape is
+ * left alone and named in the output. It cannot be found reliably in free
+ * text, so renumbering it is the one way this command could break the promise
+ * above — and a number short enough to be ambiguous would have REPLACE()
+ * rewriting text that was never a reference at all.
+ *
  * Bypasses the model so the observer does not write two rows per ticket (a
  * temporary number is needed to get past the unique index), and writes one
  * honest audit row per renumbered ticket instead.
@@ -45,9 +51,22 @@ class RenumberTickets extends Command
         'audit_logs' => ['description', 'changes', 'previous'],
     ];
 
+    /**
+     * References left alone because they cannot be found safely in free text.
+     *
+     * Reported rather than silently passed over: a number this command will
+     * not touch is a number that stays out of sequence, and the person running
+     * it should know which.
+     *
+     * @var list<string>
+     */
+    private array $skipped = [];
+
     public function handle(): int
     {
         $renames = $this->plan();
+
+        $this->reportSkipped();
 
         if ($renames === []) {
             $this->info('Every ticket is already numbered in sequence. Nothing to do.');
@@ -124,6 +143,7 @@ class RenumberTickets extends Command
     private function plan(): array
     {
         $renames = [];
+        $this->skipped = [];
 
         $tickets = Ticket::withTrashed()
             ->orderBy('opened_at')
@@ -137,13 +157,71 @@ class RenumberTickets extends Command
                 $sequence++;
                 $expected = Ticket::formatNumber($sequence, (int) $year);
 
-                if ($ticket->ticket_number !== $expected) {
-                    $renames[$ticket->ticket_number] = $expected;
+                if ($ticket->ticket_number === $expected) {
+                    continue;
                 }
+
+                /*
+                 * A number this cannot safely find in free text is left ALONE,
+                 * rather than renamed and left dangling.
+                 *
+                 * The guard used to sit in rewriteReferences() instead, after
+                 * the rename had already happened — so a reference outside the
+                 * expected shape was renumbered while every comment, alarm and
+                 * audit row quoting it kept a number that no longer existed.
+                 * That is the one thing this command's docblock promises it
+                 * does not do.
+                 *
+                 * It also protects against a number so short or generic that
+                 * REPLACE() would rewrite unrelated text: a ticket numbered
+                 * "1" would turn every "1" in every comment into something
+                 * else.
+                 */
+                if (! $this->canRewrite($ticket->ticket_number) || ! $this->canRewrite($expected)) {
+                    $this->skipped[] = $ticket->ticket_number;
+
+                    continue;
+                }
+
+                $renames[$ticket->ticket_number] = $expected;
             }
         }
 
         return $renames;
+    }
+
+    /** Say which references were left out, and why, before anything else. */
+    private function reportSkipped(): void
+    {
+        if ($this->skipped === []) {
+            return;
+        }
+
+        $this->warn('  '.count($this->skipped).' '.str('ticket')->plural(count($this->skipped))
+            .' left alone: the reference is not in the TKT-YYYY-NNNNN shape, so it cannot be');
+        $this->line('  found reliably in comments and alarms. Renumbering it would leave those pointing at nothing.');
+
+        foreach (array_slice($this->skipped, 0, 10) as $number) {
+            $this->line('    '.$number);
+        }
+
+        if (count($this->skipped) > 10) {
+            $this->line('    … and '.(count($this->skipped) - 10).' more.');
+        }
+
+        $this->newLine();
+    }
+
+    /**
+     * Is this reference specific enough to find and replace in free text?
+     *
+     * `TKT-2026-00001`, and `TKT-2026-100000` once a year passes 99,999.
+     * Anything else is left untouched: no wildcards for the LIKE, no quotes to
+     * escape, and nothing short enough to match text that is not a reference.
+     */
+    private function canRewrite(string $number): bool
+    {
+        return (bool) preg_match('/^TKT-\d{4}-\d{5,}$/', $number);
     }
 
     /**
@@ -162,23 +240,25 @@ class RenumberTickets extends Command
      * Replace every quoted old reference with its new one.
      *
      * Via SQL REPLACE(), which MariaDB and SQLite both have, so JSON columns
-     * are handled as the text they are. The pattern is checked first so a
-     * reference can never smuggle a quote into the statement.
+     * are handled as the text they are.
+     *
+     * BOUND PARAMETERS, not interpolation. The references are checked by
+     * plan() before they reach here, so neither could carry a quote — but a
+     * command that rewrites free text across four tables should not depend on
+     * a validation two methods away staying correct. The table and column
+     * names come from a constant in this file and never from data.
      *
      * @param  array<string, string>  $renames
      */
     private function rewriteReferences(array $renames): void
     {
         foreach ($renames as $old => $new) {
-            if (! preg_match('/^TKT-\d{4}-\d{5}$/', $old) || ! preg_match('/^TKT-\d{4}-\d{5}$/', $new)) {
-                continue;
-            }
-
             foreach (self::TEXT_COLUMNS as $table => $columns) {
                 foreach ($columns as $column) {
-                    DB::table($table)
-                        ->where($column, 'like', "%{$old}%")
-                        ->update([$column => DB::raw("REPLACE({$column}, '{$old}', '{$new}')")]);
+                    DB::update(
+                        "update {$table} set {$column} = REPLACE({$column}, ?, ?) where {$column} like ?",
+                        [$old, $new, '%'.$old.'%'],
+                    );
                 }
             }
         }
