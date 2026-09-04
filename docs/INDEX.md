@@ -38,6 +38,7 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 | [10-simulated-and-real-data.md](10-simulated-and-real-data.md) | What is simulated, what is real, and what would replace it. Written to be lifted into the report's Limitations and Assumptions sections |
 | [11-installation-guide.md](11-installation-guide.md) | Installing and running from a clean clone, including what each failure looks like |
 | [12-system-diagrams.md](12-system-diagrams.md) | Context Diagram, DFD Level 0, consolidated ERD and System Hierarchy Chart, as Mermaid source |
+| [13-code-map.md](13-code-map.md) | Every file in the project and what it does. The index, when you know what you want but not where it lives |
 | [glossary.md](glossary.md) | Terms that mean something specific here |
 
 ---
