@@ -55,7 +55,7 @@ command and a browser request run the same rules.
 
 ## routes/
 
-Three files. Every URL the system answers.
+Every URL the system answers.
 
 <!-- code-map:routes/ -->
 | File | What it does | Lines |
@@ -79,7 +79,8 @@ with a 48 character token in the URL and is rate limited instead.
 ## app/Http/Controllers/
 
 A controller validates, calls a service, and renders. It decides nothing.
-Twenty-seven of them, plus the base class they extend. The longest is 236 lines.
+The Lines column is the check worth scanning: a controller creeping past a
+couple of hundred lines is one that has started deciding things.
 
 <!-- code-map:app/Http/Controllers/ -->
 | File | What it does | Lines |
@@ -124,7 +125,7 @@ behaviour.
 
 ## app/Http/Middleware/
 
-Two files, and they answer different questions.
+They answer different questions.
 
 <!-- code-map:app/Http/Middleware/ -->
 | File | What it does | Lines |
@@ -142,8 +143,8 @@ forget on the next screen they add.
 
 ## app/Http/Requests/
 
-Form Requests. Each one validates the shape of a request and, in three cases,
-authorises it. Fourteen files.
+Form Requests. Each one validates the shape of a request, and a few also
+authorise it through a policy.
 
 <!-- code-map:app/Http/Requests/ -->
 | File | What it does | Lines |
@@ -207,8 +208,8 @@ missing input never quietly counts as zero.
 
 ## app/Models/
 
-Seventeen Eloquent models. Relationships, enum casts, scopes, and the small
-methods that read better on the model than in a service.
+Eloquent models. Relationships, enum casts, scopes, and the small methods that
+read better on the model than in a service.
 
 <!-- code-map:app/Models/ -->
 | File | What it does | Lines |
@@ -242,7 +243,7 @@ declaring a column secret is what keeps it out of the log.
 
 ## app/Enums/
 
-Twelve backed enums, plus two contracts and a trait they share. Every status column
+Backed enums, plus the contracts and the trait they share. Every status column
 in the database is a string cast to one of these, never a MySQL `ENUM`.
 
 <!-- code-map:app/Enums/ -->
@@ -313,7 +314,7 @@ appearing once.
 
 ## app/Providers/
 
-One file, and more of the system passes through it than its size suggests.
+Small, and more of the system passes through it than its size suggests.
 
 <!-- code-map:app/Providers/ -->
 | File | What it does | Lines |
@@ -333,7 +334,8 @@ where the on screen reset link comes from on a machine with no mail account.
 
 ## app/Console/Commands/
 
-Thirteen commands. Six run on a schedule, the rest are run by hand.
+Some run on a schedule, the rest by hand. `routes/console.php` says which,
+and why each runs when it does.
 
 <!-- code-map:app/Console/Commands/ -->
 | File | What it does | Lines |
@@ -366,8 +368,7 @@ timestamps contradict each other.
 
 ## database/migrations/
 
-Twenty-four files, one per table plus the alterations. **Never edited after
-merge.** Changing a migration that has already run breaks every teammate's
+One per table, plus the alterations. **Never edited after merge.** Changing a migration that has already run breaks every teammate's
 database silently.
 
 <!-- code-map:database/migrations/ -->
@@ -448,7 +449,7 @@ leaves real records alone.
 
 ## config/
 
-Eleven files. Ten are Laravel's. One is ours.
+Laravel's, plus one of ours.
 
 <!-- code-map:config/ -->
 | File | What it does | Lines |
@@ -475,7 +476,7 @@ config edit, not a code change.
 
 ## resources/views/
 
-Eighty-nine Blade files. Views receive data as props and never query.
+Blade files. Views receive data as props and never query.
 
 <!-- code-map:views -->
 | File | Lines |
@@ -584,8 +585,10 @@ measured facts, not intentions.
 
 ## tests/
 
-Fifty-two files, 763 tests on SQLite and 764 on MariaDB. They run in about 25
-seconds.
+The suite runs in under a minute. **The pass count lives in
+[progress/build-log.md](progress/build-log.md) and in the installation guide,
+and deliberately nowhere else** — it was in five documents once and three of
+them disagreed. Quoting it here would have made this the fourth.
 
 <!-- code-map:tests/ -->
 | File | What it does | Lines |
