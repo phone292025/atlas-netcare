@@ -112,14 +112,27 @@ class InspectionController extends Controller
     }
 
     /** The summary of a submitted inspection. */
-    public function show(Inspection $inspection): View
+    public function show(Inspection $inspection): View|RedirectResponse
     {
         $this->authorize('view', $inspection);
 
-        // An inspection still in progress has no summary to show yet; send
-        // the assistant to the form they were part-way through instead.
+        /*
+         * An inspection still in progress has no summary to show yet, so the
+         * assistant goes to the form they were part-way through. Anybody else
+         * is refused: a half-answered checklist is not evidence, and the
+         * engineer and administrator read access this route exists for is
+         * access to a SUBMITTED inspection.
+         *
+         * The redirect used to be missing. The guard ran, and then the summary
+         * rendered anyway — and it opens with
+         * <x-status-badge :status="$inspection->overall_result" /> on a column
+         * that stays null until submission, so the one person entitled to look
+         * at it got a 500 calling tone() on null.
+         */
         if ($inspection->isInProgress()) {
             abort_unless($inspection->user_id === request()->user()->id, 403);
+
+            return redirect()->route('assistant.inspections.edit', $inspection);
         }
 
         return view('assistant.inspections.show', [

@@ -22,6 +22,7 @@ Apply these everywhere. They are not negotiable per-module.
 | Money | *(none in this system)* | — |
 | Booleans | `is_` or `has_` prefix | Reads as a predicate |
 | Timestamps | past-tense verb + `_at` | `resolved_at`, `last_seen_at` |
+| Event columns | `dateTime`, never `timestamp` | MariaDB rewrites a `timestamp` column behind your back. See [the trap below](#datetime-not-timestamp) |
 | Soft deletes | On `users`, `lab_pcs`, `access_points` | Retiring a machine must not erase its history |
 | Timestamps block | `$table->timestamps()` on every table except `telemetry_readings` | Telemetry has its own `recorded_at`; two extra datetimes × millions of rows is waste |
 
@@ -317,6 +318,27 @@ public function tickets(): MorphMany { return $this->morphMany(Ticket::class, 't
 ```
 
 This is the one place a polymorphic relationship genuinely earns its keep — it is easy to explain, and the alternative is worse.
+
+### `dateTime`, not `timestamp`
+
+Every column recording **when something happened** is `dateTime`. This is the single most expensive schema mistake this project has made, and it has been made twice.
+
+MySQL and MariaDB give the first `timestamp` column in a table an implicit `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` unless `explicit_defaults_for_timestamp` is on, which it is not in XAMPP. The column is then silently reset to the current time by **any** `UPDATE` that does not name it. No error, no warning, and the wrong value looks perfectly plausible.
+
+It cost three columns before anybody noticed:
+
+| Column | What it destroyed |
+|---|---|
+| `tickets.opened_at` | The SLA baseline `due_at` was computed against. A ticket acknowledged an hour later looked as if it had just been raised. `00:52:02` became `01:04:58` from a status change alone |
+| `telemetry_hourly.hour_bucket` | The aggregator upserts, so every re-run rewrote the bucket to `now()`, collapsing distinct hours onto one value and then colliding with the unique index |
+| `telemetry_readings.recorded_at` | Nothing yet — inserted only, never updated. The same trap, armed and waiting for the first `UPDATE` anybody wrote |
+
+Those three were converted on 2026-08-29. **Eight more were left**, and it is worth being precise about why they were not causing damage: the implicit auto-update only lands on a **NOT NULL** timestamp column, and all eight happened to be nullable. The protection was an accident of the null flag rather than a property of the design, and it would have disappeared the first time somebody decided one of them should be required. They were converted on 2026-09-08.
+
+Two things follow for anyone adding a column:
+
+- **`created_at` and `updated_at` stay as they are.** Being touched automatically is their entire job.
+- **Run `php artisan atlas:check-schema` after any migration.** It reads `information_schema` and fails on any column that has acquired `on update`. The test suite cannot catch this — it runs on SQLite, which has no such behaviour, and that is why the bug survived four weeks of a green suite.
 
 ### `risk_assessments` keeps history
 

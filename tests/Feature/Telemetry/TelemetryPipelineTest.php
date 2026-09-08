@@ -608,4 +608,81 @@ class TelemetryPipelineTest extends TestCase
             ->get(route('engineer.dashboard'))
             ->assertForbidden();
     }
+
+    // ------------------------------------------------- the backfill
+
+    public function test_the_backfill_leaves_each_access_point_agreeing_with_its_own_newest_reading(): void
+    {
+        /*
+         * The backfill writes reading rows with insert() and bypasses
+         * TelemetryService::store(), which is the only thing that normally
+         * keeps `access_points.status` and `last_seen_at` in step with them.
+         * So the cache kept whatever it had while the history said something
+         * else, and the AP health table — which reads status from the access
+         * point and latency and loss from the newest reading — rendered rows
+         * that contradicted themselves: Online, no latency, 100% packet loss.
+         *
+         * These access points start Offline and never seen, which is the state
+         * the disagreement is visible in.
+         */
+        $aps = AccessPoint::factory()->count(3)->create([
+            'status' => ApStatus::Offline,
+            'last_seen_at' => null,
+        ]);
+
+        Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
+
+        foreach ($aps as $ap) {
+            $ap->refresh();
+
+            $newest = TelemetryReading::query()
+                ->where('access_point_id', $ap->id)
+                ->orderByDesc('recorded_at')
+                ->first();
+
+            $this->assertNotNull($newest, "{$ap->ap_code} got no readings at all.");
+
+            // A reading's `status` is a plain string, deliberately: it records
+            // a measured state and never carries `maintenance`.
+            $this->assertSame(
+                $newest->status,
+                $ap->status->value,
+                "{$ap->ap_code} reports {$ap->status->value} while its newest reading says {$newest->status}.",
+            );
+
+            $lastAnswered = TelemetryReading::query()
+                ->where('access_point_id', $ap->id)
+                ->whereNotNull('latency_ms')
+                ->orderByDesc('recorded_at')
+                ->first();
+
+            if ($lastAnswered) {
+                $this->assertSame(
+                    $lastAnswered->recorded_at->toDateTimeString(),
+                    $ap->last_seen_at?->toDateTimeString(),
+                    "{$ap->ap_code} was last heard from at {$lastAnswered->recorded_at}.",
+                );
+            }
+        }
+    }
+
+    public function test_the_backfill_does_not_invent_a_sighting_for_kit_under_maintenance(): void
+    {
+        // scopeCollectable() excludes it, so it gets no readings — and its own
+        // columns must be left exactly as an administrator set them.
+        $ap = AccessPoint::factory()->create([
+            'status' => ApStatus::Maintenance,
+            'last_seen_at' => null,
+        ]);
+
+        AccessPoint::factory()->create();
+
+        Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
+
+        $ap->refresh();
+
+        $this->assertSame(ApStatus::Maintenance, $ap->status);
+        $this->assertNull($ap->last_seen_at);
+        $this->assertSame(0, TelemetryReading::where('access_point_id', $ap->id)->count());
+    }
 }

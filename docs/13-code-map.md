@@ -95,7 +95,7 @@ couple of hundred lines is one that has started deciding things.
 | `Admin/UserController.php` | Account management. The only route into the system for a new user, since | 142 |
 | `Api/DashboardDataController.php` | The endpoint the dashboard polls (FR-302) | 29 |
 | `Assistant/AccessPointStatusController.php` | AP status, read-only, for an assistant on a lab round (FR-209) | 27 |
-| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 176 |
+| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 189 |
 | `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) | 115 |
 | `Assistant/TicketController.php` | An assistant raising and following their own tickets (FR-206, FR-207, | 236 |
 | `Auth/AuthenticatedSessionController.php` | Display the login view | 47 |
@@ -341,7 +341,7 @@ and why each runs when it does.
 | File | What it does | Lines |
 |---|---|---|
 | `AggregateTelemetry.php` | Roll raw readings up into hourly buckets | 121 |
-| `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 119 |
+| `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 186 |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` | 331 |
 | `CheckSchema.php` | Audit the LIVE database for traps the test suite cannot see | 195 |
 | `CollectTelemetry.php` | Take one reading from every access point and store it | 139 |
@@ -398,6 +398,7 @@ database silently.
 | `2026_08_29_030001_add_calendar_token_to_users_table.php` | A secret per person, so their calendar app can fetch their roster | 40 |
 | `2026_08_30_052620_create_risk_assessments_table.php` | One predictive risk score for one asset, at one moment | 95 |
 | `2026_09_04_090001_add_previous_values_to_audit_logs_table.php` | Record what a value WAS, not only what it became | 40 |
+| `2026_09_08_090001_finish_converting_domain_timestamps_to_datetime.php` | Disarm the rest of the MariaDB timestamp trap, rather than leaving it loaded | 93 |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -599,7 +600,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LocationManagementTest.php` | M2, locations | 168 |
 | `Feature/Admin/UserManagementTest.php` | M1, account management | 537 |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a | 229 |
-| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 473 |
+| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 506 |
 | `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 | 416 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ | 54 |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them | 243 |
@@ -622,12 +623,14 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/ExampleTest.php` | The smallest possible check that the application boots and routes | 32 |
 | `Feature/FormComponentsTest.php` | The form controls are the most reused components in the system, every admin | 158 |
 | `Feature/FoundationSchemaTest.php` | The four foundation tables every other module has a foreign key into | 127 |
+| `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row | 133 |
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about | 97 |
-| `Feature/ProfileTest.php` | Atlas NetCare is an internal, privilege-based system. Users cannot delete | 75 |
+| `Feature/ProfileTest.php` | Atlas NetCare is an internal, privilege-based system. Users cannot delete | 123 |
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable | 346 |
 | `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every teammate runs on their first | 257 |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) | 263 |
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) | 401 |
+| `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it | 246 |
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on | 92 |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 374 |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it | 242 |
@@ -635,7 +638,8 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment | 251 |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift | 407 |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) | 245 |
-| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 611 |
+| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 688 |
+| `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it | 244 |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory | 234 |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render | 451 |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA | 493 |

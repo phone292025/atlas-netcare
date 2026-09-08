@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -71,5 +72,52 @@ class ProfileTest extends TestCase
             ->assertStatus(405); // Method Not Allowed: /profile exists, DELETE does not
 
         $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    /**
+     * The profile form posting its way to an administrator account.
+     *
+     * `role`, `is_active` and `is_demo` are kept out of `User::$fillable` for
+     * exactly this reason, and AGENTS.md states the rule. A rule is only worth
+     * as much as the test that would notice it being broken: adding one word
+     * to that array turns every profile form in the system into privilege
+     * escalation, and nothing else in the suite would have failed.
+     */
+    public function test_the_profile_form_cannot_promote_anybody(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['role' => UserRole::Assistant, 'is_active' => true])->save();
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'Test User',
+                'email' => 'still.an.assistant@atlas.local',
+                'role' => UserRole::Admin->value,
+                'is_active' => true,
+                'is_demo' => false,
+            ])
+            ->assertRedirect('/profile');
+
+        $this->assertSame(
+            UserRole::Assistant,
+            $user->fresh()->role,
+            'An assistant promoted themselves through the profile form.',
+        );
+    }
+
+    public function test_a_deactivated_account_is_turned_away_from_every_screen(): void
+    {
+        // Deactivation has to hold against a session that already exists, not
+        // only at the login form. FR-106.
+        $user = User::factory()->create();
+        $user->forceFill(['role' => UserRole::Assistant, 'is_active' => true])->save();
+
+        $this->actingAs($user)->get(route('assistant.shifts.today'))->assertOk();
+
+        $user->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($user->fresh())
+            ->get(route('assistant.shifts.today'))
+            ->assertForbidden();
     }
 }

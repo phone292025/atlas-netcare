@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-08
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -11,9 +11,9 @@
 | | |
 |---|---|
 | **Phase** | The code is finished. What remains is the report. |
-| **Last session** | 2026-09-04 (end-to-end review) |
+| **Last session** | 2026-09-08 (full-project audit) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **770 passing (1 skipped)** on SQLite; **771 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
+| **Tests** | **830 passing (1 skipped)** on SQLite; **831 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |
@@ -22,6 +22,20 @@
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
 ---
+
+## Full-project audit — 2026-09-08
+
+A second review, run against the whole codebase rather than a module at a time, and deliberately from angles the previous one did not use. Three defects, all found by asking a question no existing test asked.
+
+- **`assistant.inspections.show` returned a 500 on an unfinished inspection.** The controller carried a comment saying it redirected the assistant back to the form; no redirect had ever been written, so the summary rendered anyway — and it opens with a status badge on `overall_result`, which is null until submission. Found by walking every GET route as all three roles. The route already had tests; every one of them handed it a *completed* inspection.
+- **Eight domain timestamp columns were still `timestamp`.** The 2026-08-29 migration fixed the three that had already been damaged and stopped. The remaining eight were safe only because MariaDB's implicit `ON UPDATE` lands on NOT NULL columns and all eight happened to be nullable — a property of the null flag, not of the design. Now `datetime`, values verified identical row by row across the conversion.
+- **`atlas:backfill-telemetry` left every access point's cached status disagreeing with its own history.** The AP health table reads status from the access point and latency from the newest reading, so AP-18 showed *Online, no latency, 100% packet loss*. One update per access point at the end of the command, which is forty against 350,000 inserted rows.
+
+**Three test files added, each covering a join the per-module tests cannot see.** `RoleAccessMatrixTest` (42 screens x 3 roles, including the `show` and `edit` screens the empty-database sweep cannot reach). `CrossRoleTicketWorkflowTest` (one fault from the assistant who raised it to the engineer who resolved it). `ListScreensDoNotNPlusOneTest` (query counts against 3 rows and then 30). All three were checked by breaking what they guard.
+
+**What was checked and found correct**, so nobody re-audits it: every report figure reconciles against raw counts (risk 118 assets, tickets 48, inspections 20 passed + 9 failed = 29); no N+1 on any list screen; privilege escalation through the profile form is blocked and now has a test; deactivation holds against an existing session; the ticket state machine, its illegal transitions and its assignment guards all behave as documented.
+
+**Still open.** The engineer and administrator screens were verified through the HTTP layer, not a browser — see the session note below.
 
 ## End-to-end review — 2026-09-04
 

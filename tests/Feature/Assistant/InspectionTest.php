@@ -312,6 +312,39 @@ class InspectionTest extends TestCase
             ->assertSee('Fail');
     }
 
+    public function test_an_unfinished_inspection_sends_its_owner_back_to_the_form(): void
+    {
+        /*
+         * The summary opens with a status badge on `overall_result`, and that
+         * column is null until the checklist is submitted. Rendering it anyway
+         * called tone() on null: a 500 on a real record, for the one person
+         * entitled to look at it. The controller said in a comment that it
+         * redirected here; it did not.
+         */
+        $inspection = Inspection::factory()->create([
+            'user_id' => $this->assistant()->id,
+            'checklist_template_id' => $this->template()->id,
+        ]);
+
+        $this->actingAs($inspection->user)
+            ->get(route('assistant.inspections.show', $inspection))
+            ->assertRedirect(route('assistant.inspections.edit', $inspection));
+    }
+
+    public function test_an_engineer_cannot_read_an_inspection_that_is_still_being_filled_in(): void
+    {
+        // Engineers and admins read inspections as the evidence behind a
+        // ticket and a risk score. A half-answered checklist is not that yet.
+        $inspection = Inspection::factory()->create([
+            'user_id' => $this->assistant()->id,
+            'checklist_template_id' => $this->template()->id,
+        ]);
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->get(route('assistant.inspections.show', $inspection))
+            ->assertForbidden();
+    }
+
     public function test_the_rounds_index_renders(): void
     {
         // Caught a HAVING clause against a withCount alias, which is invalid

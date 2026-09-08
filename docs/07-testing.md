@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-09-04 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-09-08 · **Worth 10 marks in the report rubric**
 
 Section F item 17 requires a test plan covering unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -147,3 +147,17 @@ Date · participant role · tasks attempted · completion rate · verbatim feedb
 ## A fifth habit, from the end-to-end review of 2026-09-04
 
 **Test the first run after a gap.** Every telemetry test started from a fresh database or a running collector. None started from a database the collector had not touched for two days, which is the state of every development machine on the morning of a demonstration. That state marked all 24 access points offline and raised 24 tickets, and the classification test had been asserting exactly that behaviour under the name "silent past the window is offline". A green test that pins a bug is worse than no test, because it argues for the bug. `test_the_first_run_after_a_collection_gap_raises_no_tickets` now holds the door.
+
+---
+
+## A sixth habit, from the end-to-end review of 2026-09-08
+
+**Ask what the OTHER roles get.** Every access test in this project was written from inside one role: the owner opens their screen, and somebody who should not reach it gets a 403. That is two of the nine cells in a three-role, three-screen grid, and the six nobody looked at are where a screen 500s for the wrong actor or renders for one that should never see it.
+
+`RoleAccessMatrixTest` walks 42 screens against all three roles and states the expected status for each. It found `assistant.inspections.show` returning a 500 on an unfinished inspection, on a route that already had tests — because every one of them handed it a *completed* inspection, which is the state the bug does not occur in.
+
+Two smaller things came out of the same pass and are worth keeping as habits:
+
+**A parameterised route needs a row before it can be tested at all.** `EveryScreenRendersTest` is deliberately empty-database, which means it can never load a `show` or an `edit`. Half the screens in the system were therefore only ever reached by tests that were checking something else.
+
+**Count queries, do not read code for them.** A missing `->with()` renders identically to a correct one, passes every assertion, and simply gets slower as the inventory grows. `ListScreensDoNotNPlusOneTest` loads each list screen with 3 rows and then 30 and asserts the query count barely moves. Both this and the matrix were verified by breaking what they guard — a guard nobody has watched fail is a guard nobody knows works.
