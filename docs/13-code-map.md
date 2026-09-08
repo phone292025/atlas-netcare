@@ -188,10 +188,10 @@ Every rule in the system. If code decides something, it belongs here.
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) | 268 |
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it | 391 |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database | 73 |
-| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 208 |
-| `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 51 |
-| `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard | 369 |
-| `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 36 |
+| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 219 |
+| `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 70 |
+| `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard | 383 |
+| `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 58 |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle | 408 |
 <!-- /code-map -->
 
@@ -632,13 +632,13 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) | 494 |
 | `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it | 246 |
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on | 92 |
-| `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 374 |
+| `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 381 |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it | 242 |
 | `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar | 415 |
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment | 251 |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift | 407 |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) | 245 |
-| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 688 |
+| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 763 |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it | 244 |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory | 234 |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render | 451 |

@@ -4,6 +4,7 @@ namespace App\Services\Telemetry;
 
 use App\Models\AccessPoint;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -40,11 +41,21 @@ class SimulatedTelemetrySource implements TelemetrySource
         return 'simulated';
     }
 
+    /**
+     * Everything not under maintenance. The simulator can invent a reading for
+     * any access point, so it polls every one the system is watching.
+     *
+     * @return Builder<AccessPoint>
+     */
+    public function pollable(): Builder
+    {
+        return AccessPoint::query()->collectable();
+    }
+
     /** @return Collection<int, ReadingData> */
     public function collect(): Collection
     {
-        return AccessPoint::query()
-            ->collectable()
+        return $this->pollable()
             ->get()
             ->map(fn (AccessPoint $ap) => $this->reading($ap, now()));
     }

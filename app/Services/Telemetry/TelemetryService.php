@@ -338,8 +338,22 @@ class TelemetryService
     {
         $cutoff = now()->subMinutes((int) config('atlas.thresholds.offline_after_min'));
 
-        $stale = AccessPoint::query()
-            ->collectable()
+        /*
+         * ASK THE DRIVER WHAT IT POLLS, rather than assuming everything.
+         *
+         * Silence is only evidence of failure if somebody was listening. An
+         * access point no driver pings is not quiet, it is unasked, and
+         * marking it offline raises a ticket about a device nothing ever tried
+         * to reach.
+         *
+         * Both shipped drivers poll everything, so this reads the same as the
+         * `collectable()` it replaced. It stops being the same the moment a
+         * driver polls a subset, which is the case this was written from:
+         * measured against one that skips demo rows, the hard-coded version
+         * marked 28 access points offline and raised 28 tickets and 56 alarms
+         * on the first tick of the scheduler.
+         */
+        $stale = $this->source->pollable()
             ->where('status', '!=', ApStatus::Offline->value)
             ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
             ->get();

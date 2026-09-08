@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\TelemetrySource;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
@@ -211,10 +212,16 @@ class AlarmTest extends TestCase
                 return 'simulated';
             }
 
+            /** @return Builder<AccessPoint> */
+            public function pollable(): Builder
+            {
+                return AccessPoint::query()->collectable();
+            }
+
             /** @return Collection<int, ReadingData> */
             public function collect(): Collection
             {
-                return AccessPoint::query()->collectable()->get()
+                return $this->pollable()->get()
                     ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
             }
         });

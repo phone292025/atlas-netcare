@@ -2,6 +2,8 @@
 
 namespace App\Services\Telemetry;
 
+use App\Models\AccessPoint;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -30,6 +32,26 @@ interface TelemetrySource
      * @return Collection<int, ReadingData>
      */
     public function collect(): Collection;
+
+    /**
+     * The access points this driver polls, as an unexecuted query.
+     *
+     * WHY A DRIVER HAS TO ANSWER THIS. `TelemetryService::markStaleOffline()`
+     * marks a device offline when it has gone quiet. Silence is only evidence
+     * of failure if somebody was listening: an access point no driver polls is
+     * not quiet, it is unasked, and marking it offline raises a ticket about a
+     * device nothing ever tried to reach.
+     *
+     * Both drivers here answer "everything not under maintenance", so today
+     * this changes no behaviour. It is the seam that keeps a partial driver
+     * honest. Measured on the development database with one that polls a
+     * subset: without this method the sweep marked 28 access points offline,
+     * raised 28 tickets and rang 56 alarms on the first tick of the scheduler,
+     * about hardware nothing had tried to reach.
+     *
+     * @return Builder<AccessPoint>
+     */
+    public function pollable(): Builder;
 
     /** `simulated` or `live` — stamped on every row this driver produces. */
     public function sourceLabel(): string;

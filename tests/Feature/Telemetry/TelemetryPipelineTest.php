@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
+use App\Services\Telemetry\TelemetryService;
 use App\Services\Telemetry\TelemetrySource;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
@@ -52,10 +54,16 @@ class TelemetryPipelineTest extends TestCase
                 return 'simulated';
             }
 
+            /** @return Builder<AccessPoint> */
+            public function pollable(): Builder
+            {
+                return AccessPoint::query()->collectable();
+            }
+
             /** @return Collection<int, ReadingData> */
             public function collect(): Collection
             {
-                return AccessPoint::query()->collectable()->get()
+                return $this->pollable()->get()
                     ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
             }
         });
@@ -71,6 +79,73 @@ class TelemetryPipelineTest extends TestCase
 
         config(['atlas.telemetry_driver' => 'snmp']);
         $this->assertInstanceOf(SnmpTelemetrySource::class, app(TelemetrySource::class));
+
+    }
+
+    // ------------------------------------------------- the stale sweep
+
+    public function test_the_stale_sweep_only_judges_access_points_the_driver_actually_polls(): void
+    {
+        /*
+         * THE BUG THIS PINS. `markStaleOffline()` marks a device offline when
+         * it has gone quiet, and it used to ask for every access point the
+         * system watches. Silence is only evidence of failure if somebody was
+         * listening: one no driver pings is not quiet, it is unasked, and
+         * marking it offline raises a ticket about hardware nothing tried to
+         * reach.
+         *
+         * Both shipped drivers poll everything, so the bug is invisible until
+         * one polls a subset. The driver below is that case, written inline
+         * rather than borrowed from a real one, so the guard survives whatever
+         * drivers happen to exist. Measured against a partial driver on the
+         * development database: 28 access points marked offline, 28 tickets
+         * and 56 alarms, on the first tick of the scheduler.
+         *
+         * Both access points below have been silent for a week. Only one is
+         * something this driver ever tries to reach.
+         */
+        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        {
+            public function sourceLabel(): string
+            {
+                return 'simulated';
+            }
+
+            /** @return Builder<AccessPoint> */
+            public function pollable(): Builder
+            {
+                return AccessPoint::query()->collectable()->where('is_demo', false);
+            }
+
+            /** @return Collection<int, ReadingData> */
+            public function collect(): Collection
+            {
+                return collect();
+            }
+        });
+
+        $unpolled = AccessPoint::factory()->create([
+            'is_demo' => true,
+            'status' => ApStatus::Online,
+            'last_seen_at' => now()->subWeek(),
+        ]);
+
+        $polled = AccessPoint::factory()->create([
+            'is_demo' => false,
+            'status' => ApStatus::Online,
+            'last_seen_at' => now()->subWeek(),
+        ]);
+
+        $transitions = app(TelemetryService::class)->markStaleOffline();
+
+        $this->assertSame(
+            ApStatus::Online,
+            $unpolled->fresh()->status,
+            'An access point nothing polls was marked offline for staying quiet.',
+        );
+
+        $this->assertSame(ApStatus::Offline, $polled->fresh()->status);
+        $this->assertCount(1, $transitions);
     }
 
     public function test_an_unknown_driver_throws_rather_than_falling_back(): void

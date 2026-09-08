@@ -2,6 +2,8 @@
 
 namespace App\Services\Telemetry;
 
+use App\Models\AccessPoint;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -37,6 +39,23 @@ class SnmpTelemetrySource implements TelemetrySource
     public function sourceLabel(): string
     {
         return 'live';
+    }
+
+    /**
+     * Every access point not under maintenance, which is what a real SNMP
+     * implementation would enumerate.
+     *
+     * Answerable even though collect() throws, and deliberately so: this is
+     * the contract a real implementation inherits, and `markStaleOffline()`
+     * has to get a sensible answer from whichever driver is bound. A device
+     * that fails to enumerate IS going quiet, so unlike the local driver this
+     * one wants the whole estate judged.
+     *
+     * @return Builder<AccessPoint>
+     */
+    public function pollable(): Builder
+    {
+        return AccessPoint::query()->collectable();
     }
 
     /** @return Collection<int, ReadingData> */
