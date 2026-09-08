@@ -569,7 +569,7 @@ Blade files. Views receive data as props and never query.
 | `profile/edit.blade.php` | 22 |
 | `profile/partials/update-password-form.blade.php` | 43 |
 | `profile/partials/update-profile-information-form.blade.php` | 43 |
-| `reports/index.blade.php` | 196 |
+| `reports/index.blade.php` | 206 |
 | `tickets/_detail.blade.php` | 230 |
 <!-- /code-map -->
 

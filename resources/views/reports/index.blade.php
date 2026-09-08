@@ -23,7 +23,12 @@
                            message="Run php artisan atlas:recalculate-risk. It also runs daily at 02:00."
                            icon="wrench" />
         @else
-            <div class="grid gap-6 lg:grid-cols-2">
+            {{-- lg:items-center, because the chart is a fixed 240px and the
+                 table beside it is as tall as it has rows. Stretched to the
+                 row height the chart drew at the top and left a block of
+                 empty card underneath it, which read as something failing to
+                 load rather than as a short chart. --}}
+            <div class="grid gap-6 lg:grid-cols-2 lg:items-center">
                 <x-chart type="bar" :height="240"
                          label="Count of assets in each predictive risk band"
                          :data="[
@@ -128,7 +133,12 @@
         @if (empty($inspections))
             <x-empty-state title="No completed inspections yet" icon="clipboard" />
         @else
-            <div class="grid gap-6 lg:grid-cols-2">
+            {{-- lg:items-center, because the chart is a fixed 240px and the
+                 table beside it is as tall as it has rows. Stretched to the
+                 row height the chart drew at the top and left a block of
+                 empty card underneath it, which read as something failing to
+                 load rather than as a short chart. --}}
+            <div class="grid gap-6 lg:grid-cols-2 lg:items-center">
                 <x-chart type="bar" :height="240"
                          label="Percentage of inspections passed, by location"
                          :data="[
