@@ -1,6 +1,6 @@
 # System Diagrams
 
-> **Last updated:** 2026-09-04 · **For report sections 8, 9, 10 and 13.**
+> **Last updated:** 2026-09-08 · **For report sections 8, 9, 10 and 13.**
 >
 > **These four are the whole-system diagrams, worth 15 marks between them.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 >
@@ -445,6 +445,47 @@ These four are done. **Twenty-one per-member artefacts are not**, and they canno
 |---|---|---|
 | DFD Level 1 | member | The matching process in Figure 2, expanded. Process *n* is module M*n*. |
 | Data Dictionary | member | The matching tables in Figure 3, plus the module spec in [modules/](modules/) |
-| Pseudocode or Flowchart | member | That module's service class — the rules live there, not in the controllers |
+| Pseudocode or Flowchart | member | That module's service class — the rules live there, not in the controllers. **Two modules have none**; the table below names what to draw instead |
 
 **Assigning the seven modules is the blocker.** Every module spec still says *unassigned*, and each of these is individually marked, so nobody can be credited for one until it is theirs. See [02-team-and-ownership.md](../coursework/02-team-and-ownership.md).
+
+### Where each member's three artefacts come from
+
+Ownership is the blocker for *credit*. It is not a blocker for knowing what the work is, and the table below removes the "where do I even start" step so that whoever takes a module can begin the hour it is theirs.
+
+Read your row. Everything in it already exists in this repository.
+
+| Module | DFD 1 expands | Data dictionary covers | Flowchart comes from |
+|---|---|---|---|
+| **M1** Identity and audit | Process 1, stores D1 and D8 | `users` · `audit_logs` | `EnsurePasswordIsChanged` and `LoginRequest::authenticate()` — see the note below |
+| **M2** Locations and assets | Process 2, store D2 | `locations` · `lab_pcs` · `access_points` | `LabPcController::destroy()` and `restore()` — see the note below |
+| **M3** Checklists and inspections | Process 3, stores D3 and D4 | `checklist_templates` · `checklist_items` · `inspections` · `inspection_results` | `InspectionService::deriveOutcome()` and `ChecklistService` versioning |
+| **M4** Ticketing | Process 4, store D5 | `tickets` · `ticket_comments` | `TicketService::transition()` — the state machine, and the only one in the system |
+| **M5** Telemetry and dashboard | Process 5, store D6 | `telemetry_readings` · `telemetry_hourly` | `TelemetryService::classify()` and `markStaleOffline()` |
+| **M6** Shifts and alarms | Process 6, store D7 | `shift_templates` · `shifts` · `alarms` | `ShiftService::generateWeek()` and `AlarmService::dispatchDue()` |
+| **M7** Predictive risk and reports | Process 7, store D8, reading D2 D4 D5 D6 | `risk_assessments`, plus the cached `risk_score` / `risk_band` columns on both asset tables | `RiskScoringService::scoreLabPc()` — the four weighted factors |
+
+**Two modules have no service class, and the table above says so rather than sending their owners to look for one.** M1 and M2 are deliberately thin: M1's rules live in a middleware, a Form Request and an observer, and M2 is standard CRUD whose only real decision is the retire/restore pair, which keeps `status` and the soft delete in step in both directions. Those are still perfectly good flowcharts. An owner who assumes every module has a `Service` will waste an afternoon looking for one that was never written, and should draw what is actually there.
+
+**One thing Figure 2 simplifies, and a Level 1 must not.** `AuditObserver` is registered against seven models spanning five of the seven modules, so five processes write to `audit_logs` in D8 without Figure 2 drawing a single one of those arrows:
+
+| Writes audit rows | Through |
+|---|---|
+| M1 | `User` |
+| M2 | `Location`, `LabPc`, `AccessPoint` |
+| M3 | `ChecklistTemplate` |
+| M4 | `Ticket` |
+| M6 | `ShiftTemplate` |
+| *M5 and M7 do not* | no audited model |
+
+Figure 2 shows only `P7 → D8`, because five more arrows into one store makes a Level 0 unreadable. That is a fair simplification at Level 0 and a wrong one at Level 1 — **if your module is in that table, your Level 1 has to show the write.** Say in the report that the Level 0 collapses it deliberately. A marker who spots the difference between your two diagrams will otherwise read it as an inconsistency rather than as a decision.
+
+### The order to do them in
+
+Not arbitrary. Each one answers a question the next depends on.
+
+1. **Data dictionary first.** It is the most mechanical of the three — column, type, constraint, meaning — and it is where you discover what your module actually stores. `php artisan atlas:code-map` and [04-database.md](04-database.md) between them have every column already.
+2. **DFD Level 1 second**, because by then you know your stores.
+3. **Flowchart last**, because it describes one process from your DFD 1 in detail, and you cannot pick which one until the DFD exists.
+
+**Do not draw any of the three from the proposal.** The four figures above were derived from the code and the live schema on 2026-09-02 for exactly that reason, and a per-member diagram drawn from the original plan will contradict them. Where the code and the proposal disagree, the code is what was built and the disagreement is worth a sentence in the report rather than a quietly corrected diagram.
