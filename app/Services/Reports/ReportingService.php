@@ -386,10 +386,10 @@ class ReportingService
             ->selectRaw('access_points.location_id')
             ->selectRaw('AVG(telemetry_hourly.uptime_pct) as uptime')
             ->selectRaw('AVG(telemetry_hourly.avg_latency_ms) as latency')
-            ->selectRaw('MAX(telemetry_hourly.peak_client_count) as peak')
             ->selectRaw('COUNT(DISTINCT access_points.id) as aps')
             ->get();
 
+        $peaks = $this->peakClientsByLocation($since);
         $names = Location::pluck('code', 'id');
 
         return $rows->map(fn ($row) => [
@@ -397,7 +397,61 @@ class ReportingService
             'access_points' => (int) $row->aps,
             'uptime' => round((float) $row->uptime, 2),
             'latency' => round((float) $row->latency, 1),
-            'peak_clients' => (int) $row->peak,
+            'peak_clients' => $peaks[$row->location_id] ?? 0,
         ])->sortBy('location')->values()->all();
+    }
+
+    /**
+     * The busiest the whole ROOM ever got, not its busiest single radio.
+     *
+     * WHAT THIS REPLACED, AND WHY IT HAD TO. The column used to be
+     * `MAX(peak_client_count)` across the location's access points, which is
+     * the busiest moment of one radio. In a table headed "by location", beside
+     * a count of access points and two per-location averages, nobody reads it
+     * that way — and it reported **70 for all seven locations**, because the
+     * seeder gives every location at least one 80-client access point and the
+     * simulator drives an 80 to the same peak everywhere. Seven identical
+     * numbers is a column carrying no information at all, which is the same
+     * defect as a report showing a grid of zeroes under a heading that says
+     * three tickets.
+     *
+     * The location figures now range from 140 to 254 and track the number and
+     * size of the access points in the room, which is what somebody deciding
+     * where to add capacity needs.
+     *
+     * HONEST ABOUT WHAT IT IS. Summing each access point's busiest minute
+     * within an hour slightly overstates the true concurrent peak, because
+     * those minutes need not be the same minute. Reading raw
+     * `telemetry_readings` would be exact and would also mean scanning
+     * hundreds of thousands of rows for a figure on a report page; the hourly
+     * rollup is the resolution every other trend in this system uses. It is an
+     * upper bound on concurrent demand, and that is the useful direction to
+     * err in for a capacity decision.
+     *
+     * Grouped in SQL and reduced in PHP rather than nesting a subquery: the
+     * suite runs on SQLite and the system on MariaDB, and this service does
+     * not carry vendor-specific SQL. One row per location per hour is a few
+     * thousand, not millions.
+     *
+     * @return array<int, int> location id => peak concurrent clients
+     */
+    private function peakClientsByLocation(Carbon $since): array
+    {
+        $hours = TelemetryHourly::query()
+            ->join('access_points', 'access_points.id', '=', 'telemetry_hourly.access_point_id')
+            ->where('telemetry_hourly.hour_bucket', '>=', $since)
+            ->groupBy('access_points.location_id', 'telemetry_hourly.hour_bucket')
+            ->selectRaw('access_points.location_id')
+            ->selectRaw('SUM(telemetry_hourly.peak_client_count) as concurrent')
+            ->get();
+
+        $peaks = [];
+
+        foreach ($hours as $hour) {
+            $id = (int) $hour->location_id;
+            $peaks[$id] = max($peaks[$id] ?? 0, (int) $hour->concurrent);
+        }
+
+        return $peaks;
     }
 }

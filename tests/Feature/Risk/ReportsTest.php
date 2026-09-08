@@ -12,6 +12,7 @@ use App\Models\AccessPoint;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\TelemetryHourly;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Reports\ReportingService;
@@ -203,6 +204,61 @@ class ReportsTest extends TestCase
 
         // The table still names the place properly.
         $response->assertSee('Campus Cafeteria');
+    }
+
+    public function test_peak_clients_counts_the_whole_room_not_its_busiest_radio(): void
+    {
+        /*
+         * This was MAX(peak_client_count) across a location's access points,
+         * which is the busiest moment of ONE radio. In a table headed "by
+         * location" it reported 70 for all seven locations on the live
+         * database, because every location has an 80-client access point and
+         * the simulator drives an 80 to the same peak everywhere. A column
+         * that reads identically on every row carries no information.
+         *
+         * Three access points in one room, peaking at 40, 30 and 25 in the
+         * same hour. The old answer is 40. The room held 95.
+         */
+        $location = Location::factory()->create(['code' => 'BUSY-01']);
+        $hour = now()->subDay()->startOfHour();
+
+        foreach ([40, 30, 25] as $peak) {
+            $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
+
+            TelemetryHourly::factory()->create([
+                'access_point_id' => $ap->id,
+                'hour_bucket' => $hour,
+                'peak_client_count' => $peak,
+            ]);
+        }
+
+        $row = collect(app(ReportingService::class)->congestionByLocation())
+            ->firstWhere('location', 'BUSY-01');
+
+        $this->assertNotNull($row, 'The location never reached the report.');
+        $this->assertSame(3, $row['access_points']);
+        $this->assertSame(95, $row['peak_clients'], 'Peak clients is reporting one access point, not the room.');
+    }
+
+    public function test_peak_clients_takes_the_busiest_hour_rather_than_adding_hours_together(): void
+    {
+        // Two hours, one access point. 30 at midday and 10 at midnight is a
+        // peak of 30, not 40 — the column is a peak, not a total.
+        $location = Location::factory()->create(['code' => 'ONEAP-01']);
+        $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
+
+        foreach ([30, 10] as $index => $peak) {
+            TelemetryHourly::factory()->create([
+                'access_point_id' => $ap->id,
+                'hour_bucket' => now()->subDays(2)->startOfHour()->addHours($index),
+                'peak_client_count' => $peak,
+            ]);
+        }
+
+        $row = collect(app(ReportingService::class)->congestionByLocation())
+            ->firstWhere('location', 'ONEAP-01');
+
+        $this->assertSame(30, $row['peak_clients']);
     }
 
     public function test_ticket_volume_is_a_matrix_not_two_separate_counts(): void

@@ -180,6 +180,17 @@
                     </tr>
                 @endforeach
             </x-data-table>
+
+            {{-- The column is every access point in the room at its busiest
+                 hour, added together, not the busiest single one. Worth saying:
+                 it read "Peak clients" and reported the busiest radio, which
+                 came out as the same number for every location on this
+                 campus. --}}
+            <p class="mt-3 text-xs text-slate-500">
+                Peak clients adds up every access point in a room at its busiest hour, so it is
+                an upper bound on how many people were online there at once — which is the
+                direction to err in when deciding where to add capacity.
+            </p>
         @endif
     </x-card>
 </x-app-layout>

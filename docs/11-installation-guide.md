@@ -184,7 +184,7 @@ php artisan atlas:check-schema
 php artisan migrate:status
 ```
 
-Expect **831 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
+Expect **833 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
 
 The skip is deliberate: `SchemaIntegrityTest` only means anything on MariaDB, and `php artisan test` runs on SQLite. To run everything against a real MariaDB, create the test database once and use the other config:
 
@@ -193,7 +193,7 @@ mysql -u root -e "CREATE DATABASE atlas_netcare_test CHARACTER SET utf8mb4 COLLA
 php artisan test -c phpunit.mariadb.xml
 ```
 
-That is **832 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
+That is **834 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
 
 `atlas:check-schema` is read-only and safe against real data. It catches two things the test suite cannot, because the suite runs on SQLite and the system runs on MariaDB: columns MariaDB silently rewrites on every update, and rows whose own timestamps contradict each other. **Run it after any migration and before submission.**
 

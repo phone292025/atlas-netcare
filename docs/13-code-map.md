@@ -182,7 +182,7 @@ Every rule in the system. If code decides something, it belongs here.
 |---|---|---|
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates | 155 |
 | `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection | 180 |
-| `Reports/ReportingService.php` | The five operational reports (FR-410) | 403 |
+| `Reports/ReportingService.php` | The five operational reports (FR-410) | 457 |
 | `Risk/RiskScoringService.php` | The predictive part of the project | 390 |
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) | 152 |
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) | 268 |
@@ -569,7 +569,7 @@ Blade files. Views receive data as props and never query.
 | `profile/edit.blade.php` | 22 |
 | `profile/partials/update-password-form.blade.php` | 43 |
 | `profile/partials/update-profile-information-form.blade.php` | 43 |
-| `reports/index.blade.php` | 185 |
+| `reports/index.blade.php` | 196 |
 | `tickets/_detail.blade.php` | 230 |
 <!-- /code-map -->
 
@@ -629,7 +629,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable | 346 |
 | `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every teammate runs on their first | 257 |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) | 263 |
-| `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) | 438 |
+| `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) | 494 |
 | `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it | 246 |
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on | 92 |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 374 |
