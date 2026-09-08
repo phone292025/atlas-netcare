@@ -138,8 +138,22 @@ class ReportingService
      */
     public function inspectionChart(array $rates): array
     {
+        /*
+         * CODES ON THE AXIS, NOT LABELS.
+         *
+         * This used to pluck `location`, which is `Location::label()` —
+         * "CAF-GF — Campus Cafeteria", around twenty-six characters. Seven of
+         * those across a bar chart do not fit, so Chart.js rotated them to
+         * 45 degrees, where they overlapped each other and ate roughly half
+         * the plot area. On a phone they were unreadable.
+         *
+         * The code is what is printed on the door and what an assistant reads
+         * out over the phone, which is why Location puts it first in its own
+         * label. Nothing is lost by using it alone: the table sitting next to
+         * this chart carries the full name on every row.
+         */
         return [
-            'labels' => collect($rates)->pluck('location')->map(fn ($l) => (string) $l)->values()->all(),
+            'labels' => collect($rates)->pluck('code')->map(fn ($c) => (string) $c)->values()->all(),
             'data' => collect($rates)->pluck('rate')->map(fn ($r) => (float) $r)->values()->all(),
             'colour' => Tone::chart('healthy'),
         ];
@@ -338,7 +352,10 @@ class ReportingService
                 ->sum('total');
 
             $report[] = [
+                // Both, deliberately. The table has room for the full label;
+                // a chart axis does not. See inspectionChart().
                 'location' => $location->label(),
+                'code' => $location->code,
                 'total' => $total,
                 'passed' => $passed,
                 'failed' => $total - $passed,

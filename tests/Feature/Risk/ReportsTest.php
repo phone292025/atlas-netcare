@@ -168,6 +168,43 @@ class ReportsTest extends TestCase
             ->assertSee('50%');
     }
 
+    public function test_the_pass_rate_chart_is_labelled_with_codes_and_the_table_with_names(): void
+    {
+        /*
+         * The chart used to take `Location::label()` for its axis, which is
+         * "CAF-GF — Campus Cafeteria". Seven of those across a bar chart do
+         * not fit, so Chart.js rotated them to 45 degrees where they
+         * overlapped each other and swallowed half the plot area — and on a
+         * phone they were simply unreadable.
+         *
+         * The code alone is what goes on the axis. Nothing is lost, because
+         * the table beside the chart still carries the full name.
+         */
+        $location = Location::factory()->create([
+            'code' => 'CAF-GF',
+            'name' => 'Campus Cafeteria',
+        ]);
+        $pc = LabPc::factory()->create(['location_id' => $location->id]);
+
+        Inspection::factory()->create([
+            'lab_pc_id' => $pc->id, 'user_id' => $this->assistant()->id,
+            'overall_result' => InspectionOutcome::Pass, 'completed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('admin.reports.index'))
+            ->assertOk();
+
+        $this->assertSame(
+            ['CAF-GF'],
+            $response->viewData('inspectionChart')['labels'],
+            'The chart axis is carrying the full location label again.',
+        );
+
+        // The table still names the place properly.
+        $response->assertSee('Campus Cafeteria');
+    }
+
     public function test_ticket_volume_is_a_matrix_not_two_separate_counts(): void
     {
         // "How many hardware faults" and "how many were critical" are each
