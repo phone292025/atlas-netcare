@@ -103,11 +103,17 @@ class CollectTelemetry extends Command
             return;
         }
 
+        /*
+         * An absolute time, not diffForHumans(). This text is SAVED with the
+         * ticket and read later: "Last seen 2 hours ago" written today still
+         * said "2 hours ago" next week, when it had long stopped being true.
+         * On the campus clock, because a person reads it.
+         */
         $tickets->open([
             'title' => "{$ap->ap_code} is not responding",
             'description' => "Raised automatically: no response from {$ap->ap_code}"
                 .($ap->location ? " in {$ap->location->label()}" : '')
-                .'. Last seen '.($ap->last_seen_at?->diffForHumans() ?? 'never').'.',
+                .'. Last seen '.($ap->last_seen_at?->campus()->format('j M Y, H:i') ?? 'never').'.',
             'category' => TicketCategory::Network->value,
             'priority' => TicketPriority::Critical->value,
             'location_id' => $ap->location_id,

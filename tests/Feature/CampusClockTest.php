@@ -2,19 +2,31 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AlarmType;
+use App\Enums\ApStatus;
 use App\Enums\ShiftStatus;
+use App\Enums\TicketStatus;
 use App\Enums\UserRole;
+use App\Models\AccessPoint;
+use App\Models\Alarm;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\Shift;
+use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use App\Services\Shifts\ShiftService;
+use App\Services\Telemetry\ReadingData;
+use App\Services\Telemetry\TelemetrySource;
+use App\Services\Tickets\TicketService;
 use App\Support\CampusClock;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -207,6 +219,74 @@ class CampusClockTest extends TestCase
             ->assertSee('value="2026-09-12"', false)
             ->assertSee('value="2026-09-19"', false)
             ->assertSee('12 Sep 2026 to 19 Sep 2026');
+    }
+
+    // ------------------------------------------------ text that gets saved
+
+    public function test_an_overdue_alarm_states_when_it_was_due_not_how_long_ago(): void
+    {
+        /*
+         * The alarm message is SAVED and read later. It said "due 6 days ago",
+         * computed once when the alarm was raised, and went on saying exactly
+         * that for as long as the alarm existed.
+         */
+        $this->userWith(UserRole::Engineer);
+
+        Ticket::factory()->create([
+            'status' => TicketStatus::Open->value,
+            'due_at' => Carbon::parse('2026-09-19 08:54', 'UTC'),
+        ]);
+
+        $this->atCampusTime('2026-09-19 18:00');
+
+        app(TicketService::class)->raiseSlaBreachAlarms(app(AlarmService::class));
+
+        $message = Alarm::where('type', AlarmType::SlaBreach->value)->value('message');
+
+        $this->assertStringContainsString('due 19 Sep 2026, 16:54', $message);
+        $this->assertStringNotContainsString(' ago', $message, 'A relative time was frozen into a saved message.');
+    }
+
+    public function test_an_auto_raised_ticket_states_when_the_access_point_was_last_seen(): void
+    {
+        // Same problem, in the ticket description the collector writes.
+        $this->userWith(UserRole::Admin);
+
+        $ap = AccessPoint::factory()->create([
+            'status' => ApStatus::Online,
+            'last_seen_at' => Carbon::parse('2026-09-19 04:00', 'UTC'),
+        ]);
+
+        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        {
+            public function sourceLabel(): string
+            {
+                return 'simulated';
+            }
+
+            /** @return Builder<AccessPoint> */
+            public function pollable(): Builder
+            {
+                return AccessPoint::query()->collectable();
+            }
+
+            /** @return Collection<int, ReadingData> */
+            public function collect(): Collection
+            {
+                return $this->pollable()->get()
+                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+            }
+        });
+
+        $this->atCampusTime('2026-09-19 12:10');
+
+        $this->artisan('atlas:collect-telemetry')->assertSuccessful();
+
+        $description = Ticket::where('ticketable_id', $ap->id)->value('description');
+
+        $this->assertNotNull($description, 'No ticket was raised for the access point that went offline.');
+        $this->assertStringContainsString('Last seen 19 Sep 2026, 12:00', $description);
+        $this->assertStringNotContainsString(' ago', $description);
     }
 
     // --------------------------------------------------------- the scheduler
