@@ -741,6 +741,73 @@ class TelemetryPipelineTest extends TestCase
         }
     }
 
+    public function test_the_backfill_never_overrules_a_newer_live_reading(): void
+    {
+        /*
+         * THE BUG THIS PINS. A backfill fills history BEHIND whatever the live
+         * collector already recorded. Its last reading lands on the last whole
+         * hour; the collector may have written one minutes ago. The first
+         * version of settle() took "the last reading I wrote" to mean "the
+         * newest reading", and on a live database it took an access point the
+         * collector had just marked Offline — real outage, ticket raised,
+         * engineers alerted — and flipped it back to Online from an invented
+         * reading an hour older. It hid the outage.
+         *
+         * The previous test could not see this: it only ever had a backfill
+         * and nothing newer.
+         */
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Offline]);
+
+        // The collector's reading, newer than anything the backfill will
+        // write: an outage, a minute ago.
+        TelemetryReading::create([
+            'access_point_id' => $ap->id,
+            'recorded_at' => now()->subMinute(),
+            'latency_ms' => null,
+            'client_count' => 0,
+            'packet_loss_pct' => 100,
+            'channel_util_pct' => 0,
+            'throughput_mbps' => 0,
+            'status' => 'offline',
+            'source' => 'simulated',
+        ]);
+
+        // Hourly steps, so the backfill's last reading is on the last whole
+        // hour, before the one above.
+        Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
+
+        $this->assertSame(
+            ApStatus::Offline,
+            $ap->fresh()->status,
+            'The backfill overruled a newer live reading and hid an outage.',
+        );
+    }
+
+    public function test_running_the_backfill_twice_does_not_duplicate_history(): void
+    {
+        /*
+         * Nothing stopped a second run writing the same history again, and the
+         * simulator's packet loss is random, so the copies could disagree about
+         * the same instant. The development database had 18,830 of them.
+         */
+        AccessPoint::factory()->count(2)->create();
+
+        Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
+        $afterFirst = TelemetryReading::count();
+
+        Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
+
+        $this->assertSame($afterFirst, TelemetryReading::count(), 'A second backfill wrote history that was already there.');
+
+        $duplicated = TelemetryReading::query()
+            ->selectRaw('access_point_id, recorded_at, COUNT(*) as n')
+            ->groupBy('access_point_id', 'recorded_at')
+            ->havingRaw('COUNT(*) > 1')
+            ->count();
+
+        $this->assertSame(0, $duplicated);
+    }
+
     public function test_the_backfill_does_not_invent_a_sighting_for_kit_under_maintenance(): void
     {
         // scopeCollectable() excludes it, so it gets no readings — and its own

@@ -7,8 +7,8 @@ use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\TelemetryService;
-use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 
@@ -71,16 +71,14 @@ class BackfillTelemetry extends Command
         $cursor = now()->subDays($days)->startOfHour();
         $end = now();
 
+        $existing = $this->alreadyRecorded($accessPoints, $cursor, $end);
+
         $rows = [];
         $written = 0;
+        $skipped = 0;
 
         $bar = $this->output->createProgressBar((int) ceil($cursor->diffInMinutes($end) / $step));
         $bar->start();
-
-        // The last thing each access point reported, so its own columns can be
-        // brought into line once at the end. See settle() below.
-        $finalStatus = [];
-        $lastSeen = [];
 
         while ($cursor->lt($end)) {
             foreach ($accessPoints as $ap) {
@@ -94,15 +92,16 @@ class BackfillTelemetry extends Command
                  * million of them. Backfilled history is scenery for the
                  * charts; live classification is what the dashboard shows.
                  */
+                // A moment this access point already has a reading for is left
+                // alone. See alreadyRecorded().
+                if (isset($existing[$ap->id][$reading->recordedAt->toDateTimeString()])) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 $status = $reading->unreachable ? ApStatus::Offline : ApStatus::Online;
                 $rows[] = $reading->toRow($status->value);
-
-                $finalStatus[$ap->id] = $status;
-
-                if (! $reading->unreachable) {
-                    // Copied: $cursor is mutated at the end of every pass.
-                    $lastSeen[$ap->id] = $reading->recordedAt->copy();
-                }
             }
 
             if (count($rows) >= 2000) {
@@ -124,7 +123,11 @@ class BackfillTelemetry extends Command
         $this->newLine(2);
         $this->info(number_format($written).' readings written across '.$accessPoints->count().' access points.');
 
-        $this->settle($accessPoints, $finalStatus, $lastSeen);
+        if ($skipped > 0) {
+            $this->line('  '.number_format($skipped).' already recorded, left alone.');
+        }
+
+        $this->settle($accessPoints);
 
         // The charts read the aggregates, so history is useless until it has
         // been rolled up. Doing it here means one command gives a working
@@ -133,6 +136,49 @@ class BackfillTelemetry extends Command
         Artisan::call('atlas:aggregate-telemetry', ['--hours' => $days * 24], $this->output);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Every moment each access point already has a reading for, in this window.
+     *
+     * WHY. Nothing stopped a second run writing the same history again: no
+     * unique index on (access_point_id, recorded_at), and no check here. Every
+     * extra run silently doubled its window. The development database had
+     * 18,830 surplus rows by the time anybody counted, and they were not
+     * harmless copies — the simulator draws packet loss at random, so two
+     * readings for the SAME instant could disagree about what happened, and
+     * the hourly aggregates weighted whichever moments happened to be
+     * duplicated twice.
+     *
+     * A unique index would be the stronger fix, and it cannot be added while
+     * the duplicates exist: the migration would fail on the first one. So the
+     * command makes itself safe to re-run instead. A second run fills gaps and
+     * writes nothing it already has; `--fresh` still starts again from empty.
+     *
+     * Read through the query builder rather than the model, so a fortnight of
+     * forty access points is a list of strings rather than 160,000 hydrated
+     * Eloquent objects.
+     *
+     * @param  Collection<int, AccessPoint>  $accessPoints
+     * @return array<int, array<string, true>> access point id => [moment => true]
+     */
+    private function alreadyRecorded(Collection $accessPoints, Carbon $from, Carbon $to): array
+    {
+        $recorded = [];
+
+        TelemetryReading::query()
+            ->toBase()
+            ->select(['access_point_id', 'recorded_at'])
+            ->whereIn('access_point_id', $accessPoints->pluck('id'))
+            ->whereBetween('recorded_at', [$from, $to])
+            ->orderBy('id')
+            ->chunk(5000, function ($rows) use (&$recorded): void {
+                foreach ($rows as $row) {
+                    $recorded[(int) $row->access_point_id][(string) $row->recorded_at] = true;
+                }
+            });
+
+        return $recorded;
     }
 
     /**
@@ -150,32 +196,56 @@ class BackfillTelemetry extends Command
      * self-contradictory row out of twenty-nine, and nothing in the system
      * could tell you which half was right.
      *
-     * WHY IT DOES NOT COST WHAT THE LOOP AVOIDS. The objection there is to a
-     * query per READING — a quarter of a million of them. This is one update
-     * per ACCESS POINT, once, after the writing is finished: forty, against
-     * 350,000 rows already inserted.
+     * READ THE NEWEST READING FROM THE DATABASE, NOT THE LAST ONE WRITTEN HERE.
+     * They are not the same thing, and the first version of this method
+     * assumed they were. A backfill fills in history BEHIND whatever the live
+     * collector has already recorded: its last reading lands on the last whole
+     * hour, while the collector may have written one a few minutes ago. Settling
+     * from the backfill's own last reading took an access point the collector
+     * had just marked Offline — a real outage, with a ticket raised and the
+     * engineers alerted — and flipped it back to Online from an invented reading
+     * an hour older. It hid the outage. Found by running the command against a
+     * live database; the test only ever had a backfill and nothing newer.
      *
-     * `last_seen_at` moves only for an access point that actually answered,
-     * the same rule store() applies. One that was unreachable for the whole
-     * window keeps whatever it had, because inventing a sighting is the one
-     * thing this must not do.
+     * So whatever wrote the newest row, that row wins, and a backfill can
+     * never overrule a live measurement.
+     *
+     * WHY IT DOES NOT COST WHAT THE LOOP AVOIDS. The objection there is to a
+     * query per READING — a quarter of a million of them. This is two small
+     * indexed queries and one update per ACCESS POINT, once, after the writing
+     * is finished: about forty access points, against 350,000 rows inserted.
+     *
+     * `last_seen_at` comes from the newest reading that actually ANSWERED, the
+     * same rule store() applies. An access point that never answered keeps
+     * whatever it had, because inventing a sighting is the one thing this must
+     * not do.
      *
      * @param  Collection<int, AccessPoint>  $accessPoints
-     * @param  array<int, ApStatus>  $finalStatus
-     * @param  array<int, CarbonInterface>  $lastSeen
      */
-    private function settle(Collection $accessPoints, array $finalStatus, array $lastSeen): void
+    private function settle(Collection $accessPoints): void
     {
         $settled = 0;
 
         foreach ($accessPoints as $ap) {
-            if (! isset($finalStatus[$ap->id])) {
+            $newest = TelemetryReading::query()
+                ->where('access_point_id', $ap->id)
+                ->orderByDesc('recorded_at')
+                ->first();
+
+            if (! $newest) {
                 continue;
             }
 
+            // An unreachable reading has no latency; one that answered does.
+            $lastAnswered = TelemetryReading::query()
+                ->where('access_point_id', $ap->id)
+                ->whereNotNull('latency_ms')
+                ->orderByDesc('recorded_at')
+                ->value('recorded_at');
+
             $ap->forceFill(array_filter([
-                'status' => $finalStatus[$ap->id],
-                'last_seen_at' => $lastSeen[$ap->id] ?? null,
+                'status' => ApStatus::from($newest->status),
+                'last_seen_at' => $lastAnswered,
             ], fn ($value) => $value !== null))->save();
 
             $settled++;
