@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShiftStatus;
+use App\Support\CampusClock;
 use Database\Factories\ShiftFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -96,7 +97,7 @@ class Shift extends Model
     /** @param  Builder<Shift>  $query */
     public function scopeUpcoming(Builder $query): void
     {
-        $query->whereDate('shift_date', '>=', today())->orderBy('shift_date')->orderBy('start_time');
+        $query->whereDate('shift_date', '>=', CampusClock::today())->orderBy('shift_date')->orderBy('start_time');
     }
 
     /**
@@ -136,9 +137,16 @@ class Shift extends Model
         );
     }
 
+    /**
+     * Whether this shift falls on today's date ON CAMPUS.
+     *
+     * `shift_date->isToday()` compared it against today in UTC, which is
+     * yesterday on campus from midnight until 08:00. `shift_date` is a
+     * calendar date and is compared as one, never converted.
+     */
     public function isToday(): bool
     {
-        return $this->shift_date->isToday();
+        return $this->shift_date->toDateString() === CampusClock::today()->toDateString();
     }
 
     /** Checked in and not yet out. */

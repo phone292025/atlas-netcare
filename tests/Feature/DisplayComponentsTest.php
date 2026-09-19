@@ -131,12 +131,21 @@ class DisplayComponentsTest extends TestCase
     {
         // "3 hours ago" is what you read at a glance; the exact time is what
         // you need when writing an incident up.
+        $at = Carbon::parse('2026-08-20 09:15', 'UTC');
+
         $html = Blade::render('<x-timeline :events="$events" />', ['events' => [
-            ['actor' => 'System', 'action' => 'raised a ticket', 'at' => Carbon::parse('2026-08-20 09:15')],
+            ['actor' => 'System', 'action' => 'raised a ticket', 'at' => $at],
         ]]);
 
-        $this->assertStringContainsString('datetime="'.Carbon::parse('2026-08-20 09:15')->toIso8601String().'"', $html);
-        $this->assertStringContainsString('title="Thu 20 Aug 2026, 09:15"', $html);
+        // The machine-readable attribute carries its own offset, so it stays
+        // UTC and is unambiguous either way.
+        $this->assertStringContainsString('datetime="'.$at->toIso8601String().'"', $html);
+
+        // The human-readable one is the time on the lab wall. This used to
+        // expect "09:15", which was the stored UTC value printed as though it
+        // were local: somebody writing up an incident from it would have put
+        // it eight hours early.
+        $this->assertStringContainsString('title="Thu 20 Aug 2026, 17:15"', $html);
     }
 
     public function test_timeline_falls_back_to_an_empty_state(): void

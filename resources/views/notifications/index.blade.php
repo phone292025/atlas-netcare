@@ -30,7 +30,7 @@
                                     <span class="mt-1 block text-xs text-slate-400">
                                         {{ $alarm->type->label() }} ·
                                         <time datetime="{{ $alarm->trigger_at->toIso8601String() }}"
-                                              title="{{ $alarm->trigger_at->format('D j M Y, H:i') }}">{{ $alarm->trigger_at->diffForHumans() }}</time>
+                                              title="{{ $alarm->trigger_at->campus()->format('D j M Y, H:i') }}">{{ $alarm->trigger_at->diffForHumans() }}</time>
                                     </span>
                                 </span>
                             </a>

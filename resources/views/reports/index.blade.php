@@ -12,7 +12,7 @@
          @see docs/modules/M7-predictive-and-reports.md --}}
 
     <x-page-header title="Reports"
-                   :subtitle="'Generated '.$generated->format('j M Y, H:i')" />
+                   :subtitle="'Generated '.$generated->campus()->format('j M Y, H:i')" />
 
     {{-- 1. Assets by risk band — the headline analytics figure. --}}
     <x-card title="Assets by risk band"

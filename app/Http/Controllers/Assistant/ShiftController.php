@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Assistant;
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
 use App\Services\Shifts\ShiftService;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -47,9 +48,10 @@ class ShiftController extends Controller
     /** The week ahead. */
     public function index(Request $request): View
     {
+        // Both on the campus clock, or Monday before 08:00 shows last week.
         $week = $request->filled('week')
-            ? Carbon::parse($request->string('week'))->startOfWeek()
-            : now()->startOfWeek();
+            ? Carbon::parse($request->string('week'), CampusClock::timezone())->startOfWeek()
+            : CampusClock::now()->startOfWeek();
 
         return view('assistant.shifts.index', [
             'week' => $week,

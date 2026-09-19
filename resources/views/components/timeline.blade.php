@@ -74,7 +74,7 @@
 
                     @if ($at)
                         <time datetime="{{ $at->toIso8601String() }}"
-                              title="{{ $at->format('D j M Y, H:i') }}"
+                              title="{{ $at->campus()->format('D j M Y, H:i') }}"
                               class="mt-0.5 block text-xs text-slate-400">
                             {{ $at->diffForHumans() }}
                         </time>

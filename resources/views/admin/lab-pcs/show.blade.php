@@ -50,7 +50,7 @@
                         <dd class="mt-0.5 text-slate-900">
                             {{-- M3 writes last_inspected_at. Naming the module that
                                  fills a gap is more use than an em dash. --}}
-                            {{ $labPc->last_inspected_at?->format('j M Y') ?? 'Never inspected' }}
+                            {{ $labPc->last_inspected_at?->campus()->format('j M Y') ?? 'Never inspected' }}
                         </dd>
                     </div>
                 </dl>

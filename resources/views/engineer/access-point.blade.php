@@ -107,7 +107,7 @@
                         <tbody class="divide-y divide-slate-100 text-slate-700">
                             @foreach ($hours->sortByDesc('hour_bucket') as $hour)
                                 <tr>
-                                    <td class="whitespace-nowrap px-4 py-2.5">{{ $hour->hour_bucket->format('j M H:i') }}</td>
+                                    <td class="whitespace-nowrap px-4 py-2.5">{{ $hour->hour_bucket->campus()->format('j M H:i') }}</td>
                                     <td class="px-4 py-2.5 text-right tabular-nums">{{ $hour->peak_client_count }}</td>
                                     <td class="px-4 py-2.5 text-right tabular-nums">
                                         {{ $hour->avg_latency_ms ? number_format((float) $hour->avg_latency_ms, 0).' ms' : '—' }}

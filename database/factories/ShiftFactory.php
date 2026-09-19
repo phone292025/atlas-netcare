@@ -6,6 +6,7 @@ use App\Enums\ShiftStatus;
 use App\Models\Location;
 use App\Models\Shift;
 use App\Models\User;
+use App\Support\CampusClock;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
@@ -28,7 +29,11 @@ class ShiftFactory extends Factory
         return [
             'user_id' => User::factory(),
             'location_id' => Location::factory(),
-            'shift_date' => today()->toDateString(),
+            // Today ON CAMPUS, the same question ShiftService::todayFor() asks.
+            // UTC today would disagree with it from midnight to 08:00 campus
+            // time, and every test built on a default shift would fail only
+            // when the suite happened to run in those eight hours.
+            'shift_date' => CampusClock::today()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '13:00',
             'status' => ShiftStatus::Scheduled->value,

@@ -86,8 +86,8 @@
                     <dd class="mt-0.5 text-slate-900">
                         @if ($inspection->completed_at)
                             <time datetime="{{ $inspection->completed_at->toIso8601String() }}"
-                                  title="{{ $inspection->completed_at->format('D j M Y, H:i') }}">
-                                {{ $inspection->completed_at->format('j M Y, H:i') }}
+                                  title="{{ $inspection->completed_at->campus()->format('D j M Y, H:i') }}">
+                                {{ $inspection->completed_at->campus()->format('j M Y, H:i') }}
                             </time>
                         @else
                             Still in progress

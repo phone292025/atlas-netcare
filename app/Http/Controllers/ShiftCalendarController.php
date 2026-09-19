@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Shifts\ShiftCalendar;
+use App\Support\CampusClock;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -72,7 +73,7 @@ class ShiftCalendarController extends Controller
         $shifts = Shift::query()
             ->forUser($user)
             ->with(['location', 'template'])
-            ->whereBetween('shift_date', [today()->subWeeks(2), today()->addMonths(6)])
+            ->whereBetween('shift_date', [CampusClock::today()->subWeeks(2), CampusClock::today()->addMonths(6)])
             ->orderBy('shift_date')->orderBy('start_time')
             ->get();
 

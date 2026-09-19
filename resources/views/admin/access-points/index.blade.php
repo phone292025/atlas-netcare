@@ -66,7 +66,7 @@
                 <td class="px-4 py-3 text-slate-600">
                     @if ($ap->last_seen_at)
                         <time datetime="{{ $ap->last_seen_at->toIso8601String() }}"
-                              title="{{ $ap->last_seen_at->format('D j M Y, H:i') }}">{{ $ap->last_seen_at->diffForHumans() }}</time>
+                              title="{{ $ap->last_seen_at->campus()->format('D j M Y, H:i') }}">{{ $ap->last_seen_at->diffForHumans() }}</time>
                     @else
                         {{-- The collector writes last_seen_at. Until M5 runs, no
                              access point has ever been polled. --}}

@@ -31,7 +31,7 @@
             <tr class="hover:bg-slate-50">
                 <td class="px-4 py-3 whitespace-nowrap">
                     <time datetime="{{ $log->created_at->toIso8601String() }}"
-                          title="{{ $log->created_at->format('D j M Y, H:i:s') }}"
+                          title="{{ $log->created_at->campus()->format('D j M Y, H:i:s') }}"
                           class="text-slate-600">
                         {{ $log->created_at->diffForHumans() }}
                     </time>

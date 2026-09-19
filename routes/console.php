@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\CampusClock;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -48,7 +49,8 @@ Schedule::command('atlas:aggregate-telemetry --hours=3')
 // Retention is 90 days of raw readings and 12 months of aggregates (Q10).
 // Weekly and out of hours, because it deletes in chunks across a large table.
 Schedule::command('atlas:prune-telemetry')
-    ->weeklyOn(0, '03:15');
+    ->weeklyOn(0, '03:15')
+    ->timezone(CampusClock::timezone());
 
 /*
  * M6 — shifts and alarms.
@@ -69,7 +71,8 @@ Schedule::command('atlas:dispatch-alarms')
  * exactly the kind of stale screen people stop trusting.
  */
 Schedule::command('atlas:generate-shifts')
-    ->weeklyOn(0, '18:00');
+    ->weeklyOn(0, '18:00')
+    ->timezone(CampusClock::timezone());
 
 /*
  * M7 — predictive risk (FR-505).
@@ -88,4 +91,8 @@ Schedule::command('atlas:generate-shifts')
  */
 Schedule::command('atlas:recalculate-risk --show=0')
     ->dailyAt('02:00')
+    // 02:00 ON CAMPUS. Without a zone the scheduler reads every time in UTC,
+    // so this ran at 10:00 local — in the middle of the working day it was
+    // meant to finish before. The two weekly jobs above carry the same zone.
+    ->timezone(CampusClock::timezone())
     ->withoutOverlapping();

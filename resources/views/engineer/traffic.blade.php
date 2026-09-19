@@ -7,7 +7,7 @@
          been two things to keep in step. --}}
 
     <x-page-header title="Traffic and congestion"
-                   :subtitle="$from->format('j M Y').' to '.$to->format('j M Y')" />
+                   :subtitle="$from->campus()->format('j M Y').' to '.$to->campus()->format('j M Y')" />
 
     <x-card title="Campus load" subtitle="Total clients and mean latency per hour." class="mb-4">
         @if (empty($trend['labels']))
@@ -55,10 +55,10 @@
         <x-slot:filters>
             <form method="GET" class="flex flex-wrap items-end gap-2">
                 <div class="w-40">
-                    <x-form.input name="from" label="From" type="date" :value="$from->toDateString()" />
+                    <x-form.input name="from" label="From" type="date" :value="$from->campus()->toDateString()" />
                 </div>
                 <div class="w-40">
-                    <x-form.input name="to" label="To" type="date" :value="$to->toDateString()" />
+                    <x-form.input name="to" label="To" type="date" :value="$to->campus()->toDateString()" />
                 </div>
                 <div class="w-44">
                     <x-form.select name="access_point" label="Access point" blank="All" :options="$accessPoints" :selected="request('access_point')" />
@@ -75,7 +75,7 @@
 
         @foreach ($rows as $row)
             <tr class="hover:bg-slate-50">
-                <td class="whitespace-nowrap px-4 py-3">{{ $row->hour_bucket->format('j M H:i') }}</td>
+                <td class="whitespace-nowrap px-4 py-3">{{ $row->hour_bucket->campus()->format('j M H:i') }}</td>
                 <td class="whitespace-nowrap px-4 py-3">
                     <a href="{{ route('engineer.aps.show', $row->access_point_id) }}"
                        class="font-medium text-slate-900 hover:text-brand-700">{{ $row->accessPoint?->ap_code }}</a>

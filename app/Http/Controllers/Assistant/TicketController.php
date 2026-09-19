@@ -229,7 +229,7 @@ class TicketController extends Controller
             "Raised from the maintenance priority ranking.\n\nRisk score %s (%s), calculated %s.\n\nHeaviest factors: %s.",
             round($assessment->score, 1),
             $assessment->band->label(),
-            $assessment->calculated_at->format('j M Y'),
+            $assessment->calculated_at->campus()->format('j M Y'),
             $reasons ?: 'none measurable',
         );
     }

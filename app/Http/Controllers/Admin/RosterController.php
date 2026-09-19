@@ -8,6 +8,7 @@ use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
 use App\Services\Shifts\ShiftService;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -111,8 +112,9 @@ class RosterController extends Controller
      */
     private function week(Request $request): Carbon
     {
+        // Both on the campus clock, or Monday before 08:00 shows last week.
         return $request->filled('week')
-            ? Carbon::parse($request->string('week'))->startOfWeek()
-            : now()->startOfWeek();
+            ? Carbon::parse($request->string('week'), CampusClock::timezone())->startOfWeek()
+            : CampusClock::now()->startOfWeek();
     }
 }

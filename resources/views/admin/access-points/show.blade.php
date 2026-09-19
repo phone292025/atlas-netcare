@@ -64,7 +64,7 @@
                     <div>
                         <dt class="text-slate-500">Last seen</dt>
                         <dd class="mt-0.5 text-slate-900">
-                            {{ $accessPoint->last_seen_at?->format('j M Y, H:i') ?? 'Never polled' }}
+                            {{ $accessPoint->last_seen_at?->campus()->format('j M Y, H:i') ?? 'Never polled' }}
                         </dd>
                     </div>
                 </dl>

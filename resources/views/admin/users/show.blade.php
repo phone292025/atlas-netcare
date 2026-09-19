@@ -54,7 +54,7 @@
                 @endif
                 <div>
                     <dt class="text-slate-500">Created</dt>
-                    <dd class="mt-0.5 text-slate-900">{{ $user->created_at?->format('j M Y') }}</dd>
+                    <dd class="mt-0.5 text-slate-900">{{ $user->created_at?->campus()->format('j M Y') }}</dd>
                 </div>
                 @if ($user->must_change_password)
                     <div>

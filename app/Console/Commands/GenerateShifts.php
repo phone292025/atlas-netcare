@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Shifts\ShiftService;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -24,9 +25,10 @@ class GenerateShifts extends Command
 
     public function handle(ShiftService $shifts): int
     {
+        // "Next week" is a campus-calendar question.
         $week = $this->option('week')
-            ? Carbon::parse($this->option('week'))->startOfWeek()
-            : now()->addWeek()->startOfWeek();
+            ? Carbon::parse($this->option('week'), CampusClock::timezone())->startOfWeek()
+            : CampusClock::now()->addWeek()->startOfWeek();
 
         try {
             $created = $shifts->generateWeek($week);

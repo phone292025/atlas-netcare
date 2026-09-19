@@ -9,6 +9,7 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Services\Maintenance\InspectionService;
+use App\Support\CampusClock;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -83,8 +84,11 @@ class InspectionController extends Controller
             'location' => $location,
             'labPcs' => $location->labPcs()
                 ->inService()
+                // `completed_at` is a moment stored in UTC, so "today" is the
+                // campus day expressed as UTC instants, not whereDate(): that
+                // compares the UTC date, which is the wrong eight hours.
                 ->withCount(['inspections as inspected_today_count' => fn ($q) => $q
-                    ->whereDate('completed_at', today())])
+                    ->whereBetween('completed_at', CampusClock::todayInUtc())])
                 ->orderBy('asset_tag')
                 ->get(),
             'hasTemplate' => ChecklistTemplate::current() !== null,

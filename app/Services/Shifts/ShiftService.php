@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -276,7 +277,10 @@ class ShiftService
     {
         $stale = Shift::query()
             ->where('status', ShiftStatus::Scheduled)
-            ->whereDate('shift_date', '<=', today())
+            // The campus date, not UTC's: between midnight and 08:00 on campus
+            // UTC is still yesterday, and a shift that had already ended would
+            // wait eight hours to be marked.
+            ->whereDate('shift_date', '<=', CampusClock::today())
             ->get()
             ->filter(fn (Shift $shift) => $shift->endsAt()->isPast());
 
@@ -287,12 +291,18 @@ class ShiftService
         return $stale->count();
     }
 
-    /** Today's shift for this person, if they have one. */
+    /**
+     * Today's shift for this person, if they have one.
+     *
+     * Today ON CAMPUS. This asked for today() in UTC, so from midnight until
+     * 08:00 an assistant opening "My shift" was told they had no shift that
+     * day while rostered for 09:00.
+     */
     public function todayFor(User $user): ?Shift
     {
         return Shift::query()
             ->forUser($user)
-            ->on(today())
+            ->on(CampusClock::today())
             ->with(['location', 'template'])
             ->orderBy('start_time')
             ->first();

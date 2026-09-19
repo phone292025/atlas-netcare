@@ -88,7 +88,7 @@ class RiskController extends Controller
             'latest' => $history->last(),
             'history' => $history,
             'chart' => [
-                'labels' => $history->map(fn (RiskAssessment $a) => $a->calculated_at->format('j M'))->all(),
+                'labels' => $history->map(fn (RiskAssessment $a) => $a->calculated_at->campus()->format('j M'))->all(),
                 'scores' => $history->map(fn (RiskAssessment $a) => round($a->score, 1))->all(),
             ],
         ]);

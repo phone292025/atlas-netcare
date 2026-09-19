@@ -13,8 +13,10 @@ use App\Observers\AuditObserver;
 use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetrySource;
+use App\Support\CampusClock;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -98,6 +100,29 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->composeResetPasswordEmail();
+        $this->registerCampusClock();
+    }
+
+    /**
+     * `->campus()` on any date: the same moment, on the campus wall clock.
+     *
+     * Every moment is stored in UTC and must stay that way. This is only for
+     * SHOWING one to a person, who reads the clock on the lab wall, not UTC:
+     *
+     *     {{ $shift->checked_in_at->campus()->format('H:i') }}
+     *
+     * It returns a copy, so the model attribute is never mutated. A closure
+     * rather than a static one, because Carbon binds the date it is called on
+     * to $this.
+     *
+     * @see App\Support\CampusClock
+     */
+    private function registerCampusClock(): void
+    {
+        Carbon::macro('campus', function () {
+            /** @var Carbon $this */
+            return $this->copy()->setTimezone(CampusClock::timezone());
+        });
     }
 
     /**

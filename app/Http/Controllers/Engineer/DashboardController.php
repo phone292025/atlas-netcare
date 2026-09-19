@@ -47,7 +47,7 @@ class DashboardController extends Controller
             'accessPoint' => $accessPoint->load('location'),
             'hours' => $hours,
             'chart' => [
-                'labels' => $hours->map(fn ($h) => $h->hour_bucket->format('H:i'))->all(),
+                'labels' => $hours->map(fn ($h) => $h->hour_bucket->campus()->format('H:i'))->all(),
                 'clients' => $hours->map(fn ($h) => $h->peak_client_count)->all(),
                 'latency' => $hours->map(fn ($h) => $h->avg_latency_ms ? (float) $h->avg_latency_ms : null)->all(),
             ],

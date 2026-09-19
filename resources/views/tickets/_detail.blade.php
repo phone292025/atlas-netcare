@@ -148,7 +148,7 @@
                     <dt class="text-slate-500">Reported by</dt>
                     <dd class="mt-0.5 text-slate-900">
                         {{ $ticket->reporter?->name ?? 'Unknown' }}
-                        <span class="block text-xs text-slate-500">{{ $ticket->opened_at?->format('j M Y, H:i') }}</span>
+                        <span class="block text-xs text-slate-500">{{ $ticket->opened_at?->campus()->format('j M Y, H:i') }}</span>
                     </dd>
                 </div>
                 <div>
@@ -189,7 +189,7 @@
                 <div>
                     <dt class="text-slate-500">Due</dt>
                     <dd class="mt-0.5 {{ $ticket->isBreaching() ? 'font-medium text-red-700' : 'text-slate-900' }}">
-                        {{ $ticket->due_at?->format('j M Y, H:i') ?? '—' }}
+                        {{ $ticket->due_at?->campus()->format('j M Y, H:i') ?? '—' }}
                         <span class="block text-xs text-slate-500">
                             {{ $ticket->priority->label() }} target is {{ $ticket->priority->slaHours() }} hours
                         </span>

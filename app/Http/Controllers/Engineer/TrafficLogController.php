@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessPoint;
 use App\Models\Location;
 use App\Models\TelemetryHourly;
+use App\Support\CampusClock;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -73,7 +74,7 @@ class TrafficLogController extends Controller
             ->get();
 
         return [
-            'labels' => $rows->map(fn ($r) => Carbon::parse($r->hour_bucket)->format('j M H:i'))->all(),
+            'labels' => $rows->map(fn ($r) => Carbon::parse($r->hour_bucket)->campus()->format('j M H:i'))->all(),
             'clients' => $rows->map(fn ($r) => (int) $r->clients)->all(),
             'latency' => $rows->map(fn ($r) => $r->latency ? round((float) $r->latency, 1) : null)->all(),
         ];
@@ -90,12 +91,25 @@ class TrafficLogController extends Controller
      */
     private function range(Request $request): array
     {
+        /*
+         * The dates somebody picks are CAMPUS dates, so they are read and
+         * bounded on the campus clock. They were read as UTC, which made "12
+         * September" start at 08:00 on campus and run eight hours into the
+         * 13th.
+         *
+         * They leave as UTC, because `hour_bucket` stores UTC and a campus-time
+         * value bound straight against it is eight hours out in the other
+         * direction. The view shows them with ->campus(), including in the
+         * date inputs, or every "Apply" would slide the range back a day.
+         */
+        $tz = CampusClock::timezone();
+
         $to = $request->filled('to')
-            ? Carbon::parse($request->string('to'))->endOfDay()
-            : now();
+            ? Carbon::parse($request->string('to'), $tz)->endOfDay()
+            : CampusClock::now();
 
         $from = $request->filled('from')
-            ? Carbon::parse($request->string('from'))->startOfDay()
+            ? Carbon::parse($request->string('from'), $tz)->startOfDay()
             : $to->copy()->subDays(7)->startOfDay();
 
         if ($from->gt($to)) {
@@ -106,6 +120,6 @@ class TrafficLogController extends Controller
             $from = $to->copy()->subDays(90);
         }
 
-        return [$from, $to];
+        return [$from->copy()->utc(), $to->copy()->utc()];
     }
 }

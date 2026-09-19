@@ -8,7 +8,7 @@
 
     <div class="mx-auto max-w-3xl">
         <x-page-header title="My shift"
-                       :subtitle="now()->format('l j F Y')" />
+                       :subtitle="now()->campus()->format('l j F Y')" />
 
         @if (! $shift)
             <x-card class="mb-4">
@@ -32,9 +32,9 @@
 
                 @if ($shift->checked_in_at)
                     <p class="mt-3 text-sm text-slate-600">
-                        Checked in at {{ $shift->checked_in_at->format('H:i') }}.
+                        Checked in at {{ $shift->checked_in_at->campus()->format('H:i') }}.
                         @if ($shift->checked_out_at)
-                            Checked out at {{ $shift->checked_out_at->format('H:i') }}.
+                            Checked out at {{ $shift->checked_out_at->campus()->format('H:i') }}.
                         @endif
                     </p>
                 @endif

@@ -97,7 +97,7 @@
             ]">
                 @foreach ($history->sortByDesc('calculated_at') as $row)
                     <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 text-slate-600">{{ $row->calculated_at->format('j M Y, H:i') }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $row->calculated_at->campus()->format('j M Y, H:i') }}</td>
                         <td class="px-4 py-3 text-right tabular-nums font-medium text-slate-900">{{ round($row->score, 1) }}</td>
                         <td class="px-4 py-3"><x-status-badge :status="$row->band" /></td>
                         <td class="px-4 py-3 text-sm text-slate-600">
