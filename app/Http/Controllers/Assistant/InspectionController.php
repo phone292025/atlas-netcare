@@ -10,6 +10,7 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Services\Maintenance\InspectionService;
 use App\Support\CampusClock;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -168,11 +169,18 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
 
-        $this->inspections->complete(
-            $inspection,
-            $request->answers(),
-            $request->validated('notes'),
-        );
+        // InspectionRequest refuses an incomplete checklist before this runs,
+        // so the service should never refuse here. If it ever does, that is a
+        // message for the assistant, not a 500.
+        try {
+            $this->inspections->complete(
+                $inspection,
+                $request->answers(),
+                $request->validated('notes'),
+            );
+        } catch (DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('assistant.inspections.show', $inspection)

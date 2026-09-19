@@ -189,6 +189,43 @@ class TicketLifecycleTest extends TestCase
         $this->assertNull($fresh->resolution_notes);
     }
 
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function missingResolutionNotes(): array
+    {
+        return [
+            'no notes at all' => [[]],
+            'an empty string' => [['resolution_notes' => '']],
+            'only whitespace' => [['resolution_notes' => "   \n "]],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $extra */
+    #[DataProvider('missingResolutionNotes')]
+    public function test_the_service_itself_refuses_to_resolve_without_notes(array $extra): void
+    {
+        /*
+         * "No silent closures" lived only in TransitionTicketRequest, so the
+         * screen enforced it and the service did not. Called directly, it
+         * resolved the ticket and stored null. Found by driving the service
+         * against the live database; the HTTP test could not see it because
+         * the form stopped the request first.
+         */
+        $ticket = Ticket::factory()->create(['status' => TicketStatus::InProgress->value]);
+        $engineer = $this->userWith(UserRole::Engineer);
+
+        try {
+            $this->service()->transition($ticket, TicketStatus::Resolved, $engineer, $extra);
+            $this->fail('A ticket was resolved with nobody saying what was done.');
+        } catch (DomainException $e) {
+            $this->assertSame('Say what you did to fix it before resolving.', $e->getMessage());
+        }
+
+        $this->assertSame(TicketStatus::InProgress, $ticket->fresh()->status);
+        $this->assertNull($ticket->fresh()->resolved_at);
+    }
+
     // --------------------------------------------------- what a move records
 
     public function test_acknowledging_assigns_the_engineer_who_did_it(): void

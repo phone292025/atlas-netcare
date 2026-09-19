@@ -312,6 +312,66 @@ class InspectionTest extends TestCase
             ->assertSee('Fail');
     }
 
+    public function test_the_service_itself_refuses_a_checklist_with_items_unanswered(): void
+    {
+        /*
+         * deriveOutcome() looks for failures among the answers it has, and an
+         * unanswered item is not a failure. Called with one answer out of the
+         * whole checklist, complete() derived Pass and stamped the machine
+         * inspected. The form has always refused this; the service, which owns
+         * the rule, did not. Found by driving it against the live database,
+         * where it accepted 1 of 13.
+         */
+        $template = $this->template();
+        $labPc = LabPc::factory()->create(['last_inspected_at' => null]);
+        $inspection = Inspection::factory()->create([
+            'checklist_template_id' => $template->id,
+            'lab_pc_id' => $labPc->id,
+            'user_id' => $this->assistant()->id,
+        ]);
+
+        $onlyTheFirst = [$template->items->first()->id => ['result' => ChecklistResult::Ok->value]];
+
+        try {
+            app(InspectionService::class)->complete($inspection, $onlyTheFirst);
+            $this->fail('An inspection with an item unanswered was accepted.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('1 of 2 still have no answer', $e->getMessage());
+        }
+
+        $fresh = $inspection->fresh();
+
+        // Refused as a whole: nothing half-saved, nothing stamped.
+        $this->assertTrue($fresh->isInProgress(), 'A refused inspection was marked complete.');
+        $this->assertNull($fresh->overall_result);
+        $this->assertSame(0, $fresh->results()->count(), 'The answers from a refused submission were kept.');
+        $this->assertNull($labPc->fresh()->last_inspected_at, 'The machine was stamped as inspected anyway.');
+    }
+
+    public function test_a_refusal_from_the_service_reaches_the_assistant_as_a_message(): void
+    {
+        // The form refuses an incomplete checklist first, so this can only be
+        // forced. A service refusal must never become a 500.
+        $template = $this->template();
+        $assistant = $this->assistant();
+        $inspection = Inspection::factory()->create([
+            'checklist_template_id' => $template->id,
+            'user_id' => $assistant->id,
+        ]);
+
+        $this->mock(InspectionService::class)
+            ->shouldReceive('complete')
+            ->andThrow(new \DomainException('Something the form did not catch.'));
+
+        $payload = $template->items->mapWithKeys(fn ($item) => [$item->id => ['result' => ChecklistResult::Ok->value]])->all();
+
+        $this->actingAs($assistant)
+            ->from(route('assistant.inspections.edit', $inspection))
+            ->patch(route('assistant.inspections.update', $inspection), ['results' => $payload])
+            ->assertRedirect(route('assistant.inspections.edit', $inspection))
+            ->assertSessionHas('error', 'Something the form did not catch.');
+    }
+
     public function test_an_unfinished_inspection_sends_its_owner_back_to_the_form(): void
     {
         /*

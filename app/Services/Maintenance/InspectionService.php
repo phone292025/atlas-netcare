@@ -129,6 +129,33 @@ class InspectionService
                 );
             }
 
+            /*
+             * EVERY ITEM ANSWERED, enforced here and not only in the form.
+             *
+             * deriveOutcome() looks for failures among the answers it has. An
+             * item with no answer is not a failure, so a checklist with one
+             * question answered and twelve skipped derived as Pass and stamped
+             * the machine inspected: a machine certified working on questions
+             * nobody asked, feeding M7's risk score. InspectionRequest has
+             * refused that since M3 and its docblock calls it "the failure
+             * mode that matters here" — but the rule lived only in the form,
+             * so this method, called directly, accepted 1 of 13. Found by
+             * driving the service against the live database.
+             *
+             * Checked after saving, against what the inspection now holds, so
+             * a resubmission that corrects answers is judged on the whole set.
+             * Throwing inside this transaction rolls back the answers just
+             * written, so a refused inspection is left exactly as it was.
+             */
+            $unanswered = $itemIds->diff($inspection->results()->pluck('checklist_item_id'));
+
+            if ($unanswered->isNotEmpty()) {
+                throw new DomainException(
+                    'Answer every item before submitting: '.$unanswered->count()
+                    .' of '.$itemIds->count().' still have no answer.'
+                );
+            }
+
             $inspection->load('results.item');
 
             $inspection->forceFill([

@@ -170,6 +170,25 @@ class TicketService
             );
         }
 
+        /*
+         * NO SILENT CLOSURES, enforced here rather than only in the form.
+         *
+         * A ticket that went away with nobody writing down what was done
+         * teaches nobody anything, and M7 learns fault patterns from these
+         * notes. The rule used to live only in TransitionTicketRequest, so the
+         * screen enforced it and this method — the one place the state machine
+         * is meant to live — did not: called directly with no notes, it
+         * resolved the ticket and stored null. Found by driving the service
+         * against the live database. Any future caller, a command or an API,
+         * would have inherited the gap.
+         *
+         * The form still validates too, so a person gets the message against
+         * the field rather than as a flash.
+         */
+        if ($to === TicketStatus::Resolved && blank($extra['resolution_notes'] ?? null)) {
+            throw new DomainException('Say what you did to fix it before resolving.');
+        }
+
         return DB::transaction(function () use ($ticket, $from, $to, $actor, $extra) {
             $changes = ['status' => $to];
 
@@ -264,11 +283,17 @@ class TicketService
             ->get();
 
         foreach ($breaching as $ticket) {
+            // An absolute campus time. The message is saved and read later,
+            // and "due 3 hours ago" frozen at raise time was still saying so
+            // days afterwards. The bell already shows how long ago the alarm
+            // itself fired, computed fresh each time.
+            $due = $ticket->due_at?->campus()->format('j M Y, H:i') ?? 'with no target';
+
             $alarms->raiseForRole(
                 AlarmType::SlaBreach,
                 UserRole::Engineer,
                 "{$ticket->ticket_number} is past its target",
-                "{$ticket->title} — {$ticket->priority->label()}, due {$ticket->due_at?->diffForHumans()}.",
+                "{$ticket->title} — {$ticket->priority->label()}, due {$due}.",
                 related: $ticket,
             );
         }
