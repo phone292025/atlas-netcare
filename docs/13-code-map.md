@@ -95,7 +95,7 @@ couple of hundred lines is one that has started deciding things.
 | `Admin/UserController.php` | Account management. The only route into the system for a new user, since | 142 |
 | `Api/DashboardDataController.php` | The endpoint the dashboard polls (FR-302) | 29 |
 | `Assistant/AccessPointStatusController.php` | AP status, read-only, for an assistant on a lab round (FR-209) | 27 |
-| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 193 |
+| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 201 |
 | `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) | 117 |
 | `Assistant/TicketController.php` | An assistant raising and following their own tickets (FR-206, FR-207, | 236 |
 | `Auth/AuthenticatedSessionController.php` | Display the login view | 47 |
@@ -181,7 +181,7 @@ Every rule in the system. If code decides something, it belongs here.
 | File | What it does | Lines |
 |---|---|---|
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates | 155 |
-| `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection | 180 |
+| `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection | 207 |
 | `Reports/ReportingService.php` | The five operational reports (FR-410) | 457 |
 | `Risk/RiskScoringService.php` | The predictive part of the project | 390 |
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) | 152 |
@@ -192,7 +192,7 @@ Every rule in the system. If code decides something, it belongs here.
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 70 |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard | 383 |
 | `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 58 |
-| `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle | 408 |
+| `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle | 433 |
 <!-- /code-map -->
 
 `TelemetrySource` is the only abstraction in the project and it earns its
@@ -345,7 +345,7 @@ and why each runs when it does.
 | `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 256 |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` | 331 |
 | `CheckSchema.php` | Audit the LIVE database for traps the test suite cannot see | 195 |
-| `CollectTelemetry.php` | Take one reading from every access point and store it | 139 |
+| `CollectTelemetry.php` | Take one reading from every access point and store it | 145 |
 | `DispatchAlarms.php` | Send every alarm that has come due | 48 |
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) | 58 |
 | `MailTest.php` | Prove that mail actually leaves this machine | 148 |
@@ -601,7 +601,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LocationManagementTest.php` | M2, locations | 168 |
 | `Feature/Admin/UserManagementTest.php` | M1, account management | 537 |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a | 229 |
-| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 512 |
+| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 572 |
 | `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 | 416 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ | 54 |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them | 243 |
@@ -612,7 +612,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Auth/ResetWithoutMailTest.php` | Resetting a password on a machine that cannot send mail | 199 |
 | `Feature/AuthFormMigrationTest.php` | The authentication and profile screens were migrated off Breeze's form | 103 |
 | `Feature/BuildCodeMapTest.php` | `atlas:code-map` keeps docs/13-code-map.md true | 170 |
-| `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the | 261 |
+| `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the | 341 |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant | 132 |
 | `Feature/ComponentLibraryTest.php` | The Sprint 0 component library, Stage 3b | 292 |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it | 191 |
@@ -644,7 +644,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it | 244 |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory | 234 |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render | 451 |
-| `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA | 493 |
+| `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA | 530 |
 | `TestCase.php` | _no summary in the file_ | 10 |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file | 136 |
 | `Unit/Enums/EnumContractTest.php` | Contract tests every enum in the system must satisfy | 140 |
