@@ -58,6 +58,25 @@ class ShiftCalendarTest extends TestCase
         return Shift::factory()->create(array_merge($defaults, $overrides));
     }
 
+    /**
+     * A date the subscription feed will include.
+     *
+     * The feed returns shifts from two weeks back to six months ahead, measured
+     * from TODAY. The shared fixture date above is fixed, which is right for the
+     * tests that assert an exact DTSTART string and wrong for anything that goes
+     * through the feed.
+     *
+     * It drifted out of the window on 16 September 2026, with no code changed.
+     * Two feed tests went red, and a third — the one checking that another
+     * assistant's shifts never reach your calendar — stayed GREEN while checking
+     * nothing, because an empty feed trivially does not contain their shift.
+     * A privacy guard that passes on an empty result is not a guard.
+     */
+    private function inFeedWindow(int $daysAhead = 1): string
+    {
+        return today()->addDays($daysAhead)->toDateString();
+    }
+
     // ------------------------------------------------------- the file itself
 
     public function test_the_file_is_a_valid_calendar_envelope(): void
@@ -245,7 +264,7 @@ class ShiftCalendarTest extends TestCase
          * to work while signed out.
          */
         $user = $this->assistant();
-        $this->shiftFor($user);
+        $this->shiftFor($user, ['shift_date' => $this->inFeedWindow()]);
 
         $this->actingAs($user)->post(route('assistant.shifts.calendar.link'))->assertRedirect();
 
@@ -294,13 +313,17 @@ class ShiftCalendarTest extends TestCase
         $mine = $this->assistant();
         $theirs = $this->assistant();
 
-        $this->shiftFor($mine);
-        $otherShift = $this->shiftFor($theirs, ['shift_date' => '2026-09-02']);
+        $myShift = $this->shiftFor($mine, ['shift_date' => $this->inFeedWindow()]);
+        $otherShift = $this->shiftFor($theirs, ['shift_date' => $this->inFeedWindow(2)]);
 
         $this->actingAs($mine)->post(route('assistant.shifts.calendar.link'));
 
+        // Mine must be there FIRST. Without it an empty feed passes the
+        // assertion below trivially, which is exactly how this test stayed
+        // green for three days while checking nothing.
         $this->get(route('shifts.calendar.feed', $mine->fresh()->calendar_token))
             ->assertOk()
+            ->assertSee('shift-'.$myShift->id.'@', false)
             ->assertDontSee('shift-'.$otherShift->id.'@', false);
     }
 
@@ -405,7 +428,7 @@ class ShiftCalendarTest extends TestCase
         // Hiding the control must not break anybody already subscribed, and
         // the capability has to survive for a deployment that can use it.
         $user = $this->assistant();
-        $this->shiftFor($user);
+        $this->shiftFor($user, ['shift_date' => $this->inFeedWindow()]);
         $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
 
         $this->get(route('shifts.calendar.feed', $user->fresh()->calendar_token))

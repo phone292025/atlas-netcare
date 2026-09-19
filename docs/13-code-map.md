@@ -634,7 +634,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on | 92 |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 381 |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it | 242 |
-| `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar | 415 |
+| `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar | 438 |
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment | 251 |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift | 407 |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) | 245 |
