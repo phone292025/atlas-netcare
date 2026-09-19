@@ -61,7 +61,7 @@ Every URL the system answers.
 | File | What it does | Lines |
 |---|---|---|
 | `auth.php` | _no summary in the file_ | 86 |
-| `console.php` | _no summary in the file_ | 91 |
+| `console.php` | _no summary in the file_ | 98 |
 | `web.php` | _no summary in the file_ | 356 |
 <!-- /code-map -->
 
@@ -90,13 +90,13 @@ couple of hundred lines is one that has started deciding things.
 | `Admin/ChecklistTemplateController.php` | Checklist templates (FR-406, Q2) | 127 |
 | `Admin/LabPcController.php` | Lab workstation inventory (FR-404) | 165 |
 | `Admin/LocationController.php` | Campus places that house assets (FR-403) | 113 |
-| `Admin/RosterController.php` | The week view, and the button that fills it (FR-408) | 118 |
+| `Admin/RosterController.php` | The week view, and the button that fills it (FR-408) | 120 |
 | `Admin/ShiftTemplateController.php` | Weekly shift patterns (FR-407) | 102 |
 | `Admin/UserController.php` | Account management. The only route into the system for a new user, since | 142 |
 | `Api/DashboardDataController.php` | The endpoint the dashboard polls (FR-302) | 29 |
 | `Assistant/AccessPointStatusController.php` | AP status, read-only, for an assistant on a lab round (FR-209) | 27 |
-| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 189 |
-| `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) | 115 |
+| `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) | 193 |
+| `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) | 117 |
 | `Assistant/TicketController.php` | An assistant raising and following their own tickets (FR-206, FR-207, | 236 |
 | `Auth/AuthenticatedSessionController.php` | Display the login view | 47 |
 | `Auth/NewPasswordController.php` | Display the password reset view | 106 |
@@ -107,11 +107,11 @@ couple of hundred lines is one that has started deciding things.
 | `Engineer/DashboardController.php` | The access point health dashboard (FR-301, FR-304) | 57 |
 | `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) | 178 |
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along | 164 |
-| `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) | 111 |
+| `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) | 125 |
 | `NotificationController.php` | The notification bell and its list (FR-212) | 70 |
 | `ProfileController.php` | Display the user's profile form | 38 |
 | `ReportController.php` | Operational reports and descriptive statistics (FR-410) | 44 |
-| `ShiftCalendarController.php` | Handing shifts to the assistant's own phone calendar | 123 |
+| `ShiftCalendarController.php` | Handing shifts to the assistant's own phone calendar | 124 |
 | `TicketCommentController.php` | Comments on a ticket (FR-308) | 40 |
 <!-- /code-map -->
 
@@ -186,7 +186,7 @@ Every rule in the system. If code decides something, it belongs here.
 | `Risk/RiskScoringService.php` | The predictive part of the project | 390 |
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) | 152 |
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) | 268 |
-| `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it | 391 |
+| `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it | 401 |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database | 73 |
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 219 |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 70 |
@@ -224,7 +224,7 @@ read better on the model than in a service.
 | `LabPc.php` | A university-owned lab workstation | 154 |
 | `Location.php` | A campus place that houses assets: a lab, the library, the cafeteria | 57 |
 | `RiskAssessment.php` | One predictive risk score for one asset, at one moment | 104 |
-| `Shift.php` | One assistant, on one date, in one place | 178 |
+| `Shift.php` | One assistant, on one date, in one place | 186 |
 | `ShiftTemplate.php` | A recurring weekly slot (Q4) | 78 |
 | `TelemetryHourly.php` | One hour of readings for one access point, rolled up | 56 |
 | `TelemetryReading.php` | One measurement of one access point | 77 |
@@ -294,6 +294,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 <!-- code-map:app/Support/ -->
 | File | What it does | Lines |
 |---|---|---|
+| `CampusClock.php` | The campus wall clock, and the one place the application asks what day it is | 84 |
 | `FormField.php` | Shared derivations for form controls | 45 |
 | `Tone.php` | The single source of truth for what a tone looks like | 185 |
 <!-- /code-map -->
@@ -319,7 +320,7 @@ Small, and more of the system passes through it than its size suggests.
 <!-- code-map:app/Providers/ -->
 | File | What it does | Lines |
 |---|---|---|
-| `AppServiceProvider.php` | Models whose every write is recorded in audit_logs | 167 |
+| `AppServiceProvider.php` | Models whose every write is recorded in audit_logs | 192 |
 <!-- /code-map -->
 
 Three things happen here. `AUDITED` lists every model the audit observer
@@ -341,12 +342,12 @@ and why each runs when it does.
 | File | What it does | Lines |
 |---|---|---|
 | `AggregateTelemetry.php` | Roll raw readings up into hourly buckets | 121 |
-| `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 186 |
+| `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 256 |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` | 331 |
 | `CheckSchema.php` | Audit the LIVE database for traps the test suite cannot see | 195 |
 | `CollectTelemetry.php` | Take one reading from every access point and store it | 139 |
 | `DispatchAlarms.php` | Send every alarm that has come due | 48 |
-| `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) | 56 |
+| `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) | 58 |
 | `MailTest.php` | Prove that mail actually leaves this machine | 148 |
 | `PruneTelemetry.php` | Delete telemetry older than the retention window (Q10) | 57 |
 | `PurgeDemoData.php` | Remove every demonstration row, leaving a system somebody could deploy | 311 |
@@ -433,7 +434,7 @@ for tests.
 | `LabPcFactory.php` | Lab workstations for tests and for M2's demo data | 53 |
 | `LocationFactory.php` | Locations are reference data, so the real ones are written out explicitly in | 30 |
 | `RiskAssessmentFactory.php` | A stored risk score | 92 |
-| `ShiftFactory.php` | Defaults to a shift scheduled for today that has not been started | 91 |
+| `ShiftFactory.php` | Defaults to a shift scheduled for today that has not been started | 96 |
 | `ShiftTemplateFactory.php` | _no summary in the file_ | 43 |
 | `TelemetryHourlyFactory.php` | _no summary in the file_ | 31 |
 | `TelemetryReadingFactory.php` | Over the latency threshold | 59 |
@@ -600,7 +601,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LocationManagementTest.php` | M2, locations | 168 |
 | `Feature/Admin/UserManagementTest.php` | M1, account management | 537 |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a | 229 |
-| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 506 |
+| `Feature/Assistant/InspectionTest.php` | M3, completing an inspection | 512 |
 | `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 | 416 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ | 54 |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them | 243 |
@@ -611,12 +612,13 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Auth/ResetWithoutMailTest.php` | Resetting a password on a machine that cannot send mail | 199 |
 | `Feature/AuthFormMigrationTest.php` | The authentication and profile screens were migrated off Breeze's form | 103 |
 | `Feature/BuildCodeMapTest.php` | `atlas:code-map` keeps docs/13-code-map.md true | 170 |
+| `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the | 261 |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant | 132 |
 | `Feature/ComponentLibraryTest.php` | The Sprint 0 component library, Stage 3b | 292 |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it | 191 |
 | `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role | 257 |
 | `Feature/DevGalleryTest.php` | The component gallery is a development tool, not part of the system | 39 |
-| `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline | 201 |
+| `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline | 210 |
 | `Feature/EnsureUserHasRoleTest.php` | Area-level authorisation is the boundary between the three roles, so it is | 200 |
 | `Feature/ErrorPagesTest.php` | The error pages are screens too | 70 |
 | `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it | 101 |
@@ -638,7 +640,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment | 251 |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift | 407 |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) | 245 |
-| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 763 |
+| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 830 |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it | 244 |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory | 234 |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render | 451 |
