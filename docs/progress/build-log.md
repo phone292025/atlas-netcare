@@ -301,7 +301,7 @@ Oldest first — append new entries at the end. One entry per development sessio
 **Done**
 - Documentation committed (`4e86655`) — 35 files, `docs/` is now under version control
 - Sprint 0 stance on Q3 and Q6 recorded in the decision log (`7e0b1a7`) without flipping either question to `Decided`, since the team has not ratified them
-- `.gitignore` (Laravel-aware) and `.gitattributes` added (`c91325f`)
+- `.gitignore` (Laravel-aware) and `.gitattributes` added (`d07f19a`)
 - Branch renamed `master` → `main` to match the docs
 - This build log created and wired into `docs/INDEX.md`
 
@@ -425,7 +425,7 @@ Three separate `sed`/`perl` edits in this project have silently failed on backsl
 A follow-up review found seven issues. All were verified against the code before acting; all seven were real.
 
 **Corruption — fixed**
-- `docs/INDEX.md` had been broken since Stage 0 (`c91325f`). A botched `perl` edit left three stray table rows above the file and glued `# Documentation Index` onto the end of line 3, so the H1 rendered as body text. This is the first file every agent and teammate is told to open, and it sat broken through two stages without anyone noticing. Repaired.
+- `docs/INDEX.md` had been broken since Stage 0 (`d07f19a`). A botched `perl` edit left three stray table rows above the file and glued `# Documentation Index` onto the end of line 3, so the H1 rendered as body text. This is the first file every agent and teammate is told to open, and it sat broken through two stages without anyone noticing. Repaired.
 
 **Overclaiming — corrected**
 - The middleware comment and commit message read as though FR-106 was satisfied. It is not: `LoginRequest::authenticate()` has **no** `is_active` check, and **no route currently uses the `role` middleware**, so a deactivated user can still sign in and reach everything that exists today. The guard fix was real; the traceability claim was premature. Comment rewritten, and FR-106 marked **partially built** in `01-requirements.md`.
