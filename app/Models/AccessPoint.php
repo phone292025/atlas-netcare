@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ApStatus;
 use App\Enums\RiskBand;
+use App\Enums\SimulationScenario;
 use Database\Factories\AccessPointFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,7 +35,8 @@ class AccessPoint extends Model
     /**
      * `risk_score`, `risk_band`, `last_seen_at` and `is_demo` are written by
      * the system — the telemetry collector and M7's scoring run — never by a
-     * form.
+     * form. So are `simulation_scenario` and `simulation_started_at`, which
+     * only SimulationService sets.
      *
      * @var list<string>
      */
@@ -54,6 +56,8 @@ class AccessPoint extends Model
     {
         return [
             'status' => ApStatus::class,
+            'simulation_scenario' => SimulationScenario::class,
+            'simulation_started_at' => 'datetime',
             'risk_band' => RiskBand::class,
             'installed_at' => 'date',
             'last_seen_at' => 'datetime',

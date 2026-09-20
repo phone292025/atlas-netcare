@@ -44,6 +44,13 @@
         'chevron-up' => '<path d="M6 15l6-6 6 6"/>',
         'sort' => '<path d="M8 9l-3-3-3 3M5 6v12"/><path d="M16 15l3 3 3-3M19 18V6"/>',
         'plus' => '<path d="M12 5v14M5 12h14"/>',
+        // The Network monitor: its sidebar entry, its controls, and the
+        // scenario badge on an access point the simulator is driving.
+        'broadcast' => '<circle cx="12" cy="12" r="1.5"/><path d="M8.6 8.6a4.8 4.8 0 0 0 0 6.8M15.4 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+        'flask' => '<path d="M9 3h6M10 3v6.5L4.6 18.4A1.7 1.7 0 0 0 6.1 21h11.8a1.7 1.7 0 0 0 1.5-2.6L14 9.5V3"/><path d="M7.2 15h9.6"/>',
+        'refresh' => '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/>',
+        'search' => '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/>',
+        'arrow-up-right' => '<path d="M7 17L17 7M8.5 7H17v8.5"/>',
         default => '<circle cx="12" cy="12" r="9"/><path d="M12 16v.01M12 13c0-2 2-2 2-3.5A2 2 0 0 0 10 9"/>',
     };
 @endphp

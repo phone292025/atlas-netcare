@@ -41,11 +41,13 @@ class EveryScreenRendersTest extends TestCase
             'my tickets' => ['assistant.tickets.index', 'assistant'],
             'raise a ticket' => ['assistant.tickets.create', 'assistant'],
             'ap status' => ['assistant.aps.index', 'assistant'],
+            'network monitor, assistant' => ['assistant.monitor.index', 'assistant'],
             'notifications' => ['notifications.index', 'assistant'],
             'profile' => ['profile.edit', 'assistant'],
 
             // Engineer
             'engineer dashboard' => ['engineer.dashboard', 'engineer'],
+            'network monitor, engineer' => ['engineer.monitor.index', 'engineer'],
             'access points' => ['engineer.aps.index', 'engineer'],
             'traffic logs' => ['engineer.traffic.index', 'engineer'],
             'ticket queue' => ['engineer.tickets.index', 'engineer'],
@@ -53,6 +55,7 @@ class EveryScreenRendersTest extends TestCase
 
             // Admin
             'users' => ['admin.users.index', 'admin'],
+            'network monitor, admin' => ['admin.monitor.index', 'admin'],
             'new user' => ['admin.users.create', 'admin'],
             'locations' => ['admin.locations.index', 'admin'],
             'lab pcs' => ['admin.lab-pcs.index', 'admin'],

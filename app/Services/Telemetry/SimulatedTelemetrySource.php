@@ -2,7 +2,9 @@
 
 namespace App\Services\Telemetry;
 
+use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
+use App\Support\CampusClock;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -42,14 +44,25 @@ class SimulatedTelemetrySource implements TelemetrySource
     }
 
     /**
-     * Everything not under maintenance. The simulator can invent a reading for
-     * any access point, so it polls every one the system is watching.
+     * Everything not under maintenance, except an access point whose feed is
+     * simulated as interrupted.
+     *
+     * The simulator can invent a reading for any access point, so it polls
+     * every one the system is watching. A FEED INTERRUPTION is the one case it
+     * deliberately does not: the path to the device is what failed, so nobody
+     * is listening. Leaving it out here is what stops markStaleOffline()
+     * turning "we cannot see it" into "it is down" and raising a ticket about
+     * hardware that may be fine. The Network monitor shows it as unknown.
      *
      * @return Builder<AccessPoint>
      */
     public function pollable(): Builder
     {
-        return AccessPoint::query()->collectable();
+        return AccessPoint::query()
+            ->collectable()
+            ->where(fn (Builder $query) => $query
+                ->whereNull('simulation_scenario')
+                ->orWhere('simulation_scenario', '!=', SimulationScenario::FeedInterruption->value));
     }
 
     /** @return Collection<int, ReadingData> */
@@ -69,12 +82,16 @@ class SimulatedTelemetrySource implements TelemetrySource
      */
     public function reading(AccessPoint $ap, CarbonInterface $at): ReadingData
     {
-        if ($this->isOutage($ap, $at)) {
+        $scenario = $this->scenarioAt($ap, $at);
+
+        if ($scenario === SimulationScenario::Outage || $this->isOutage($ap, $at)) {
             return ReadingData::unreachable($ap, $at, $this->sourceLabel());
         }
 
         $capacity = max(1, (int) $ap->client_capacity);
-        $clients = $this->clientCount($ap, $at, $capacity);
+        $clients = $scenario === SimulationScenario::Congestion
+            ? $this->congestedClientCount($ap, $at, $capacity)
+            : $this->clientCount($ap, $at, $capacity);
         $saturation = min(1.2, $clients / $capacity);
 
         return new ReadingData(
@@ -83,7 +100,10 @@ class SimulatedTelemetrySource implements TelemetrySource
             latencyMs: $this->latency($ap, $saturation),
             clientCount: $clients,
             packetLossPct: $this->packetLoss($saturation),
-            channelUtilPct: round(min(99.0, $saturation * 78 + $this->jitter($ap, $at, 6)), 2),
+            // Floored at zero: the jitter is ±6 points, and without the floor a
+            // quiet overnight access point reported negative utilisation — in
+            // about one reading in seven before 2026-09-19.
+            channelUtilPct: round(max(0.0, min(99.0, $saturation * 78 + $this->jitter($ap, $at, 6))), 2),
             throughputMbps: $this->throughput($clients, $saturation),
             source: $this->sourceLabel(),
         );
@@ -108,15 +128,53 @@ class SimulatedTelemetrySource implements TelemetrySource
     }
 
     /**
+     * The scenario forced on this access point at this moment, if any.
+     *
+     * Only from the moment it was set. The backfill walks this same model
+     * back through the past, and a congestion started a minute ago must not
+     * rewrite two weeks of history as congested.
+     */
+    private function scenarioAt(AccessPoint $ap, CarbonInterface $at): ?SimulationScenario
+    {
+        $scenario = $ap->simulation_scenario;
+
+        if ($scenario === null || $ap->simulation_started_at === null) {
+            return null;
+        }
+
+        return $at->greaterThanOrEqualTo($ap->simulation_started_at) ? $scenario : null;
+    }
+
+    /**
+     * Clients during a simulated congestion: over capacity, whatever the hour.
+     *
+     * Eight to twenty-two per cent over capacity, fixed per access point, so
+     * latency and loss rise through the same curves as a real overload. The access point is then classified by the ordinary rule —
+     * Degraded after `consecutive_breach` readings in a row — not forced.
+     */
+    private function congestedClientCount(AccessPoint $ap, CarbonInterface $at, int $capacity): int
+    {
+        $overload = 1.08 + $this->personality($ap, 'overload', 0.0, 0.14);
+
+        return (int) max(1, round($capacity * $overload + $this->jitter($ap, $at, 2)));
+    }
+
+    /**
      * Campus rhythm, 0..1.
      *
      * Two humps rather than one: a late-morning peak and a mid-afternoon peak
      * with a lunch dip between them. A single smooth bell would be visibly
      * synthetic on a 24-hour chart.
+     *
+     * ON THE CAMPUS CLOCK. The application runs in UTC, and reading `$at->hour`
+     * straight off a UTC moment put the campus's busiest hours at 7 to 11 pm
+     * local time — invisible until a chart labelled its axis in campus time,
+     * which every chart here now does.
      */
     private function dailyCurve(CarbonInterface $at): float
     {
-        $hour = $at->hour + $at->minute / 60;
+        $local = $at->copy()->setTimezone(CampusClock::timezone());
+        $hour = $local->hour + $local->minute / 60;
 
         if ($hour < 6.5 || $hour > 22) {
             // Overnight: a handful of devices left connected, not zero.
@@ -130,10 +188,10 @@ class SimulatedTelemetrySource implements TelemetrySource
         return min(1.0, max(0.08, ($morning + 0.92 * $afternoon) * $lunchDip));
     }
 
-    /** Weekends are much quieter, but the library is never empty. */
+    /** Weekends are much quieter, but the library is never empty. On campus time, like the daily curve. */
     private function weekFactor(CarbonInterface $at): float
     {
-        return $at->isWeekend() ? 0.28 : 1.0;
+        return $at->copy()->setTimezone(CampusClock::timezone())->isWeekend() ? 0.28 : 1.0;
     }
 
     /**

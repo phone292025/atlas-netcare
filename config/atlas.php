@@ -431,21 +431,24 @@ return [
     'navigation' => [
 
         'assistant' => [
-            ['label' => 'My Shift',    'route' => 'assistant.shifts.today',      'icon' => 'calendar'],
-            ['label' => 'Inspections', 'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
-            ['label' => 'My Tickets',  'route' => 'assistant.tickets.index',     'icon' => 'ticket'],
-            ['label' => 'AP Status',   'route' => 'assistant.aps.index',         'icon' => 'wifi'],
+            ['label' => 'My Shift',        'route' => 'assistant.shifts.today',      'icon' => 'calendar'],
+            ['label' => 'Network Monitor', 'route' => 'assistant.monitor.index',     'icon' => 'broadcast'],
+            ['label' => 'Inspections',     'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
+            ['label' => 'My Tickets',      'route' => 'assistant.tickets.index',     'icon' => 'ticket'],
+            ['label' => 'AP Status',       'route' => 'assistant.aps.index',         'icon' => 'wifi'],
         ],
 
         'engineer' => [
-            ['label' => 'Dashboard',     'route' => 'engineer.dashboard',     'icon' => 'gauge'],
-            ['label' => 'Access Points', 'route' => 'engineer.aps.index',     'icon' => 'wifi'],
-            ['label' => 'Traffic Logs',  'route' => 'engineer.traffic.index', 'icon' => 'chart'],
-            ['label' => 'Ticket Queue',  'route' => 'engineer.tickets.index', 'icon' => 'ticket'],
-            ['label' => 'Maintenance',   'route' => 'engineer.risk.index',    'icon' => 'wrench'],
+            ['label' => 'Dashboard',       'route' => 'engineer.dashboard',     'icon' => 'gauge'],
+            ['label' => 'Network Monitor', 'route' => 'engineer.monitor.index', 'icon' => 'broadcast'],
+            ['label' => 'Access Points',   'route' => 'engineer.aps.index',     'icon' => 'wifi'],
+            ['label' => 'Traffic Logs',    'route' => 'engineer.traffic.index', 'icon' => 'chart'],
+            ['label' => 'Ticket Queue',    'route' => 'engineer.tickets.index', 'icon' => 'ticket'],
+            ['label' => 'Maintenance',     'route' => 'engineer.risk.index',    'icon' => 'wrench'],
         ],
 
         'admin' => [
+            ['label' => 'Network Monitor', 'route' => 'admin.monitor.index',         'icon' => 'broadcast'],
             ['label' => 'Users',           'route' => 'admin.users.index',           'icon' => 'users'],
             ['label' => 'Locations',       'route' => 'admin.locations.index',       'icon' => 'building'],
             ['label' => 'Lab PCs',         'route' => 'admin.lab-pcs.index',         'icon' => 'desktop'],

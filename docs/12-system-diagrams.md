@@ -1,6 +1,6 @@
 # System Diagrams
 
-> **Last updated:** 2026-09-08 · **For report sections 8, 9, 10 and 13.**
+> **Last updated:** 2026-09-20 · **For report sections 8, 9, 10 and 13.**
 >
 > **These four are the whole-system diagrams, worth 15 marks between them.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 >
@@ -397,13 +397,16 @@ flowchart LR
     ASSIST --> B2["Inspections<br/><i>round, checklist form</i>"]
     ASSIST --> B3["My Tickets<br/><i>raise, track</i>"]
     ASSIST --> B4["AP Status<br/><i>read-only</i>"]
+    ASSIST --> B5["Network Monitor<br/><i>read-only, no controls</i>"]
 
     ENG --> C1["Dashboard<br/><i>AP health, polling</i>"]
     ENG --> C2["Access Points<br/><i>list, detail chart</i>"]
     ENG --> C3["Traffic Logs"]
     ENG --> C4["Ticket Queue<br/><i>transition, assign</i>"]
     ENG --> C5["Maintenance Priority<br/><i>ranking, risk detail</i>"]
+    ENG --> C6["Network Monitor<br/><i>sample, simulation</i>"]
 
+    ADM --> D0["Network Monitor<br/><i>sample, simulation</i>"]
     ADM --> D1["Users and Roles"]
     ADM --> D2["Locations"]
     ADM --> D3["Lab PCs"]

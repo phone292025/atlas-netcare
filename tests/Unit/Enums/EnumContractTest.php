@@ -73,6 +73,7 @@ class EnumContractTest extends TestCase
             'UserRole', 'TicketStatus', 'TicketPriority', 'TicketCategory',
             'DeviceStatus', 'ApStatus', 'ChecklistResult', 'ChecklistCategory',
             'InspectionOutcome', 'ShiftStatus', 'AlarmType', 'RiskBand',
+            'SimulationScenario',
         ];
 
         $discovered = array_keys(self::allEnums());

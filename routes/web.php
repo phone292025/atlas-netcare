@@ -18,6 +18,7 @@ use App\Http\Controllers\Engineer\DashboardController;
 use App\Http\Controllers\Engineer\RiskController;
 use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
+use App\Http\Controllers\NetworkMonitorController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -271,6 +272,39 @@ Route::middleware('auth')->group(function () {
     | publish it.
     */
     Route::get('api/dashboard', DashboardDataController::class)->name('api.dashboard');
+
+    /*
+    | M5 — the Network monitor (FR-312 to FR-314).
+    |
+    | One page, three names. The sidebar's navigation names must carry the
+    | role (docs/06-ui-conventions.md, AtlasConfigTest), so each role reaches
+    | the same controller through its own prefix. An assistant gets the page
+    | without the controls.
+    |
+    | Taking a sample and forcing a scenario WRITE telemetry and can raise
+    | tickets, so they are engineer and administrator only, and
+    | SimulationService refuses both unless the simulated driver is active.
+    */
+    Route::middleware('role:engineer,admin')->prefix('engineer')->name('engineer.')->group(function () {
+        Route::get('monitor', [NetworkMonitorController::class, 'index'])->name('monitor.index');
+    });
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('monitor', [NetworkMonitorController::class, 'index'])->name('monitor.index');
+    });
+    Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
+        Route::get('monitor', [NetworkMonitorController::class, 'index'])->name('monitor.index');
+    });
+
+    Route::middleware('role:admin,engineer,assistant')->group(function () {
+        Route::get('api/monitor', [NetworkMonitorController::class, 'data'])->name('api.monitor');
+        Route::get('api/monitor/aps/{accessPoint}', [NetworkMonitorController::class, 'show'])
+            ->name('api.monitor.aps.show');
+    });
+
+    Route::middleware('role:admin,engineer')->prefix('monitor')->name('monitor.')->group(function () {
+        Route::post('sample', [NetworkMonitorController::class, 'sample'])->name('sample');
+        Route::post('simulation', [NetworkMonitorController::class, 'simulate'])->name('simulate');
+    });
 
     /*
     | Both shared endpoints are guarded by TicketPolicy, not by a role.

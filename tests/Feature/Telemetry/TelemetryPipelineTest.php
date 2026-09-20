@@ -14,6 +14,7 @@ use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetryService;
 use App\Services\Telemetry\TelemetrySource;
+use App\Support\CampusClock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -211,7 +212,14 @@ class TelemetryPipelineTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
         $source = new SimulatedTelemetrySource;
 
-        $tuesday = now()->next('Tuesday');
+        /*
+         * Midday and 3 am on the CAMPUS clock, handed over as UTC moments —
+         * which is what the collector passes in production, since the
+         * application runs in UTC. This used to build the times in UTC, so it
+         * checked 11:00 UTC against 03:00 UTC: 7 pm against 11 am on campus.
+         * It passed while the simulator put the busiest hours in the evening.
+         */
+        $tuesday = CampusClock::now()->next('Tuesday');
 
         /*
          * Sampled across the hour, skipping outages. A single reading at one
@@ -222,7 +230,7 @@ class TelemetryPipelineTest extends TestCase
          * which is why that bet lands differently on MariaDB than on SQLite.
          */
         $meanClientsAt = fn (int $hour) => collect(range(0, 11))
-            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 5)))
+            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 5)->utc()))
             ->reject(fn ($reading) => $reading->unreachable)
             ->avg(fn ($reading) => $reading->clientCount);
 
@@ -259,12 +267,14 @@ class TelemetryPipelineTest extends TestCase
          */
         $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
         $source = new SimulatedTelemetrySource;
-        $tuesday = now()->next('Tuesday');
+        // Campus hours, handed over as UTC moments — see
+        // test_the_simulator_is_busier_at_midday_than_at_night.
+        $tuesday = CampusClock::now()->next('Tuesday');
 
         // Spread across the hour: outages are sticky for a 20-minute window,
         // so sampling one instant fifteen times would lose all fifteen.
         $meanLatencyAt = fn (int $hour) => collect(range(0, 14))
-            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 4))->latencyMs)
+            ->map(fn (int $i) => $source->reading($ap, $tuesday->copy()->setTime($hour, $i * 4)->utc())->latencyMs)
             ->filter()
             ->avg();
 

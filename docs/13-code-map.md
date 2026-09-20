@@ -1,6 +1,6 @@
 # Code map
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-20
 
 Every file in the project, what it does, and how long it is. Written for
 somebody who has just cloned the repository and wants to know where anything
@@ -62,7 +62,7 @@ Every URL the system answers.
 |---|---|---|
 | `auth.php` | _no summary in the file_ | 86 |
 | `console.php` | _no summary in the file_ | 98 |
-| `web.php` | _no summary in the file_ | 356 |
+| `web.php` | _no summary in the file_ | 390 |
 <!-- /code-map -->
 
 `web.php` is grouped by role, so an assistant's URLs sit under
@@ -108,6 +108,7 @@ couple of hundred lines is one that has started deciding things.
 | `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) | 178 |
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along | 164 |
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) | 125 |
+| `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): every access point on one screen, | 135 |
 | `NotificationController.php` | The notification bell and its list (FR-212) | 70 |
 | `ProfileController.php` | Display the user's profile form | 38 |
 | `ReportController.php` | Operational reports and descriptive statistics (FR-410) | 44 |
@@ -159,6 +160,7 @@ authorise it through a policy.
 | `Assistant/InspectionRequest.php` | A completed inspection: one answer per checklist item | 101 |
 | `Auth/LoginRequest.php` | Determine if the user is authorized to make this request | 106 |
 | `ProfileUpdateRequest.php` | Get the validation rules that apply to the request | 31 |
+| `Telemetry/RunSimulationRequest.php` | A scenario for the Network monitor's simulation controls | 55 |
 | `Tickets/AssignTicketRequest.php` | Handing a ticket to an engineer, or taking the name off it (FR-307) | 53 |
 | `Tickets/StoreCommentRequest.php` | A comment on a ticket (FR-308) | 28 |
 | `Tickets/StoreTicketRequest.php` | Raising a ticket | 157 |
@@ -187,9 +189,12 @@ Every rule in the system. If code decides something, it belongs here.
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) | 152 |
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) | 268 |
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it | 401 |
+| `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and | 197 |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database | 73 |
-| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 219 |
+| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 277 |
+| `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force | 116 |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 70 |
+| `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds | 161 |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard | 383 |
 | `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 58 |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle | 433 |
@@ -214,7 +219,7 @@ read better on the model than in a service.
 <!-- code-map:app/Models/ -->
 | File | What it does | Lines |
 |---|---|---|
-| `AccessPoint.php` | A Wi-Fi access point in one of the monitored zones | 156 |
+| `AccessPoint.php` | A Wi-Fi access point in one of the monitored zones | 160 |
 | `Alarm.php` | Something one person needs to be told, at a particular time | 94 |
 | `AuditLog.php` | One recorded fact: who changed what, when, from where | 195 |
 | `ChecklistItem.php` | One question on a checklist template | 52 |
@@ -260,6 +265,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `InspectionOutcome.php` | The overall outcome of one inspection | 67 |
 | `RiskBand.php` | The band a predictive risk score falls into | 83 |
 | `ShiftStatus.php` | Where a rostered shift has got to | 58 |
+| `SimulationScenario.php` | A condition forced onto an access point by the simulated telemetry driver | 60 |
 | `TicketCategory.php` | What kind of fault a ticket describes. Used for filtering the queue and for | 32 |
 | `TicketPriority.php` | How urgent a ticket is. Drives the service level target | 62 |
 | `TicketStatus.php` | Lifecycle states of a workspace incident ticket | 62 |
@@ -345,7 +351,7 @@ and why each runs when it does.
 | `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 256 |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` | 331 |
 | `CheckSchema.php` | Audit the LIVE database for traps the test suite cannot see | 195 |
-| `CollectTelemetry.php` | Take one reading from every access point and store it | 145 |
+| `CollectTelemetry.php` | Take one reading from every access point and store it | 37 |
 | `DispatchAlarms.php` | Send every alarm that has come due | 48 |
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) | 58 |
 | `MailTest.php` | Prove that mail actually leaves this machine | 148 |
@@ -400,6 +406,7 @@ database silently.
 | `2026_08_30_052620_create_risk_assessments_table.php` | One predictive risk score for one asset, at one moment | 95 |
 | `2026_09_04_090001_add_previous_values_to_audit_logs_table.php` | Record what a value WAS, not only what it became | 40 |
 | `2026_09_08_090001_finish_converting_domain_timestamps_to_datetime.php` | Disarm the rest of the MariaDB timestamp trap, rather than leaving it loaded | 93 |
+| `2026_09_19_090001_add_simulation_scenario_to_access_points_table.php` | Which condition the simulated driver is forcing on an access point, if any | 42 |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -457,7 +464,7 @@ Laravel's, plus one of ours.
 | File | What it does | Lines |
 |---|---|---|
 | `app.php` | _no summary in the file_ | 126 |
-| `atlas.php` | _no summary in the file_ | 462 |
+| `atlas.php` | _no summary in the file_ | 465 |
 | `auth.php` | _no summary in the file_ | 117 |
 | `cache.php` | _no summary in the file_ | 117 |
 | `database.php` | _no summary in the file_ | 184 |
@@ -539,7 +546,7 @@ Blade files. Views receive data as props and never query.
 | `components/form/input.blade.php` | 56 |
 | `components/form/select.blade.php` | 106 |
 | `components/form/textarea.blade.php` | 52 |
-| `components/icon.blade.php` | 55 |
+| `components/icon.blade.php` | 62 |
 | `components/modal.blade.php` | 108 |
 | `components/page-header.blade.php` | 41 |
 | `components/pagination.blade.php` | 131 |
@@ -566,6 +573,8 @@ Blade files. Views receive data as props and never query.
 | `errors/layout.blade.php` | 54 |
 | `layouts/app.blade.php` | 172 |
 | `layouts/guest.blade.php` | 46 |
+| `monitor/index.blade.php` | 575 |
+| `monitor/partials/range.blade.php` | 10 |
 | `notifications/index.blade.php` | 43 |
 | `profile/edit.blade.php` | 22 |
 | `profile/partials/update-password-form.blade.php` | 43 |
@@ -621,7 +630,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline | 210 |
 | `Feature/EnsureUserHasRoleTest.php` | Area-level authorisation is the boundary between the three roles, so it is | 200 |
 | `Feature/ErrorPagesTest.php` | The error pages are screens too | 70 |
-| `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it | 101 |
+| `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it | 104 |
 | `Feature/ExampleTest.php` | The smallest possible check that the application boots and routes | 32 |
 | `Feature/FormComponentsTest.php` | The form controls are the most reused components in the system, every admin | 158 |
 | `Feature/FoundationSchemaTest.php` | The four foundation tables every other module has a foreign key into | 127 |
@@ -632,22 +641,23 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every teammate runs on their first | 257 |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) | 263 |
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) | 494 |
-| `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it | 246 |
+| `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it | 253 |
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on | 92 |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) | 381 |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it | 242 |
 | `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar | 438 |
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment | 251 |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift | 407 |
+| `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the | 554 |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) | 245 |
-| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 830 |
+| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens | 840 |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it | 244 |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory | 234 |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render | 451 |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA | 530 |
 | `TestCase.php` | _no summary in the file_ | 10 |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file | 136 |
-| `Unit/Enums/EnumContractTest.php` | Contract tests every enum in the system must satisfy | 140 |
+| `Unit/Enums/EnumContractTest.php` | Contract tests every enum in the system must satisfy | 141 |
 | `Unit/Enums/RiskBandTest.php` | RiskBand::fromScore() decides what a maintenance priority screen shows and | 109 |
 | `Unit/RiskScoringServiceTest.php` | The scoring maths, factor by factor | 363 |
 | `Unit/ToneSurfacesTest.php` | Stage 3c added three more surfaces to Tone: solid(), choice() and chart() | 101 |

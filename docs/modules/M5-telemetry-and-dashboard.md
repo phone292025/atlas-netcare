@@ -2,7 +2,7 @@
 
 **Track:** B · **Owner:** *unassigned* · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-19
 
 > **The hardest module, and the project's headline feature.** Give it to whoever is strongest with data. It cannot slip.
 
@@ -12,7 +12,7 @@ Ingest access point telemetry through a swappable driver, classify AP health, an
 
 ## Requirements covered
 
-FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-501, FR-502, FR-504, FR-508 · NFR-02, NFR-07
+FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-312, FR-313, FR-314, FR-501, FR-502, FR-504, FR-508 · NFR-02, NFR-07
 
 ## Tables owned
 
@@ -26,15 +26,17 @@ FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-501, FR-502, FR-504, FR-508 �
 | Interface | `TelemetrySource` |
 | Drivers | `SimulatedTelemetrySource`, `SnmpTelemetrySource` (stub) |
 | DTO | `ReadingData` |
-| Services | `TelemetryService` — store, classify, current status, history |
-| Controllers | `Engineer\DashboardController`, `Api\DashboardDataController`, `Engineer\TrafficLogController` |
+| Services | `TelemetryService` — store, classify, current status, history · `TelemetryCollector` — one collection round plus its tickets and alarms, shared by the command and the Generate sample button · `NetworkMonitorService` — the Network monitor snapshot · `SimulationService` — take a sample, force a scenario |
+| Enum | `SimulationScenario` — congestion, outage, feed interruption |
+| Controllers | `Engineer\DashboardController`, `Api\DashboardDataController`, `Engineer\TrafficLogController`, `NetworkMonitorController` |
 | Commands | `atlas:collect-telemetry`, `atlas:aggregate-telemetry`, `atlas:prune-telemetry` |
 | Components | `<x-chart>`, `<x-stat-tile>` |
 
 ## Screens
 
-Engineer: AP health dashboard (tiles + status grid, polling) · AP detail with 24h chart · traffic and congestion logs with date range
-Assistant: AP status, read-only
+Engineer: AP health dashboard (tiles + status grid, polling) · Network monitor with simulation controls · AP detail with 24h chart · traffic and congestion logs with date range
+Administrator: Network monitor with simulation controls
+Assistant: AP status, read-only · Network monitor, read-only
 
 ## Key decisions
 
@@ -44,6 +46,15 @@ Assistant: AP status, read-only
 - **Classification is a service method, not a database trigger**, and uses `consecutive_breach` so one noisy sample cannot flip an AP's state.
 - **Write the simulator properly.** Daily curve, weekday/weekend, per-AP baselines, occasional offline events, and latency correlated with saturation. If latency is uncorrelated noise, M7 has nothing real to find.
 - **Backfill historical telemetry at a coarser interval** (5 minutes) using chunked `insert()`, not `create()` in a loop.
+
+### The Network monitor (added 2026-09-19)
+
+- **A simulation scenario is not a status.** It changes what `SimulatedTelemetrySource` reports, from `simulation_started_at` onwards only, and the ordinary rules do the rest. Outage → unreachable → Offline on the next reading, one ticket, one alarm. Congestion → load over capacity → Degraded after `consecutive_breach` readings, not on the first. Recovery clears the column.
+- **A feed interruption is left out of `pollable()`.** The path to the device failed, so nobody is listening, and `markStaleOffline()` only judges what somebody was listening to. It shows as unknown and never becomes an inferred outage. This is the same principle the 2026-09-09 `pollable()` change was written for.
+- **"Stale / unknown" is a display state, never written.** An online or degraded access point whose newest reading is older than `offline_after_min` is shown as unknown, with its numbers hidden. A stopped collector therefore reads as "we do not know" rather than a confident Online from two weeks ago. Offline and maintenance are shown as they are.
+- **The chart reads raw readings, grouped in SQL — a deliberate exception to "charts read `telemetry_hourly`".** The monitor needs ten-minute points over the last hour and the current hour, which the hourly rollup has not reached yet. Grouped by `SUBSTR(recorded_at, 1, 15)`, which is portable between SQLite and MariaDB, so at most 144 rows per access point leave the database. **Measured on the development database: 139 ms and 5 queries** for 29 access points over 6,032 raw rows. At one reading a minute the window holds about 42,000 rows; expect several hundred milliseconds, inside NFR-02. Re-measure if the estate grows.
+- **The Generate sample button and `atlas:collect-telemetry` run the same `TelemetryCollector::tick()`.** Before, the ticket and alarm reactions lived in the command, and a sample taken from the browser would have skipped them.
+- **Refused unless the simulated driver is active.** Against a live network the controls would force fiction onto real devices, and the SNMP driver throws on `collect()` by design. The page hides them; the service refuses anyway.
 
 ## Open questions
 

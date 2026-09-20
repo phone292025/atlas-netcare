@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-09-04 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-09-19 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -108,6 +108,8 @@ erDiagram
         smallint client_capacity
         date installed_at
         string status "online|degraded|offline|maintenance"
+        string simulation_scenario "nullable: congestion|outage|feed_interruption"
+        datetime simulation_started_at "nullable"
         decimal risk_score
         string risk_band
         timestamp last_seen_at
@@ -369,6 +371,12 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
 
 `status` here is a plain string and must **not** be cast to `ApStatus`. A reading records a MEASURED state — online, degraded or offline only. `ApStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
+
+### `access_points.simulation_scenario`
+
+Added 2026-09-19 (`2026_09_19_090001`) for the Network monitor's simulation controls (FR-314). A string cast to `SimulationScenario` — `congestion`, `outage` or `feed_interruption` — and NULL for normal behaviour. `simulation_started_at` is `dateTime`, per the trap below.
+
+**It is not a status.** Only `SimulatedTelemetrySource` reads it, and only for moments at or after `simulation_started_at`, so the backfill never rewrites history as congested. `status` still comes from the classifier. Under a live driver the column is ignored and the controls that set it are refused. Both columns are written only by `SimulationService` with `forceFill()`, never from request input, and every change goes through the audit observer with the user who made it.
 
 ### `telemetry_hourly` is unique on `(access_point_id, hour_bucket)`
 

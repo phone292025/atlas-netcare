@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-09-04 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-19 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -70,7 +70,8 @@ app/
 │   ├── InspectionOutcome.php
 │   ├── ShiftStatus.php
 │   ├── AlarmType.php
-│   └── RiskBand.php
+│   ├── RiskBand.php
+│   └── SimulationScenario.php           demo tooling: what the simulated driver forces on an AP
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Admin/       users, locations, inventory, checklists, rosters, audit
@@ -100,7 +101,10 @@ app/
     │   ├── SimulatedTelemetrySource.php
     │   ├── SnmpTelemetrySource.php       stub until real access exists
     │   ├── ReadingData.php               simple DTO
-    │   └── TelemetryService.php
+    │   ├── TelemetryService.php
+    │   ├── TelemetryCollector.php        one collection round, with its tickets and alarms
+    │   ├── NetworkMonitorService.php     the Network monitor snapshot
+    │   └── SimulationService.php         take a sample, force a scenario (simulated driver only)
     ├── Maintenance/
     │   ├── InspectionService.php         start, save answers, derive the outcome
     │   ├── ChecklistService.php          template versioning and activation

@@ -68,6 +68,13 @@ class RoleAccessMatrixTest extends TestCase
             'profile' => ['profile.edit', 200, 200, 200],
             'notifications' => ['notifications.index', 200, 200, 200],
             'dashboard json' => ['api.dashboard', 200, 200, 200],
+            'network monitor json' => ['api.monitor', 200, 200, 200],
+            'one access point json' => ['api.monitor.aps.show', 200, 200, 200],
+
+            // The Network monitor: one page, reached through each role's own name
+            'network monitor, engineer' => ['engineer.monitor.index', 200, 200, 403],
+            'network monitor, admin' => ['admin.monitor.index', 200, 403, 403],
+            'network monitor, assistant' => ['assistant.monitor.index', 403, 403, 200],
 
             // Administrator only
             'users' => ['admin.users.index', 200, 403, 403],

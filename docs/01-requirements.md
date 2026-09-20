@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-09-02 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-09-19 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
 
@@ -13,7 +13,7 @@ Every requirement has an ID. Test cases reference these IDs; module specs list t
 Three carry a caveat worth stating rather than hiding:
 
 - **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
-- **FR-301, FR-303, FR-304, FR-305** all read **simulated** telemetry. The driver is swappable and the real one is a documented stub; see [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
+- **FR-301, FR-303, FR-304, FR-305, FR-312** all read **simulated** telemetry, and FR-313 and FR-314 exist only while the simulated driver is active. The driver is swappable and the real one is a documented stub; see [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 - **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file. Stated in the report Limitations.
 
 The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They are listed in [11-submission-checklist.md](../coursework/11-submission-checklist.md) and remain outstanding.
@@ -88,6 +88,9 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-309 | View assets ranked by predictive risk score. | Added — **built 2026-08-30.** Lab PCs and access points in one queue, ranked on the same 0-100 scale. |
 | FR-310 | View the contributing factors behind any asset's risk score. | Added — **built 2026-08-30.** Stored as JSON at the time of scoring, so an old score still explains itself after the weights change. |
 | FR-311 | Raise a preventive ticket directly from a high-risk asset. | Added — **built 2026-08-30.** Pre-filled with the actual factors, asset locked. The only route by which an access point can be ticketed through the form. |
+| FR-312 | View every access point on one Network monitor, filtered by status, location or search, with campus clients and throughput over the last 1, 6 or 24 hours and a per-access-point drill-down. An access point with no recent reading is shown as unknown, not as its last status. | Added — **built 2026-09-19.** All three roles; read-only for assistants. |
+| FR-313 | Take a telemetry sample on demand, running the same collection round as the scheduler. | Added — **built 2026-09-19.** Engineer and administrator, simulated driver only. |
+| FR-314 | Force a congestion, outage or feed-interruption scenario onto one access point or all of them, and recover it, so the system's response to a network fault can be demonstrated. The scenario changes what the simulated driver reports; status, tickets and alarms follow from the ordinary rules. | Added — **built 2026-09-19.** Engineer and administrator, simulated driver only; every change is audited. |
 
 ### FR-400 — System Administrator
 
