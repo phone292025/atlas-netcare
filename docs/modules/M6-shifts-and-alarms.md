@@ -23,21 +23,25 @@ FR-201, FR-202, FR-210, FR-211, FR-212, FR-407, FR-408, FR-506
 | Models | `ShiftTemplate`, `Shift`, `Alarm` |
 | Enums | `ShiftStatus`, `AlarmType` |
 | Controllers | `Admin\ShiftTemplateController`, `Admin\RosterController`, `Assistant\ShiftController`, `NotificationController` |
-| Services | `ShiftService` — generate, check in, check out, handover · `AlarmService` — schedule, dispatch, mark read |
-| Commands | `atlas:generate-shifts`, `atlas:dispatch-alarms` |
+| Services | `ShiftService` — generate, check in, check out, handover, reassign, remove, mark missed · `AlarmService` — schedule, dispatch, mark read |
+| Commands | `atlas:generate-shifts`, `atlas:mark-missed-shifts`, `atlas:dispatch-alarms` |
 
 ## Screens
 
 Assistant: my shift today (the assistant's home page) · my roster (week view) · check in / check out · handover notes form · notifications list
-Admin: shift template index/create/edit · roster generator with week preview and per-shift override
+Admin: shift template index/create/edit · roster generator with week preview, per-shift override and removal
 
 ## Key decisions
 
 - **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../02-open-questions.md).
-- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for AP-offline alerts. Publish a small, stable interface and tell the other owners.
+- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Publish a small, stable interface and tell the other owners.
 - **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. Say so in the report's Limitations. See [Q5](../02-open-questions.md).
 - **Alarms are scheduled, not immediate.** A row with `trigger_at` in the future is normal; the dispatcher sends it when due. This is what makes inspection-round reminders possible.
-- **A missed shift is a status**, set by the generator when a scheduled shift's end time passes with no check-in.
+- **A missed shift is a status**, set by `atlas:mark-missed-shifts` within five minutes of a scheduled shift's end with no check-in. Until 2026-09-23 the Sunday generator set it, so Monday's no-show read "Scheduled" all week.
+- **A shift can be removed only before it starts.** From then on it is attendance, and a no-show is recorded as missed rather than erased. Removing tells the assistant, cancels the unsent reminders, keeps delivered ones, and moves a pending handover note to the next shift in the same place. "Clear week" does the same for every shift in the week that has not started.
+- **Generating a week skips slots that have already started.** A shift created after its start can only be a no-show, and was marked missed within minutes: a week generated on the Saturday after it produced six false "missed" shifts. Fourteen such rows were removed from the development database on 2026-09-23, with a JSON backup in `storage/app/private/backups/`.
+- **Covering a shift under way sends nothing stale.** The new assignee's notice is dated now, and inspection-round reminders already past are not written.
+- **Shifts are audited.** Generation, reassignment, check-in and out, missed marking and removal all write an audit row.
 
 ## Open questions
 
@@ -53,7 +57,8 @@ Admin: shift template index/create/edit · roster generator with week preview an
 - [x] Notification bell shows an accurate unread count and marks read on open
 - [x] M4 and M5 can raise alarms through `AlarmService` without touching M6 internals
 - [x] Feature tests: generate roster, check in/out, alarm dispatch, unread count
-- [x] **FR-408, overriding an individual assignment** — built 2026-09-02. `ShiftService::reassign()`, from the roster screen.
+- [x] **FR-408, overriding an individual assignment** — built 2026-09-02. `ShiftService::reassign()`, from the roster screen. The new assignee gets the full set of reminders, inspection rounds included, and a pending handover note moves with the shift (fixed 2026-09-23: only the start reminder used to be rebuilt). A shift can be reassigned until it ends, so a no-show can be covered, but not after (fixed 2026-09-23).
+- [x] **Removing a shift, or clearing a week** — built 2026-09-23. `ShiftService::remove()` and `clearWeek()`, from the roster screen; only shifts that have not started.
 - [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.**
 
 
@@ -61,7 +66,7 @@ Admin: shift template index/create/edit · roster generator with week preview an
 
 **Alarms are scheduled, not written when they fire.** A row with `trigger_at` in the future is the normal case and `atlas:dispatch-alarms` sends it when due. That is the whole reason an inspection-round reminder is expressible at all — and it means a scheduled alarm is deliberately invisible and uncounted until it comes due, or the badge would be wrong all morning.
 
-**`AlarmService` is the seam other modules use.** M4 raises SLA breaches through `TicketService::raiseSlaBreachAlarms()`, M5 raises access-point outages from its collector. Neither touches the `alarms` table, and neither knows how an alarm is stored or delivered. Both guard against repeats: **one alarm per breaching ticket ever**, and AP outages only on the transition — without those, a scheduled sweep re-alarms the same thing every minute, which is precisely how a notification bell gets muted.
+**`AlarmService` is the seam other modules use.** M4 raises SLA breaches through `TicketService::raiseSlaBreachAlarms()`, M5 raises access points going offline or degraded from its collector. Neither touches the `alarms` table, and neither knows how an alarm is stored or delivered. Both guard against repeats: **one alarm per breaching ticket ever**, and AP outages only on the transition — without those, a scheduled sweep re-alarms the same thing every minute, which is precisely how a notification bell gets muted.
 
 **The day-of-week conversion is the trap.** Carbon numbers Sunday as `0` but `startOfWeek()` is Monday, so a naive `addDays($dayOfWeek)` puts Sunday's shift on the Monday and shifts the whole roster by six days — looking exactly like the generator not working. There is a test for Sunday specifically.
 
@@ -138,5 +143,6 @@ Access points dropping and tickets going overdue are not calendar events. Those 
 
 ```bash
 php artisan atlas:generate-shifts    # next week, from the active templates
-php artisan schedule:work            # dispatches alarms every minute
+php artisan atlas:mark-missed-shifts # ended shifts nobody attended become missed
+php artisan schedule:work            # dispatches alarms every minute, marks missed shifts every five
 ```

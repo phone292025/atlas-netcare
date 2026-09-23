@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-09-19 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-23 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -16,11 +16,11 @@ Seven students over eight weeks need an architecture each of them can explain un
 Browser
   │  Blade HTML + Tailwind, Alpine for interactions, Chart.js for graphs
   ▼
-Routes            routes/web.php grouped by role prefix
-  │               routes/api.php for the dashboard polling endpoint
+Routes            routes/web.php grouped by role prefix, including the
+  │               /api/* polling endpoints (behind `auth`, not public)
   ▼
-Middleware        auth → role:admin|engineer|assistant
-  │               nothing reaches a controller without a verified role
+Middleware        web group: EnsureAccountIsActive, EnsurePasswordIsChanged
+  │               then auth → role:admin|engineer|assistant
   ▼
 Controller        HTTP only. Validate via Form Request, call one service
   │               method, return a view or JSON. Decisions go to a service;
@@ -31,7 +31,7 @@ Service           ALL business logic lives here. This is what unit tests
 Model             Eloquent. Relationships, enum casts, scopes, accessors.
   │               No raw SQL anywhere.
   ▼
-MySQL             One database, one schema. Real and demo data coexist,
+MariaDB           One database, one schema. Real and demo data coexist,
                   distinguished by a column.
 ```
 
@@ -45,16 +45,19 @@ Folders that do not exist in a stock Laravel install are marked **new**.
 
 ```
 app/
-├── Console/Commands/                    ← scheduled jobs
-│   ├── CollectTelemetry.php
+├── Console/Commands/                    ← scheduled jobs and maintenance tools
+│   ├── CollectTelemetry.php             scheduled (see the table below)
 │   ├── AggregateTelemetry.php
 │   ├── PruneTelemetry.php
-│   ├── BackfillTelemetry.php            by hand, not scheduled — invents
-│   │                                    history so the charts have data
-│   ├── RecalculateRiskScores.php
-│   ├── DispatchDueAlarms.php
+│   ├── DispatchAlarms.php
 │   ├── GenerateShifts.php
-│   └── PurgeDemoData.php
+│   ├── MarkMissedShifts.php
+│   ├── RecalculateRisk.php
+│   ├── BackfillTelemetry.php            by hand — invents history so the
+│   │                                    charts have data
+│   ├── PurgeDemoData.php                by hand
+│   └── …                                CheckSchema, MailTest, and the rest:
+│                                        docs/13-code-map.md lists every file
 ├── Enums/                               ← NEW: backed PHP enums
 │   ├── Concerns/HasValues.php           values() and options() for every enum
 │   ├── Contracts/HasLabel.php           every enum must provide label()
@@ -80,7 +83,9 @@ app/
 │   │   ├── Api/         DashboardDataController — the polling endpoint
 │   │   └── Auth/        Breeze, with register removed
 │   ├── Middleware/
-│   │   ├── EnsureUserHasRole.php         ← NEW
+│   │   ├── EnsureUserHasRole.php         ← NEW: the `role` alias
+│   │   ├── EnsureAccountIsActive.php     on the web GROUP: signs out a
+│   │   │                                 deactivated account
 │   │   └── EnsurePasswordIsChanged.php   on the web GROUP, not an alias
 │   └── Requests/                         one Form Request per write action
 ├── Models/                               17 Eloquent models
@@ -93,6 +98,8 @@ app/
 │   ├── Tone.php                          THE tone → Tailwind mapping. One
 │   │                                     method per surface. Never write a
 │   │                                     match on a tone anywhere else.
+│   ├── CampusClock.php                   the campus wall clock: every "what
+│   │                                     day is it" question goes through it
 │   └── FormField.php                     id and error-key derivation shared by
 │                                         <x-form.field> and its three controls
 └── Services/                             ← NEW: all business logic
@@ -107,16 +114,19 @@ app/
     │   └── SimulationService.php         take a sample, force a scenario (simulated driver only)
     ├── Maintenance/
     │   ├── InspectionService.php         start, save answers, derive the outcome
-    │   ├── ChecklistService.php          template versioning and activation
-    │   └── RiskScoringService.php
+    │   └── ChecklistService.php          template versioning and activation
+    ├── Risk/
+    │   └── RiskScoringService.php        the weighted risk model (ADR-0007)
     ├── Tickets/
     │   └── TicketService.php             the ticket state machine, and the
     │                                     only thing that may write `status`
     ├── Reports/
     │   └── ReportingService.php          the five FR-410 figures
     └── Shifts/
-        ├── ShiftService.php
-        └── AlarmService.php
+        ├── ShiftService.php              roster generation, check-in,
+        │                                 reassignment, removal
+        ├── AlarmService.php              the one writer of `alarms`
+        └── ShiftCalendar.php             shifts as an iCalendar file
 
 config/atlas.php                          ← NEW: every threshold, weight, toggle
 database/
@@ -131,7 +141,7 @@ resources/views/
 ├── components/       shared Blade components
 ├── admin/  engineer/  assistant/  auth/
 routes/
-├── web.php  api.php  console.php
+├── web.php  auth.php  console.php
 tests/
 ├── Feature/                              one folder per module
 └── Unit/                                 services, especially RiskScoringService
@@ -161,7 +171,7 @@ Two layers, and they do different jobs:
 
 | Layer | Answers | Implementation |
 |---|---|---|
-| **Middleware** | "May this role reach this area at all?" | `EnsureUserHasRole`, applied to route groups. `EnsurePasswordIsChanged` is on the whole `web` group instead, because a control you have to remember to apply is one somebody will forget. |
+| **Middleware** | "May this account be here at all, and may this role reach this area?" | `EnsureAccountIsActive` and `EnsurePasswordIsChanged` run on the whole `web` group, because a control you have to remember to apply is one somebody will forget. `EnsureUserHasRole` is applied to route groups. |
 | **Policy** | "May this specific user act on this specific record?" | Laravel Policies, e.g. `TicketPolicy::close()` |
 
 Never use middleware for record-level checks, and never scatter `if ($user->role === ...)` through controllers. If you find yourself writing that condition, it belongs in a Policy.
@@ -233,18 +243,17 @@ return [
 
 | Command | Frequency | Does |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | One reading per active AP, through the current driver |
+| `atlas:collect-telemetry` | every minute | One reading per active AP through the current driver; a ticket and an alert when one goes offline, an alert when one degrades |
 | `atlas:dispatch-alarms` | every minute | Sends alarms past their trigger time; raises SLA breaches |
 | `atlas:aggregate-telemetry` | hourly | Rolls raw readings into `telemetry_hourly` |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Runs after aggregation, so trends do not stop hours short of now |
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
 | `atlas:renumber-tickets` | never — run by hand | Repairs a database seeded with random ticket references: sequential per year, references rewritten, `--dry-run` first |
+| `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed, so the roster stops offering to reassign them |
+| `atlas:generate-shifts` | weekly, Sunday 18:00 | Materialises next week's shifts from templates |
+| `atlas:prune-telemetry` | weekly, Sunday 03:15 | Drops raw readings past retention |
 
-
-| `atlas:generate-shifts` | weekly, Sunday | Materialises next week's shifts from templates |
-| `atlas:prune-telemetry` | weekly | Drops raw readings past retention |
-
-Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all six. **Document this in the Installation Guide** for the report appendix — graders do check.
+Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all seven scheduled commands; `php artisan schedule:work` does the same in a terminal. **Document this in the Installation Guide** for the report appendix — graders do check.
 
 ---
 
@@ -252,8 +261,8 @@ Locally, one Windows Task Scheduler entry running `php artisan schedule:run` eve
 
 | Kind | Target | Where |
 |---|---|---|
-| **Unit** | Services with real logic — `RiskScoringService` above all, plus `TicketService` state transitions and `TelemetryService` classification | `tests/Unit/` |
-| **Feature** | One happy path and one authorisation failure per controller | `tests/Feature/{Module}/` |
+| **Unit** | Pure logic: `RiskScoringService`, the enums, `Tone`, the config's invariants | `tests/Unit/` |
+| **Feature** | Every service against a real database, and every screen through HTTP: a happy path, an empty state and an authorisation failure | `tests/Feature/{Module}/` |
 | **Manual / UAT** | 4 documented sessions, required by the guidelines | [07-testing.md](07-testing.md) |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of test fixtures.

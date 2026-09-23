@@ -82,6 +82,4 @@ Everything below except the report diagrams. 29 tests, and the scoring ones pin 
 
 ## Not built, and deliberately
 
-**FR-408, the individual shift override.** M6 did not build it and neither did this. It belongs to M6 and is the last functional gap in the system.
-
 **A spread across all four risk bands in the demo data.** Every seeded asset currently lands Low or Medium, because the demo data has no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. **Worth fixing before the demonstration** — a maintenance ranking with no Critical row does not show what the screen is for.

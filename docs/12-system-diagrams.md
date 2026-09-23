@@ -413,7 +413,7 @@ flowchart LR
     ADM --> D4["Access Points"]
     ADM --> D5["Checklist Templates"]
     ADM --> D6["Shift Templates"]
-    ADM --> D7["Roster<br/><i>generate, reassign</i>"]
+    ADM --> D7["Roster<br/><i>generate, reassign, remove</i>"]
     ADM --> D8["Audit Log"]
     ADM --> D9["Reports"]
 
@@ -427,6 +427,7 @@ flowchart LR
     AUTOM --> F4["recalculate-risk<br/><i>daily 02:00</i>"]
     AUTOM --> F5["generate-shifts<br/><i>weekly</i>"]
     AUTOM --> F6["prune-telemetry<br/><i>weekly</i>"]
+    AUTOM --> F7["mark-missed-shifts<br/><i>every 5 minutes</i>"]
 
     classDef root fill:#4f46e5,stroke:#3730a3,color:#fff
     classDef grp fill:#eef2ff,stroke:#4f46e5,color:#1e1b4b

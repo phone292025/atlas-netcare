@@ -227,6 +227,7 @@ php artisan schedule:work
 | `atlas:collect-telemetry` | every minute | one reading per access point |
 | `atlas:dispatch-alarms` | every minute | raises SLA breaches, then sends anything due |
 | `atlas:aggregate-telemetry` | hourly | rolls readings into hourly summaries |
+| `atlas:mark-missed-shifts` | every five minutes | ended shifts nobody checked into become missed |
 | `atlas:generate-shifts` | Sunday evening | next week's roster from the patterns |
 | `atlas:prune-telemetry` | weekly | deletes data past its retention window |
 
@@ -261,8 +262,6 @@ Two habits came out of building this.
 ---
 
 ## What is not built
-
-**FR-408, the individual shift override.** M6 did not build it, and it is now the last functional gap in the system.
 
 **A demo dataset with anything in the top two risk bands.** Every seeded asset scores Low or Medium, because the demo data holds no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. A maintenance ranking with no Critical row does not show what the screen is for, so this is worth fixing before the demonstration.
 

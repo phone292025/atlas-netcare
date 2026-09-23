@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-09-08 · **For the report's Appendix (item 21).**
+> **Last updated:** 2026-09-23 · **For the report's Appendix (item 21).**
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on submission day.
 
@@ -125,6 +125,8 @@ Re-running `db:seed` later will **not** reset the administrator's password back 
 
 **These addresses are login identifiers, not mailboxes.** Nothing is ever sent to them, so signing in needs no mail account. Section 8 covers pointing them at a real mailbox if you want the password reset to deliver.
 
+**The demo password is public**, because it is printed in this guide and the README. Before the app is reachable from anywhere but your own machine, including `php artisan serve --host=0.0.0.0` on campus Wi-Fi, set your own `ATLAS_DEMO_PASSWORD` and re-run `php artisan db:seed`, or run `php artisan atlas:purge-demo-data`.
+
 The administrator is flagged `must_change_password`, so the first sign-in lands on **Profile** and every other screen redirects back there until a new password is set. Keeping `.env` up to date is still worth doing, because that is where you will look for it in a month — but re-seeding no longer overwrites it, so forgetting is no longer a way to lock yourself out.
 
 Demonstration accounts are not flagged, so they sign straight in.
@@ -153,10 +155,11 @@ Without it, the dashboard shows whatever the last manual collection produced and
 | `atlas:dispatch-alarms` | every minute | Sends alarms that have come due |
 | `atlas:aggregate-telemetry` | hourly | Rolls readings into hourly buckets |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
-| `atlas:generate-shifts` | Sunday 18:00 | Next week's roster, and marks missed shifts |
+| `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
+| `atlas:generate-shifts` | Sunday 18:00 | Next week's roster |
 | `atlas:prune-telemetry` | weekly | Drops readings past retention |
 
-On Windows, a single Task Scheduler entry running `php artisan schedule:run` every minute drives all six.
+On Windows, a single Task Scheduler entry running `php artisan schedule:run` every minute drives all seven.
 
 ---
 
@@ -184,7 +187,7 @@ php artisan atlas:check-schema
 php artisan migrate:status
 ```
 
-Expect **856 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
+Expect **961 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
 
 The skip is deliberate: `SchemaIntegrityTest` only means anything on MariaDB, and `php artisan test` runs on SQLite. To run everything against a real MariaDB, create the test database once and use the other config:
 
@@ -193,7 +196,7 @@ mysql -u root -e "CREATE DATABASE atlas_netcare_test CHARACTER SET utf8mb4 COLLA
 php artisan test -c phpunit.mariadb.xml
 ```
 
-That is **857 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
+That is **962 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
 
 `atlas:check-schema` is read-only and safe against real data. It catches two things the test suite cannot, because the suite runs on SQLite and the system runs on MariaDB: columns MariaDB silently rewrites on every update, and rows whose own timestamps contradict each other. **Run it after any migration and before submission.**
 

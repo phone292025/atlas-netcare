@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-09-19 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-09-23 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -193,6 +193,7 @@ erDiagram
         bigint ticketable_id
         bigint location_id FK "nullable"
         bigint inspection_id FK "nullable"
+        bigint inspection_result_id FK "nullable, the failed answer it came from"
         bigint reported_by FK
         bigint assigned_to FK "nullable"
         timestamp opened_at
@@ -237,7 +238,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint shift_id FK "nullable"
-        string type "shift_start|inspection_round|handover|ap_offline|sla_breach"
+        string type "shift_start|inspection_round|handover|shift_removed|ticket_raised|ticket_assigned|ap_degraded|ap_offline|sla_breach"
         string title
         text message
         string related_type "nullable"
@@ -395,6 +396,12 @@ The observer originally wrote only `changes`, from `getChanges()`. That answers 
 **Both halves are filtered by the same exclusion list.** Building `previous` from the whole original model instead of from the already-filtered `changes` would write the old password hash into a table administrators can read.
 
 **That list is the model's own `$hidden`, not a list kept in the observer.** It used to be a hand-written `['updated_at', 'remember_token', 'password']`, and it missed `users.calendar_token` — the key that reads somebody's roster feed without signing in. Regenerating a calendar link put a working token into `audit_logs` in plain text. Keying off `$hidden` means the next secret column is covered by the act of declaring it secret. `updated_at` stays excluded separately: it is not a secret, just noise that would make every row look like something happened.
+
+**System-written caches are left out too, through the model's `AUDIT_EXCEPT`.** `access_points.last_seen_at` changes on every collection round, so auditing it wrote one row per access point per minute, about 42,000 a day, and buried every human action on the audit screen. `AccessPoint` excludes `last_seen_at` and `risk_score`; `LabPc` excludes `last_inspected_at` and `risk_score`. Their history is already kept in `telemetry_readings`, `inspections` and `risk_assessments`. A risk band change is still audited, and a save that changes nothing else writes no row. Rows written before 2026-09-23 may hold these heartbeats; they were left in place.
+
+**The collector also saves an access point's `status` quietly** (`saveQuietly()`), because every reading row already records it and at peak an access point near a threshold flaps every few minutes: auditing each flap wrote hundreds of rows an hour, credited to whoever pressed "Generate sample". A status an administrator sets, such as maintenance, goes through a normal save and is audited.
+
+**Shifts are audited** (added 2026-09-23): who was given one, who took it over, check-in and out, missed marking, and removal. A shift row is described by its label, "Thu 24 Sep, 09:00–13:00", and `user_id` is shown as the assistant's name. A moment in a change, such as a check-in, is stored as written (UTC) and shown on the campus clock, using the subject model's casts.
 
 ### `is_demo`
 

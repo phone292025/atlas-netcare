@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-09-19 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-09-23 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
 
@@ -50,11 +50,11 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A user can sign in with an email address and password. | Approved |
-| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery is Gmail SMTP with plus-addressed demo accounts, built the same day — see [Q11](02-open-questions.md#q11). One manual step remains: an app password has to be pasted into `MAIL_PASSWORD` and checked with `php artisan atlas:mail-test`. Until it is, the screen says so instead of pretending. |
+| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery is Gmail SMTP with plus-addressed demo accounts, built the same day — see [Q11](02-open-questions.md#q11). One manual step remains: an app password has to be pasted into `MAIL_PASSWORD` and checked with `php artisan atlas:mail-test`. Until it is, the screen says so instead of pretending. The request form gives the same answer whether or not the address has an account, so it cannot be used to find out who has one (2026-09-23). |
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
 | FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](02-open-questions.md) |
-| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **fully built.** `LoginRequest::authenticate()` refuses a deactivated account at sign-in, and the role middleware blocks one that already has a session. Both are tested. The note here said the login half did not exist; it did, and the claim was stale rather than the code incomplete. |
+| FR-106 | A deactivated user cannot sign in but their historical records remain intact. | Added — **fully built.** `LoginRequest::authenticate()` refuses a deactivated account at sign-in, and `EnsureAccountIsActive`, on every web route, signs out one that still has a session or a "remember me" cookie. Until 2026-09-23 only role-prefixed routes refused such a session, so it could still raise tickets. Both halves are tested. |
 
 ### FR-200 — Student IT Assistant
 
@@ -66,7 +66,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-204 | Complete and submit a digital maintenance checklist for a lab workstation. | Approved |
 | FR-205 | Record a result of OK, Issue, or N/A per checklist item, with an optional remark. | Assumed — [Q2](02-open-questions.md) |
 | FR-206 | Raise a workspace incident ticket for faulty hardware or a network drop. | Approved |
-| FR-207 | Raise a ticket pre-filled from a failed checklist item, without re-entering the asset, location or fault. | Added |
+| FR-207 | Raise a ticket pre-filled from a failed checklist item, without re-entering the asset, location or fault. | Added · once per failed item since 2026-09-23: the inspection then shows the ticket instead of offering another |
 | FR-208 | View own submitted tickets and their current status. | Added |
 | FR-209 | View the live status of lab Wi-Fi access points (read-only). | Approved |
 | FR-210 | Check in at shift start and check out at shift end. | Added |
@@ -81,7 +81,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-302 | The dashboard refreshes without a manual page reload. | Assumed — polling, ADR-0005 |
 | FR-303 | View historical network traffic and congestion logs. | Approved |
 | FR-304 | Drill into a single access point and view its recent telemetry as a chart. | Added |
-| FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved |
+| FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved — an access point going offline raises a ticket and alerts the engineers; one going from Online to Degraded alerts them too (added 2026-09-23). Recovery from an outage passes through Degraded and does not alert. |
 | FR-306 | View, filter and sort the full incident ticket queue. | Approved |
 | FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](02-open-questions.md) · **complete 2026-09-02.** Every verb but *assign* was built; ownership was implicit, so a ticket picked up by the wrong person could only be moved in the database. Assignment is deliberately **not** a transition — who is doing the work and how far along it is are different questions. |
 | FR-308 | Add comments to a ticket, optionally internal-only. | Added |
@@ -103,7 +103,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-405 | Add, update and retire access point inventory records. | Approved |
 | FR-406 | Create and version checklist templates and their items. | Assumed — [Q2](02-open-questions.md) |
 | FR-407 | Configure recurring shift templates. | Approved |
-| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](02-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who. |
+| FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](02-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who — and not once it has ended. A shift can also be removed, singly or a week at a time, until it starts (2026-09-23). |
 | FR-409 | View a system audit log of significant actions. | Approved |
 | FR-410 | Generate and view operational reports and descriptive statistics. | Approved — **built 2026-08-30.** Five reports. Admin and engineer. |
 
@@ -118,9 +118,9 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) |
 | FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |
-| FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](02-open-questions.md) |
+| FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](02-open-questions.md) · since 2026-09-23 a Critical ticket also alerts the engineers when it is raised (`atlas.new_ticket_alert_from`) |
 | FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](02-open-questions.md) |
-| FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added |
+| FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added · shifts audited too since 2026-09-23 |
 
 ---
 

@@ -105,6 +105,8 @@ While `ATLAS_DEMO_MODE=true`, seeding also creates one sign-in per role. Most of
 
 Those are the values a fresh clone gets from `.env.example`. They are **login identifiers only**. Nothing is sent to them and they never have to be deliverable, so you can sign in without owning any mailbox.
 
+> **That password is public: it is printed right here.** Before the app is reachable from anywhere but your own machine (`php artisan serve --host=0.0.0.0` on campus Wi-Fi counts), set your own `ATLAS_DEMO_PASSWORD` and re-run `php artisan db:seed`, or remove the demo accounts with `php artisan atlas:purge-demo-data`.
+
 ### If you want the password reset to actually deliver
 
 FR-102 sends a reset link by email, and `@atlas.local` can never receive one. To demonstrate it, point the four addresses at a real mailbox instead. Gmail ignores everything after a `+`, so one account covers all four and nobody has to share a personal address:

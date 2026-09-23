@@ -40,6 +40,11 @@ Engineer: ticket queue with filters (status, priority, location, assignee) · ti
 - **`resolution_notes` is required to resolve.** No silent closures.
 - **SLA `due_at` is computed at creation** from priority and `config('atlas.sla_hours')`. M6 raises the breach alarm.
 - **Auto-tickets from AP offline events** (FR-503) are raised by M5's collector calling `TicketService::open()`. Agree that interface with M5's owner.
+- **A Critical ticket alerts every engineer when a person raises it** (`TicketService::announce()`, threshold `atlas.new_ticket_alert_from`). Lower priorities wait in the queue, where an engineer finds them on their next look; a four-hour target cannot wait for that. The collector's tickets alert through `ap_offline` instead, and an engineer is not told about a ticket they raised. Added 2026-09-23, after a critical ticket raised in live testing reached nobody's bell.
+- **A failed checklist answer is ticketed once** (FR-207). `tickets.inspection_result_id` records which answer; `open()` refuses a second, and the inspection summary shows the ticket instead of the Raise button. The pre-filled title reads "Failed check: …", because checklist items are worded as what should be true.
+- **An engineer given a ticket by somebody else is told** (`ticket_assigned`). Taking one yourself, or returning it to the queue, tells nobody.
+- **The timeline shows status changes and assignments as "updated the ticket"**, not "added an internal note": they are entries `TicketService` writes, recognised by `TicketComment::isRecordedAction()`. They stay internal, so a reporter follows progress by the status and the resolution notes.
+- **A ticket notification opens the engineer's own ticket screen** for engineers and administrators, with the assign and progress buttons; it used to open the assistant's read-only one.
 
 ## Open questions
 

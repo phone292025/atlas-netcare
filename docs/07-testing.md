@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-09-08 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-09-23 · **Worth 10 marks in the report rubric**
 
 Section F item 17 requires a test plan covering unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -161,3 +161,11 @@ Two smaller things came out of the same pass and are worth keeping as habits:
 **A parameterised route needs a row before it can be tested at all.** `EveryScreenRendersTest` is deliberately empty-database, which means it can never load a `show` or an `edit`. Half the screens in the system were therefore only ever reached by tests that were checking something else.
 
 **Count queries, do not read code for them.** A missing `->with()` renders identically to a correct one, passes every assertion, and simply gets slower as the inventory grows. `ListScreensDoNotNPlusOneTest` loads each list screen with 3 rows and then 30 and asserts the query count barely moves. Both this and the matrix were verified by breaking what they guard — a guard nobody has watched fail is a guard nobody knows works.
+
+---
+
+## A seventh habit, from the review of 2026-09-23
+
+**Build fixture dates on the clock the code under test uses.** Two shift tests set "today" with UTC `today()` while the screen asked `CampusClock::today()`. They passed from 08:00 to midnight on campus and failed from midnight to 08:00, so CI went red for any push between 16:00 and 24:00 UTC. The factory already used the campus clock; the tests overrode it. Use `CampusClock::today()` in fixtures, and freeze the clock inside that eight-hour window when the behaviour depends on the date (`CampusClockTest` does). The same review found a backfill test that failed in the first minute of every hour, because "a minute ago" and "the last whole hour" swap order then. A test that reads the wall clock should set it.
+
+**Test a control from every door, not only the one it was built for.** Deactivation was tested at the login form and on role-prefixed routes, and a test named "turned away from every screen" checked exactly one. The routes guarded by a Policy rather than a role still let a deactivated session raise tickets. `DeactivatedAccountTest` now goes through a shared route, a write, a JSON endpoint and the calendar feed.
