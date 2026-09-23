@@ -14,6 +14,7 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\Shift;
+use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
@@ -219,6 +220,51 @@ class CampusClockTest extends TestCase
             ->assertSee('value="2026-09-12"', false)
             ->assertSee('value="2026-09-19"', false)
             ->assertSee('12 Sep 2026 to 19 Sep 2026');
+    }
+
+    // ------------------------------------------------- scheduled reminders
+
+    /** A Monday 09:00-13:00 shift next week, generated through the real path. */
+    private function generateMondayMorningShift(): void
+    {
+        $this->atCampusTime('2026-09-23 10:00');
+        $this->userWith(UserRole::Assistant);
+        ShiftTemplate::factory()->onDay(1)->create(['start_time' => '09:00', 'end_time' => '13:00']);
+
+        app(ShiftService::class)->generateWeek(CampusClock::now()->addWeek()->startOfWeek());
+    }
+
+    public function test_shift_reminders_are_set_on_the_campus_clock(): void
+    {
+        /*
+         * Eloquent stores a date as the digits of whatever zone it carries.
+         * The reminder arrived in campus time from Shift::startsAt(), was
+         * read back as UTC, and fired eight hours late: 16:30 for a shift
+         * that started at 09:00 and ended at 13:00. Read back from the
+         * database, which is where the offset appeared.
+         */
+        $this->generateMondayMorningShift();
+
+        $start = Alarm::where('type', AlarmType::ShiftStart)->sole()->fresh();
+        $round = Alarm::where('type', AlarmType::InspectionRound)->sole()->fresh();
+
+        $this->assertSame('2026-09-28 08:30', $start->trigger_at->campus()->format('Y-m-d H:i'));
+        $this->assertSame('2026-09-28 11:00', $round->trigger_at->campus()->format('Y-m-d H:i'));
+    }
+
+    public function test_a_shift_reminder_is_delivered_when_it_is_due_on_campus(): void
+    {
+        $this->generateMondayMorningShift();
+        $alarms = app(AlarmService::class);
+        $start = fn () => Alarm::where('type', AlarmType::ShiftStart)->sole();
+
+        $this->atCampusTime('2026-09-28 08:29');
+        $alarms->dispatchDue();
+        $this->assertNull($start()->sent_at, 'Delivered before it was due.');
+
+        $this->atCampusTime('2026-09-28 08:31');
+        $alarms->dispatchDue();
+        $this->assertNotNull($start()->sent_at, 'Not delivered at 08:31 on campus.');
     }
 
     /** @return array<string, array{mixed}> */

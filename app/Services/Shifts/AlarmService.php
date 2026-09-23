@@ -41,6 +41,11 @@ class AlarmService
     /**
      * Schedule an alarm for one person.
      *
+     * `$at` is converted to UTC before it is stored. Eloquent saves a date as
+     * the wall-clock digits of whatever zone it carries, and a shift reminder
+     * arrives in campus time from Shift::startsAt(): stored as-is, a 08:30
+     * reminder was read back as 08:30 UTC and fired at 16:30 on campus.
+     *
      * @param  Carbon|null  $at  when to send it; now if omitted
      */
     public function raise(
@@ -58,7 +63,7 @@ class AlarmService
             'type' => $type,
             'title' => $title,
             'message' => $message,
-            'trigger_at' => $at ?? now(),
+            'trigger_at' => ($at ?? now())->copy()->utc(),
         ]);
 
         if ($related) {
