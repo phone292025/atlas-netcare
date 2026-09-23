@@ -34,6 +34,16 @@ class Shift extends Model
         'shift_date', 'start_time', 'end_time',
     ];
 
+    /**
+     * The column default, so a shift that has not been re-read from the
+     * database does not report its status as null.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => ShiftStatus::Scheduled->value,
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -101,25 +111,12 @@ class Shift extends Model
     }
 
     /**
-     * The moment this shift starts, as a real datetime.
+     * The moment this shift starts, combining the date and wall-clock columns.
      *
-     * `shift_date` and `start_time` are separate columns, a date and a wall
-     * clock, so anything asking "has it started yet?" has to combine them.
-     *
-     * THE TIMEZONE ARGUMENT IS LOAD-BEARING. An administrator entering "09:00"
-     * means 09:00 on campus. The application runs in UTC, so parsing without a
-     * zone produced 09:00 UTC, which is 17:00 in Malaysia. Every comparison
-     * built on it was eight hours out: an assistant could only check into a
-     * 09:00 shift between 16:45 and 21:00, the reminder fired in the evening,
-     * and a finished shift was not marked missed until the small hours.
-     *
-     * Carbon compares absolute moments, so once the zone is right every
-     * comparison against now() is right, whatever config('app.timezone') is
-     * set to. Setting the application timezone to the campus one would also
-     * fix this, and would leave these calls correct rather than
-     * double-converted.
-     *
-     * @see docs/progress/decision-log.md — 2026-08-29
+     * THE TIMEZONE ARGUMENT IS LOAD-BEARING. "09:00" means 09:00 on campus;
+     * parsed without a zone in a UTC application it becomes 17:00 in Malaysia,
+     * and every check-in window and reminder is eight hours out. Carbon then
+     * compares absolute moments, so comparisons against now() are right.
      */
     public function startsAt(): Carbon
     {
@@ -138,11 +135,9 @@ class Shift extends Model
     }
 
     /**
-     * Whether this shift falls on today's date ON CAMPUS.
-     *
-     * `shift_date->isToday()` compared it against today in UTC, which is
-     * yesterday on campus from midnight until 08:00. `shift_date` is a
-     * calendar date and is compared as one, never converted.
+     * Whether this shift falls on today's date ON CAMPUS. `shift_date` is a
+     * calendar date and is compared as one, never converted; isToday() would
+     * compare it with UTC's today.
      */
     public function isToday(): bool
     {
@@ -156,11 +151,8 @@ class Shift extends Model
     }
 
     /**
-     * Whether check-in is allowed yet.
-     *
-     * Deliberately generous at the front — an assistant arriving fifteen
-     * minutes early should not be told to wait, and a system that refuses
-     * teaches people to ignore it. The window is config, not a literal.
+     * Whether check-in is allowed yet. Generous at the front, so somebody
+     * arriving early is not told to wait.
      */
     public function canCheckInNow(): bool
     {

@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Shifts\ShiftCalendar;
+use App\Support\CampusClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -74,7 +75,7 @@ class ShiftCalendarTest extends TestCase
      */
     private function inFeedWindow(int $daysAhead = 1): string
     {
-        return today()->addDays($daysAhead)->toDateString();
+        return CampusClock::today()->addDays($daysAhead)->toDateString();
     }
 
     // ------------------------------------------------------- the file itself
@@ -164,14 +165,11 @@ class ShiftCalendarTest extends TestCase
         $this->assertStringContainsString('STATUS:CANCELLED', app(ShiftCalendar::class)->forShift($shift));
     }
 
-    public function test_a_shift_with_no_status_in_memory_still_exports(): void
+    public function test_a_shift_created_and_not_reloaded_still_exports(): void
     {
-        /*
-         * `status` is not fillable and the column default supplies it, so a
-         * model created and not reloaded has no status in memory. Found by
-         * generating a test file from a console script, where it crashed the
-         * export outright.
-         */
+        // `status` is not fillable, so it comes from the model's default
+        // rather than being null until the row is re-read. A null status once
+        // crashed the export outright.
         $shift = Shift::create([
             'user_id' => $this->assistant()->id,
             'location_id' => Location::factory()->create()->id,
@@ -180,7 +178,7 @@ class ShiftCalendarTest extends TestCase
             'end_time' => '13:00:00',
         ]);
 
-        $this->assertNull($shift->status);
+        $this->assertSame(ShiftStatus::Scheduled, $shift->status);
 
         $this->assertStringContainsString(
             'STATUS:CONFIRMED',
@@ -335,8 +333,8 @@ class ShiftCalendarTest extends TestCase
          * refresh.
          */
         $user = $this->assistant();
-        $old = $this->shiftFor($user, ['shift_date' => today()->subYear()->toDateString()]);
-        $soon = $this->shiftFor($user, ['shift_date' => today()->addDays(3)->toDateString()]);
+        $old = $this->shiftFor($user, ['shift_date' => CampusClock::today()->subYear()->toDateString()]);
+        $soon = $this->shiftFor($user, ['shift_date' => CampusClock::today()->addDays(3)->toDateString()]);
 
         $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
         $response = $this->get(route('shifts.calendar.feed', $user->fresh()->calendar_token));
@@ -372,7 +370,7 @@ class ShiftCalendarTest extends TestCase
         // Works on every platform, and is the only calendar control shown by
         // default.
         $user = $this->assistant();
-        $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
+        $this->shiftFor($user, ['shift_date' => CampusClock::today()->toDateString()]);
 
         $this->actingAs($user)
             ->get(route('assistant.shifts.today'))
@@ -390,7 +388,7 @@ class ShiftCalendarTest extends TestCase
          * for two of the three major clients is worse than no control.
          */
         $user = $this->assistant();
-        $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
+        $this->shiftFor($user, ['shift_date' => CampusClock::today()->toDateString()]);
         $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
 
         $this->actingAs($user->fresh())
@@ -412,7 +410,7 @@ class ShiftCalendarTest extends TestCase
         config(['atlas.calendar.subscription' => true]);
 
         $user = $this->assistant();
-        $this->shiftFor($user, ['shift_date' => today()->toDateString()]);
+        $this->shiftFor($user, ['shift_date' => CampusClock::today()->toDateString()]);
 
         $this->actingAs($user)->post(route('assistant.shifts.calendar.link'));
 

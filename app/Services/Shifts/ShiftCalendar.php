@@ -8,27 +8,14 @@ use Illuminate\Support\Collection;
 /**
  * Turn shifts into an iCalendar file (RFC 5545).
  *
- * WHY THIS EXISTS. M6's alarms only reach the notification bell inside the
- * app, so an assistant who is not looking at Atlas NetCare does not know their
- * shift starts in thirty minutes. Rather than build a way to push messages
- * out, this hands the shift to the phone, and the phone's own alarm system
- * does the reminding. That system already works with the app closed, the
- * screen locked and no internet.
+ * The in-app bell only helps somebody looking at Atlas NetCare. Handing the
+ * shift to the phone's calendar means the phone does the reminding, with the
+ * app closed, the screen locked and no internet, and with no mail server.
  *
- * It also needs no email address at all, which is why this survived the
- * change on 2026-08-29 that gave every account a deliverable Gmail
- * plus-address so FR-102 could send a password reset link. Before that the
- * accounts were @apu.test and @atlas.local, reserved domains that can never
- * receive mail, and email was not an option for reminders at any price. It is
- * now, and a calendar file is still the better answer: it alarms with the app
- * closed, needs no SMTP account, and cannot end up in a spam folder.
- *
- * TIMEZONE IS THE THING TO GET RIGHT. A shift is stored as a date plus a local
- * time, and the application runs in UTC. Emitting the raw values with a `Z`
- * suffix would put every shift eight hours out, and a calendar showing the
- * wrong time is worse than no calendar. So every event carries an explicit
- * TZID and the file includes a VTIMEZONE describing it. Malaysia has no
- * daylight saving, which keeps that block to a fixed offset.
+ * TIMEZONE IS THE THING TO GET RIGHT. A shift is a date plus a campus wall
+ * clock time, and the application runs in UTC. A `Z` suffix would put every
+ * shift eight hours out, so each event carries an explicit TZID and the file
+ * includes a VTIMEZONE for it.
  *
  * @see docs/modules/M6-shifts-and-alarms.md
  */
@@ -122,18 +109,9 @@ class ShiftCalendar
             'DESCRIPTION:'.$this->escape($description),
             $location ? 'LOCATION:'.$this->escape($location->label()) : null,
 
-            /*
-             * A shift somebody already worked or missed should not sit in
-             * their calendar as something still to do.
-             *
-             * Null-safe because `status` is not in Shift::$fillable and the
-             * column default supplies it, so a freshly created model that has
-             * not been reloaded has no status in memory. Reachable from a
-             * console script or a seeder rather than from the app, but
-             * crashing an export over it would be a poor trade. An unknown
-             * status is treated as live, which is the safer wrong answer.
-             */
-            'STATUS:'.(($shift->status?->isOutstanding() ?? true) ? 'CONFIRMED' : 'CANCELLED'),
+            // A shift somebody already worked or missed should not sit in
+            // their calendar as something still to do.
+            'STATUS:'.($shift->status->isOutstanding() ? 'CONFIRMED' : 'CANCELLED'),
             'TRANSP:OPAQUE',
 
             ...$this->alarm(),
@@ -143,11 +121,8 @@ class ShiftCalendar
     }
 
     /**
-     * The reminder the phone will fire.
-     *
-     * Shipped set, so the assistant does not have to configure anything to get
-     * the benefit. They can change or delete it once it is in their calendar,
-     * which is the whole advantage of handing the job to the phone.
+     * The reminder the phone will fire, set by default. The assistant can
+     * change or delete it once the event is in their calendar.
      *
      * @return list<string>
      */
@@ -182,13 +157,9 @@ class ShiftCalendar
     }
 
     /**
-     * A minimal VTIMEZONE.
-     *
-     * Malaysia has never observed daylight saving, so one STANDARD block with
-     * a fixed +08:00 offset describes it completely. A campus in a
-     * DST-observing country would need DAYLIGHT blocks and the transition
-     * rules; this is the easy case and it is worth saying so rather than
-     * leaving the next person to wonder.
+     * A minimal VTIMEZONE: Malaysia has no daylight saving, so one STANDARD
+     * block with a fixed offset describes it completely. A zone with DST would
+     * need DAYLIGHT blocks and transition rules.
      *
      * @return list<string>
      */
