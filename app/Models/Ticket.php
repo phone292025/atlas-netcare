@@ -11,16 +11,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * One traceable fault report.
  *
- * `status`, `ticket_number`, and every timestamp in the lifecycle are absent
- * from $fillable. They belong to TicketService, which is the only thing
- * allowed to move a ticket between states — a form that could set `status`
- * would let anybody close their own ticket by editing a select.
+ * `status`, `ticket_number` and the lifecycle timestamps are not fillable:
+ * only TicketService moves a ticket between states.
  *
  * @see App\Services\Tickets\TicketService
  * @see docs/modules/M4-ticketing.md
@@ -95,6 +94,12 @@ class Ticket extends Model
         return $this->hasMany(TicketComment::class)->orderBy('created_at');
     }
 
+    /** @return MorphMany<Alarm, $this> */
+    public function alarms(): MorphMany
+    {
+        return $this->morphMany(Alarm::class, 'related');
+    }
+
     /** @param  Builder<Ticket>  $query */
     public function scopeOutstanding(Builder $query): void
     {
@@ -108,10 +113,8 @@ class Ticket extends Model
     }
 
     /**
-     * Past its SLA target and still nobody's finished with it.
-     *
-     * A resolved ticket that took too long has still breached — but it is no
-     * longer actionable, so the alarm sweep only wants outstanding ones.
+     * Past its SLA target and still outstanding. A resolved ticket that took
+     * too long has breached too, but is no longer anything to act on.
      *
      * @param  Builder<Ticket>  $query
      */
@@ -129,11 +132,8 @@ class Ticket extends Model
     }
 
     /**
-     * How long is left, as a human phrase — "in 3 hours", "2 hours ago".
-     *
-     * Null when there is no target or the ticket is finished, so the queue can
-     * leave the cell empty rather than printing a countdown against a ticket
-     * nobody needs to act on.
+     * How long is left, as "in 3 hours" or "2 hours ago". Null when there is
+     * no target or the ticket is finished, so the queue leaves the cell empty.
      */
     public function dueInWords(): ?string
     {
@@ -145,11 +145,8 @@ class Ticket extends Model
     }
 
     /**
-     * "APU-1042" or "AP-L6-03" — what the ticket is about, for a list.
-     *
-     * Falls back to the location, because a ticket can be about a place rather
-     * than a machine: "no network anywhere on Level 6" belongs to nothing more
-     * specific.
+     * "APU-1042" or "AP-L6-03": what the ticket is about, for a list. Falls
+     * back to the location for a fault about a place rather than a machine.
      */
     public function subjectLabel(): string
     {
@@ -163,23 +160,8 @@ class Ticket extends Model
     }
 
     /**
-     * "TKT-2026-00417" — the one place the reference format is written.
-     *
-     * It used to be written twice: once in `TicketService::reserveNumber()`
-     * and once in `TicketFactory`, which invented a RANDOM number between 1
-     * and 99999 instead of counting. Seeding a demonstration database
-     * therefore pushed the highest number to around 96,000, and because
-     * `reserveNumber()` takes the highest and adds one, every real ticket
-     * raised afterwards continued from there. The first ticket raised by hand
-     * on the development machine came out as TKT-2026-96851.
-     *
-     * Nothing broke. The numbers were unique and the column is wide enough.
-     * They simply stopped being the readable sequence the format exists for,
-     * and no test noticed because the tests that check the sequence use the
-     * service on an empty database.
-     *
-     * Two implementations of one format is the actual defect; the random range
-     * was the symptom.
+     * "TKT-2026-00417": the one place the reference format is written, shared
+     * by TicketService and TicketFactory so the two cannot drift apart.
      *
      * @param  int  $sequence  the count within the year, from 1
      */
@@ -189,10 +171,8 @@ class Ticket extends Model
     }
 
     /**
-     * The highest sequence number used this year, or 0 if there is none.
-     *
-     * Includes soft-deleted rows: a number belonging to an archived ticket has
-     * still been used, and reissuing it would make two tickets share a
+     * The highest sequence number used this year, or 0. Includes soft-deleted
+     * rows: reissuing an archived ticket's number would give two tickets one
      * reference in the audit trail.
      */
     public static function highestSequenceThisYear(?int $year = null): int

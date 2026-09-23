@@ -6,7 +6,6 @@ use App\Enums\AlarmType;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
-use App\Models\Alarm;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\User;
@@ -19,25 +18,18 @@ use Illuminate\Support\Facades\DB;
 /**
  * Opening tickets and moving them through their lifecycle.
  *
- * THE STATE MACHINE LIVES HERE AND NOWHERE ELSE. A controller may not write
- * `status`, and neither may a form — `status` is absent from Ticket::$fillable
- * for exactly that reason. Every move goes through transition(), which refuses
- * anything the machine does not allow.
+ * THE STATE MACHINE LIVES HERE AND NOWHERE ELSE. `status` is absent from
+ * Ticket::$fillable, and every move goes through transition(), which refuses
+ * anything the machine does not allow. Hiding a button in Blade is a
+ * suggestion; this is the rule a hand-written POST runs into.
  *
- * This matters more than it looks. Hiding an illegal button in Blade is not
- * the same as forbidding the transition: the button is a suggestion, the
- * service is the rule. A hand-written POST closes a ticket nobody resolved
- * unless something server-side says no.
- *
- * THE LIFECYCLE IS Q3's, ADOPTED 2026-08-28:
+ * The lifecycle is Q3's:
  *
  *   open ──▶ acknowledged ──▶ in_progress ──▶ resolved ──▶ closed
  *                                                 │
  *                                                 └──▶ reopened ──▶ in_progress
  *
- * To change it, edit TRANSITIONS below. That is the whole surface — the map is
- * one array precisely so ratifying a different lifecycle is a small edit
- * rather than an archaeology exercise.
+ * To change it, edit TRANSITIONS. That is the whole surface.
  *
  * @see docs/02-open-questions.md Q3
  * @see docs/modules/M4-ticketing.md
@@ -45,13 +37,9 @@ use Illuminate\Support\Facades\DB;
 class TicketService
 {
     /**
-     * Which states each state may move to.
-     *
-     * Reading it aloud is the specification: an open ticket can only be
-     * acknowledged; a resolved one can be closed or reopened; a closed one is
-     * finished. Nothing may go backwards except through `reopened`, which
-     * exists so that "this was not actually fixed" is a recorded event rather
-     * than an engineer quietly flipping the status back.
+     * Which states each state may move to. Nothing goes backwards except
+     * through `reopened`, so "this was not actually fixed" is a recorded event
+     * rather than a status quietly flipped back.
      *
      * @var array<string, list<string>>
      */
@@ -65,12 +53,9 @@ class TicketService
     ];
 
     /**
-     * How many times to re-attempt a ticket number before giving up.
-     *
-     * Three, because each retry only loses to a request that committed in the
-     * microseconds since the last read. Two colliding is plausible on a busy
-     * Monday morning; three is a stretch; four in a row means something other
-     * than contention is wrong and looping is the wrong answer.
+     * Attempts at a ticket number before giving up. Each retry only loses to
+     * a request that committed in the microseconds since the last read, so
+     * four collisions in a row means something other than contention.
      */
     private const NUMBER_ATTEMPTS = 3;
 
@@ -80,22 +65,15 @@ class TicketService
      * `$subject` is the lab PC or access point it is about, or null for a
      * fault that belongs to a place rather than a machine.
      *
-     * RETRIED ON PURPOSE. `reserveNumber()` reads the highest number and adds
-     * one, so two people pressing Submit in the same moment compute the same
-     * one and the loser hits the unique index. This method used to let that
-     * become a 500, which is the worst possible place to lose: the assistant
-     * has typed a fault description and gets an error page, and the thing they
-     * were reporting is still broken.
+     * Retried on a unique violation: reserveNumber() reads the highest number
+     * and adds one, so two simultaneous submits compute the same one. The
+     * retry re-reads, and the person reporting a fault gets their ticket
+     * rather than an error page. `ticket_number` is the table's only unique
+     * column, so the violation is always this.
      *
-     * Retrying re-reads the number, so the second attempt gets the one the
-     * winner has now committed. `ticket_number` is the only unique column on
-     * the table, so a unique violation here is always this and nothing else.
-     *
-     * `$isDemo` marks a ticket the SYSTEM raised about demonstration data — the
-     * collector auto-ticketing a demo access point from simulated readings.
-     * Without it those tickets were real rows pointing at demo assets, and
-     * `atlas:purge-demo-data` refused to run after a single collection round.
-     * A person raising a ticket by hand is never demo data, whatever the asset.
+     * `$isDemo` marks a ticket the SYSTEM raised about demonstration data, so
+     * `atlas:purge-demo-data` can remove it. A person raising one by hand is
+     * never demo data, whatever the asset.
      *
      * @param  array<string, mixed>  $attributes
      *
@@ -115,11 +93,8 @@ class TicketService
     }
 
     /**
-     * One attempt at writing the ticket, inside its own transaction.
-     *
-     * Separate from open() only so the retry has something to call again. A
-     * failed attempt must not leave half a ticket behind, which is what the
-     * transaction around it is for.
+     * One attempt at writing the ticket, in its own transaction so a failed
+     * attempt leaves nothing behind.
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -134,9 +109,8 @@ class TicketService
         if ($subject) {
             $ticket->ticketable()->associate($subject);
 
-            // Denormalise the location off the asset so the queue can
-            // filter by place without joining through a polymorphic
-            // relation to two different tables.
+            // Denormalised, so the queue can filter by place without joining
+            // through a polymorphic relation to two tables.
             $ticket->location_id = $attributes['location_id'] ?? $subject->location_id ?? null;
         }
 
@@ -162,46 +136,36 @@ class TicketService
      */
     public function transition(Ticket $ticket, TicketStatus $to, User $actor, array $extra = []): Ticket
     {
-        $from = $ticket->status;
+        return DB::transaction(function () use ($ticket, $to, $actor, $extra) {
+            // Re-read the row under a lock, so two people moving the same
+            // ticket at once cannot both pass the check below from the same
+            // starting state.
+            $current = Ticket::query()->lockForUpdate()->findOrFail($ticket->getKey());
+            $ticket->setRawAttributes($current->getAttributes(), sync: true);
 
-        if (! $this->canTransition($from, $to)) {
-            throw new DomainException(
-                "A {$from->label()} ticket cannot become {$to->label()}."
-            );
-        }
+            $from = $ticket->status;
 
-        /*
-         * NO SILENT CLOSURES, enforced here rather than only in the form.
-         *
-         * A ticket that went away with nobody writing down what was done
-         * teaches nobody anything, and M7 learns fault patterns from these
-         * notes. The rule used to live only in TransitionTicketRequest, so the
-         * screen enforced it and this method — the one place the state machine
-         * is meant to live — did not: called directly with no notes, it
-         * resolved the ticket and stored null. Found by driving the service
-         * against the live database. Any future caller, a command or an API,
-         * would have inherited the gap.
-         *
-         * The form still validates too, so a person gets the message against
-         * the field rather than as a flash.
-         */
-        if ($to === TicketStatus::Resolved && blank($extra['resolution_notes'] ?? null)) {
-            throw new DomainException('Say what you did to fix it before resolving.');
-        }
+            if (! $this->canTransition($from, $to)) {
+                throw new DomainException(
+                    "A {$from->label()} ticket cannot become {$to->label()}."
+                );
+            }
 
-        return DB::transaction(function () use ($ticket, $from, $to, $actor, $extra) {
+            // No silent closures, enforced here as well as in the form so any
+            // caller inherits the rule. M7 learns fault patterns from these
+            // notes.
+            if ($to === TicketStatus::Resolved && blank($extra['resolution_notes'] ?? null)) {
+                throw new DomainException('Say what you did to fix it before resolving.');
+            }
+
             $changes = ['status' => $to];
 
-            // Each transition stamps its own timestamp. They are separate
-            // columns rather than one "status changed at" because the report
-            // needs time-to-acknowledge and time-to-resolve as distinct
-            // figures, and one column cannot answer both.
+            // A timestamp per step, because the reports need time to
+            // acknowledge and time to resolve as separate figures.
             match ($to) {
                 TicketStatus::Acknowledged => $changes += [
                     'acknowledged_at' => now(),
-                    // Acknowledging is taking ownership. Leaving it unassigned
-                    // produces the queue everyone has seen: eleven
-                    // acknowledged tickets and nobody working on any of them.
+                    // Acknowledging is taking ownership.
                     'assigned_to' => $ticket->assigned_to ?? $actor->id,
                 ],
 
@@ -212,9 +176,8 @@ class TicketService
 
                 TicketStatus::Closed => $changes += ['closed_at' => now()],
 
-                // Reopening clears the resolution. Leaving resolved_at set
-                // would make the ticket count as resolved in every report
-                // while sitting in the queue as open work.
+                // Reopening clears the resolution, or the ticket would count
+                // as resolved in every report while sitting in the queue.
                 TicketStatus::Reopened => $changes += [
                     'resolved_at' => null,
                     'closed_at' => null,
@@ -238,10 +201,8 @@ class TicketService
     }
 
     /**
-     * The states this ticket could legally move to next.
-     *
-     * The UI renders buttons from this, so a button can never offer a move the
-     * service would then refuse.
+     * The states this ticket could legally move to next. The screen renders
+     * its buttons from this, so it never offers a move the service refuses.
      *
      * @return list<TicketStatus>
      */
@@ -254,39 +215,25 @@ class TicketService
     }
 
     /**
-     * Tell the engineers about tickets that have blown their SLA.
+     * Tell the engineers about tickets past their SLA (FR-507).
      *
-     * M4 owns the question "which tickets are breaching?" — that is
-     * `Ticket::scopeBreaching()`, and it deliberately excludes resolved and
-     * closed ones. M6 owns delivery. This method is the seam between them, and
-     * it is why AlarmService is passed in rather than reached for: M4 knows
-     * nothing about how an alarm is stored or sent.
-     *
-     * ONE ALARM PER TICKET, EVER. Without the guard this runs on a schedule
-     * and re-alarms the same overdue ticket every minute until somebody
-     * resolves it, which is precisely how a notification bell becomes
-     * something people mute.
+     * Which tickets are breaching is Ticket::scopeBreaching(); delivery is
+     * AlarmService's, passed in so this module knows nothing about how an
+     * alarm is stored or sent. One alarm per ticket, ever: this runs every
+     * minute, and a bell that rings every minute gets muted.
      *
      * @return int how many were raised
      */
     public function raiseSlaBreachAlarms(AlarmService $alarms): int
     {
-        $alreadyAlarmed = Alarm::query()
-            ->where('type', AlarmType::SlaBreach)
-            ->where('related_type', (new Ticket)->getMorphClass())
-            ->pluck('related_id')
-            ->unique();
-
         $breaching = Ticket::query()
             ->breaching()
-            ->whereNotIn('id', $alreadyAlarmed)
+            ->whereDoesntHave('alarms', fn ($q) => $q->where('type', AlarmType::SlaBreach))
             ->get();
 
         foreach ($breaching as $ticket) {
-            // An absolute campus time. The message is saved and read later,
-            // and "due 3 hours ago" frozen at raise time was still saying so
-            // days afterwards. The bell already shows how long ago the alarm
-            // itself fired, computed fresh each time.
+            // An absolute campus time, because the message is saved: "due 3
+            // hours ago" would still say so days later.
             $due = $ticket->due_at?->campus()->format('j M Y, H:i') ?? 'with no target';
 
             $alarms->raiseForRole(
@@ -302,11 +249,9 @@ class TicketService
     }
 
     /**
-     * Is this asset already the subject of an unfinished ticket?
-     *
-     * M5's collector asks this before auto-raising one, so an access point
-     * that is offline for six hours produces a single ticket rather than one
-     * per polling interval (FR-503).
+     * Is this asset already the subject of an unfinished ticket? The collector
+     * asks before auto-raising one, so a six-hour outage produces one ticket
+     * (FR-503).
      */
     public function hasOutstandingFor(Model $subject): bool
     {
@@ -318,41 +263,22 @@ class TicketService
     }
 
     /**
-     * TKT-2026-00417.
+     * The next number, like TKT-2026-00417, counted per calendar year.
      *
-     * Reserved here rather than as a database default so the format is one
-     * readable line of PHP instead of vendor-specific SQL. The count is per
-     * calendar year, so the number stays short for the life of the project.
-     *
-     * NOT SAFE ON ITS OWN, and deliberately left that way. This reads the
-     * highest number and adds one, so two callers reading before either writes
-     * compute the same string. The unique index stops the duplicate; open()
-     * retries so the loser gets the next number instead of an error page.
-     *
-     * A transaction does not fix this by itself, which is what the previous
-     * version of this comment assumed: both readers see the same maximum, and
-     * serialising them properly would mean locking the whole year's tickets on
-     * every raise.
-     *
-     * `protected` so a test can subclass and force the collision. Concurrency
-     * cannot be reproduced in PHPUnit any other way.
+     * Not safe on its own: two callers reading before either writes compute
+     * the same number. The unique index stops the duplicate and open()
+     * retries; locking the whole year's tickets on every raise would be the
+     * alternative. `protected` so a test can subclass it and force the
+     * collision.
      */
     protected function reserveNumber(): string
     {
-        // The format and the "what is the highest so far" question both live
-        // on the model, because TicketFactory needs the same two answers and
-        // a second implementation of them is how the demonstration data ended
-        // up numbering tickets at random.
         return Ticket::formatNumber(Ticket::highestSequenceThisYear() + 1);
     }
 
     /**
-     * Leave a trail of who moved the ticket and when.
-     *
-     * A comment rather than a separate history table: the ticket detail page
-     * already renders comments as a timeline, and one ordered list of "what
-     * happened" reads better than two interleaved ones. Marked internal so it
-     * does not clutter the reporter's view of their own ticket.
+     * An internal comment recording the move. Comments already render as the
+     * ticket's timeline, and one ordered list reads better than two.
      */
     private function recordTransition(Ticket $ticket, TicketStatus $from, TicketStatus $to, User $actor): void
     {
@@ -364,25 +290,14 @@ class TicketService
     }
 
     /**
-     * Hand a ticket to a particular engineer, or take the name off it (FR-307).
+     * Hand a ticket to an engineer, or put it back in the queue with null
+     * (FR-307).
      *
-     * The requirement reads "acknowledge, assign, progress, resolve and close",
-     * and every verb but ASSIGN was built. What existed was implicit: whoever
-     * acknowledged a ticket became its owner, in one line of transition().
-     * There was no way to give it to somebody else, so a ticket acknowledged
-     * by the wrong person, or by somebody who then went on leave, could only
-     * be moved by editing the database.
+     * Assignment is not a transition: who is doing the work and how far along
+     * it is are different questions, and a reassignment mid-repair must not
+     * move the ticket through its lifecycle.
      *
-     * ASSIGNMENT IS NOT A TRANSITION. It does not appear in TicketService's
-     * state machine and must not: who is doing the work and how far along it
-     * is are different questions, and a reassignment mid-repair should not
-     * move a ticket backwards through its own lifecycle.
-     *
-     * Null unassigns, which is a real need — an engineer going on leave should
-     * be able to put a ticket back in the pool rather than pick a colleague
-     * for it.
-     *
-     * @throws DomainException when the ticket is finished, or the target
+     * @throws DomainException when the ticket is closed, or the target
      *                         cannot hold work
      */
     public function assign(Ticket $ticket, ?User $engineer, User $actor): Ticket
@@ -408,16 +323,11 @@ class TicketService
         }
 
         return DB::transaction(function () use ($ticket, $engineer, $actor) {
-            // assigned_to is absent from $fillable — it decides who is
-            // accountable for work, which is not a thing a form may set.
+            // Not fillable: it decides who is accountable for the work.
             $ticket->forceFill(['assigned_to' => $engineer?->id])->save();
 
-            /*
-             * An internal note, so the trail is on the ticket itself and not
-             * only in the audit log. The reporter does not need to see the
-             * engineers reshuffling work between themselves, which is why it
-             * is internal.
-             */
+            // On the ticket as well as in the audit log, and internal: the
+            // reporter does not need to watch work being reshuffled.
             TicketComment::create([
                 'ticket_id' => $ticket->id,
                 'user_id' => $actor->id,
