@@ -25,7 +25,10 @@ on:
 jobs:
   tests:
     name: ${{ matrix.database }}
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest, which moves to Ubuntu 26 from 19 October 2026.
+    # A new runner image should arrive as a commit somebody can revert, not as
+    # a red build nobody changed anything to cause.
+    runs-on: ubuntu-24.04
 
     strategy:
       # Both results wanted. Stopping the MariaDB run because SQLite failed
@@ -56,7 +59,7 @@ jobs:
           --health-retries=10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -67,7 +70,7 @@ jobs:
           coverage: none
 
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
@@ -82,9 +85,11 @@ jobs:
           php artisan key:generate
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          # The version the project is built on locally. Node 20 reached end
+          # of life in April 2026.
+          node-version: '24'
           cache: npm
 
       - name: Build front-end assets
@@ -106,10 +111,10 @@ jobs:
 
   style:
     name: Pint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
