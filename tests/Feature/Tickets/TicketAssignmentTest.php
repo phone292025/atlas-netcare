@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Tickets;
 
+use App\Enums\AlarmType;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
+use App\Models\Alarm;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Tickets\TicketService;
@@ -128,5 +130,33 @@ class TicketAssignmentTest extends TestCase
 
         $this->assertTrue((bool) $comment->is_internal);
         $this->assertStringContainsString($engineer->name, $comment->body);
+    }
+
+    public function test_somebody_given_a_ticket_by_a_colleague_is_told(): void
+    {
+        // Nothing else showed them it was theirs until they next filtered the
+        // queue. Found by reassigning a critical ticket in live testing.
+        $from = $this->user(UserRole::Engineer);
+        $to = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket();
+
+        app(TicketService::class)->assign($ticket, $to, $from);
+
+        $alarm = Alarm::where('type', AlarmType::TicketAssigned)->sole();
+
+        $this->assertSame($to->id, $alarm->user_id);
+        $this->assertSame("{$ticket->ticket_number} is yours now", $alarm->title);
+        $this->assertStringContainsString($from->name, $alarm->message);
+    }
+
+    public function test_taking_a_ticket_yourself_or_unassigning_tells_nobody(): void
+    {
+        $engineer = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket();
+
+        app(TicketService::class)->assign($ticket, $engineer, $engineer);
+        app(TicketService::class)->assign($ticket->fresh(), null, $engineer);
+
+        $this->assertSame(0, Alarm::where('type', AlarmType::TicketAssigned)->count());
     }
 }

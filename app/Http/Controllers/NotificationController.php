@@ -6,6 +6,7 @@ use App\Enums\AlarmType;
 use App\Models\AccessPoint;
 use App\Models\Alarm;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -54,15 +55,17 @@ class NotificationController extends Controller
 
         $this->alarms->markRead($alarm);
 
-        return redirect($this->destinationFor($alarm));
+        return redirect($this->destinationFor($alarm, $request->user()));
     }
 
-    private function destinationFor(Alarm $alarm): string
+    private function destinationFor(Alarm $alarm, User $viewer): string
     {
         $related = $alarm->related;
 
         return match (true) {
-            $related instanceof Ticket => route('assistant.tickets.show', $related),
+            $related instanceof Ticket && $viewer->isAssistant() => route('assistant.tickets.show', $related),
+            // The engineer's own screen, with the assign and progress buttons.
+            $related instanceof Ticket => route('engineer.tickets.show', $related),
             $related instanceof AccessPoint => route('engineer.aps.show', $related),
             $alarm->shift_id !== null => route('assistant.shifts.today'),
             $alarm->type === AlarmType::ShiftRemoved => route('assistant.shifts.index'),

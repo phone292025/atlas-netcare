@@ -37,6 +37,12 @@ use Illuminate\Support\Facades\DB;
 class TicketService
 {
     /**
+     * Alarms go through AlarmService, so this module knows nothing about how
+     * one is stored or delivered.
+     */
+    public function __construct(private readonly AlarmService $alarms) {}
+
+    /**
      * Which states each state may move to. Nothing goes backwards except
      * through `reopened`, so "this was not actually fixed" is a recorded event
      * rather than a status quietly flipped back.
@@ -229,14 +235,13 @@ class TicketService
     /**
      * Tell the engineers about tickets past their SLA (FR-507).
      *
-     * Which tickets are breaching is Ticket::scopeBreaching(); delivery is
-     * AlarmService's, passed in so this module knows nothing about how an
-     * alarm is stored or sent. One alarm per ticket, ever: this runs every
-     * minute, and a bell that rings every minute gets muted.
+     * Which tickets are breaching is Ticket::scopeBreaching(). One alarm per
+     * ticket, ever: this runs every minute, and a bell that rings every
+     * minute gets muted.
      *
      * @return int how many were raised
      */
-    public function raiseSlaBreachAlarms(AlarmService $alarms): int
+    public function raiseSlaBreachAlarms(): int
     {
         $breaching = Ticket::query()
             ->breaching()
@@ -248,7 +253,7 @@ class TicketService
             // hours ago" would still say so days later.
             $due = $ticket->due_at?->campus()->format('j M Y, H:i') ?? 'with no target';
 
-            $alarms->raiseForRole(
+            $this->alarms->raiseForRole(
                 AlarmType::SlaBreach,
                 UserRole::Engineer,
                 "{$ticket->ticket_number} is past its target",
@@ -258,6 +263,43 @@ class TicketService
         }
 
         return $breaching->count();
+    }
+
+    /**
+     * Tell the engineers about a ticket a person has just raised, when its
+     * priority reaches `atlas.new_ticket_alert_from`. Lower ones wait in the
+     * queue: the bell is for what cannot wait for the next look at it. Not
+     * the collector's tickets, which alert through `ap_offline`, and not the
+     * reporter, if an engineer raised it.
+     *
+     * @return int how many engineers were alerted
+     */
+    public function announce(Ticket $ticket): int
+    {
+        $from = TicketPriority::tryFrom((string) config('atlas.new_ticket_alert_from'));
+
+        if (! $from || $ticket->priority->weight() < $from->weight()) {
+            return 0;
+        }
+
+        $engineers = User::query()->active()->role(UserRole::Engineer)
+            ->whereKeyNot($ticket->reported_by)
+            ->get();
+
+        // An absolute campus time, because the message is saved.
+        $due = $ticket->due_at?->campus()->format('j M Y, H:i') ?? 'with no target';
+
+        foreach ($engineers as $engineer) {
+            $this->alarms->raise(
+                AlarmType::TicketRaised,
+                $engineer,
+                "{$ticket->ticket_number}: {$ticket->title}",
+                "{$ticket->priority->label()}, due {$due}. Raised by {$ticket->reporter?->name}.",
+                related: $ticket,
+            );
+        }
+
+        return $engineers->count();
     }
 
     /**
@@ -323,6 +365,9 @@ class TicketService
      * it is are different questions, and a reassignment mid-repair must not
      * move the ticket through its lifecycle.
      *
+     * Somebody given a ticket by somebody else is told. Nothing else would
+     * show them it was now theirs until they next filtered the queue.
+     *
      * @throws DomainException when the ticket is closed, or the target
      *                         cannot hold work
      */
@@ -362,6 +407,19 @@ class TicketService
                     : 'Unassigned and returned to the queue.',
                 'is_internal' => true,
             ]);
+
+            if ($engineer && $engineer->id !== $actor->id) {
+                // An absolute campus time, because the message is saved.
+                $due = $ticket->due_at?->campus()->format('j M Y, H:i') ?? 'with no target';
+
+                $this->alarms->raise(
+                    AlarmType::TicketAssigned,
+                    $engineer,
+                    "{$ticket->ticket_number} is yours now",
+                    "{$ticket->title}. {$ticket->priority->label()}, due {$due}. Assigned by {$actor->name}.",
+                    related: $ticket,
+                );
+            }
 
             return $ticket->fresh(['assignee']);
         });

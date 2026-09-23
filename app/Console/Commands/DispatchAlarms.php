@@ -33,7 +33,7 @@ class DispatchAlarms extends Command
          * `TicketService::raiseSlaBreachAlarms()`. This command only decides
          * when to ask.
          */
-        $breaches = $tickets->raiseSlaBreachAlarms($alarms);
+        $breaches = $tickets->raiseSlaBreachAlarms();
 
         if ($breaches > 0) {
             $this->warn($breaches.' SLA '.str('breach')->plural($breaches).' raised.');

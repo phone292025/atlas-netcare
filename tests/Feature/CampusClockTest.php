@@ -322,7 +322,7 @@ class CampusClockTest extends TestCase
 
         $this->atCampusTime('2026-09-19 18:00');
 
-        app(TicketService::class)->raiseSlaBreachAlarms(app(AlarmService::class));
+        app(TicketService::class)->raiseSlaBreachAlarms();
 
         $message = Alarm::where('type', AlarmType::SlaBreach->value)->value('message');
 

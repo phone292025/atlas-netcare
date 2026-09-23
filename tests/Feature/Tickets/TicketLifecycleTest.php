@@ -11,6 +11,7 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use App\Services\Tickets\TicketService;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -387,7 +388,7 @@ class TicketLifecycleTest extends TestCase
         // The winner of the race, holding the number the loser will compute.
         $taken = $this->service()->open($this->attributes(), $reporter);
 
-        $loser = new class extends TicketService
+        $loser = new class(app(AlarmService::class)) extends TicketService
         {
             public int $reads = 0;
 
@@ -422,7 +423,7 @@ class TicketLifecycleTest extends TestCase
         $reporter = $this->userWith(UserRole::Assistant);
         $taken = $this->service()->open($this->attributes(), $reporter);
 
-        $doomed = new class extends TicketService
+        $doomed = new class(app(AlarmService::class)) extends TicketService
         {
             public string $collideWith = '';
 

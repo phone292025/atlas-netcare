@@ -251,6 +251,14 @@ return [
     ],
 
     /*
+    | The lowest priority that alerts every engineer when a person raises a
+    | ticket. Anything lower waits in the queue, where an engineer finds it
+    | on their next look: a four-hour target cannot wait for that, a day can.
+    | 'low' alerts on every ticket; null on none.
+    */
+    'new_ticket_alert_from' => env('ATLAS_NEW_TICKET_ALERT_FROM', 'critical'),
+
+    /*
     |--------------------------------------------------------------------------
     | Data retention
     |--------------------------------------------------------------------------

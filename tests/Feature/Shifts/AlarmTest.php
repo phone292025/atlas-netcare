@@ -290,11 +290,28 @@ class AlarmTest extends TestCase
             'related_id' => $ticket->id,
         ]);
 
+        // The engineer's own screen, with the assign and progress buttons. It
+        // went to the assistant's read-only one.
         $this->actingAs($engineer)
             ->get(route('notifications.show', $alarm))
-            ->assertRedirect(route('assistant.tickets.show', $ticket));
+            ->assertRedirect(route('engineer.tickets.show', $ticket));
 
         $this->assertNotNull($alarm->fresh()->read_at);
+    }
+
+    public function test_an_assistant_opening_a_ticket_alarm_goes_to_their_own_view_of_it(): void
+    {
+        $assistant = $this->userWith(UserRole::Assistant);
+        $ticket = Ticket::factory()->create(['reported_by' => $assistant->id]);
+        $alarm = Alarm::factory()->create([
+            'user_id' => $assistant->id,
+            'related_type' => $ticket->getMorphClass(),
+            'related_id' => $ticket->id,
+        ]);
+
+        $this->actingAs($assistant)
+            ->get(route('notifications.show', $alarm))
+            ->assertRedirect(route('assistant.tickets.show', $ticket));
     }
 
     public function test_you_cannot_open_somebody_elses_alarm(): void

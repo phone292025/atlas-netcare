@@ -658,6 +658,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it |
+| `Feature/Tickets/NewTicketAlertTest.php` | Engineers are told about an urgent ticket when it is raised, not only when |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render |
 | `Feature/Tickets/TicketAssignmentTest.php` | FR-307's "assign": handing a ticket to an engineer, or back to the queue |

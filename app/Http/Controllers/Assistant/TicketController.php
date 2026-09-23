@@ -103,6 +103,8 @@ class TicketController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
+        $this->tickets->announce($ticket);
+
         return redirect()
             ->route('assistant.tickets.show', $ticket)
             ->with('success', "{$ticket->ticket_number} raised. An engineer will pick it up.");
