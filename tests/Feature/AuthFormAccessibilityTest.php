@@ -7,20 +7,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The authentication and profile screens were migrated off Breeze's form
- * components onto <x-form.*> so the system has one form vocabulary.
+ * Sign-in and profile form errors are announced with the failing field.
  *
- * Breeze's <x-input-error> rendered a floating <ul> with no programmatic link
- * to its input — no id, no aria-describedby, no aria-invalid — so a screen
- * reader user tabbing to a failed field heard nothing about the failure. It
- * also hardcoded indigo focus rings and border-gray-300 where the rest of the
- * system uses the brand token and border-slate-300.
- *
- * These tests pin what the migration had to preserve and what it gained.
+ * These screens use <x-form.*>, like every other form. Breeze's own form
+ * components rendered errors with no programmatic link to their input, so a
+ * screen reader user heard nothing about a failure, and a scan here keeps them
+ * from coming back.
  *
  * @see docs/01-requirements.md NFR-10
  */
-class AuthFormMigrationTest extends TestCase
+class AuthFormAccessibilityTest extends TestCase
 {
     use RefreshDatabase;
 

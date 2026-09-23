@@ -621,7 +621,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Auth/PasswordUpdateTest.php` | _no summary in the file_ |
 | `Feature/Auth/RemovedAuthFeaturesTest.php` | Breeze features this system deliberately does not have |
 | `Feature/Auth/ResetWithoutMailTest.php` | Resetting a password on a machine that cannot send mail |
-| `Feature/AuthFormMigrationTest.php` | The authentication and profile screens were migrated off Breeze's form |
+| `Feature/AuthFormAccessibilityTest.php` | Sign-in and profile form errors are announced with the failing field |
 | `Feature/BuildCodeMapTest.php` | `atlas:code-map` keeps docs/13-code-map.md true |
 | `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant |
@@ -631,9 +631,9 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/DevGalleryTest.php` | The component gallery is a development tool, not part of the system |
 | `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline |
 | `Feature/EnsureUserHasRoleTest.php` | Area-level authorisation is the boundary between the three roles, so it is |
+| `Feature/EntryPointTest.php` | The front door: the application boots, and a stranger lands on sign-in |
 | `Feature/ErrorPagesTest.php` | The error pages are screens too |
 | `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it |
-| `Feature/ExampleTest.php` | The smallest possible check that the application boots and routes |
 | `Feature/FormComponentsTest.php` | The form controls are the most reused components in the system, every admin |
 | `Feature/FoundationSchemaTest.php` | The four foundation tables every other module has a foreign key into |
 | `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row |

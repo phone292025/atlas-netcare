@@ -5,13 +5,12 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * The smallest possible check that the application boots and routes.
+ * The front door: the application boots, and a stranger lands on sign-in.
  *
- * Laravel's stock version asserted that "/" returns 200, which stopped being
- * true when the welcome page was removed: Atlas NetCare has no public landing
- * page, so "/" redirects a guest to sign in.
+ * There is no public landing page (NFR-03), so "/" redirects a guest to the
+ * sign-in form rather than rendering anything of its own.
  */
-class ExampleTest extends TestCase
+class EntryPointTest extends TestCase
 {
     public function test_the_application_boots_and_routes(): void
     {
