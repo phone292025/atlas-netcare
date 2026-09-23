@@ -103,17 +103,8 @@
         </div>
 
         <div class="space-y-4 lg:col-span-2">
-            {{--
-                The three cards below are the slots M2's spec promises to the
-                modules that come after it. They are deliberately built now,
-                empty and labelled, rather than left as a gap: an owner picking
-                up M4 can see exactly where their work lands, and a marker
-                looking at M2 in week 10 sees a page that explains itself
-                instead of a blank column.
-
-                @see docs/modules/M2-locations-and-assets.md — "Build them with
-                     slots the other modules can fill."
-            --}}
+            {{-- Risk, inspections and tickets: what the other modules know
+                 about this machine. See docs/modules/M2-locations-and-assets.md --}}
             <x-card title="Risk" subtitle="Predictive maintenance score.">
                 @if ($labPc->risk_band)
                     <x-risk-gauge :score="(float) $labPc->risk_score" :band="$labPc->risk_band" />

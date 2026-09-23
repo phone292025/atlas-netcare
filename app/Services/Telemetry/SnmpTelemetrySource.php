@@ -10,18 +10,13 @@ use RuntimeException;
 /**
  * Real access points, over SNMP.
  *
- * A DELIBERATE STUB. ADR-0002 exists because APU IT granting network access to
- * a student project is a permission we do not control and may never receive —
- * so the headline feature was built to not depend on it.
+ * A DELIBERATE STUB, because network access to campus access points is a
+ * permission this project does not control (ADR-0002). Going live is
+ * implementing collect() and setting ATLAS_TELEMETRY_DRIVER=snmp; nothing
+ * else in the system changes.
  *
- * This class is what "swapping the driver" means in practice. It is the whole
- * cost of going live: implement collect(), set ATLAS_TELEMETRY_DRIVER=snmp,
- * and nothing else in the system changes. No controller, no view, no
- * migration, no test.
- *
- * It throws rather than returning an empty collection on purpose. A driver
- * that silently produced nothing would look like forty access points that all
- * went quiet at once, and somebody would spend an afternoon on it.
+ * It throws rather than returning nothing: an empty result would look like
+ * every access point going quiet at once.
  *
  * WHEN IMPLEMENTING THIS:
  *   - credentials belong in .env and config, never in this file
@@ -43,13 +38,9 @@ class SnmpTelemetrySource implements TelemetrySource
 
     /**
      * Every access point not under maintenance, which is what a real SNMP
-     * implementation would enumerate.
-     *
-     * Answerable even though collect() throws, and deliberately so: this is
-     * the contract a real implementation inherits, and `markStaleOffline()`
-     * has to get a sensible answer from whichever driver is bound. A device
-     * that fails to enumerate IS going quiet, so unlike the local driver this
-     * one wants the whole estate judged.
+     * implementation would enumerate. Answerable even though collect()
+     * throws: markStaleOffline() asks whichever driver is bound, and a device
+     * that fails to enumerate IS going quiet.
      *
      * @return Builder<AccessPoint>
      */

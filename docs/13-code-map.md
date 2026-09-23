@@ -62,7 +62,7 @@ Every URL the system answers.
 |---|---|---|
 | `auth.php` | _no summary in the file_ | 86 |
 | `console.php` | _no summary in the file_ | 98 |
-| `web.php` | _no summary in the file_ | 390 |
+| `web.php` | _no summary in the file_ | 249 |
 <!-- /code-map -->
 
 `web.php` is grouped by role, so an assistant's URLs sit under
@@ -99,19 +99,19 @@ couple of hundred lines is one that has started deciding things.
 | `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) | 117 |
 | `Assistant/TicketController.php` | An assistant raising and following their own tickets (FR-206, FR-207, | 236 |
 | `Auth/AuthenticatedSessionController.php` | Display the login view | 47 |
-| `Auth/NewPasswordController.php` | Display the password reset view | 106 |
+| `Auth/NewPasswordController.php` | Display the password reset view | 98 |
 | `Auth/PasswordController.php` | Update the user's password | 39 |
 | `Auth/PasswordResetLinkController.php` | FR-102, step one: ask for a link | 95 |
 | `Controller.php` | Laravel 12 ships this class empty. AuthorizesRequests is added here so every | 21 |
 | `DashboardRedirect.php` | Sends a signed-in user to the home screen for their role | 43 |
 | `Engineer/DashboardController.php` | The access point health dashboard (FR-301, FR-304) | 57 |
-| `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) | 178 |
+| `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) | 172 |
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along | 164 |
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) | 125 |
 | `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): every access point on one screen, | 135 |
 | `NotificationController.php` | The notification bell and its list (FR-212) | 70 |
 | `ProfileController.php` | Display the user's profile form | 38 |
-| `ReportController.php` | Operational reports and descriptive statistics (FR-410) | 44 |
+| `ReportController.php` | Operational reports and descriptive statistics (FR-410) | 39 |
 | `ShiftCalendarController.php` | Handing shifts to the assistant's own phone calendar | 124 |
 | `TicketCommentController.php` | Comments on a ticket (FR-308) | 40 |
 <!-- /code-map -->
@@ -131,7 +131,7 @@ They answer different questions.
 <!-- code-map:app/Http/Middleware/ -->
 | File | What it does | Lines |
 |---|---|---|
-| `EnsurePasswordIsChanged.php` | Stops a user who is still on an administrator-chosen password | 79 |
+| `EnsurePasswordIsChanged.php` | Stops a user who is still on an administrator-chosen password (Q6) | 68 |
 | `EnsureUserHasRole.php` | Area-level authorisation: may this role reach this part of the system at all? | 77 |
 <!-- /code-map -->
 
@@ -184,8 +184,8 @@ Every rule in the system. If code decides something, it belongs here.
 |---|---|---|
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates | 155 |
 | `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection | 207 |
-| `Reports/ReportingService.php` | The five operational reports (FR-410) | 457 |
-| `Risk/RiskScoringService.php` | The predictive part of the project | 390 |
+| `Reports/ReportingService.php` | The five operational reports (FR-410) | 359 |
+| `Risk/RiskScoringService.php` | The predictive part of the project | 340 |
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) | 152 |
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) | 268 |
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it | 401 |
@@ -193,10 +193,10 @@ Every rule in the system. If code decides something, it belongs here.
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database | 73 |
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly | 277 |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force | 116 |
-| `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 70 |
+| `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP | 61 |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds | 161 |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard | 383 |
-| `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 58 |
+| `Telemetry/TelemetrySource.php` | Where access point telemetry comes from | 50 |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle | 433 |
 <!-- /code-map -->
 
@@ -269,7 +269,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `TicketCategory.php` | What kind of fault a ticket describes. Used for filtering the queue and for | 32 |
 | `TicketPriority.php` | How urgent a ticket is. Drives the service level target | 62 |
 | `TicketStatus.php` | Lifecycle states of a workspace incident ticket | 62 |
-| `UserRole.php` | The three roles Atlas NetCare serves | 62 |
+| `UserRole.php` | The three roles Atlas NetCare serves | 54 |
 <!-- /code-map -->
 
 Enums return a tone, never a colour. `RiskBand::High->tone()` gives
@@ -302,7 +302,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 |---|---|---|
 | `CampusClock.php` | The campus wall clock, and the one place the application asks what day it is | 84 |
 | `FormField.php` | Shared derivations for form controls | 45 |
-| `Tone.php` | The single source of truth for what a tone looks like | 185 |
+| `Tone.php` | The single source of truth for what a tone looks like | 154 |
 <!-- /code-map -->
 
 <!-- code-map:app/View/Components/ -->
@@ -326,7 +326,7 @@ Small, and more of the system passes through it than its size suggests.
 <!-- code-map:app/Providers/ -->
 | File | What it does | Lines |
 |---|---|---|
-| `AppServiceProvider.php` | Models whose every write is recorded in audit_logs | 192 |
+| `AppServiceProvider.php` | Models whose every write is recorded in audit_logs. Add a model here and | 146 |
 <!-- /code-map -->
 
 Three things happen here. `AUDITED` lists every model the audit observer
@@ -350,14 +350,14 @@ and why each runs when it does.
 | `AggregateTelemetry.php` | Roll raw readings up into hourly buckets | 121 |
 | `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw | 256 |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` | 331 |
-| `CheckSchema.php` | Audit the LIVE database for traps the test suite cannot see | 195 |
+| `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see | 178 |
 | `CollectTelemetry.php` | Take one reading from every access point and store it | 37 |
 | `DispatchAlarms.php` | Send every alarm that has come due | 48 |
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) | 58 |
-| `MailTest.php` | Prove that mail actually leaves this machine | 148 |
+| `MailTest.php` | Prove that mail actually leaves this machine | 145 |
 | `PruneTelemetry.php` | Delete telemetry older than the retention window (Q10) | 57 |
-| `PurgeDemoData.php` | Remove every demonstration row, leaving a system somebody could deploy | 311 |
-| `RecalculateRisk.php` | Score every asset and keep the result (FR-505) | 135 |
+| `PurgeDemoData.php` | Remove every demonstration row, leaving a system somebody could deploy | 269 |
+| `RecalculateRisk.php` | Score every asset and keep the result (FR-505) | 132 |
 | `RenumberTickets.php` | Give every ticket a sequential reference in the order it was opened | 266 |
 | `ShowResetLink.php` | Print the most recent password reset link out of the log | 141 |
 <!-- /code-map -->
@@ -425,8 +425,8 @@ for tests.
 | File | What it does | Lines |
 |---|---|---|
 | `DatabaseSeeder.php` | Two seeders, deliberately | 31 |
-| `DemoDataSeeder.php` | Everything needed to demonstrate the system, and nothing the system needs to | 549 |
-| `ReferenceSeeder.php` | The minimum a real deployment needs on day one | 288 |
+| `DemoDataSeeder.php` | Everything needed to demonstrate the system, and nothing it needs to run | 511 |
+| `ReferenceSeeder.php` | The minimum a real deployment needs on day one | 265 |
 <!-- /code-map -->
 
 <!-- code-map:database/factories/ -->
@@ -464,7 +464,7 @@ Laravel's, plus one of ours.
 | File | What it does | Lines |
 |---|---|---|
 | `app.php` | _no summary in the file_ | 126 |
-| `atlas.php` | _no summary in the file_ | 465 |
+| `atlas.php` | _no summary in the file_ | 359 |
 | `auth.php` | _no summary in the file_ | 117 |
 | `cache.php` | _no summary in the file_ | 117 |
 | `database.php` | _no summary in the file_ | 184 |
@@ -504,7 +504,7 @@ Blade files. Views receive data as props and never query.
 | `admin/lab-pcs/create.blade.php` | 21 |
 | `admin/lab-pcs/edit.blade.php` | 45 |
 | `admin/lab-pcs/index.blade.php` | 82 |
-| `admin/lab-pcs/show.blade.php` | 150 |
+| `admin/lab-pcs/show.blade.php` | 141 |
 | `admin/locations/_form.blade.php` | 15 |
 | `admin/locations/create.blade.php` | 18 |
 | `admin/locations/edit.blade.php` | 37 |
@@ -530,18 +530,18 @@ Blade files. Views receive data as props and never query.
 | `assistant/tickets/create.blade.php` | 101 |
 | `assistant/tickets/index.blade.php` | 82 |
 | `assistant/tickets/show.blade.php` | 14 |
-| `auth/forgot-password.blade.php` | 82 |
+| `auth/forgot-password.blade.php` | 73 |
 | `auth/login.blade.php` | 38 |
 | `auth/reset-password.blade.php` | 47 |
 | `components/alert.blade.php` | 73 |
 | `components/auth-session-status.blade.php` | 7 |
-| `components/badge.blade.php` | 32 |
+| `components/badge.blade.php` | 26 |
 | `components/brand-mark.blade.php` | 36 |
 | `components/card.blade.php` | 53 |
 | `components/chart.blade.php` | 107 |
 | `components/checklist-item.blade.php` | 115 |
 | `components/data-table.blade.php` | 147 |
-| `components/empty-state.blade.php` | 39 |
+| `components/empty-state.blade.php` | 35 |
 | `components/form/field.blade.php` | 58 |
 | `components/form/input.blade.php` | 56 |
 | `components/form/select.blade.php` | 106 |
@@ -551,12 +551,12 @@ Blade files. Views receive data as props and never query.
 | `components/page-header.blade.php` | 41 |
 | `components/pagination.blade.php` | 131 |
 | `components/priority-pill.blade.php` | 18 |
-| `components/risk-gauge.blade.php` | 82 |
-| `components/sidebar.blade.php` | 58 |
+| `components/risk-gauge.blade.php` | 81 |
+| `components/sidebar.blade.php` | 55 |
 | `components/stat-tile.blade.php` | 83 |
 | `components/status-badge.blade.php` | 19 |
 | `components/timeline.blade.php` | 86 |
-| `dev/gallery.blade.php` | 242 |
+| `dev/gallery.blade.php` | 241 |
 | `engineer/access-point.blade.php` | 128 |
 | `engineer/dashboard.blade.php` | 195 |
 | `engineer/risk/index.blade.php` | 127 |
@@ -570,7 +570,7 @@ Blade files. Views receive data as props and never query.
 | `errors/429.blade.php` | 7 |
 | `errors/500.blade.php` | 8 |
 | `errors/503.blade.php` | 7 |
-| `errors/layout.blade.php` | 54 |
+| `errors/layout.blade.php` | 51 |
 | `layouts/app.blade.php` | 172 |
 | `layouts/guest.blade.php` | 46 |
 | `monitor/index.blade.php` | 575 |
@@ -623,13 +623,13 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/BuildCodeMapTest.php` | `atlas:code-map` keeps docs/13-code-map.md true | 170 |
 | `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the | 341 |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant | 132 |
-| `Feature/ComponentLibraryTest.php` | The Sprint 0 component library, Stage 3b | 292 |
+| `Feature/ComponentLibraryTest.php` | The shared component library. Every screen is built from these, so a fault | 289 |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it | 191 |
-| `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role | 257 |
+| `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role | 256 |
 | `Feature/DevGalleryTest.php` | The component gallery is a development tool, not part of the system | 39 |
 | `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline | 210 |
 | `Feature/EnsureUserHasRoleTest.php` | Area-level authorisation is the boundary between the three roles, so it is | 200 |
-| `Feature/ErrorPagesTest.php` | The error pages are screens too | 70 |
+| `Feature/ErrorPagesTest.php` | The error pages are screens too | 68 |
 | `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it | 104 |
 | `Feature/ExampleTest.php` | The smallest possible check that the application boots and routes | 32 |
 | `Feature/FormComponentsTest.php` | The form controls are the most reused components in the system, every admin | 158 |

@@ -18,37 +18,22 @@ use Illuminate\Support\Carbon;
 /**
  * The five operational reports (FR-410).
  *
- * Each method returns one figure, shaped for the view and nothing else.
- * Together they are the evidence that the modules connect rather than sitting
- * side by side: inspection pass rates link M3 to outcomes, resolution times
- * show M4's SLA is real, congestion links M5 to places, and the risk spread is
- * M7's headline.
+ * Each method returns one figure, shaped for the view. Together they show the
+ * modules connecting: inspection pass rates link M3 to outcomes, resolution
+ * times show M4's SLA is real, congestion links M5 to places, and the risk
+ * spread is M7's headline.
  *
- * WHY THIS IS A SERVICE AND NOT THE CONTROLLER IT USED TO BE. All of it lived
- * in ReportController, which reached 309 lines of query building against a
- * hard rule that says a controller "calls one service method". Every other
- * module in Atlas NetCare has a service; reports was the one place where the
- * aggregation had nowhere to go, so it stayed in the controller and the rule
- * quietly stopped describing the code.
- *
- * NO VENDOR-SPECIFIC SQL ANYWHERE IN HERE. The suite runs on SQLite and the
- * system runs on MariaDB, and that gap has already shipped three defects
- * through a fully green suite — MySQL-only FIELD(), MySQL-only DATE_FORMAT,
- * and auto-updating timestamps. Date arithmetic in particular is done in PHP
- * rather than in SQL, because TIMESTAMPDIFF and julianday have nothing in
- * common. The sets involved are hundreds of rows, not millions.
+ * No vendor-specific SQL: the suite runs on SQLite and the system on MariaDB,
+ * so date arithmetic is done in PHP. The sets are hundreds of rows, not
+ * millions.
  *
  * @see docs/modules/M7-predictive-and-reports.md
- * @see docs/progress/decision-log.md — 2026-08-29
  */
 class ReportingService
 {
     /**
-     * Assets by risk band — M7's headline analytics figure.
-     *
-     * Reads the cached columns rather than `risk_assessments`, so it always
-     * agrees with the maintenance ranking screen. Both asset types together,
-     * because the bands mean the same thing on the same scale.
+     * Assets by risk band, from the cached columns so it always agrees with
+     * the maintenance ranking. Both asset types share one scale.
      *
      * @return array<string, array<string, int>>
      */
@@ -71,8 +56,7 @@ class ReportingService
             ];
         }
 
-        // Assets never scored. Reported rather than hidden, because a report
-        // that silently omits rows is how a total stops adding up.
+        // Reported rather than hidden, so the total adds up.
         $rows['unscored'] = [
             'label' => 'Not yet scored',
             'lab_pcs' => LabPc::inService()->whereNull('risk_band')->count(),
@@ -85,27 +69,15 @@ class ReportingService
     }
 
     /*
-    |---------------------------------------------------------------------
-    | Chart and table shapes
-    |---------------------------------------------------------------------
-    |
-    | Chart.js datasets and table headers used to be assembled inside
-    | `reports/index.blade.php`, in an `@php` block and four inline
-    | `collect()->pluck()` chains. None of it queried anything, so hard rule 2
-    | held, but it left the view deciding what the figures were made of — and
-    | the one place a `->pluck()` had to skip the "unscored" row was six lines
-    | of Blade away from the method that put the row there.
-    |
-    | These take a figure and return it in the shape the component wants. No
-    | queries, no rules, nothing a test cannot read.
+    | Chart and table shapes: a figure in, the shape a component wants out.
+    | No queries, so the view decides nothing about what the figures are.
     */
 
     /**
      * `riskSpread()` as a Chart.js bar dataset.
      *
-     * The unscored row is deliberately dropped: "not yet scored" is not a risk
-     * band, and charting it alongside four that are makes the axis meaningless.
-     * It stays in the table underneath, where the total has to add up.
+     * The unscored row is dropped: it is not a band, and charting it beside
+     * four that are makes the axis meaningless. The table keeps it.
      *
      * @param  array<string, array<string, int|string>>  $spread
      * @return array{labels: list<string>, data: list<int>, colours: list<string>, anyScored: bool}
@@ -124,8 +96,8 @@ class ReportingService
                 ->values()
                 ->all(),
 
-            // Every band at zero means nothing has been scored yet, which is
-            // an empty state rather than a chart of four zero-height bars.
+            // All zero means nothing is scored yet: an empty state, not a
+            // chart of four zero-height bars.
             'anyScored' => array_sum($data) > 0,
         ];
     }
@@ -138,20 +110,9 @@ class ReportingService
      */
     public function inspectionChart(array $rates): array
     {
-        /*
-         * CODES ON THE AXIS, NOT LABELS.
-         *
-         * This used to pluck `location`, which is `Location::label()` —
-         * "CAF-GF — Campus Cafeteria", around twenty-six characters. Seven of
-         * those across a bar chart do not fit, so Chart.js rotated them to
-         * 45 degrees, where they overlapped each other and ate roughly half
-         * the plot area. On a phone they were unreadable.
-         *
-         * The code is what is printed on the door and what an assistant reads
-         * out over the phone, which is why Location puts it first in its own
-         * label. Nothing is lost by using it alone: the table sitting next to
-         * this chart carries the full name on every row.
-         */
+        // Location codes on the axis, not full labels: seven 26-character
+        // labels rotate, overlap and eat half the plot. The table beside the
+        // chart carries the full name.
         return [
             'labels' => collect($rates)->pluck('code')->map(fn ($c) => (string) $c)->values()->all(),
             'data' => collect($rates)->pluck('rate')->map(fn ($r) => (float) $r)->values()->all(),
@@ -161,9 +122,6 @@ class ReportingService
 
     /**
      * Column headers for the ticket matrix: Category, one per priority, Total.
-     *
-     * The priorities are enum cases, and only this knows that the header wants
-     * `label()` rather than the case itself.
      *
      * @param  array<string, mixed>  $volume
      * @return list<string|array{label: string, align: string}>
@@ -181,26 +139,16 @@ class ReportingService
     }
 
     /**
-     * Ticket volume by category and priority — the descriptive statistics.
-     *
-     * A matrix rather than two separate counts, because "how many hardware
-     * faults" and "how many were critical" are each half an answer.
+     * Ticket volume by category and priority. A matrix, because "how many
+     * hardware faults" and "how many were critical" are each half an answer.
      *
      * @return array<string, mixed>
      */
     public function ticketVolume(): array
     {
-        /*
-         * toBase(), so the rows come back as plain objects.
-         *
-         * Without it Eloquent hydrates Ticket MODELS and casts `category` and
-         * `priority` into their enums, so comparing them to a string silently
-         * matches nothing and every cell in the matrix reads zero while the
-         * heading above it reports the true total. That is exactly what
-         * shipped: the screen said "3 tickets" over a grid of noughts, and no
-         * test caught it because the tests asserted the headings rather than
-         * the numbers.
-         */
+        // toBase(): hydrated models cast category and priority to enums, and
+        // comparing an enum with the string below matches nothing, so every
+        // cell read zero under a heading reporting the true total.
         $counts = Ticket::query()
             ->selectRaw('category, priority, COUNT(*) as total')
             ->groupBy('category', 'priority')
@@ -234,13 +182,9 @@ class ReportingService
     /**
      * Mean time to resolution by priority, against the SLA target.
      *
-     * SUBTRACTED IN PHP, not in SQL. MySQL wants TIMESTAMPDIFF and SQLite
-     * wants julianday, and a query written for one silently returns nonsense
-     * on the other rather than failing — which is precisely how the FIELD()
-     * and DATE_FORMAT defects reached production.
-     *
-     * Measured from `opened_at` to `resolved_at`, the same baseline the SLA
-     * uses. Unresolved tickets are excluded rather than counted as zero.
+     * From `opened_at` to `resolved_at`, the same baseline the SLA uses, and
+     * subtracted in PHP: TIMESTAMPDIFF and julianday have nothing in common.
+     * Unresolved tickets are excluded rather than counted as zero.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -259,19 +203,11 @@ class ReportingService
                 ->map(fn (Ticket $t) => $t->opened_at->diffInMinutes($t->resolved_at) / 60);
 
             /*
-             * A NEGATIVE DURATION MEANS THE ROW IS CORRUPT, not that the
-             * ticket was fixed before it broke. `tickets.opened_at` was a
-             * MariaDB `timestamp` until 2026-08-29 and silently rewrote
-             * itself to "now" on every status transition, so rows written
-             * before that fix can carry an opened_at later than their own
-             * resolved_at.
-             *
-             * Excluded from the mean, because averaging in a negative pulls
-             * the figure toward zero and makes the SLA look better than it
-             * was. But COUNTED and REPORTED, because the first version of
-             * this silently dropped them and the screen then said "nothing
-             * resolved yet" about a priority that had a resolved ticket.
-             * A report that quietly omits rows is how a total stops adding up.
+             * A negative duration means a corrupt row, not a fix before the
+             * fault: `opened_at` was a MariaDB `timestamp` until 2026-08-29 and
+             * rewrote itself on every transition. Such rows are left out of the
+             * mean, which they would flatter, but counted and reported, so the
+             * totals still add up.
              */
             $usable = $all->filter(fn (float $h) => $h >= 0);
             $excluded = $all->count() - $usable->count();
@@ -286,8 +222,8 @@ class ReportingService
                 'excluded' => $excluded,
                 'mean_hours' => $mean,
                 'target_hours' => $target,
-                // Whether the AVERAGE met the target. Individual breaches are
-                // the alarm's job; this is the aggregate picture.
+                // The AVERAGE against the target. Individual breaches are the
+                // alarm's job.
                 'within_target' => $mean !== null && $target > 0 && $mean <= $target,
             ];
         }
@@ -296,11 +232,10 @@ class ReportingService
     }
 
     /**
-     * Inspection pass rate by location — links M3 to outcomes.
+     * Inspection pass rate by location.
      *
-     * Completed inspections only. An inspection somebody started and
-     * abandoned has no outcome, and counting it as a failure would blame a
-     * room for an assistant's interrupted shift.
+     * Completed inspections only: an abandoned one has no outcome, and
+     * counting it as a failure would blame a room for an interrupted shift.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -325,24 +260,12 @@ class ReportingService
             }
 
             /*
-             * PassWithIssues COUNTS AS A PASS.
+             * PassWithIssues counts as a pass: the machine works, with
+             * something cosmetic noted.
              *
-             * It is a machine that works with something cosmetic noted — a
-             * loose stand, a mark on the screen. Counting it as a failure,
-             * which this once did, made every location's pass rate
-             * lower than the truth and put working machines in a column headed
-             * "Failed". The enum has three cases and the report only ever
-             * looked at one of them.
-             */
-            /*
-             * A closure, not `whereIn`.
-             *
-             * `overall_result` is cast to the enum, and the two Collection
-             * helpers disagree about that: `where()` unwraps a BackedEnum
-             * before comparing, `whereIn()` does not — so the obvious
-             * translation from one to the other silently matched nothing and
-             * reported every location at 0%. It looked correct in review and
-             * was caught only because a test asserted the number.
+             * A closure rather than whereIn(): `overall_result` is cast to the
+             * enum, and Collection::where() unwraps a BackedEnum before
+             * comparing while whereIn() does not, so whereIn() matched nothing.
              */
             $passed = (int) $forLocation
                 ->filter(fn ($row) => in_array($row->overall_result, [
@@ -352,8 +275,8 @@ class ReportingService
                 ->sum('total');
 
             $report[] = [
-                // Both, deliberately. The table has room for the full label;
-                // a chart axis does not. See inspectionChart().
+                // Both: the table has room for the label, a chart axis does
+                // not. See inspectionChart().
                 'location' => $location->label(),
                 'code' => $location->code,
                 'total' => $total,
@@ -367,10 +290,8 @@ class ReportingService
     }
 
     /**
-     * Access point uptime and peak congestion by location — links M5 to place.
-     *
-     * Averaged over the retained aggregate window rather than all history: a
-     * room that was bad six months ago and has been fine since should not
+     * Access point uptime and peak congestion by location, over the last 30
+     * days: a room that was bad six months ago and fine since should not
      * still read as a problem.
      *
      * @return array<int, array<string, mixed>>
@@ -402,36 +323,17 @@ class ReportingService
     }
 
     /**
-     * The busiest the whole ROOM ever got, not its busiest single radio.
+     * The busiest the whole ROOM got, not its busiest single radio.
      *
-     * WHAT THIS REPLACED, AND WHY IT HAD TO. The column used to be
-     * `MAX(peak_client_count)` across the location's access points, which is
-     * the busiest moment of one radio. In a table headed "by location", beside
-     * a count of access points and two per-location averages, nobody reads it
-     * that way — and it reported **70 for all seven locations**, because the
-     * seeder gives every location at least one 80-client access point and the
-     * simulator drives an 80 to the same peak everywhere. Seven identical
-     * numbers is a column carrying no information at all, which is the same
-     * defect as a report showing a grid of zeroes under a heading that says
-     * three tickets.
+     * The busiest radio reported the same number for every location, which
+     * says nothing about where to add capacity. Summing each access point's
+     * hourly peak slightly overstates true concurrent demand, since the peaks
+     * need not share a minute; for a capacity decision that is the right
+     * direction to err in, and raw readings would mean scanning hundreds of
+     * thousands of rows for one figure.
      *
-     * The location figures now range from 140 to 254 and track the number and
-     * size of the access points in the room, which is what somebody deciding
-     * where to add capacity needs.
-     *
-     * HONEST ABOUT WHAT IT IS. Summing each access point's busiest minute
-     * within an hour slightly overstates the true concurrent peak, because
-     * those minutes need not be the same minute. Reading raw
-     * `telemetry_readings` would be exact and would also mean scanning
-     * hundreds of thousands of rows for a figure on a report page; the hourly
-     * rollup is the resolution every other trend in this system uses. It is an
-     * upper bound on concurrent demand, and that is the useful direction to
-     * err in for a capacity decision.
-     *
-     * Grouped in SQL and reduced in PHP rather than nesting a subquery: the
-     * suite runs on SQLite and the system on MariaDB, and this service does
-     * not carry vendor-specific SQL. One row per location per hour is a few
-     * thousand, not millions.
+     * Grouped in SQL and reduced in PHP rather than a vendor-specific
+     * subquery. One row per location per hour is a few thousand.
      *
      * @return array<int, int> location id => peak concurrent clients
      */

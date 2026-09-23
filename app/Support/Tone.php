@@ -5,28 +5,18 @@ namespace App\Support;
 /**
  * The single source of truth for what a tone looks like.
  *
- * Enums return a tone — 'healthy', 'attention', 'elevated', 'urgent', 'neutral' — and never
- * a colour. This class turns a tone into Tailwind classes. Change a colour here
- * and it changes in every badge, pill, banner and table at once.
+ * Enums return a tone ('healthy', 'attention', 'elevated', 'urgent',
+ * 'neutral'), never a colour, and this class turns it into Tailwind classes,
+ * one method per surface. Change a colour here and it changes everywhere.
  *
- * WHY THIS IS A PHP CLASS AND NOT config/atlas.php
+ * WHY A PHP CLASS AND NOT CONFIG. Tailwind scans source for literal class
+ * names. A class built at runtime ("bg-{$colour}-50") is never seen, is
+ * purged from the build, and renders unstyled with no error. So every string
+ * below is written out in full, and `./app/**\/*.php` is in the `content`
+ * array of tailwind.config.js so this file is scanned.
  *
- * Tailwind scans source files for literal class names. A class assembled at
- * runtime from config ("bg-{$colour}-50") is never seen by the scanner, is
- * purged from the build, and renders unstyled with no error at all. So every
- * string below is written out in full, and `./app/**\/*.php` is listed in the
- * `content` array of tailwind.config.js so this file is scanned.
- *
- * WHY IT MOVED OUT OF badge.blade.php
- *
- * Stage 3a put the mapping in that component because a badge was the only
- * surface that needed it. Stage 3b added a second — the <x-alert> banner — and
- * a banner cannot reuse a badge's classes: it is a different size, has a border
- * and tints an icon. Two surfaces, one vocabulary, so the vocabulary moved
- * somewhere both can read it. <x-risk-gauge> in Stage 3c will be the third.
- *
- * ADDING A SURFACE: add a method here. Never write a match on $tone anywhere
- * else — that is how 'urgent' ends up as two different reds.
+ * ADDING A SURFACE: add a method here. Never write a match on a tone anywhere
+ * else; that is how 'urgent' ends up as two different reds.
  *
  * @see docs/06-ui-conventions.md — Design tokens
  */
@@ -37,14 +27,8 @@ final class Tone
     public const ATTENTION = 'attention';
 
     /**
-     * Worse than ATTENTION, not yet URGENT.
-     *
-     * Added because four risk bands were sharing three tones.
-     * `RiskBand::Medium` and `RiskBand::High` both returned ATTENTION, so on
-     * M7's headline chart — the figure that makes this project answer Case
-     * Study Category 4 — two of the four bars were the same amber and a reader
-     * could not tell them apart. Three tones are enough for a status pill and
-     * one short of enough for a four-step scale.
+     * Worse than ATTENTION, not yet URGENT, so the four risk bands get four
+     * colours rather than two ambers.
      */
     public const ELEVATED = 'elevated';
 
@@ -78,11 +62,9 @@ final class Tone
     }
 
     /**
-     * Full-width message surface — <x-alert>.
-     *
-     * Deliberately a heavier treatment than a badge: a flash message has to be
-     * readable from across the room during a demo, a badge sits inside a table
-     * row and must not shout.
+     * Full-width message surface — <x-alert>. Heavier than a badge: a flash
+     * message has to be read at a glance, a badge in a table row must not
+     * shout.
      */
     public static function banner(?string $tone): string
     {
@@ -113,10 +95,7 @@ final class Tone
 
     /**
      * Solid fill — <x-risk-gauge>, progress bars, anything where the colour is
-     * the data rather than a tint behind text.
-     *
-     * The badge and banner surfaces are deliberately pale because text sits on
-     * them. Nothing sits on a gauge fill, so it can carry full saturation.
+     * the data. Full saturation, since no text sits on it.
      */
     public static function solid(?string $tone): string
     {
@@ -132,11 +111,8 @@ final class Tone
 
     /**
      * A selectable choice chip in its CHECKED state — <x-checklist-item>.
-     *
-     * Written out as literal `peer-checked:` strings rather than derived from
-     * badge() with a prefix. Deriving them would build the class name at
-     * runtime, Tailwind would never see it in a scanned file, and every
-     * selected choice on the inspection form would render colourless.
+     * Literal `peer-checked:` strings, not badge() with a prefix added at
+     * runtime, which Tailwind would never see.
      */
     public static function choice(?string $tone): string
     {
@@ -151,13 +127,9 @@ final class Tone
     }
 
     /**
-     * The same four tones as a hex value, for Chart.js.
-     *
-     * A canvas cannot use a Tailwind class, so this is the one surface that
-     * has to leave the class vocabulary. The values match the Tailwind 500
-     * scale used by solid() — if one changes, change both, which is precisely
-     * why they live next to each other rather than in a chart config
-     * somewhere.
+     * The tones as hex values, for Chart.js: a canvas cannot use a Tailwind
+     * class. They match the scale solid() uses, and live beside it so both
+     * change together.
      */
     public static function chart(?string $tone): string
     {
@@ -172,11 +144,8 @@ final class Tone
     }
 
     /**
-     * An unrecognised tone is a bug, not a styling choice.
-     *
-     * Rendering it fuchsia makes it impossible to miss on screen. Falling back
-     * to grey would hide the mistake until someone noticed a status badge that
-     * had quietly stopped meaning anything.
+     * An unrecognised tone is a bug, so it renders fuchsia, impossible to miss,
+     * rather than a grey that hides the mistake.
      */
     private static function unknown(): string
     {

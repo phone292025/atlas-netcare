@@ -9,21 +9,18 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 /**
  * Prove that mail actually leaves this machine.
  *
- * FR-102 emails a password reset link. Everything around that is covered by
- * the suite, but the suite fakes the mailer, so a green run says nothing at
- * all about whether SMTP works. The only honest test is to send one.
+ * The suite cannot: it fakes the mailer.
  *
- * The usual failure is MAIL_PASSWORD: a Google app password that was never
- * pasted, was pasted with the display spaces Google shows it with, or has
- * since been revoked. Laravel reports all three as one unhelpful line, so
- * this command reads the exception and says which it probably is.
+ * The usual failure is MAIL_PASSWORD: a Google app password never pasted,
+ * pasted with Google's display spaces, or since revoked. Laravel reports all
+ * three as one line; this reads the exception and says which it probably is.
  *
  *   php artisan atlas:mail-test
  *   php artisan atlas:mail-test someone@example.com
  *
- * Run it after changing anything under MAIL_ in .env, and once before the
- * demonstration — an app password can be revoked from the Google account
- * without anything here changing.
+ * Run it after changing anything under MAIL_ in .env, and before relying on
+ * password resets: an app password can be revoked without anything here
+ * changing.
  *
  * @see docs/02-open-questions.md Q11
  */

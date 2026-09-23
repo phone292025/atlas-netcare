@@ -75,23 +75,11 @@ class ReferenceSeeder extends Seeder
         $admin = User::withTrashed()->firstWhere('email', $email);
 
         /*
-         * AN EXISTING ADMINISTRATOR KEEPS ITS PASSWORD.
-         *
-         * This used to pass the hashed env password into the update half of
-         * `updateOrCreate` and set `must_change_password` unconditionally, so
-         * EVERY `db:seed` silently overwrote whatever password the
-         * administrator had chosen and put the flag back. `db:seed` is routine
-         * — the README tells people to run it and DemoDataSeeder depends on it
-         * — and once EnsurePasswordIsChanged existed, re-seeding also locked
-         * the account back onto the change screen.
-         *
-         * The idempotency test could not see any of it: it counts rows, and
-         * the row count never changed.
-         *
-         * Role, activation and the soft delete ARE restored, because those are
-         * how you get back in after locking yourself out. The password is not.
-         * To reset it, use the reset link (`php artisan atlas:reset-link`
-         * locally) rather than a seeder.
+         * AN EXISTING ADMINISTRATOR KEEPS ITS PASSWORD. `db:seed` is routine,
+         * and overwriting the password on every run silently undid the one the
+         * administrator chose. Role, activation and the soft delete ARE
+         * restored, because those are how you get back in after locking
+         * yourself out. To reset a password, use the reset link.
          */
         if ($admin) {
             $admin->forceFill([
@@ -219,24 +207,13 @@ class ReferenceSeeder extends Seeder
     }
 
     /**
-     * The weekly shift patterns the roster is generated from.
+     * The weekly shift patterns the roster is generated from, so "Generate
+     * this week" produces something on a fresh install.
      *
-     * This section was deferred in Sprint 0 with a note saying it belonged
-     * here once the table existed. M6 created the table and the note was never
-     * acted on, so a fresh install had NO templates at all: pressing "Generate
-     * this week" produced nothing, and the roster screen looked broken when it
-     * was only empty. The one template on the development machine had been
-     * typed in by hand through the admin screen.
-     *
-     * Five days, six slots, with Monday double-covered. That is enough for the
-     * roster to look like a real week rather than a single row stranded in a
-     * seven-column grid, and it exercises the generator's load balancing,
-     * which only shows when one assistant would otherwise take everything.
-     *
-     * These are configuration, not demonstration data. An administrator edits
-     * them, and a deployed system needs its own patterns whatever they are, so
-     * they belong here rather than in DemoDataSeeder. `shift_templates` has no
-     * `is_demo` column for the same reason.
+     * Five days, six slots, Monday double-covered: enough to look like a real
+     * week and to exercise the generator's load balancing. Configuration an
+     * administrator edits, not demo data, so `shift_templates` has no
+     * `is_demo` column.
      *
      * Keyed on name, so running this twice changes nothing.
      */

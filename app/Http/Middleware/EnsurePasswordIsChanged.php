@@ -7,25 +7,14 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Stops a user who is still on an administrator-chosen password.
+ * Stops a user who is still on an administrator-chosen password (Q6).
  *
- * `users.must_change_password` was created in Sprint 0 because `04-database.md`
- * specified it, and three places set it: an administrator creating an account,
- * an administrator resetting somebody's password, and the seeded first
- * administrator. Nothing read it. The account screen showed a badge saying
- * "Must be changed at next sign-in" and the installation guide told a reader
- * the administrator "asks for a new one immediately", and neither was true:
- * you signed in and went straight to your dashboard.
+ * `must_change_password` is set when an administrator creates an account or
+ * resets a password, and on the seeded first administrator. Until the user
+ * picks their own password, every screen but the profile redirects there.
  *
- * That was not an oversight. Q6 asked the team whether a first login should
- * force a change, nobody answered, and the project's rule is that no behaviour
- * depending on an undecided question gets built. So the column was written and
- * the middleware was not. Q6 was decided on 2026-09-04 and this is it.
- *
- * WHY THE `web` GROUP RATHER THAN AN ALIAS. A control applied route by route
- * only protects the routes somebody remembered to list, and the next person to
- * add a screen will not remember. This runs on every web request and lets the
- * unauthenticated ones straight through.
+ * On the whole `web` group rather than aliased: a control applied route by
+ * route only protects the routes somebody remembered to list.
  *
  * @see docs/02-open-questions.md Q6
  * @see app/Http/Controllers/Auth/PasswordController.php — clears the flag

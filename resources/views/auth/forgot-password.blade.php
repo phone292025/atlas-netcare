@@ -6,19 +6,10 @@
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    {{-- Say what will actually happen, because two different configurations
-         make this screen lie in the same way.
-
-         With MAIL_MAILER=log nothing is sent anywhere: Laravel writes the
-         whole message, reset token included, into storage/logs/laravel.log.
-         With smtp and no app password the send throws instead. Laravel's
-         success notice above says "We have emailed your password reset link"
-         in both cases. Seven links accumulated in that log before anybody
-         noticed, because the screen said otherwise.
-
-         Shown only when debug is on, so it can never appear on a configured
-         deployment. A feature that quietly does nothing is worse than one
-         that admits it.
+    {{-- Say what will actually happen when this machine cannot send mail:
+         with MAIL_MAILER=log the link lands in storage/logs/laravel.log, and
+         with smtp but no app password the send fails. Only while debug is on,
+         so it never appears on a configured deployment.
 
          @see docs/02-open-questions.md Q11 --}}
     @if (config('app.debug') && ! config('atlas.mail_configured'))

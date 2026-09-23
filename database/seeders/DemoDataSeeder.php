@@ -24,32 +24,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Everything needed to demonstrate the system, and nothing the system needs to
- * run.
+ * Everything needed to demonstrate the system, and nothing it needs to run.
  *
- * ONLY RUNS when config('atlas.demo_mode') is true. Every row it creates is
- * tagged is_demo (or, for telemetry, source = 'simulated'), so
- * `php artisan atlas:purge-demo-data` can remove all of it and leave the
- * reference data and anything a real user typed untouched.
+ * ONLY RUNS when config('atlas.demo_mode') is true. Every row is tagged
+ * is_demo (telemetry: source = 'simulated'), so `atlas:purge-demo-data`
+ * removes all of it and leaves reference data and real records alone. A row
+ * seeded without its flag is indistinguishable from real data.
  *
- * That tagging is not optional. A row seeded here without its flag becomes
- * indistinguishable from real data and survives the purge.
- *
- * THE ASSET AGES AND FAULT HISTORIES ARE DESIGNED, NOT RANDOM. Until
- * 2026-09-02 this seeder created accounts and nothing else, and the assets
- * that existed had been made by hand with `LabPcFactory`, whose default is a
- * purchase date somewhere in the last six years. Averaged out, every machine
- * landed Low or Medium and the maintenance priority ranking — the screen that
- * makes this project answer Case Study Category 4 — had no red rows at all.
- *
- * So the cohorts below are deliberate: a handful of machines that genuinely
- * should be replaced, some that are getting there, and a majority that are
- * fine. The scoring is not tuned to produce them; they are built to be the
- * kind of asset the scoring is meant to find. Running
- * `atlas:recalculate-risk` afterwards should show every band populated.
- *
- * Being deterministic matters as much as being realistic: the demonstration
- * should look the same on the day as it did in rehearsal.
+ * THE ASSET AGES AND FAULT HISTORIES ARE DESIGNED, NOT RANDOM: a few machines
+ * that should be replaced, some getting there, most fine. Random factory ages
+ * average out to Low and Medium and leave the maintenance ranking with nothing
+ * at the top. The scoring is not tuned to them; they are the kind of asset it
+ * is meant to find, and `atlas:recalculate-risk` afterwards populates every
+ * band. Deterministic, so the data looks the same on every install.
  *
  * @see docs/05-data-strategy.md — Mechanism 2
  * @see docs/decisions/ADR-0003-single-database-demo-flag.md
@@ -58,12 +45,8 @@ use Illuminate\Support\Facades\Hash;
 class DemoDataSeeder extends Seeder
 {
     /**
-     * How much to make.
-     *
-     * Smaller than the ~250 an earlier version of this docblock promised.
-     * Eighty machines is enough for a ranking to look like a real inventory
-     * and for pagination to matter, and it seeds in seconds — 250 bought
-     * nothing except a slower `migrate --seed` on six other people's laptops.
+     * Eighty machines: enough for the ranking to look like a real inventory
+     * and for pagination to matter, and it seeds in seconds.
      */
     private const LAB_PCS = 80;
 
@@ -88,28 +71,16 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * One sign-in per role.
+     * One sign-in per role, with fixed credentials the README can quote, so
+     * the engineer and assistant screens can be opened on a fresh install.
      *
-     * Without these the only account on a fresh install is the administrator,
-     * and four of the seven built screens belong to the other two roles —
-     * there is no way to open the inspection form or the ticket queue at all.
+     * updateOrCreate keyed on email, so re-running the seeder resets a
+     * forgotten demo password rather than failing on the unique index.
      *
-     * Written out here rather than through UserFactory because these are
-     * fixed, quotable credentials that go in the README and get handed to a
-     * marker. A factory's randomness is the opposite of what is wanted.
-     *
-     * updateOrCreate keyed on email, so re-running the seeder resets the
-     * password rather than failing on the unique index — which is also the
-     * supported way to recover a demo account whose password has been changed
-     * or forgotten.
-     *
-     * BECAUSE IT MATCHES ON EMAIL, CHANGING ONE OF THE ATLAS_DEMO_*_EMAIL
-     * VALUES ON A DATABASE THAT IS ALREADY SEEDED GIVES YOU A SECOND ACCOUNT
-     * rather than a renamed one. The old row keeps every ticket, shift and
-     * inspection, and you sign in to a copy that owns none of them. The
-     * addresses moved from @apu.test to Gmail plus-addresses on 2026-08-29 so
-     * that FR-102 could deliver, and the existing rows were renamed in place
-     * rather than reseeded, for exactly this reason.
+     * BECAUSE IT MATCHES ON EMAIL, changing an ATLAS_DEMO_*_EMAIL on an
+     * already-seeded database creates a SECOND account rather than renaming
+     * the first, which keeps every ticket, shift and inspection. Rename the
+     * existing rows instead.
      */
     private function demoAccounts(): void
     {
@@ -331,22 +302,13 @@ class DemoDataSeeder extends Seeder
         }
 
         /*
-         * TELL THE ACCESS POINTS THEY HAVE BEEN HEARD FROM.
+         * TELL THE ACCESS POINTS THEY HAVE BEEN HEARD FROM. Otherwise they read
+         * "Never polled" beside an Online badge, and the silence sweep, which
+         * skips kit that has never answered, ignores them.
          *
-         * Writing telemetry without this left 24 access points reporting
-         * status "online" with `last_seen_at` null — so the inventory screen
-         * said "Never polled" beside a green Online badge, and the dashboard
-         * counted them as healthy devices nothing had ever contacted. Found by
-         * looking at the screen, not by any test.
-         *
-         * `last_seen_at` is what drives staleness, so leaving it null also
-         * made these invisible to `markStaleOffline()`, which deliberately
-         * skips kit that has never answered.
-         *
-         * The three degrading access points are left ONLINE rather than
-         * offline: their fortnight ends with high latency and occasional
-         * downtime, which is degradation, not absence. The risk model is what
-         * surfaces them, and it does.
+         * The three degrading access points stay ONLINE: high latency and
+         * occasional downtime are degradation, not absence, and the risk model
+         * is what surfaces them.
          */
         AccessPoint::whereIn('id', $aps->pluck('id'))->update([
             'last_seen_at' => $start->copy()->addHours($hours - 1),

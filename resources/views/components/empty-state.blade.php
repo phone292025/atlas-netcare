@@ -1,13 +1,9 @@
 @props(['title', 'message' => null, 'icon' => 'inbox'])
 
 {{--
-    What a list shows when it has nothing in it.
-
-    This is not decoration. ATLAS_DEMO_MODE=false and `atlas:purge-demo-data`
-    both leave a working system with empty tables, and a marker or a real user
-    looking at a blank page cannot tell "nothing here yet" from "this is
-    broken". Every index view needs one of these — it is the difference between
-    the app looking deliberate and looking unfinished.
+    What a list shows when it has nothing in it. Every index view needs one:
+    a blank page cannot be told apart from a broken one, and a clean install
+    starts with empty tables.
 
     Say what would put something here, and give them the way to do it:
 

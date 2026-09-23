@@ -23,11 +23,12 @@ use InvalidArgumentException;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Models whose every write is recorded in audit_logs.
+     * Models whose every write is recorded in audit_logs. Add a model here and
+     * it is audited; there is no call site to forget.
      *
-     * Add a model here and it is audited — there is no second step, and no
-     * call site to forget. Modules M2 to M7 append to this list as their
-     * tables arrive.
+     * Tickets because they carry the state machine, so "who closed this and
+     * when" is answerable. The two templates because they are configuration
+     * that changes what everybody else's work means.
      *
      * @see App\Observers\AuditObserver
      * @see docs/01-requirements.md FR-509, NFR-06
@@ -37,44 +38,18 @@ class AppServiceProvider extends ServiceProvider
         Location::class,
         LabPc::class,
         AccessPoint::class,
-
-        /*
-         * Tickets carry the only state machine in the
-         * system, and were the one module with no history at all — which was
-         * exactly backwards. It surfaced when a ticket turned up holding a
-         * closed_at eight hours before its own opened_at and there was
-         * nothing to reconstruct what had happened to it.
-         *
-         * Every transition now leaves a row naming the actor, the change and
-         * the IP, which is what makes "who closed this and when" answerable.
-         */
         Ticket::class,
-
-        /*
-         * Both are administrator-editable configuration that
-         * changes what everybody else's work means: a checklist template
-         * decides what an inspection asks, and a shift template decides who is
-         * rostered. Changing either silently was possible until now, and
-         * "who changed the checklist, and when" was unanswerable — which
-         * matters more than usual here, because M3 versions templates
-         * precisely so history stays meaningful.
-         */
         ChecklistTemplate::class,
         ShiftTemplate::class,
     ];
 
     /**
-     * The one place the telemetry driver is chosen.
+     * The one place the telemetry driver is chosen (ADR-0002). Everything
+     * downstream depends on the interface, so going live is this binding
+     * resolving differently.
      *
-     * This binding IS the swap ADR-0002 is about: everything downstream —
-     * TelemetryService, the collector command, the dashboard, the charts —
-     * depends on the interface and cannot tell which implementation it got.
-     * Going live is this line resolving differently.
-     *
-     * An unrecognised driver name throws rather than falling back to the
-     * simulator. A typo in .env that silently produced invented data on a
-     * system meant to be showing real readings is the worst outcome available
-     * here.
+     * An unknown driver name throws rather than falling back to the simulator:
+     * a typo that silently showed invented data as real is the worst outcome.
      *
      * @see docs/decisions/ADR-0002-telemetry-source-driver.md
      */
@@ -104,16 +79,13 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * `->campus()` on any date: the same moment, on the campus wall clock.
-     *
-     * Every moment is stored in UTC and must stay that way. This is only for
-     * SHOWING one to a person, who reads the clock on the lab wall, not UTC:
+     * `->campus()` on any date: the same moment, on the campus wall clock, for
+     * SHOWING a stored UTC moment to a person:
      *
      *     {{ $shift->checked_in_at->campus()->format('H:i') }}
      *
-     * It returns a copy, so the model attribute is never mutated. A closure
-     * rather than a static one, because Carbon binds the date it is called on
-     * to $this.
+     * Returns a copy, so the attribute is never mutated. Not a static closure,
+     * because Carbon binds the date it is called on to $this.
      *
      * @see App\Support\CampusClock
      */
@@ -128,20 +100,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * The password reset email (FR-102).
      *
-     * Laravel's stock version says "Hello!", "Regards, Atlas NetCare" and
-     * "If you did not request a password reset, no further action is
-     * required", which is wording written for a public signup form. On an
-     * internal system where an administrator creates every account, an
-     * unrequested reset email means somebody typed a colleague's address into
-     * the form, and the right advice is to say so rather than to ignore it.
-     *
-     * Done here with toMailUsing() rather than by overriding
-     * sendPasswordResetNotification() on User, because there is one email and
-     * no reason for the model to know how it is worded.
-     *
-     * The expiry is read from config rather than written into the sentence.
-     * Someone will change auth.passwords.users.expire eventually, and an
-     * email that states the wrong number is worse than one that omits it.
+     * Laravel's wording is written for a public signup form. Here only an
+     * administrator creates accounts, so an unrequested reset means somebody
+     * typed a colleague's address, and the email says so. The expiry comes
+     * from config, so the sentence cannot state the wrong number.
      *
      * @see docs/01-requirements.md FR-102
      * @see docs/02-open-questions.md Q11
@@ -157,21 +119,13 @@ class AppServiceProvider extends ServiceProvider
             ], false));
 
             /*
-             * On a machine that cannot send mail, put the link on the screen.
+             * On a machine that cannot send mail, put the link on the screen,
+             * so a fresh clone can still use the flow. The token is real,
+             * single-use and still expires.
              *
-             * Delivery needs a Google app password, which is a key to a
-             * personal account and can never be committed, so nobody cloning
-             * this project can send mail. Without this, a reviewer clicking
-             * "forgot password" reaches a dead end and FR-102 looks broken
-             * when it is only undelivered.
-             *
-             * The token is real, single-use and still expires. This changes
-             * where the link is shown, not how the flow works.
-             *
-             * THREE CONDITIONS, ALL REQUIRED. Local environment, debug on,
-             * and no working mailer. A deployment fails the first two, and a
-             * machine that can genuinely send mail has no reason to print a
-             * reset token on a page anybody can open.
+             * All three conditions: local, debug on, and no working mailer. A
+             * deployment fails the first two, and a machine that can send mail
+             * has no reason to print a reset token on a page.
              */
             if (app()->environment('local')
                 && config('app.debug')

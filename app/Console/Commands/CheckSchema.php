@@ -6,21 +6,14 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Audit the LIVE database for traps the test suite cannot see.
+ * Audit the LIVE database for MariaDB traps the SQLite suite cannot see.
  *
- * The suite runs on SQLite; the system runs on MariaDB. That gap has produced
- * three defects so far, every one of which passed a fully green suite:
+ * Above all an implicit `ON UPDATE CURRENT_TIMESTAMP` silently rewriting a
+ * `timestamp` column on every update.
  *
- *   - MySQL-only `FIELD()` in the ticket queue's ordering
- *   - MySQL-only `DATE_FORMAT` in telemetry aggregation
- *   - implicit `ON UPDATE CURRENT_TIMESTAMP` silently rewriting
- *     `tickets.opened_at` on every status transition
- *
- * READ ONLY. It runs SELECTs against information_schema and changes nothing,
- * so it is safe to point at the real database — which is the whole idea, since
- * a test using RefreshDatabase against the live database would wipe it.
- *
- * Run it before a submission, and after any migration.
+ * READ ONLY: SELECTs against information_schema, so it is safe to point at
+ * the real database, which a RefreshDatabase test would wipe. Run it after
+ * any migration.
  *
  * @see tests/Feature/SchemaIntegrityTest.php
  * @see docs/progress/decision-log.md — 2026-08-29
@@ -111,22 +104,12 @@ class CheckSchema extends Command
     }
 
     /**
-     * Rows whose own timestamps contradict each other.
+     * Rows whose own timestamps contradict each other: the damage the
+     * `timestamp` trap did before it was fixed, such as a ticket closed before
+     * it was opened. Plain SQL, so meaningful on any driver.
      *
-     * THE SCHEMA CHECK ABOVE STOPS THE CAUSE; THIS FINDS THE DAMAGE. Changing
-     * `tickets.opened_at` to `dateTime` on 2026-08-29 stopped MariaDB
-     * rewriting it, but every row written before that fix kept whatever the
-     * bug had already done to it. One ticket carried a `closed_at` eight hours
-     * BEFORE its own `opened_at`, and nothing in the project noticed: the
-     * suite was green, the schema audit was clean, and the screen showed a
-     * plausible-looking date.
-     *
-     * These checks need no MySQL-specific SQL, so unlike the schema audit they
-     * are meaningful on any driver.
-     *
-     * READ ONLY, like the rest of this command. It reports; repairing is a
-     * decision for a person, because the right correction depends on which
-     * column is the trustworthy one and that is not always obvious.
+     * It reports and repairs nothing: which column to trust is a person's
+     * decision.
      */
     private function impossibleTimelines(): int
     {

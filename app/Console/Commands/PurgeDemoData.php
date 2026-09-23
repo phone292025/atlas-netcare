@@ -13,33 +13,18 @@ use Illuminate\Support\Facades\DB;
 /**
  * Remove every demonstration row, leaving a system somebody could deploy.
  *
- * Referenced in the README, ADR-0003, the data strategy and the database
- * document since Sprint 0, and not written for weeks after. Every one of
- * those references was a promise that running this would work.
+ * Deletes anything tagged `is_demo` (users, lab PCs, access points, tickets),
+ * every telemetry row whose `source` is `simulated`, and the rows that belong
+ * to those by association. Only four tables carry the flag, so inspections,
+ * shifts, alarms, comments, risk assessments and audit rows are found through
+ * what they belong to.
  *
- * WHAT IT DELETES. Anything tagged `is_demo` — users, lab PCs, access points,
- * tickets — plus every telemetry reading whose `source` is `simulated`, plus
- * the rows that belong to those by association.
+ * The order follows the foreign keys: six are RESTRICT, so children go first.
+ * Cascading children are deleted explicitly too, so the count is honest and
+ * the order does not depend on a cascade somebody may relax.
  *
- * THE ASSOCIATION PART IS MOST OF THE WORK. Only four tables carry `is_demo`.
- * Inspections, shifts, alarms, comments, risk assessments and audit rows have
- * no flag of their own, so each has to be found through whatever it belongs
- * to. A purge that only cleared the flagged tables would leave an inspection
- * pointing at a lab PC that no longer exists — and `inspections.lab_pc_id` is
- * RESTRICT, so it would not even get that far: the delete would simply fail.
- *
- * ORDER IS DICTATED BY THE FOREIGN KEYS, not by preference. Six constraints
- * are RESTRICT, so children must go first. Where a constraint already
- * cascades, the child is still deleted explicitly — partly so the count is
- * honest, partly so the order does not silently depend on a cascade somebody
- * may relax later.
- *
- * IT REFUSES TO ORPHAN REAL DATA. `tickets.ticketable` is polymorphic and
- * therefore has no foreign key, so nothing at the database level stops a real
- * ticket from being left pointing at a deleted demo machine. On the machine
- * this was written on, all three genuine tickets pointed at demo lab PCs.
- * Deleting the assets underneath them would have quietly broken every one.
- * The command finds those first and stops.
+ * It refuses to orphan real data: `tickets.ticketable` is polymorphic, so no
+ * foreign key stops a real ticket being left pointing at a deleted demo asset.
  *
  *   php artisan atlas:purge-demo-data --dry-run
  *   php artisan atlas:purge-demo-data
@@ -134,27 +119,13 @@ class PurgeDemoData extends Command
 
         $steps = [
             /*
-             * Audit rows about demo activity are demo data by association.
+             * Audit rows about demo activity or demo subjects.
              *
-             * FIRST IN THE ORDER, deliberately. Every clause below reads
-             * a table that a later step deletes, so running it anywhere else
-             * makes those subqueries match nothing — 86 rows about deleted
-             * demo tickets survived exactly that way, because the audit step
-             * used to sit after the tickets went. Nothing depends on
-             * audit_logs, so there is no cost to going first.
+             * FIRST, because every clause reads a table a later step deletes;
+             * run later, the subqueries match nothing and the rows survive.
              *
-             * MATCHED ON THE SUBJECT, NOT JUST THE ACTOR. Rows written by a
-             * seeder have no `user_id` at all — nobody is signed in — so an
-             * earlier version of this matched only the actor and left 412
-             * rows behind describing eighty machines that had just been
-             * deleted. End-to-end testing found that; the unit tests did not,
-             * because they created audit rows by hand with a user attached.
-             *
-             * The foreign key is SET NULL, so leaving them would break
-             * nothing. It would leave an audit log full of entries about
-             * assets that no longer exist, in a system whose whole claim is
-             * that the audit log means something. Real users' history, and
-             * history about real assets, is untouched.
+             * Matched on the SUBJECT as well as the actor: rows a seeder wrote
+             * have no `user_id`. History of real users and real assets stays.
              */
             ['Audit rows', 'audit_logs', fn () => DB::table('audit_logs')
                 ->where(fn (Builder $q) => $q
@@ -166,11 +137,7 @@ class PurgeDemoData extends Command
                         ->whereIn('auditable_id', DB::table('tickets')->where('is_demo', true)->select('id')))
                 )],
 
-            /*
-             * Risk assessments are polymorphic, so there is no cascade to rely
-             * on and no foreign key to complain. Left behind, they would be
-             * history for machines that no longer exist.
-             */
+            // Polymorphic, so no cascade and no foreign key to complain.
             ['Risk assessments', 'risk_assessments', fn () => DB::table('risk_assessments')
                 ->where(fn (Builder $q) => $q
                     ->where(fn (Builder $x) => $x->where('assessable_type', LabPc::class)->whereIn('assessable_id', $demoPcs()))
@@ -227,16 +194,9 @@ class PurgeDemoData extends Command
     }
 
     /**
-     * Refuse to leave a real record pointing at a deleted demo asset.
-     *
-     * `tickets.ticketable` is polymorphic, so there is no foreign key and the
-     * database will not stop this. A real ticket left pointing at a deleted
-     * lab PC still renders — its asset column simply goes blank, which looks
-     * like a display bug rather than the data loss it is.
-     *
-     * This is not hypothetical. On the machine this was written on, all three
-     * genuine tickets pointed at demo lab PCs, because the demo assets were
-     * the only machines there to raise a ticket against.
+     * Refuse to leave a real ticket pointing at a deleted demo asset. It would
+     * still render, with a blank asset column that looks like a display bug
+     * rather than the data loss it is.
      */
     private function orphanCheckPasses(): bool
     {
@@ -284,10 +244,8 @@ class PurgeDemoData extends Command
     }
 
     /**
-     * Delete one step's rows, in chunks.
-     *
-     * A single DELETE across a large table holds it long enough to notice, and
-     * telemetry is the largest table in the system by two orders of magnitude.
+     * Delete one step's rows, in chunks: a single DELETE across telemetry, the
+     * largest table by two orders of magnitude, holds it long enough to notice.
      *
      * @param  array{label: string, table: string, query: callable(): Builder, count: int}  $step
      */

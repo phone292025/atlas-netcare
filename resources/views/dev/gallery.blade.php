@@ -5,9 +5,8 @@
 
         <x-alert type="warning" title="Development only">
             This page is registered only when <code>APP_ENV=local</code>. It is a
-            living reference for the seven module owners, and a source of
-            screenshots for the Screens Design chapter of the report. It is not
-            part of the system and never reaches a marker's browser.
+            living reference for the shared components, and a source of
+            screenshots. It is not part of the system and is never deployed.
         </x-alert>
 
         {{-- ------------------------------------------------ page furniture --}}

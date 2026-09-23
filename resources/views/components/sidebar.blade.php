@@ -1,15 +1,12 @@
 {{--
     Role-filtered navigation, built once from config('atlas.navigation').
 
-    Nobody hand-writes a menu. A module owner adds their route to the table in
+    Nobody hand-writes a menu. Add the route to the table in
     docs/06-ui-conventions.md and to config/atlas.php, and it appears here.
 
-    Routes arrive with their modules, so most entries point at routes that do
-    not exist yet. Rather than skipping those silently — which would make a
-    mistyped route name vanish from the menu with no error — an unregistered
-    entry renders greyed out and labelled while APP_DEBUG is on, and is hidden
-    entirely when it is off. A typo is then visible during development and
-    invisible to a marker.
+    An entry whose route is not registered renders struck through while
+    APP_DEBUG is on, so a mistyped name is visible during development rather
+    than silently missing, and is hidden when debug is off.
 
     @see docs/06-ui-conventions.md — Route names are fixed vocabulary
 --}}

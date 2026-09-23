@@ -12,11 +12,8 @@
 </head>
 <body class="font-sans antialiased bg-slate-50 text-slate-900">
 
-{{-- The error shell. Laravel's stock pages are a dark screen with "403 |
-     FORBIDDEN" in the framework's own styling, which is the first thing a
-     marker sees the moment they type a URL by hand. These share the palette
-     and mark of the signed-out shell, say what happened in a sentence, and
-     offer the one link that helps.
+{{-- The error shell: the signed-out shell's look, what happened in a
+     sentence, and the one link that helps.
 
      Deliberately NOT layouts/app.blade.php: that layout reads the signed-in
      user for the sidebar and the notification count, and an error page must

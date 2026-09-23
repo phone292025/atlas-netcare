@@ -36,18 +36,10 @@ interface TelemetrySource
     /**
      * The access points this driver polls, as an unexecuted query.
      *
-     * WHY A DRIVER HAS TO ANSWER THIS. `TelemetryService::markStaleOffline()`
-     * marks a device offline when it has gone quiet. Silence is only evidence
-     * of failure if somebody was listening: an access point no driver polls is
-     * not quiet, it is unasked, and marking it offline raises a ticket about a
-     * device nothing ever tried to reach.
-     *
-     * Both drivers here answer "everything not under maintenance", so today
-     * this changes no behaviour. It is the seam that keeps a partial driver
-     * honest. Measured on the development database with one that polls a
-     * subset: without this method the sweep marked 28 access points offline,
-     * raised 28 tickets and rang 56 alarms on the first tick of the scheduler,
-     * about hardware nothing had tried to reach.
+     * `TelemetryService::markStaleOffline()` only judges these. Silence is
+     * evidence of failure only if somebody was listening: marking an unpolled
+     * device offline would raise a ticket about hardware nothing tried to
+     * reach, which matters as soon as a driver polls a subset.
      *
      * @return Builder<AccessPoint>
      */

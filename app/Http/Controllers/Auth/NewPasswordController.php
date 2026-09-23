@@ -73,22 +73,14 @@ class NewPasswordController extends Controller
     /**
      * End every session belonging to this account.
      *
-     * Rotating remember_token above, which is all Breeze does, invalidates
-     * "remember me" cookies and nothing else. An active session survives a
-     * password reset untouched — so somebody who has taken over an account
-     * stays signed in while the owner resets the password and believes they
-     * have locked them out. Locking them out is the entire reason the feature
-     * exists.
+     * Rotating remember_token, which is all Breeze does, leaves active
+     * sessions alive, so somebody who took over the account would stay signed
+     * in while the owner believed they had locked them out.
      *
-     * Only possible because SESSION_DRIVER is `database` and Laravel's
-     * sessions table carries user_id. On the `file` or `array` drivers there
-     * is nothing to query, so this quietly does nothing rather than throwing
-     * — a reset must still succeed on a machine configured differently.
-     *
-     * This signs out the person doing the reset too, if they were signed in
-     * on this device. That is intended: the redirect goes to the login screen
-     * either way, and signing in once with the new password is the proof it
-     * worked.
+     * Needs the `database` session driver, whose table carries user_id; on
+     * other drivers there is nothing to query, and the reset still succeeds.
+     * The person resetting is signed out too, and lands on the login screen
+     * either way.
      *
      * @see docs/02-open-questions.md Q11
      */

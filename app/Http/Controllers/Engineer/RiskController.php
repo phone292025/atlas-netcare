@@ -16,20 +16,14 @@ use Illuminate\Support\Collection;
 /**
  * Maintenance priority (FR-309, FR-310).
  *
- * The module's headline screen, and the thing that makes this project a
- * predictive maintenance system rather than a monitoring one. Everything else
- * reports what has already happened; this ranks what is about to.
+ * Assets ranked by what is about to fail, rather than what already has.
  *
- * RANKED FROM THE CACHED COLUMNS, not from `risk_assessments`. Ordering a few
- * hundred assets by a correlated subquery over their assessment history would
- * be slow enough to notice, which is exactly why `lab_pcs.risk_score` exists.
- * The detail screen reads the assessment, because that is where the reasons
- * are. RiskScoringService writes both in one transaction so the two screens
- * cannot disagree.
+ * Ranked from the cached `risk_score` columns, not a subquery over each
+ * asset's history; the detail screen reads the assessment, where the reasons
+ * are. RiskScoringService writes both in one transaction.
  *
- * BOTH ASSET TYPES IN ONE RANKING. A maintenance queue that made you look at
- * two lists and compare them by eye would not be a priority order at all.
- * They are scored onto the same 0-100 scale by design so they can be merged.
+ * Both asset types in ONE ranking, on the same 0-100 scale: two lists
+ * compared by eye would not be a priority order.
  *
  * @see App\Services\Risk\RiskScoringService
  * @see docs/modules/M7-predictive-and-reports.md

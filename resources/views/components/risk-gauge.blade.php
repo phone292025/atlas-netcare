@@ -16,11 +16,10 @@
     the outer comment, and every example below it becomes live template code —
     which is exactly how this component first broke.
 
-    THE FACTORS ARE THE POINT. A bare number is not analytics — "78" tells a
-    marker nothing. "78, because it is five years old, failed three critical
-    checklist items last month and has not been inspected in six weeks" is the
-    thing ADR-0007 chose a weighted model over a trained one to be able to say.
-    Pass `factors` wherever there is room for them.
+    THE FACTORS ARE THE POINT. "78" on its own says little; "78, because it
+    is five years old and has not been inspected in six weeks" is what
+    ADR-0007 chose a weighted model to be able to say. Pass `factors`
+    wherever there is room for them.
 
     `band` is optional: RiskBand::fromScore() derives it from the score when it
     is not supplied, so a caller holding only a number still gets the right

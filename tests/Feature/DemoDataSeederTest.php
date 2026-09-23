@@ -199,10 +199,9 @@ class DemoDataSeederTest extends TestCase
     public function test_it_produces_assets_in_every_risk_band(): void
     {
         /*
-         * Why the cohorts are designed rather than random. Before this, every
-         * asset scored Low or Medium, so the maintenance priority ranking —
-         * the screen that makes this project answer Case Study Category 4 —
-         * had no red rows at all and demonstrated nothing.
+         * Why the cohorts are designed rather than random: with random ages
+         * every asset scored Low or Medium, and the maintenance ranking had
+         * nothing at the top.
          */
         $this->seedEverything();
 

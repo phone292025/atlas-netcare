@@ -11,15 +11,12 @@ use Illuminate\Support\Carbon;
 /**
  * Score every asset and keep the result (FR-505).
  *
- * SCHEDULED DAILY, and safe to run twice. A second run on the same day adds a
- * second history row rather than corrupting anything — the trend chart shows
- * two points a few minutes apart, which is untidy and not wrong. There are
- * buttons that trigger this, so it will be run twice.
+ * Scheduled daily at 02:00 campus time, and safe to run again by hand: a
+ * second run adds a second history row rather than overwriting one.
  *
- * IT IS ALSO THE DEMONSTRATION. Change a weight in config/atlas.php, run this,
- * and the maintenance ranking reorders in front of the room. Being able to do
- * that live is a large part of why ADR-0007 chose a weighted model over a
- * trained one, and it is worth rehearsing before the viva.
+ * Change a weight in config/atlas.php, run this, and the maintenance ranking
+ * reorders. That transparency is why ADR-0007 chose weights over a trained
+ * model.
  *
  *   php artisan atlas:recalculate-risk
  *   php artisan atlas:recalculate-risk --show=15

@@ -31,15 +31,7 @@ enum UserRole: string implements HasLabel
     }
 
     /**
-     * Where this role should land after signing in.
-     *
-     * PLANNED (Stage 3): none of these routes exist yet, and nothing calls this
-     * method. The DashboardRedirect controller that will use it — and which
-     * must fall back gracefully for routes not yet registered — is specified in
-     * docs/03-architecture.md but not built.
-     *
-     * The specific targets were chosen in Stage 2 and are recorded in
-     * docs/progress/decision-log.md; the docs do not otherwise specify them.
+     * Where this role lands after signing in, through DashboardRedirect.
      */
     public function homeRoute(): string
     {

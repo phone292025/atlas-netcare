@@ -12,16 +12,13 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * The Sprint 0 component library — Stage 3b.
+ * The shared component library. Every screen is built from these, so a fault
+ * here is a fault on every page at once.
  *
- * Seven module owners build every screen out of these, so a fault here is a
- * fault on every page at once.
- *
- * WHAT THESE TESTS CANNOT DO: they assert on rendered HTML, which means they
- * cannot evaluate CSS. Stage 3a shipped a sidebar that was invisible on every
- * desktop screen with 120 tests passing. Where a class name is load-bearing
- * these tests pin the class name, and the components are still checked in a
- * real browser before the stage is called done.
+ * WHAT THESE TESTS CANNOT DO: they assert on rendered HTML, so they cannot
+ * evaluate CSS; a sidebar once sat off-screen on every desktop with the suite
+ * green. Where a class name is load-bearing these tests pin it, and the
+ * components are still checked in a real browser.
  *
  * @see docs/06-ui-conventions.md — Blade components
  */

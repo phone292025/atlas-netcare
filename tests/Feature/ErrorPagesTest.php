@@ -10,10 +10,8 @@ use Tests\TestCase;
 /**
  * The error pages are screens too.
  *
- * Until 2026-09-04 they were Laravel's stock ones: a dark page reading
- * "403 | FORBIDDEN" in the framework's own styling, and the first thing a
- * marker saw the moment they typed a URL by hand. 06-ui-conventions.md had
- * listed 403 and 404 among the shared screens all along.
+ * They replace Laravel's stock pages, which carried the framework's own
+ * styling rather than the system's.
  *
  * These render through their own shell, not layouts/app.blade.php, because
  * that layout reads the signed-in user for the sidebar and the notification
