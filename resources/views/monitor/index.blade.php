@@ -457,7 +457,6 @@
                     range: '24h',
                     refreshing: false,
                     failing: false,
-                    timer: null,
                     detail: null,
                     detailLoading: false,
                     detailFailed: false,
@@ -497,26 +496,13 @@
                         this.$watch('status', () => this.syncUrl());
                         this.$watch('location', () => this.syncUrl());
 
-                        this.timer = setInterval(() => this.refresh(), options.interval * 1000);
-
-                        // Stop polling while the tab is hidden, as the dashboard does.
-                        document.addEventListener('visibilitychange', () => {
-                            if (document.hidden) {
-                                clearInterval(this.timer);
-                                this.timer = null;
-                            } else if (! this.timer) {
-                                this.refresh();
-                                this.timer = setInterval(() => this.refresh(), options.interval * 1000);
-                            }
-                        });
+                        window.pollWhileVisible(() => this.refresh(), options.interval);
                     },
 
                     async refresh() {
                         this.refreshing = true;
                         try {
-                            const response = await fetch(options.endpoint, { headers: { Accept: 'application/json' } });
-                            if (! response.ok) throw new Error(response.status);
-                            this.data = await response.json();
+                            this.data = await window.fetchJson(options.endpoint);
                             this.failing = false;
                             this.drawActivity();
                         } catch (e) {
@@ -548,11 +534,7 @@
                         this.$dispatch('open-modal', 'ap-detail');
 
                         try {
-                            const response = await fetch(options.detailEndpoint.replace('__ID__', ap.id), {
-                                headers: { Accept: 'application/json' },
-                            });
-                            if (! response.ok) throw new Error(response.status);
-                            this.detail = await response.json();
+                            this.detail = await window.fetchJson(options.detailEndpoint.replace('__ID__', ap.id));
                             await this.$nextTick();
                             this.drawDetail();
                         } catch (e) {

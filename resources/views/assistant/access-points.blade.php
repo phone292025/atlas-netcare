@@ -83,16 +83,12 @@
 
                     start() {
                         this.tick();
-                        setInterval(() => this.refresh(), intervalSeconds * 1000);
+                        window.pollWhileVisible(() => this.refresh(), intervalSeconds);
                     },
 
                     async refresh() {
                         try {
-                            const response = await fetch('{{ route('api.dashboard') }}', {
-                                headers: { 'Accept': 'application/json' },
-                            });
-                            if (! response.ok) return;
-                            this.data = await response.json();
+                            this.data = await window.fetchJson('{{ route('api.dashboard') }}');
                             this.tick();
                         } catch (e) {
                             // Keep the last good numbers rather than blanking
@@ -101,8 +97,7 @@
                     },
 
                     tick() {
-                        const seconds = Math.max(0, Math.round((Date.now() - new Date(this.data.generated_at).getTime()) / 1000));
-                        this.updatedAgo = seconds < 60 ? seconds + 's ago' : Math.round(seconds / 60) + 'm ago';
+                        this.updatedAgo = window.ago(this.data.generated_at);
                     },
                 };
             }

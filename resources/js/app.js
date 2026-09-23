@@ -1,5 +1,3 @@
-import './bootstrap';
-
 import Alpine from 'alpinejs';
 import Chart from 'chart.js/auto';
 
@@ -22,5 +20,49 @@ Chart.defaults.plugins.legend.position = 'bottom';
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.maintainAspectRatio = false;
 Chart.defaults.animation.duration = 300;
+
+// Shared by the three screens that poll for telemetry (FR-302, ADR-0005).
+// Defined before Alpine.start(), so they exist by the time any x-init runs.
+
+// Call `refresh` every `seconds`, and not at all while the tab is hidden:
+// nobody is reading it, and a laptop left open overnight would otherwise make
+// thousands of pointless requests. Coming back refreshes at once.
+window.pollWhileVisible = (refresh, seconds) => {
+    let timer = null;
+    const begin = () => {
+        timer = setInterval(refresh, seconds * 1000);
+    };
+
+    begin();
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(timer);
+            timer = null;
+        } else if (timer === null) {
+            refresh();
+            begin();
+        }
+    });
+};
+
+// GET a JSON endpoint, throwing on any non-2xx so callers keep their last
+// good data rather than rendering an error page's HTML.
+window.fetchJson = async (url) => {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+    if (! response.ok) {
+        throw new Error(`${url} answered ${response.status}`);
+    }
+
+    return response.json();
+};
+
+// "12s ago" / "3m ago", from an ISO 8601 moment.
+window.ago = (iso) => {
+    const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+
+    return seconds < 60 ? `${seconds}s ago` : `${Math.round(seconds / 60)}m ago`;
+};
 
 Alpine.start();

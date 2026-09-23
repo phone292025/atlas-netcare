@@ -141,52 +141,27 @@
                     data: initial,
                     updatedAgo: 'just now',
                     failing: false,
-                    timer: null,
 
                     start() {
                         this.tick();
-                        this.timer = setInterval(() => this.refresh(), intervalSeconds * 1000);
-
-                        // Stop polling while the tab is hidden. Nobody is
-                        // reading it, and a laptop left open overnight would
-                        // otherwise make four thousand pointless requests.
-                        document.addEventListener('visibilitychange', () => {
-                            if (document.hidden) {
-                                clearInterval(this.timer);
-                                this.timer = null;
-                            } else if (! this.timer) {
-                                this.refresh();
-                                this.timer = setInterval(() => this.refresh(), intervalSeconds * 1000);
-                            }
-                        });
+                        window.pollWhileVisible(() => this.refresh(), intervalSeconds);
                     },
 
                     async refresh() {
                         try {
-                            const response = await fetch('{{ route('api.dashboard') }}', {
-                                headers: { 'Accept': 'application/json' },
-                            });
-
-                            if (! response.ok) throw new Error(response.status);
-
-                            this.data = await response.json();
+                            this.data = await window.fetchJson('{{ route('api.dashboard') }}');
                             this.failing = false;
                             this.tick();
                         } catch (e) {
                             // Keep the last good numbers on screen and say the
-                            // refresh failed. Blanking the dashboard because
-                            // one request timed out is worse than slightly
-                            // stale data that admits it.
+                            // refresh failed. Stale data that admits it beats
+                            // a blank dashboard.
                             this.failing = true;
                         }
                     },
 
                     tick() {
-                        const at = new Date(this.data.generated_at);
-                        const seconds = Math.max(0, Math.round((Date.now() - at.getTime()) / 1000));
-                        this.updatedAgo = seconds < 60
-                            ? seconds + 's ago'
-                            : Math.round(seconds / 60) + 'm ago';
+                        this.updatedAgo = window.ago(this.data.generated_at);
                     },
                 };
             }
