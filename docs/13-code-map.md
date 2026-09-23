@@ -356,6 +356,7 @@ and why each runs when it does.
 | `DispatchAlarms.php` | Send every alarm that has come due |
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) |
 | `MailTest.php` | Prove that mail actually leaves this machine |
+| `MarkMissedShifts.php` | Mark ended shifts nobody checked into as missed |
 | `PruneTelemetry.php` | Delete telemetry older than the retention window (Q10) |
 | `PurgeDemoData.php` | Remove every demonstration row, leaving a system somebody could deploy |
 | `RecalculateRisk.php` | Score every asset and keep the result (FR-505) |
@@ -647,6 +648,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it |
+| `Feature/Shifts/MarkMissedShiftsCommandTest.php` | `atlas:mark-missed-shifts`, and that it runs often enough to matter |
 | `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar |
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |

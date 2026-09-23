@@ -9,6 +9,7 @@ use App\Models\Alarm;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Shifts\ShiftService;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,7 +60,7 @@ class ShiftReassignmentTest extends TestCase
     {
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id, 'status' => ShiftStatus::Scheduled]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id, 'status' => ShiftStatus::Scheduled]);
 
         $this->shifts->reassign($shift, $to);
 
@@ -73,7 +74,7 @@ class ShiftReassignmentTest extends TestCase
          * there. Handing the shift on would attach somebody else's name to
          * work they did not do.
          */
-        $shift = Shift::factory()->create([
+        $shift = Shift::factory()->upcoming()->create([
             'user_id' => $this->assistant()->id,
             'status' => ShiftStatus::CheckedIn,
             'checked_in_at' => now(),
@@ -87,7 +88,7 @@ class ShiftReassignmentTest extends TestCase
     public function test_a_finished_shift_cannot_be_reassigned(): void
     {
         // Same reasoning: completed and missed are both history.
-        $shift = Shift::factory()->create([
+        $shift = Shift::factory()->upcoming()->create([
             'user_id' => $this->assistant()->id,
             'status' => ShiftStatus::Completed,
         ]);
@@ -97,11 +98,55 @@ class ShiftReassignmentTest extends TestCase
         $this->shifts->reassign($shift, $this->assistant());
     }
 
+    public function test_a_shift_that_has_ended_cannot_be_reassigned(): void
+    {
+        /*
+         * Still `scheduled`, because nothing had marked it missed yet. Found
+         * on the live roster: Monday's shift offered "Reassign to…" on
+         * Wednesday, and taking it wrote reminders for a shift already over.
+         */
+        $shift = Shift::factory()->create([
+            'user_id' => $this->assistant()->id,
+            'shift_date' => CampusClock::today()->subDay()->toDateString(),
+        ]);
+
+        $this->expectException(DomainException::class);
+
+        $this->shifts->reassign($shift, $this->assistant());
+    }
+
+    public function test_a_shift_nobody_has_turned_up_to_yet_can_still_be_covered(): void
+    {
+        // Started, nobody checked in, not over: the assistant is off sick and
+        // somebody else can take the rest of it.
+        $shift = Shift::factory()->inProgressWindow()->create(['user_id' => $this->assistant()->id]);
+        $cover = $this->assistant();
+
+        $this->shifts->reassign($shift, $cover);
+
+        $this->assertSame($cover->id, $shift->fresh()->user_id);
+    }
+
+    public function test_the_roster_does_not_offer_to_reassign_a_shift_that_has_ended(): void
+    {
+        $this->assistant();
+        $shift = Shift::factory()->create([
+            'user_id' => $this->assistant()->id,
+            'shift_date' => CampusClock::today()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.roster.index', ['week' => $shift->shift_date->toDateString()]))
+            ->assertOk()
+            ->assertSee($shift->user->name)
+            ->assertDontSee('reassign-'.$shift->id);
+    }
+
     public function test_a_deactivated_account_cannot_be_rostered(): void
     {
         // It would produce a shift nobody can ever check in to, and it would
         // stay invisible until the morning it was needed.
-        $shift = Shift::factory()->create(['user_id' => $this->assistant()->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);
 
         $this->expectException(DomainException::class);
 
@@ -113,7 +158,7 @@ class ShiftReassignmentTest extends TestCase
         $engineer = User::factory()->create();
         $engineer->forceFill(['role' => UserRole::Engineer, 'is_active' => true])->save();
 
-        $shift = Shift::factory()->create(['user_id' => $this->assistant()->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);
 
         $this->expectException(DomainException::class);
 
@@ -128,9 +173,9 @@ class ShiftReassignmentTest extends TestCase
          * than a sentence.
          */
         $busy = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $this->assistant()->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);
 
-        Shift::factory()->create([
+        Shift::factory()->upcoming()->create([
             'user_id' => $busy->id,
             'shift_date' => $shift->shift_date,
             'start_time' => $shift->start_time,
@@ -146,7 +191,7 @@ class ShiftReassignmentTest extends TestCase
         // Not harmful, but it would delete and rewrite their alarm for no
         // reason, and the confirmation would claim something happened.
         $person = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $person->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $person->id]);
 
         $this->expectException(DomainException::class);
 
@@ -162,7 +207,7 @@ class ShiftReassignmentTest extends TestCase
          */
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
 
         Alarm::factory()->pending()->create([
             'user_id' => $from->id,
@@ -183,7 +228,7 @@ class ShiftReassignmentTest extends TestCase
         // rounds. Reassignment used to rebuild only the start reminder.
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create([
+        $shift = Shift::factory()->upcoming()->create([
             'user_id' => $from->id,
             'start_time' => '09:00',
             'end_time' => '17:00',
@@ -201,7 +246,7 @@ class ShiftReassignmentTest extends TestCase
         // one. Deleting it with the reminders lost the note.
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
 
         $handover = Alarm::factory()->pending()->create([
             'user_id' => $from->id,
@@ -220,7 +265,7 @@ class ShiftReassignmentTest extends TestCase
         // A sent alarm is a record of something that happened. Deleting it
         // would rewrite history to tidy up the roster.
         $from = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
 
         Alarm::factory()->create([
             'user_id' => $from->id,
@@ -240,7 +285,7 @@ class ShiftReassignmentTest extends TestCase
     {
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
 
         $this->shifts->reassign($shift, $to);
 
@@ -254,7 +299,7 @@ class ShiftReassignmentTest extends TestCase
     {
         $from = $this->assistant();
         $to = $this->assistant();
-        $shift = Shift::factory()->create(['user_id' => $from->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
 
         $this->actingAs($this->admin())
             ->patch(route('admin.roster.reassign', $shift), ['user_id' => $to->id])
@@ -266,7 +311,7 @@ class ShiftReassignmentTest extends TestCase
 
     public function test_a_broken_rule_comes_back_as_a_message_not_an_error(): void
     {
-        $shift = Shift::factory()->create([
+        $shift = Shift::factory()->upcoming()->create([
             'user_id' => $this->assistant()->id,
             'status' => ShiftStatus::Completed,
         ]);
@@ -281,7 +326,7 @@ class ShiftReassignmentTest extends TestCase
     {
         // The roster is administrator furniture. An assistant swapping their
         // own shift onto somebody else is not a swap, it is a delegation.
-        $shift = Shift::factory()->create(['user_id' => $this->assistant()->id]);
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);
 
         $this->actingAs($this->assistant())
             ->patch(route('admin.roster.reassign', $shift), ['user_id' => $this->assistant()->id])

@@ -89,6 +89,16 @@ class ShiftFactory extends Factory
         ]);
     }
 
+    /**
+     * Tomorrow on campus, so it has not started whatever time the suite runs.
+     * The default is today 09:00–13:00, which has ended every afternoon, and a
+     * test that reassigns or removes one passed only in the morning.
+     */
+    public function upcoming(): static
+    {
+        return $this->state(['shift_date' => CampusClock::today()->addDay()->toDateString()]);
+    }
+
     public function on(string $date): static
     {
         return $this->state(['shift_date' => $date]);

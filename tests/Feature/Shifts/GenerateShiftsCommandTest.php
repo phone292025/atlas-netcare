@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Shifts;
 
-use App\Enums\ShiftStatus;
 use App\Enums\UserRole;
 use App\Models\Location;
 use App\Models\Shift;
@@ -17,9 +16,9 @@ use Tests\TestCase;
  *
  * `ShiftService::generateWeek()` was well covered; the command that runs it
  * every Sunday evening was not tested at all. That is the half that actually
- * executes in production, and it owns three things the service does not: which
- * week it picks by default, what it does when a template has been left
- * unassignable, and marking past shifts nobody turned up to.
+ * executes in production, and it owns two things the service does not: which
+ * week it picks by default, and what it does when a template has been left
+ * unassignable. Marking missed shifts is atlas:mark-missed-shifts.
  *
  * @see app/Console/Commands/GenerateShifts.php
  * @see routes/console.php
@@ -126,44 +125,6 @@ class GenerateShiftsCommandTest extends TestCase
         $this->artisan('atlas:generate-shifts')->assertExitCode(0);
 
         $this->assertSame(0, Shift::count());
-    }
-
-    public function test_it_marks_past_shifts_nobody_turned_up_to(): void
-    {
-        /*
-         * The other half of what this command does. A roster full of shifts
-         * that are neither done nor missed is exactly the kind of stale screen
-         * people stop trusting, and nothing else in the system moves a shift
-         * out of `scheduled` once its day has gone.
-         */
-        $this->assistant();
-        $this->template();
-
-        $stale = Shift::factory()->create([
-            'user_id' => $this->assistant()->id,
-            'shift_date' => now()->subWeek(),
-            'status' => ShiftStatus::Scheduled,
-        ]);
-
-        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
-
-        $this->assertSame(ShiftStatus::Missed, $stale->fresh()->status);
-    }
-
-    public function test_a_future_shift_is_not_marked_missed(): void
-    {
-        // The boundary that matters: today's shift has not been missed yet.
-        $this->assistant();
-
-        $upcoming = Shift::factory()->create([
-            'user_id' => $this->assistant()->id,
-            'shift_date' => now()->addDays(3),
-            'status' => ShiftStatus::Scheduled,
-        ]);
-
-        $this->artisan('atlas:generate-shifts')->assertExitCode(0);
-
-        $this->assertSame(ShiftStatus::Scheduled, $upcoming->fresh()->status);
     }
 
     public function test_running_it_twice_adds_nothing_even_with_spare_assistants(): void

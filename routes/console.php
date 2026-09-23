@@ -40,11 +40,16 @@ Schedule::command('atlas:dispatch-alarms')
     ->everyMinute()
     ->withoutOverlapping();
 
-// Next week's roster on Sunday evening, and past shifts nobody attended
-// marked missed. Idempotent.
+// Next week's roster on Sunday evening. Idempotent.
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00')
     ->timezone(CampusClock::timezone());
+
+// Shifts that ended with nobody checked in, marked missed within minutes
+// rather than on Sunday, so the roster never offers to reassign the past.
+Schedule::command('atlas:mark-missed-shifts')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 
 /*
  * M7: risk scores (FR-505), out of hours so the ranking does not reorder under

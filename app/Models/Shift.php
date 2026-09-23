@@ -135,6 +135,15 @@ class Shift extends Model
     }
 
     /**
+     * Whether it can still change hands: scheduled and not yet over. One that
+     * has begun with nobody checked in can go to somebody who covers the rest.
+     */
+    public function isReassignable(): bool
+    {
+        return $this->status === ShiftStatus::Scheduled && $this->endsAt()->isFuture();
+    }
+
+    /**
      * Whether this shift falls on today's date ON CAMPUS. `shift_date` is a
      * calendar date and is compared as one, never converted; isToday() would
      * compare it with UTC's today.

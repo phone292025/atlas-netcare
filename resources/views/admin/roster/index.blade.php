@@ -57,13 +57,14 @@
                                      checked-in one has somebody standing in the
                                      room, and `checked_in_at` says who, so
                                      reassigning it would put their attendance
-                                     against a different name.
+                                     against a different name. Nor one that has
+                                     ended: nobody can cover it any more.
 
                                      Shown as a form rather than a link because
                                      it changes data, and inline rather than on
                                      its own screen because the decision is made
                                      while looking at the week. --}}
-                                @if ($shift->status === \App\Enums\ShiftStatus::Scheduled && $assistants->count() > 1)
+                                @if ($shift->isReassignable() && $assistants->count() > 1)
                                     <form method="POST"
                                           action="{{ route('admin.roster.reassign', $shift) }}"
                                           class="mt-1.5">

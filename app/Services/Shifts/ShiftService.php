@@ -275,8 +275,10 @@ class ShiftService
      * Move one shift to a different assistant (FR-408): how a real week
      * diverges from the generated pattern.
      *
-     * Only a SCHEDULED shift. A started, completed or missed one is history,
-     * and `checked_in_at` records who was actually there.
+     * Only a SCHEDULED shift that has not ENDED. A started, completed or missed
+     * one is history, and `checked_in_at` records who was actually there. One
+     * that has begun with nobody checked in can still go to somebody who can
+     * cover the rest of it.
      *
      * Only to an ACTIVE ASSISTANT, or nobody will ever check in to it.
      *
@@ -295,6 +297,10 @@ class ShiftService
             throw new DomainException(
                 'This shift has already started or finished, so it cannot be reassigned.'
             );
+        }
+
+        if (! $shift->isReassignable()) {
+            throw new DomainException('This shift has already ended, so it cannot be reassigned.');
         }
 
         if ($to->role !== UserRole::Assistant || ! $to->is_active) {

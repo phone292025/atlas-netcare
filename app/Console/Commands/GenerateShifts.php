@@ -44,15 +44,6 @@ class GenerateShifts extends Command
         $this->info("Week of {$week->toDateString()}: {$created->count()} "
             .str('shift')->plural($created->count()).' created.');
 
-        // Tidy up the past in the same run. Nothing else would ever call it,
-        // and a roster full of shifts that are neither done nor missed is
-        // exactly the kind of stale screen people stop trusting.
-        $missed = $shifts->markMissed();
-
-        if ($missed > 0) {
-            $this->warn("{$missed} past ".str('shift')->plural($missed).' marked as missed.');
-        }
-
         return self::SUCCESS;
     }
 }

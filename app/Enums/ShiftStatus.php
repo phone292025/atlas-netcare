@@ -9,8 +9,8 @@ use App\Enums\Contracts\HasTone;
 /**
  * Where a rostered shift has got to.
  *
- * Missed is set by the roster command when a scheduled shift's end time passes
- * with no check-in — it is never chosen by a user.
+ * Missed is set by `atlas:mark-missed-shifts` within five minutes of a
+ * scheduled shift's end with no check-in. It is never chosen by a user.
  *
  * @see docs/modules/M6-shifts-and-alarms.md
  */
