@@ -135,6 +135,16 @@ class Shift extends Model
     }
 
     /**
+     * Whether it can still be taken off the roster: scheduled and not yet
+     * started. From its start it is attendance, and nobody coming is recorded
+     * as missed rather than erased.
+     */
+    public function isRemovable(): bool
+    {
+        return $this->status === ShiftStatus::Scheduled && $this->startsAt()->isFuture();
+    }
+
+    /**
      * Whether it can still change hands: scheduled and not yet over. One that
      * has begun with nobody checked in can go to somebody who covers the rest.
      */

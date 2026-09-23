@@ -97,6 +97,8 @@ Route::middleware('auth')->group(function () {
         // FR-408: how a real week diverges from the generated pattern.
         Route::patch('roster/{shift}/reassign', [RosterController::class, 'reassign'])
             ->name('roster.reassign');
+        Route::delete('roster/week', [RosterController::class, 'clear'])->name('roster.clear');
+        Route::delete('roster/{shift}', [RosterController::class, 'destroy'])->name('roster.destroy');
     });
 
     /*

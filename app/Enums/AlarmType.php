@@ -25,6 +25,7 @@ enum AlarmType: string implements HasLabel, HasTone
     case ShiftStart = 'shift_start';
     case InspectionRound = 'inspection_round';
     case Handover = 'handover';
+    case ShiftRemoved = 'shift_removed';
     case ApDegraded = 'ap_degraded';
     case ApOffline = 'ap_offline';
     case SlaBreach = 'sla_breach';
@@ -35,6 +36,7 @@ enum AlarmType: string implements HasLabel, HasTone
             self::ShiftStart => 'Shift Starting',
             self::InspectionRound => 'Inspection Round Due',
             self::Handover => 'Handover Required',
+            self::ShiftRemoved => 'Shift Removed',
             self::ApDegraded => 'Access Point Degraded',
             self::ApOffline => 'Access Point Offline',
             self::SlaBreach => 'Ticket Overdue',
@@ -44,7 +46,8 @@ enum AlarmType: string implements HasLabel, HasTone
     public function tone(): string
     {
         return match ($this) {
-            self::ShiftStart, self::InspectionRound, self::Handover, self::ApDegraded => 'attention',
+            self::ShiftStart, self::InspectionRound, self::Handover, self::ShiftRemoved,
+            self::ApDegraded => 'attention',
             self::ApOffline, self::SlaBreach => 'urgent',
         };
     }

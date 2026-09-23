@@ -18,6 +18,13 @@
                     Generate this week
                 </button>
             </form>
+
+            @if ($removableCount > 0)
+                <button type="button" @click="$dispatch('open-modal', 'confirm-clear-week')"
+                        class="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+                    Clear week
+                </button>
+            @endif
         </x-slot:actions>
     </x-page-header>
 
@@ -72,8 +79,7 @@
                                         @method('PATCH')
 
                                         <label class="sr-only" for="reassign-{{ $shift->id }}">
-                                            Reassign the {{ $shift->label() }} shift on
-                                            {{ $shift->shift_date->format('D j M') }}
+                                            Reassign the {{ $shift->label() }} shift
                                         </label>
 
                                         <select id="reassign-{{ $shift->id }}"
@@ -89,6 +95,32 @@
                                         </select>
                                     </form>
                                 @endif
+
+                                {{-- Only before it starts: from then on it is
+                                     attendance, and a no-show is recorded as
+                                     missed rather than erased. --}}
+                                @if ($shift->isRemovable())
+                                    <button type="button"
+                                            @click="$dispatch('open-modal', 'confirm-remove-{{ $shift->id }}')"
+                                            class="mt-1 text-xs font-medium text-red-700 hover:underline">
+                                        Remove
+                                    </button>
+
+                                    <x-modal name="confirm-remove-{{ $shift->id }}" title="Remove this shift?">
+                                        <p>{{ $shift->user?->name }}, {{ $shift->location?->code }}, {{ $shift->label() }}.</p>
+                                        <p class="mt-2">They are told they do not need to come in, and its reminders are cancelled.</p>
+                                        <x-slot:footer>
+                                            <button type="button" @click="$dispatch('close-modal', 'confirm-remove-{{ $shift->id }}')"
+                                                    class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300">Cancel</button>
+                                            <form method="POST" action="{{ route('admin.roster.destroy', $shift) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                        class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Remove shift</button>
+                                            </form>
+                                        </x-slot:footer>
+                                    </x-modal>
+                                @endif
                             </li>
                         @endforeach
                     </ul>
@@ -96,4 +128,30 @@
             </div>
         @endforeach
     </div>
+
+    @if ($removableCount > 0)
+        <x-modal name="confirm-clear-week" title="Clear the week of {{ $week->format('j M') }}?">
+            <p>
+                Removes the {{ $removableCount }} {{ Str::plural('shift', $removableCount) }} that
+                {{ $removableCount === 1 ? 'has' : 'have' }} not started. Each assistant is told.
+            </p>
+            <p class="mt-2">
+                Shifts that have started or finished stay as the attendance record.
+                "Generate this week" fills the week again from the templates.
+            </p>
+            <x-slot:footer>
+                <button type="button" @click="$dispatch('close-modal', 'confirm-clear-week')"
+                        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300">Cancel</button>
+                <form method="POST" action="{{ route('admin.roster.clear') }}">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="week" value="{{ $week->toDateString() }}">
+                    <button type="submit"
+                            class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
+                        Remove {{ $removableCount }} {{ Str::plural('shift', $removableCount) }}
+                    </button>
+                </form>
+            </x-slot:footer>
+        </x-modal>
+    @endif
 </x-app-layout>

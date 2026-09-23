@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AlarmType;
 use App\Models\AccessPoint;
 use App\Models\Alarm;
 use App\Models\Ticket;
@@ -64,6 +65,7 @@ class NotificationController extends Controller
             $related instanceof Ticket => route('assistant.tickets.show', $related),
             $related instanceof AccessPoint => route('engineer.aps.show', $related),
             $alarm->shift_id !== null => route('assistant.shifts.today'),
+            $alarm->type === AlarmType::ShiftRemoved => route('assistant.shifts.index'),
             default => route('notifications.index'),
         };
     }

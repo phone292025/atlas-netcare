@@ -651,6 +651,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/MarkMissedShiftsCommandTest.php` | `atlas:mark-missed-shifts`, and that it runs often enough to matter |
 | `Feature/Shifts/ShiftCalendarTest.php` | Handing shifts to the assistant's own phone calendar |
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment |
+| `Feature/Shifts/ShiftRemovalTest.php` | FR-408, taking shifts off the roster, one or a week at a time |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |

@@ -42,6 +42,7 @@ class RosterController extends Controller
             'days' => collect(range(0, 6))->map(fn ($i) => $week->copy()->addDays($i)),
             'templateCount' => ShiftTemplate::query()->active()->count(),
             'shiftCount' => $shifts->count(),
+            'removableCount' => $shifts->filter(fn (Shift $s) => $s->isRemovable())->count(),
 
             // FR-408. Fetched once for the whole week rather than per shift:
             // a fortnight of shifts would otherwise be a query each.
@@ -98,9 +99,49 @@ class RosterController extends Controller
 
         return back()->with(
             'success',
-            $shift->fresh()->user?->name.' now has the '.$shift->label().' shift on '
-                .$shift->shift_date->format('D j M').'.',
+            $shift->fresh()->user?->name.' now has the '.$shift->label().' shift.',
         );
+    }
+
+    /**
+     * Take one shift off the roster. Only before it starts; the rule and the
+     * assistant's notice are in ShiftService::remove().
+     */
+    public function destroy(Shift $shift): RedirectResponse
+    {
+        try {
+            $this->shifts->remove($shift);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with(
+            'success',
+            'Removed '.$shift->user?->name.'\'s '.$shift->label().' shift. They have been told.',
+        );
+    }
+
+    /**
+     * Remove every shift in the week that has not started. Ones that have
+     * started or finished stay: they are the attendance record.
+     */
+    public function clear(Request $request): RedirectResponse
+    {
+        $week = $this->week($request);
+        ['removed' => $removed, 'kept' => $kept] = $this->shifts->clearWeek($week);
+
+        $message = $removed === 0
+            ? 'Nothing to remove: every shift that week has already started.'
+            : "Removed {$removed} ".str('shift')->plural($removed).' from the week of '.$week->format('j M').'.';
+
+        if ($removed > 0 && $kept > 0) {
+            $message .= " {$kept} that ".($kept === 1 ? 'has' : 'have').' already started or finished '
+                .($kept === 1 ? 'stays' : 'stay').' as the attendance record.';
+        }
+
+        return redirect()
+            ->route('admin.roster.index', ['week' => $week->toDateString()])
+            ->with($removed === 0 ? 'warning' : 'success', $message);
     }
 
     /**
@@ -113,7 +154,7 @@ class RosterController extends Controller
     private function week(Request $request): Carbon
     {
         // Both on the campus clock, or Monday before 08:00 shows last week.
-        // input(), not query(): the generate form posts the week.
+        // input(), not query(): the generate and clear forms post the week.
         return (CampusClock::dateFrom($request->input('week')) ?? CampusClock::now())->startOfWeek();
     }
 }

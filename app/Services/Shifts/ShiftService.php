@@ -343,4 +343,74 @@ class ShiftService
             return $shift->fresh(['user', 'location']);
         });
     }
+
+    /**
+     * Take a shift off the roster (FR-408): the lab is closed that day, or
+     * the slot was never needed.
+     *
+     * Only before it STARTS. From then on it is attendance: nobody coming is
+     * recorded as missed, and removing it would hide that. Its unsent alarms
+     * go with it, except a handover note, which moves to the next shift in the
+     * same place. Delivered ones stay, as in reassign(). The assistant is
+     * told, because the shift was on their screen and in their calendar.
+     *
+     * @throws DomainException when the shift has started or finished
+     */
+    public function remove(Shift $shift): void
+    {
+        if (! $shift->isRemovable()) {
+            throw new DomainException(
+                'This shift has already started, so it stays on the roster as a record of who was there.'
+            );
+        }
+
+        DB::transaction(function () use ($shift) {
+            $handovers = $shift->alarms()->whereNull('sent_at')
+                ->where('type', AlarmType::Handover)
+                ->pluck('message');
+
+            $shift->alarms()->whereNull('sent_at')->delete();
+            // Detached, or the foreign key's cascade takes them with the shift.
+            $shift->alarms()->update(['shift_id' => null]);
+            $shift->delete();
+
+            foreach ($handovers as $notes) {
+                $this->passHandoverOn($shift, (string) $notes);
+            }
+
+            if ($shift->user) {
+                $this->alarms->raise(
+                    AlarmType::ShiftRemoved,
+                    $shift->user,
+                    'Your shift has been removed',
+                    ($shift->location?->label() ?? 'No location').', '.$shift->label().'. You do not need to come in.',
+                );
+            }
+        });
+    }
+
+    /**
+     * Remove every shift in a week that has not started, and keep the rest.
+     * "Generate this week" puts removed shifts back from the templates.
+     *
+     * @return array{removed: int, kept: int}
+     */
+    public function clearWeek(Carbon $weekStart): array
+    {
+        $weekStart = $weekStart->copy()->startOfWeek();
+
+        $shifts = Shift::query()
+            ->with(['user', 'location'])
+            ->whereBetween('shift_date', [$weekStart, $weekStart->copy()->endOfWeek()])
+            // In order, so a handover note moved off one shift can move again
+            // if the shift it lands on is removed next.
+            ->orderBy('shift_date')->orderBy('start_time')
+            ->get();
+
+        $removable = $shifts->filter(fn (Shift $shift) => $shift->isRemovable());
+
+        DB::transaction(fn () => $removable->each(fn (Shift $shift) => $this->remove($shift)));
+
+        return ['removed' => $removable->count(), 'kept' => $shifts->count() - $removable->count()];
+    }
 }
