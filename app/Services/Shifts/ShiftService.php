@@ -28,9 +28,12 @@ class ShiftService
      * Create shifts for a week from the active templates (Q4).
      *
      * Idempotent: it runs weekly and somebody will also run it by hand, so a
-     * second pass fills only the slots still empty. Assistants are picked by
-     * how few shifts they already have that week; not a fairness algorithm,
-     * but it stops one person being given every slot.
+     * second pass fills only the slots still empty. Only slots that have not
+     * started: a shift created after its start is a no-show nobody could have
+     * attended, and it would be marked missed within minutes.
+     *
+     * Assistants are picked by how few shifts they already have that week; not
+     * a fairness algorithm, but it stops one person being given every slot.
      *
      * @return Collection<int, Shift>
      */
@@ -65,6 +68,10 @@ class ShiftService
                     // week starts on Monday, so Sunday is the last day.
                     ($template->day_of_week + 6) % 7
                 );
+
+                if (Carbon::parse($date->toDateString().' '.$template->start_time, CampusClock::timezone())->isPast()) {
+                    continue;
+                }
 
                 // Start from what the slot already holds. The per-person check
                 // below stops double-booking one assistant, not filling one
@@ -120,21 +127,31 @@ class ShiftService
     ): void {
         $startsAt = $shift->startsAt();
 
+        // Never dated in the past. A shift handed over once it is under way
+        // gets its notice now; dated at the old reminder time, it was sorted
+        // below everything since and read as old news.
         $this->alarms->raise(
             AlarmType::ShiftStart,
             $assistant,
             $title,
             $message ?? $shift->location?->label().', '.$shift->label(),
-            at: $startsAt->copy()->subMinutes((int) config('atlas.shifts.reminder_before_min', 30)),
+            at: $startsAt->copy()->subMinutes((int) config('atlas.shifts.reminder_before_min', 30))->max(now()),
             shift: $shift,
         );
 
         // Round reminders spaced through the shift. None in the last quarter
-        // hour: being told to start a round as you leave is noise.
+        // hour: being told to start a round as you leave is noise. None
+        // already past either, or covering a shift sends them all at once.
         $interval = (int) config('atlas.shifts.round_interval_min', 120);
         $cursor = $startsAt->copy()->addMinutes($interval);
 
         while ($cursor->lt($shift->endsAt()->copy()->subMinutes(15))) {
+            if ($cursor->isPast()) {
+                $cursor->addMinutes($interval);
+
+                continue;
+            }
+
             $this->alarms->raise(
                 AlarmType::InspectionRound,
                 $assistant,

@@ -72,7 +72,7 @@ class RosterController extends Controller
             ->with(
                 $created->isEmpty() ? 'warning' : 'success',
                 $created->isEmpty()
-                    ? 'Nothing new to add — this week is already rostered from the current templates.'
+                    ? 'Nothing new to add: every slot this week is filled or has already started.'
                     : "{$created->count()} ".str('shift')->plural($created->count()).' created for the week of '.$week->format('j M').'.',
             );
     }

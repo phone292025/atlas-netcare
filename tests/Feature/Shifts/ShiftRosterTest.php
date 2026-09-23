@@ -14,6 +14,7 @@ use App\Services\Shifts\ShiftService;
 use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -55,6 +56,31 @@ class ShiftRosterTest extends TestCase
         // wrong, and it looks like the generator simply not working.
         $this->assertTrue($created->first()->shift_date->isMonday());
         $this->assertSame($week->toDateString(), $created->first()->shift_date->toDateString());
+    }
+
+    public function test_generating_a_week_under_way_skips_what_has_started(): void
+    {
+        /*
+         * Wednesday mid-morning. Monday's and this morning's slots have gone:
+         * a shift created now for them could only ever be a no-show, and it
+         * was marked missed within minutes. Found on the live roster, where a
+         * week generated on the Saturday after it was six "missed" shifts.
+         */
+        $this->travelTo(Carbon::parse('2026-09-23 10:30', CampusClock::timezone()));
+        $this->userWith(UserRole::Assistant);
+
+        $monday = ShiftTemplate::factory()->onDay(1)->create(['start_time' => '09:00', 'end_time' => '13:00']);
+        $thisMorning = ShiftTemplate::factory()->onDay(3)->create(['start_time' => '09:00', 'end_time' => '13:00']);
+        $thisAfternoon = ShiftTemplate::factory()->onDay(3)->create(['start_time' => '13:00', 'end_time' => '17:00']);
+        $friday = ShiftTemplate::factory()->onDay(5)->create(['start_time' => '09:00', 'end_time' => '13:00']);
+
+        $created = $this->service()->generateWeek(Carbon::parse('2026-09-21'));
+
+        $this->assertEqualsCanonicalizing(
+            [$thisAfternoon->id, $friday->id],
+            $created->pluck('shift_template_id')->all(),
+        );
+        $this->assertSame(0, Alarm::where('trigger_at', '<', now())->count(), 'No reminder written for the past.');
     }
 
     public function test_sunday_lands_at_the_end_of_the_week_not_the_start(): void

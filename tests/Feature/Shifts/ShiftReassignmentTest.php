@@ -12,6 +12,7 @@ use App\Services\Shifts\ShiftService;
 use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -125,6 +126,33 @@ class ShiftReassignmentTest extends TestCase
         $this->shifts->reassign($shift, $cover);
 
         $this->assertSame($cover->id, $shift->fresh()->user_id);
+    }
+
+    public function test_covering_a_shift_under_way_sends_nothing_stale(): void
+    {
+        /*
+         * Noon, on a 07:00–15:00 shift nobody turned up to. The 09:00 and
+         * 11:00 rounds have gone; the 13:00 one has not. The notice arrives
+         * now: dated 06:30, it sorted below everything since and read as old.
+         */
+        $this->travelTo(Carbon::parse('2026-09-23 12:00', CampusClock::timezone()));
+        $shift = Shift::factory()->create([
+            'user_id' => $this->assistant()->id,
+            'shift_date' => '2026-09-23',
+            'start_time' => '07:00',
+            'end_time' => '15:00',
+        ]);
+        $cover = $this->assistant();
+
+        $this->shifts->reassign($shift, $cover);
+
+        $alarms = Alarm::where('user_id', $cover->id)->get();
+
+        $this->assertTrue($alarms->firstWhere('type', AlarmType::ShiftStart)->trigger_at->equalTo(now()));
+        $this->assertSame(
+            ['13:00'],
+            $alarms->where('type', AlarmType::InspectionRound)->map(fn ($a) => $a->trigger_at->campus()->format('H:i'))->values()->all(),
+        );
     }
 
     public function test_the_roster_does_not_offer_to_reassign_a_shift_that_has_ended(): void
