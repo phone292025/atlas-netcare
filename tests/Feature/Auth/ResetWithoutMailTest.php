@@ -163,12 +163,20 @@ class ResetWithoutMailTest extends TestCase
         $token = Password::createToken($user);
         $url = url(route('password.reset', ['token' => $token, 'email' => $user->email], false));
 
-        $log = storage_path('logs/laravel.log');
-        file_put_contents($log, "[test] a logged message containing {$url} inline\n", FILE_APPEND);
+        // A log of its own. Appending to storage/logs/laravel.log left a fake
+        // link there on every run, and the command then printed that instead
+        // of the developer's real one.
+        $log = tempnam(sys_get_temp_dir(), 'atlas-log');
+        file_put_contents($log, "[test] a logged message containing {$url} inline\n");
+        config(['logging.channels.single.path' => $log]);
 
-        $this->artisan('atlas:reset-link')
-            ->expectsOutputToContain($token)
-            ->assertExitCode(0);
+        try {
+            $this->artisan('atlas:reset-link')
+                ->expectsOutputToContain($token)
+                ->assertExitCode(0);
+        } finally {
+            unlink($log);
+        }
     }
 
     public function test_the_command_refuses_outside_local(): void

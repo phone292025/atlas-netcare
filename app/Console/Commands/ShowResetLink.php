@@ -43,7 +43,9 @@ class ShowResetLink extends Command
             return self::FAILURE;
         }
 
-        $log = storage_path('logs/laravel.log');
+        // Where the `single` channel writes, which is where the log mailer's
+        // messages land.
+        $log = config('logging.channels.single.path', storage_path('logs/laravel.log'));
 
         if (! is_file($log)) {
             $this->warn('  No log file yet. Request a reset first, then run this again.');
