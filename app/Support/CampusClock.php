@@ -7,40 +7,22 @@ use Illuminate\Support\Carbon;
 /**
  * The campus wall clock, and the one place the application asks what day it is.
  *
- * TWO CLOCKS, DELIBERATELY. The application runs in UTC and stores every
- * moment in UTC: `opened_at`, `checked_in_at`, `recorded_at`. That is right and
- * stays right — an instant is an instant, and comparing two of them never
- * needs a timezone. What UTC cannot answer is a CALENDAR question: which day is
- * today, which week is this, what time does the clock on the lab wall say.
- * Those have an answer only on a particular clock, and on this campus that
- * clock is eight hours ahead of UTC.
- *
- * WHAT WENT WRONG WITHOUT IT. Every calendar question was answered in UTC:
- *
- *   - "My shift" asked for `today()`. From midnight until 08:00 on campus,
- *     UTC is still yesterday, so an assistant opening the app at 07:30 on a
- *     Monday was told they had no shift, while rostered for 09:00.
- *   - Every clock time on screen printed the stored UTC value. An assistant who
- *     checked in three minutes early to a 17:28 shift was shown "Checked in at
- *     09:25" beside "Opens 17:13" — two clocks on one screen.
- *   - The scheduler read "daily at 02:00" as 02:00 UTC, which is 10:00 on
- *     campus: risk scoring ran in the middle of the working day it was meant to
- *     finish before.
+ * TWO CLOCKS, DELIBERATELY. Every moment is stored in UTC (`opened_at`,
+ * `checked_in_at`, `recorded_at`), and comparing two moments never needs a
+ * timezone. A CALENDAR question does: which day is today, which week, what the
+ * clock on the lab wall says. On this campus that clock is eight hours ahead,
+ * so from midnight to 08:00 UTC's "today" is campus yesterday.
  *
  * HOW TO USE IT.
  *
- *   - A calendar question — today, this week, is this shift today — goes
+ *   - A calendar question (today, this week, is this shift today) goes
  *     through CampusClock::today() or ::now().
- *   - Showing a stored moment to a person goes through ->campus() on the date,
- *     a macro registered in AppServiceProvider:
+ *   - Showing a stored moment to a person goes through ->campus(), a macro
+ *     registered in AppServiceProvider:
  *         {{ $ticket->opened_at?->campus()->format('j M Y, H:i') }}
- *   - A DATE column (`shift_date`, `purchase_date`) is not a moment and must
- *     not be converted. 1 September is 1 September on every clock.
- *   - Stamping an event is still `now()`, in UTC. Nothing about storage moves.
- *
- * The zone is `atlas.calendar.timezone`, which predates this class and was
- * already documented as "the campus wall clock": Shift::startsAt() and the
- * calendar export have always read it.
+ *   - A DATE column (`shift_date`, `purchase_date`) is not a moment and is
+ *     never converted: 1 September is 1 September on every clock.
+ *   - Stamping an event is still `now()`, in UTC.
  *
  * @see config/atlas.php — calendar.timezone
  * @see docs/progress/decision-log.md — 2026-09-19
@@ -62,6 +44,26 @@ final class CampusClock
     public static function today(): Carbon
     {
         return Carbon::today(self::timezone());
+    }
+
+    /**
+     * A `Y-m-d` date from a URL, at midnight on campus, or null when the value
+     * is missing or not a real date.
+     *
+     * Screens that take a date in the query string fall back to their default
+     * on null. Parsing the raw value turned a hand-edited `?week=` into a 500.
+     * Mixed, because `?week[]=` arrives as an array.
+     */
+    public static function dateFrom(mixed $value): ?Carbon
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        $date = rescue(fn () => Carbon::createFromFormat('!Y-m-d', $value, self::timezone()), report: false);
+
+        // The round trip rejects dates PHP would roll over, like 2026-02-31.
+        return $date instanceof Carbon && $date->format('Y-m-d') === $value ? $date : null;
     }
 
     /**

@@ -102,15 +102,10 @@ class TrafficLogController extends Controller
          * direction. The view shows them with ->campus(), including in the
          * date inputs, or every "Apply" would slide the range back a day.
          */
-        $tz = CampusClock::timezone();
+        $to = CampusClock::dateFrom($request->query('to'))?->endOfDay() ?? CampusClock::now();
 
-        $to = $request->filled('to')
-            ? Carbon::parse($request->string('to'), $tz)->endOfDay()
-            : CampusClock::now();
-
-        $from = $request->filled('from')
-            ? Carbon::parse($request->string('from'), $tz)->startOfDay()
-            : $to->copy()->subDays(7)->startOfDay();
+        $from = CampusClock::dateFrom($request->query('from'))?->startOfDay()
+            ?? $to->copy()->subDays(7)->startOfDay();
 
         if ($from->gt($to)) {
             [$from, $to] = [$to->copy()->subDays(7), $to];

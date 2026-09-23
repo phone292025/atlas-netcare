@@ -10,7 +10,6 @@ use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 /**
  * An assistant's own shift (FR-201, FR-210, FR-211).
@@ -49,9 +48,7 @@ class ShiftController extends Controller
     public function index(Request $request): View
     {
         // Both on the campus clock, or Monday before 08:00 shows last week.
-        $week = $request->filled('week')
-            ? Carbon::parse($request->string('week'), CampusClock::timezone())->startOfWeek()
-            : CampusClock::now()->startOfWeek();
+        $week = (CampusClock::dateFrom($request->query('week')) ?? CampusClock::now())->startOfWeek();
 
         return view('assistant.shifts.index', [
             'week' => $week,

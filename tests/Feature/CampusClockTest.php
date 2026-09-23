@@ -221,6 +221,43 @@ class CampusClockTest extends TestCase
             ->assertSee('12 Sep 2026 to 19 Sep 2026');
     }
 
+    /** @return array<string, array{mixed}> */
+    public static function badDates(): array
+    {
+        return [
+            'not a date' => ['not-a-date'],
+            'rolls over' => ['2026-02-31'],
+            'wrong format' => ['19/09/2026'],
+            'an array' => [['2026-09-19']],
+        ];
+    }
+
+    #[DataProvider('badDates')]
+    public function test_a_hand_edited_date_falls_back_rather_than_failing(mixed $value): void
+    {
+        // Every screen that reads a date from the URL. Parsing the raw value
+        // used to turn any of these into a 500.
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->get(route('assistant.shifts.index', ['week' => $value]))
+            ->assertOk();
+
+        $this->actingAs($this->userWith(UserRole::Admin))
+            ->get(route('admin.roster.index', ['week' => $value]))
+            ->assertOk();
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->get(route('engineer.traffic.index', ['from' => $value, 'to' => $value]))
+            ->assertOk();
+    }
+
+    public function test_a_valid_date_from_the_url_is_read_on_the_campus_clock(): void
+    {
+        $date = CampusClock::dateFrom('2026-09-19');
+
+        $this->assertSame('2026-09-19 00:00:00', $date->format('Y-m-d H:i:s'));
+        $this->assertSame(CampusClock::timezone(), $date->getTimezone()->getName());
+    }
+
     // ------------------------------------------------ text that gets saved
 
     public function test_an_overdue_alarm_states_when_it_was_due_not_how_long_ago(): void

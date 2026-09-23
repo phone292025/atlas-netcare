@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\TelemetrySource;
+use App\Support\CampusClock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -371,11 +372,17 @@ class AlarmTest extends TestCase
     {
         $this->userWith(UserRole::Assistant);
         ShiftTemplate::factory()->create();
+        $nextWeek = CampusClock::now()->addWeek()->startOfWeek();
 
         $this->actingAs($this->userWith(UserRole::Admin))
-            ->post(route('admin.roster.generate'), ['week' => now()->addWeek()->startOfWeek()->toDateString()])
-            ->assertRedirect();
+            ->post(route('admin.roster.generate'), ['week' => $nextWeek->toDateString()])
+            ->assertRedirect(route('admin.roster.index', ['week' => $nextWeek->toDateString()]));
 
-        $this->assertSame(1, Shift::count());
+        // The week the form posted, not this one. Reading the week from the
+        // query string alone filled the current week from next week's screen.
+        $this->assertSame(
+            $nextWeek->toDateString(),
+            Shift::sole()->shift_date->copy()->startOfWeek()->toDateString(),
+        );
     }
 }

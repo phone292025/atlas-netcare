@@ -113,8 +113,7 @@ class RosterController extends Controller
     private function week(Request $request): Carbon
     {
         // Both on the campus clock, or Monday before 08:00 shows last week.
-        return $request->filled('week')
-            ? Carbon::parse($request->string('week'), CampusClock::timezone())->startOfWeek()
-            : CampusClock::now()->startOfWeek();
+        // input(), not query(): the generate form posts the week.
+        return (CampusClock::dateFrom($request->input('week')) ?? CampusClock::now())->startOfWeek();
     }
 }
