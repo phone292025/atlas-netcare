@@ -11,10 +11,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Storing readings, deciding what they mean, and answering the dashboard.
  *
- * CLASSIFICATION LIVES HERE, not in a driver and not in a database trigger. A
- * driver reports numbers; whether those numbers amount to "degraded" is a
- * business rule with thresholds in config, and it needs the previous readings
- * — which a driver does not have.
+ * Classification lives here, not in a driver: a driver reports numbers, and
+ * whether they amount to "degraded" is a business rule with thresholds in
+ * config that needs previous readings a driver does not have.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
  * @see docs/02-open-questions.md Q1
@@ -26,10 +25,9 @@ class TelemetryService
     /**
      * Take a round of readings and store them.
      *
-     * Returns the access points whose status CHANGED, so the caller can act on
-     * a transition — M4 raises a ticket when one goes offline, and only on the
-     * transition. Reacting to every offline reading would raise one ticket a
-     * minute for six hours.
+     * Returns the access points whose status CHANGED, so the caller reacts to
+     * a transition rather than to every reading: one ticket for an outage, not
+     * one a minute for six hours.
      *
      * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
      */
@@ -79,23 +77,24 @@ class TelemetryService
                 }
 
                 /*
-                 * The access point's own columns are a denormalised cache of
-                 * its latest reading, so the dashboard and the inventory list
-                 * need no subquery. Written in the same transaction as the
-                 * reading, so the two can never disagree.
+                 * The access point's own columns cache its latest reading, so
+                 * lists need no subquery. Same transaction, so the two never
+                 * disagree. `last_seen_at` only moves when the device actually
+                 * answered: it is what the silence sweep reads.
                  *
-                 * last_seen_at is only touched when the AP actually answered —
-                 * that is the column the offline rule reads, and stamping it
-                 * on a failed poll would mean nothing is ever offline.
+                 * Saved quietly, so not audited: the reading row just written
+                 * records this status, and at peak an access point near a
+                 * threshold flaps every few minutes. A status an administrator
+                 * sets, such as maintenance, is still audited.
                  */
                 $ap->forceFill(array_filter([
                     'status' => $status,
                     'last_seen_at' => $reading->unreachable ? null : $reading->recordedAt,
-                ], fn ($value) => $value !== null))->save();
+                ], fn ($value) => $value !== null))->saveQuietly();
             }
 
-            // Chunked insert() rather than create() in a loop: one round is 40
-            // rows, but the backfill is hundreds of thousands.
+            // Chunked insert(): a round is forty rows, a backfill hundreds of
+            // thousands.
             foreach (array_chunk($rows, 500) as $chunk) {
                 TelemetryReading::insert($chunk);
             }
@@ -107,20 +106,14 @@ class TelemetryService
     /**
      * What this reading means for this access point (Q1).
      *
-     *   offline   — did not answer. (Not answering AT ALL, for longer than
-     *               offline_after_min, is markStaleOffline()'s job, not this
-     *               method's — see below.)
+     *   offline   — did not answer (silence is markStaleOffline()'s job)
      *   degraded  — latency, loss or saturation over threshold for
-     *               `consecutive_breach` readings in a row
+     *               `consecutive_breach` readings in a row, so one noisy
+     *               sample cannot flip the status and raise an alert
      *   online    — neither
      *
-     * The consecutive requirement is what stops one noisy sample flipping an
-     * access point's state, and with it the dashboard colour and an
-     * auto-raised ticket.
-     *
-     * An access point under planned maintenance keeps that status regardless.
-     * It is an administrative decision, not a measurement, and overwriting it
-     * would start paging somebody about a device an engineer is holding.
+     * Maintenance is kept regardless: it is an administrator's decision, not
+     * a measurement.
      */
     public function classify(AccessPoint $ap, ReadingData $reading): ApStatus
     {
@@ -130,12 +123,8 @@ class TelemetryService
 
         /*
          * A reading that arrived is proof of life, whatever `last_seen_at`
-         * says. This used to ALSO consult last_seen_at, so that after any pause
-         * in collection — a stopped scheduler, a laptop asleep, a demo restart
-         * — the first run marked every access point offline on a reading that
-         * proved it was up, raised one ticket per access point, and flipped
-         * them all back online a minute later. Silence is judged only where
-         * no reading arrives: markStaleOffline().
+         * says. Consulting it here marked every access point offline on the
+         * first round after any pause in collection.
          */
         if ($reading->unreachable) {
             return ApStatus::Offline;
@@ -147,7 +136,7 @@ class TelemetryService
 
         $required = (int) config('atlas.thresholds.consecutive_breach');
 
-        // This reading is one of them, so we only need the previous n-1.
+        // This reading is one of them, so only the previous n-1 are needed.
         $previous = TelemetryReading::query()
             ->where('access_point_id', $ap->id)
             ->orderByDesc('recorded_at')
@@ -155,9 +144,8 @@ class TelemetryService
             ->get();
 
         if ($previous->count() < $required - 1) {
-            // Not enough history to be sure yet. Staying online is the safer
-            // wrong answer: a false Degraded on a newly added access point
-            // trains people to ignore the dashboard.
+            // Not enough history yet. A false Degraded on new kit trains
+            // people to ignore the dashboard.
             return ApStatus::Online;
         }
 
@@ -168,7 +156,7 @@ class TelemetryService
         return $allBreaching ? ApStatus::Degraded : ApStatus::Online;
     }
 
-    /** Whether a single fresh reading is over any threshold. */
+    /** Whether a fresh reading is over any threshold. */
     private function breachesThreshold(AccessPoint $ap, ReadingData $reading): bool
     {
         return $this->overThresholds(
@@ -179,7 +167,7 @@ class TelemetryService
         );
     }
 
-    /** The same test, against a row already in the database. */
+    /** The same test, against a stored row. */
     private function rowBreaches(AccessPoint $ap, TelemetryReading $reading): bool
     {
         return $this->overThresholds(
@@ -191,11 +179,8 @@ class TelemetryService
     }
 
     /**
-     * One threshold test, used by both paths.
-     *
-     * Written once rather than twice on purpose: a fresh reading and a stored
-     * one must be judged identically, and two copies of this would drift into
-     * "degraded now but not degraded a minute later" with no data change.
+     * One threshold test for both paths, so a fresh reading and a stored one
+     * are always judged identically.
      */
     private function overThresholds(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): bool
     {
@@ -215,11 +200,9 @@ class TelemetryService
     }
 
     /**
-     * The dashboard payload — counts by state, plus every access point's
-     * current reading.
-     *
-     * Deliberately one method serving both the first page render and the
-     * polling endpoint, so the two can never show different numbers.
+     * The dashboard payload: counts by state, plus every access point's
+     * current reading. One method for the first render and the polling
+     * endpoint, so the two can never show different numbers.
      *
      * @return array<string, mixed>
      */
@@ -233,12 +216,10 @@ class TelemetryService
         $latest = $this->latestReadings($accessPoints->pluck('id'));
 
         /*
-         * When the newest reading was actually taken. `generated_at` is when
-         * THIS payload was built, which is always "just now", and a screen
-         * that reported only that said "updated 1s ago" over readings two days
-         * old while calling every access point online. Stale means older than
-         * the offline window: the collector has stopped, and the statuses on
-         * this page are history, not measurement.
+         * When the newest reading was taken, as well as when this payload was
+         * built. Only reporting the latter said "updated 1s ago" over readings
+         * two days old. Stale means older than the offline window: the
+         * collector has stopped.
          */
         $newest = $latest->max('recorded_at');
         $stale = $newest !== null
@@ -278,11 +259,8 @@ class TelemetryService
     }
 
     /**
-     * The most recent reading for each of these access points.
-     *
-     * One query for all of them rather than one per AP — this runs on every
-     * dashboard poll, and forty extra queries every twenty seconds is exactly
-     * the N+1 a marker looks for.
+     * The most recent reading for each of these access points, in one query
+     * rather than one per access point: this runs on every dashboard poll.
      *
      * @param  Collection<int, int>  $accessPointIds
      * @return Collection<int, TelemetryReading>
@@ -308,29 +286,11 @@ class TelemetryService
     /**
      * Mark access points offline that have simply stopped being heard from.
      *
-     * THE GAP THIS CLOSES. Every other status change in this service is driven
-     * by a reading arriving. An access point that produces NO reading at all
-     * would therefore keep its last known status indefinitely, and the
-     * dashboard would go on reporting it online.
-     *
-     * This sweep is the ONLY place silence is judged. classify() used to check
-     * `last_seen_at` as well, on readings that had just arrived, and after any
-     * pause in collection it marked every access point offline and raised a
-     * ticket for each one. See the decision log for 2026-09-04.
-     *
-     * With the simulator that cannot happen, because it invents a reading for
-     * every collectable access point. It is exactly what a real SNMP driver
-     * does, though: a device that does not answer enumeration is simply absent
-     * from the batch, and ADR-0002's whole point is that the driver swaps.
-     *
-     * Runs on the same schedule as collection, so a device that goes quiet is
-     * noticed within the same window as one that answers badly. Returns
-     * transitions in the same shape as store(), so the caller raises the same
-     * ticket and the same alarm — a machine that vanished and one that
-     * answered with a failure are the same problem to whoever is on shift.
-     *
-     * Access points under maintenance are skipped. Being quiet is what
-     * maintenance means.
+     * Every other status change is driven by a reading arriving. A real SNMP
+     * driver omits a device it cannot enumerate, so without this sweep that
+     * device would keep its last status forever. This is the ONLY place
+     * silence is judged. Returns transitions in the same shape as store(), so
+     * the caller raises the same ticket and alert.
      *
      * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
      */
@@ -339,19 +299,10 @@ class TelemetryService
         $cutoff = now()->subMinutes((int) config('atlas.thresholds.offline_after_min'));
 
         /*
-         * ASK THE DRIVER WHAT IT POLLS, rather than assuming everything.
-         *
-         * Silence is only evidence of failure if somebody was listening. An
-         * access point no driver pings is not quiet, it is unasked, and
-         * marking it offline raises a ticket about a device nothing ever tried
-         * to reach.
-         *
-         * Both shipped drivers poll everything, so this reads the same as the
-         * `collectable()` it replaced. It stops being the same the moment a
-         * driver polls a subset, which is the case this was written from:
-         * measured against one that skips demo rows, the hard-coded version
-         * marked 28 access points offline and raised 28 tickets and 56 alarms
-         * on the first tick of the scheduler.
+         * Only what the driver polls. Silence is evidence of failure only if
+         * somebody was listening: marking an unpolled device offline raises a
+         * ticket about hardware nothing tried to reach. Maintenance is outside
+         * pollable() too, because being quiet is what maintenance means.
          */
         $stale = $this->source->pollable()
             ->where('status', '!=', ApStatus::Offline->value)
@@ -361,19 +312,16 @@ class TelemetryService
         $transitions = collect();
 
         foreach ($stale as $ap) {
-            /*
-             * An access point that has NEVER answered is left alone. It is
-             * newly added kit that the collector has not reached yet, not a
-             * device that has gone away, and alarming about it on the minute
-             * it was created would train people to ignore the alarm.
-             */
+            // Never answered: new kit the collector has not reached yet, not a
+            // device that has gone away.
             if ($ap->last_seen_at === null) {
                 continue;
             }
 
             $from = $ap->status;
 
-            $ap->forceFill(['status' => ApStatus::Offline])->save();
+            // Quietly, as in store(). The ticket and the alert are the record.
+            $ap->forceFill(['status' => ApStatus::Offline])->saveQuietly();
 
             $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => ApStatus::Offline]);
         }

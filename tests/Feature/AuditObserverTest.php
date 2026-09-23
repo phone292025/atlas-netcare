@@ -61,6 +61,31 @@ class AuditObserverTest extends TestCase
         $this->assertSame(0, $this->updates());
     }
 
+    public function test_a_status_the_collector_sets_is_not_audited(): void
+    {
+        // Every reading row records the status, and at peak an access point
+        // near a threshold flaps every few minutes: auditing each flap wrote
+        // hundreds of rows an hour, credited to whoever pressed "Generate
+        // sample".
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Offline]);
+
+        app(TelemetryService::class)->store(collect([$this->healthyReading($ap)]));
+
+        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+        $this->assertSame(0, $this->updates());
+    }
+
+    public function test_a_status_an_administrator_sets_is_audited(): void
+    {
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online]);
+
+        $ap->update(['status' => ApStatus::Maintenance]);
+
+        $row = AuditLog::forSubject($ap)->where('action', 'updated')->sole();
+
+        $this->assertSame(['status' => 'maintenance'], $row->getAttribute('changes'));
+    }
+
     public function test_a_risk_score_moving_within_its_band_writes_no_row(): void
     {
         $pc = LabPc::factory()->create();

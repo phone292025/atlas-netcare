@@ -140,6 +140,11 @@ return [
     | cannot flip the state. OFFLINE after `offline_after_min` without a
     | reading.
     |
+    | `degraded_alert_cooldown_min`: after alerting the engineers that an
+    | access point is degraded, stay quiet about it for this long. At peak an
+    | access point near a threshold flaps every few minutes, and an alert per
+    | flap is noise.
+    |
     | Working assumptions (Q1), not yet checked against a real APU access
     | point. See docs/02-open-questions.md
     |
@@ -151,6 +156,7 @@ return [
         'client_saturation' => 0.85,
         'consecutive_breach' => 3,
         'offline_after_min' => 5,
+        'degraded_alert_cooldown_min' => 60,
     ],
 
     /*

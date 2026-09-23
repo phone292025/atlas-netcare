@@ -71,6 +71,21 @@ class AlarmService
     }
 
     /**
+     * Whether an alarm of this type about this record was raised in the last
+     * `$minutes`, so a caller can stay quiet about something that keeps
+     * recurring.
+     */
+    public function raisedRecently(AlarmType $type, Model $related, int $minutes): bool
+    {
+        return Alarm::query()
+            ->where('type', $type)
+            ->where('related_type', $related->getMorphClass())
+            ->where('related_id', $related->getKey())
+            ->where('created_at', '>=', now()->subMinutes($minutes))
+            ->exists();
+    }
+
+    /**
      * Schedule the same alarm for everybody holding a role.
      *
      * How M5 tells "the engineers" an access point is down without having to

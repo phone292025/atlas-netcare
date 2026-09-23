@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Telemetry;
 
+use App\Enums\AlarmType;
 use App\Enums\ApStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Alarm;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
@@ -15,6 +17,7 @@ use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetryService;
 use App\Services\Telemetry\TelemetrySource;
 use App\Support\CampusClock;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -41,15 +44,18 @@ class TelemetryPipelineTest extends TestCase
     }
 
     /**
-     * A driver whose every access point fails to answer, bound in place of the
-     * simulator so a test can force "offline" without betting on the
-     * simulator's outage lottery — and without relying on a stale
-     * `last_seen_at`, which is exactly the thing classify() must ignore.
+     * A driver bound in place of the simulator, reporting whatever `$reading`
+     * makes for each access point, so a test can force a state without betting
+     * on the simulator's randomness.
+     *
+     * @param  Closure(AccessPoint): ReadingData  $reading
      */
-    private function driverWhereNothingAnswers(): void
+    private function driverReporting(Closure $reading): void
     {
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        $this->app->instance(TelemetrySource::class, new class($reading) implements TelemetrySource
         {
+            public function __construct(private readonly Closure $reading) {}
+
             public function sourceLabel(): string
             {
                 return 'simulated';
@@ -64,10 +70,56 @@ class TelemetryPipelineTest extends TestCase
             /** @return Collection<int, ReadingData> */
             public function collect(): Collection
             {
-                return $this->pollable()->get()
-                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+                return $this->pollable()->get()->map(fn (AccessPoint $ap) => ($this->reading)($ap));
             }
         });
+    }
+
+    /**
+     * Every access point fails to answer. Forces "offline" without relying on
+     * a stale `last_seen_at`, which is exactly the thing classify() must ignore.
+     */
+    private function driverWhereNothingAnswers(): void
+    {
+        $this->driverReporting(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+    }
+
+    /** Every access point answers, with latency far over the threshold. */
+    private function driverWhereEverythingIsSlow(): void
+    {
+        $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
+            accessPointId: $ap->id,
+            recordedAt: now(),
+            latencyMs: 500,
+            clientCount: 5,
+            packetLossPct: 0.0,
+            channelUtilPct: 10.0,
+            throughputMbps: 20.0,
+            source: 'simulated',
+        ));
+    }
+
+    /** Every access point answers well inside every threshold. */
+    private function driverWhereEverythingIsHealthy(): void
+    {
+        $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
+            accessPointId: $ap->id,
+            recordedAt: now(),
+            latencyMs: 20,
+            clientCount: 5,
+            packetLossPct: 0.0,
+            channelUtilPct: 10.0,
+            throughputMbps: 20.0,
+            source: 'simulated',
+        ));
+    }
+
+    private function collectRounds(int $rounds): void
+    {
+        foreach (range(1, $rounds) as $round) {
+            $this->travel(1)->minutes();
+            Artisan::call('atlas:collect-telemetry');
+        }
     }
 
     // ------------------------------------------------------- the driver swap
@@ -246,9 +298,9 @@ class TelemetryPipelineTest extends TestCase
     public function test_latency_rises_with_saturation(): void
     {
         /*
-         * ADR-0002 is explicit: if latency is noise uncorrelated with client
-         * count, M7 has nothing real to detect and a sharp marker will notice.
-         * This is that correlation, asserted.
+         * ADR-0002: if latency were noise uncorrelated with client count, M7
+         * would have nothing real to detect. This is that correlation,
+         * asserted.
          *
          * ONE ACCESS POINT AT TWO HOURS, not two access points. The earlier
          * version compared a capacity-500 AP against a capacity-10 one and
@@ -377,6 +429,65 @@ class TelemetryPipelineTest extends TestCase
         // Still offline on the next round, and still one ticket.
         Artisan::call('atlas:collect-telemetry');
         $this->assertSame(1, Ticket::count());
+    }
+
+    public function test_an_access_point_turning_degraded_alerts_the_engineers_once(): void
+    {
+        // FR-305: anomalies, not only outages. One alert on the transition,
+        // and no ticket: congestion is a warning, not a fault report.
+        $this->userWith(UserRole::Engineer);
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $this->driverWhereEverythingIsSlow();
+
+        $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') + 1);
+
+        $this->assertSame(ApStatus::Degraded, $ap->fresh()->status);
+        $this->assertSame(1, Alarm::where('type', AlarmType::ApDegraded)->count());
+        $this->assertSame(0, Ticket::count());
+    }
+
+    public function test_a_flapping_access_point_alerts_once_per_cooldown(): void
+    {
+        // At peak an access point near a threshold goes Degraded, back to
+        // Online on one good reading, and Degraded again minutes later. One
+        // alert per flap sent each engineer nineteen in five minutes.
+        $this->userWith(UserRole::Engineer);
+        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $breaches = (int) config('atlas.thresholds.consecutive_breach');
+        $degradedAlerts = fn () => Alarm::where('type', AlarmType::ApDegraded)->count();
+
+        $flap = function () use ($breaches): void {
+            $this->driverWhereEverythingIsSlow();
+            $this->collectRounds($breaches);
+            $this->driverWhereEverythingIsHealthy();
+            $this->collectRounds(1);
+        };
+
+        $flap();
+        $flap();
+        $this->assertSame(1, $degradedAlerts(), 'A second flap inside the cooldown alerted again.');
+
+        $this->travel((int) config('atlas.thresholds.degraded_alert_cooldown_min') + 1)->minutes();
+        $flap();
+        $this->assertSame(2, $degradedAlerts(), 'A flap after the cooldown did not alert.');
+    }
+
+    public function test_recovering_from_an_outage_raises_no_degraded_alert(): void
+    {
+        // The unreachable readings count as 100% packet loss, so an access
+        // point coming back passes through Degraded. That is recovery.
+        $this->userWith(UserRole::Engineer);
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+
+        $this->driverWhereNothingAnswers();
+        $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') - 1);
+        $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
+
+        $this->driverWhereEverythingIsSlow();
+        $this->collectRounds(1);
+
+        $this->assertSame(ApStatus::Degraded, $ap->fresh()->status);
+        $this->assertSame(0, Alarm::where('type', AlarmType::ApDegraded)->count());
     }
 
     public function test_no_ticket_is_raised_without_an_administrator_to_attribute_it_to(): void

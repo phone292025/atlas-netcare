@@ -35,10 +35,12 @@ class AccessPoint extends Model
     /**
      * Columns the audit log skips: caches whose history is kept elsewhere
      * (telemetry_readings, risk_assessments). Auditing `last_seen_at` wrote
-     * one row per access point per minute. A status or risk band change is
-     * still audited.
+     * one row per access point per minute. The collector also saves `status`
+     * quietly, since every reading records it; a status an administrator sets
+     * and a risk band change are still audited.
      *
      * @see App\Observers\AuditObserver
+     * @see App\Services\Telemetry\TelemetryService::store()
      */
     public const AUDIT_EXCEPT = ['last_seen_at', 'risk_score'];
 

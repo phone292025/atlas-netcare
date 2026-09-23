@@ -18,13 +18,9 @@ use Illuminate\Support\Collection;
  * One collection round, and everything the system does about what it finds.
  *
  * Take a reading from every access point, sweep the silent ones, then act on
- * each status change: an access point going offline raises one ticket and
- * alarms the engineers.
- *
- * Lifted out of `atlas:collect-telemetry` so that the scheduled command and the
- * Network monitor's "Generate sample" button run exactly the same code. With
- * the reactions left in the command, a sample taken from the browser would
- * have stored the readings and silently skipped the ticket and the alarm.
+ * each status change. The scheduled command and the Network monitor's
+ * "Generate sample" button both run this, so both raise the same tickets and
+ * alerts.
  *
  * @see App\Console\Commands\CollectTelemetry
  * @see docs/modules/M5-telemetry-and-dashboard.md
@@ -38,11 +34,8 @@ class TelemetryCollector
     ) {}
 
     /**
-     * Run one round.
-     *
-     * `$report` receives each line worth telling a person — a level (`info`
-     * or `warn`) and the message. The command prints them; the browser has no
-     * use for them and passes nothing.
+     * Run one round. `$report` receives each line worth telling a person, as a
+     * level (`info` or `warn`) and a message; the command prints them.
      *
      * @param  (Closure(string, string): void)|null  $report
      * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
@@ -51,19 +44,9 @@ class TelemetryCollector
     {
         $report ??= static function (string $level, string $message): void {};
 
-        /*
-         * Two sources of transition, deliberately merged.
-         *
-         * collectAndStore() reacts to readings that arrived. markStaleOffline()
-         * catches the access points that sent NOTHING — a device a real SNMP
-         * driver could not enumerate is simply absent from the batch, and
-         * before this it kept its last known status forever while the
-         * dashboard reported it online.
-         *
-         * The stale sweep runs even when collection returned nothing at all,
-         * which is the case that matters most: a driver failing wholesale used
-         * to leave every access point looking healthy.
-         */
+        // Readings that arrived, plus access points that sent nothing. The
+        // sweep runs even when collection returned nothing at all, so a
+        // driver failing wholesale does not leave everything looking healthy.
         $transitions = $this->telemetry->collectAndStore()
             ->concat($this->telemetry->markStaleOffline());
 
@@ -72,24 +55,29 @@ class TelemetryCollector
             $line = "{$ap->ap_code}: {$change['from']->label()} → {$change['to']->label()}";
             $report($change['to'] === ApStatus::Online ? 'info' : 'warn', $line);
 
+            /*
+             * Engineers are alerted on the transition only, never on every
+             * reading, or a six-hour outage rings the bell 360 times (FR-305).
+             *
+             * Degraded alerts only from Online. An access point coming back
+             * from an outage passes through Degraded, because its unreachable
+             * readings count as 100% packet loss; that is recovery, not a new
+             * anomaly. And at most once per cooldown per access point: at peak
+             * one hovering near a threshold flaps every few minutes.
+             */
             if ($change['to'] === ApStatus::Offline) {
                 $this->raiseOfflineTicket($ap, $report);
+                $this->alertEngineers(AlarmType::ApOffline, $ap, "{$ap->ap_code} is not responding", $ap->location?->label());
+            } elseif ($change['to'] === ApStatus::Degraded && $change['from'] === ApStatus::Online
+                && ! $this->alarms->raisedRecently(AlarmType::ApDegraded, $ap, (int) config('atlas.thresholds.degraded_alert_cooldown_min'))) {
+                $why = 'Latency, packet loss or load has been over its threshold for '
+                    .config('atlas.thresholds.consecutive_breach').' readings in a row.';
 
-                /*
-                 * And tell the engineers directly (FR-506). The ticket is the
-                 * record of work; the alarm is what puts it in front of
-                 * somebody. Raised through AlarmService, so M5 knows nothing
-                 * about how an alarm is stored, scheduled or delivered.
-                 *
-                 * On the transition only, exactly like the ticket — otherwise
-                 * a six-hour outage rings the bell 360 times.
-                 */
-                $this->alarms->raiseForRole(
-                    AlarmType::ApOffline,
-                    UserRole::Engineer,
-                    "{$ap->ap_code} is not responding",
-                    $ap->location?->label(),
-                    related: $ap,
+                $this->alertEngineers(
+                    AlarmType::ApDegraded,
+                    $ap,
+                    "{$ap->ap_code} is degraded",
+                    $ap->location ? "{$ap->location->label()}. {$why}" : $why,
                 );
             }
         }
@@ -98,13 +86,19 @@ class TelemetryCollector
     }
 
     /**
-     * An access point going offline raises exactly one ticket (FR-503).
-     *
-     * Two guards, both needed. This runs only on the TRANSITION into offline,
-     * not on every offline reading — otherwise a six-hour outage files 360
-     * tickets. And `hasOutstandingFor()` covers the case where somebody has
-     * already reported it by hand, or where the AP flaps in and out and the
-     * first ticket is still open.
+     * Through AlarmService, so this module knows nothing about how an alarm is
+     * stored, scheduled or delivered. The ticket is the record of work; the
+     * alarm is what puts it in front of somebody.
+     */
+    private function alertEngineers(AlarmType $type, AccessPoint $ap, string $title, ?string $message): void
+    {
+        $this->alarms->raiseForRole($type, UserRole::Engineer, $title, $message, related: $ap);
+    }
+
+    /**
+     * An access point going offline raises exactly one ticket (FR-503): only
+     * on the transition, and not while an earlier ticket about it is still
+     * open, whether raised by hand or by a previous flap.
      *
      * @param  Closure(string, string): void  $report
      */
@@ -117,19 +111,14 @@ class TelemetryCollector
         $reporter = $this->systemReporter();
 
         if (! $reporter) {
-            // Nobody to attribute it to. Say so rather than failing the whole
-            // collection run — the reading itself is already safely stored.
+            // Say so rather than failing the round: the reading is stored.
             $report('warn', "No administrator to attribute the auto-ticket for {$ap->ap_code}.");
 
             return;
         }
 
-        /*
-         * An absolute time, not diffForHumans(). This text is SAVED with the
-         * ticket and read later: "Last seen 2 hours ago" written today still
-         * said "2 hours ago" next week, when it had long stopped being true.
-         * On the campus clock, because a person reads it.
-         */
+        // An absolute campus time, because the description is saved: "2
+        // hours ago" would still say so next week.
         $this->tickets->open([
             'title' => "{$ap->ap_code} is not responding",
             'description' => "Raised automatically: no response from {$ap->ap_code}"
@@ -139,23 +128,18 @@ class TelemetryCollector
             'priority' => TicketPriority::Critical->value,
             'location_id' => $ap->location_id,
         ], $reporter, $ap, isDemo: (bool) $ap->is_demo);
-        // isDemo: a ticket the system raised about a demonstration access
-        // point is demonstration data, and goes when the purge runs.
 
         $report('warn', "Raised a ticket for {$ap->ap_code}.");
     }
 
     /**
-     * Who an automatic ticket is attributed to.
-     *
-     * `reported_by` is not nullable — a ticket with no reporter is a ticket
-     * nobody can be asked about. The first administrator stands in for the
-     * system, which is honest: an administrator configured the collector.
-     * That holds when the round is started from the browser too — the person
-     * who pressed the button did not report the fault, the collector did.
+     * Who an automatic ticket is attributed to: the first administrator, who
+     * stands in for the collector, since `reported_by` is not nullable. Also
+     * when the round was started from the browser: the person pressing the
+     * button did not find the fault.
      */
     private function systemReporter(): ?User
     {
-        return User::query()->active()->where('role', 'admin')->orderBy('id')->first();
+        return User::query()->active()->role(UserRole::Admin)->orderBy('id')->first();
     }
 }
