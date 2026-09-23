@@ -31,6 +31,14 @@ class LabPc extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Columns the audit log skips: caches whose history is kept elsewhere
+     * (inspections, risk_assessments). Risk band changes are still recorded.
+     *
+     * @see App\Observers\AuditObserver
+     */
+    public const AUDIT_EXCEPT = ['last_inspected_at', 'risk_score'];
+
+    /**
      * `risk_score`, `risk_band`, `last_inspected_at` and `is_demo` are absent
      * on purpose. They are written by the system — M7's scoring run, M3's
      * inspection service, the demo seeder — never by a form.

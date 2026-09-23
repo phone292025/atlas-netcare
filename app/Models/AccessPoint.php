@@ -33,6 +33,16 @@ class AccessPoint extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Columns the audit log skips: caches whose history is kept elsewhere
+     * (telemetry_readings, risk_assessments). Auditing `last_seen_at` wrote
+     * one row per access point per minute. A status or risk band change is
+     * still audited.
+     *
+     * @see App\Observers\AuditObserver
+     */
+    public const AUDIT_EXCEPT = ['last_seen_at', 'risk_score'];
+
+    /**
      * `risk_score`, `risk_band`, `last_seen_at` and `is_demo` are written by
      * the system — the telemetry collector and M7's scoring run — never by a
      * form. So are `simulation_scenario` and `simulation_started_at`, which

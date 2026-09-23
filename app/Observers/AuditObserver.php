@@ -93,32 +93,27 @@ class AuditObserver
     }
 
     /**
-     * Attributes whose VALUES must never be written into an audit row.
+     * Attributes that never reach an audit row.
      *
-     * Taken from the model's own `$hidden` rather than from a list kept here,
-     * and that is the whole point. The hardcoded list was
-     * `['updated_at', 'remember_token', 'password']`, which missed
-     * `users.calendar_token` — a 48-character key that reads somebody's roster
-     * feed without signing in, and whose own docblock says it must never reach
-     * a log line. Regenerating a calendar link wrote the new token into
-     * `audit_logs` in plain text, where every administrator can read it. Found
-     * on the live database on 2026-09-04, holding a token that still worked.
+     * Secrets come from the model's own `$hidden`, where a developer already
+     * has to declare one to keep it out of JSON, so the next secret column is
+     * covered by the act of adding it. A hardcoded list here once missed
+     * `users.calendar_token` and wrote live tokens into the log.
      *
-     * `$hidden` is where a developer already has to declare a secret for it to
-     * stay out of JSON, so keying off it means the next secret column is
-     * covered by the act of adding it rather than by somebody remembering to
-     * edit this class.
-     *
-     * `updated_at` is not a secret, just noise: it changes on every save and
-     * would make every row look like something happened to it.
+     * Noise comes from the model's AUDIT_EXCEPT: system-written caches whose
+     * history lives in their own table. `updated_at` changes on every save.
+     * A save that changes nothing else writes no row at all.
      *
      * @return list<string>
      */
     private function neverLog(Model $model): array
     {
+        $derived = defined($model::class.'::AUDIT_EXCEPT') ? $model::AUDIT_EXCEPT : [];
+
         return array_values(array_unique([
             'updated_at',
             ...$model->getHidden(),
+            ...$derived,
         ]));
     }
 

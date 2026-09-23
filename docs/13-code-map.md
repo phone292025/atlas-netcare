@@ -612,6 +612,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/UserManagementTest.php` | M1, account management |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |
+| `Feature/AuditObserverTest.php` | What the audit log leaves out (FR-509, NFR-06) |
 | `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |
 | `Feature/Auth/DeactivatedAccountTest.php` | FR-106 for a session that already exists |
