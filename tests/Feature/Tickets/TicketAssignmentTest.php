@@ -149,6 +149,24 @@ class TicketAssignmentTest extends TestCase
         $this->assertStringContainsString($from->name, $alarm->message);
     }
 
+    public function test_the_timeline_shows_what_the_system_recorded_as_actions_not_notes(): void
+    {
+        // A status change read "added an internal note: Moved this ticket
+        // from Open to Acknowledged", as if somebody had typed it.
+        $engineer = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket(['status' => TicketStatus::Open->value]);
+        $tickets = app(TicketService::class);
+
+        $tickets->transition($ticket, TicketStatus::Acknowledged, $engineer);
+        $tickets->assign($ticket->fresh(), $this->user(UserRole::Engineer), $engineer);
+        $ticket->comments()->create(['user_id' => $engineer->id, 'body' => 'Spare on order.', 'is_internal' => true]);
+
+        $page = $this->actingAs($engineer)->get(route('engineer.tickets.show', $ticket))->assertOk()->getContent();
+
+        $this->assertSame(2, substr_count($page, 'updated the ticket'));
+        $this->assertSame(1, substr_count($page, 'added an internal note'));
+    }
+
     public function test_taking_a_ticket_yourself_or_unassigning_tells_nobody(): void
     {
         $engineer = $this->user(UserRole::Engineer);

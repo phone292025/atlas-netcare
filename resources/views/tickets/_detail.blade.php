@@ -101,7 +101,11 @@
         <x-card title="Activity" subtitle="Comments and everything that has happened to this ticket.">
             <x-timeline :events="$comments->map(fn ($c) => [
                 'actor' => $c->author?->name ?? 'System',
-                'action' => $c->is_internal ? 'added an internal note' : 'commented',
+                'action' => match (true) {
+                    $c->isRecordedAction() => 'updated the ticket',
+                    $c->is_internal => 'added an internal note',
+                    default => 'commented',
+                },
                 'description' => $c->body,
                 'at' => $c->created_at,
                 'tone' => $c->is_internal ? 'neutral' : 'attention',
