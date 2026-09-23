@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-09-08
+> **Last updated:** 2026-09-23
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -11,15 +11,74 @@
 | | |
 |---|---|
 | **Phase** | The code is finished. What remains is the report. |
-| **Last session** | 2026-09-08 (full-project audit) |
+| **Last session** | 2026-09-23 (review, then live testing in the browser) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **856 passing (1 skipped)** on SQLite; **857 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
+| **Tests** | **961 passing (1 skipped)** on SQLite; **962 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Read next** | **[what-is-left.md](what-is-left.md)** — the audit of everything still outstanding, written as the handover into the review session. |
 | **Next action** | **The report, not the code.** All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. What is left needs people rather than commits: each module owes a DFD 1, data dictionary and flowchart from an owner **nobody has assigned**, and four UAT sessions need real participants. |
 | **CI** | GitHub Actions runs the suite on SQLite **and** MariaDB 10.4, plus Pint, on every push. `.github/workflows/tests.yml`. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
+
+---
+
+## Live testing — 2026-09-23
+
+The review branch run on localhost with the scheduler going, signed in as the administrator, every screen opened and the background jobs watched. Six defects the suite had not caught, each now with a test checked by breaking the fix.
+
+- **Every shift reminder fired eight hours late.** `AlarmService::raise()` stored the campus-time Carbon from `Shift::startsAt()` as its wall-clock digits, so an 08:30 reminder was read back as 08:30 UTC and sent at 16:30. `trigger_at` is now converted to UTC before it is saved. The twelve reminders already written for the week of 28 Sep were moved back eight hours in the development database.
+- **The degraded alert fired 19 times per engineer in five minutes** at peak, as access points near a threshold flapped. It now alerts only from Online, at most once an hour per access point (`degraded_alert_cooldown_min`).
+- **Every status flap wrote an audit row**, about six a minute, credited to whoever pressed "Generate sample". The collector saves the status quietly; the reading row already records it.
+- **A shift nobody attended said "Scheduled" until Sunday**, and the roster still offered to reassign it. `atlas:mark-missed-shifts` now runs every five minutes, and a shift that has ended cannot be reassigned.
+- **A shift could not be taken off the roster.** Administrators can now remove a shift, or clear a week, until it starts. Past shifts stay: they are the attendance record.
+- **Reassigning a shift was not audited.** Shifts are now an audited model.
+
+One regression from the review itself, caught while adding the above: `CampusClock::dateFrom()` was fed `$request->query('week')` on the roster, but "Generate this week" posts the week in the form body, so generating while looking at next week filled this week. Its test counted the shifts and not their week; it now checks the week.
+
+**Then the assistant role**, signed in as Swan: a ticket, an inspection with a failed critical item, a ticket from it, check-in and check-out on a throwaway shift, the handover reaching the next assistant, and deactivation signing the open session out. All worked. Six more things were fixed on the way:
+
+- **Generating a week under way created shifts in the past**, which were marked missed within minutes and sent their reminders at once. Generation now skips any slot that has started. Fourteen false "missed" shifts, and their 24 reminders, were removed from the development database, with a JSON backup in `storage/app/private/backups/`.
+- **Covering a shift under way** dated the new assignee's notice at the old reminder time and sent every past round reminder at once.
+- **A critical ticket reached nobody's bell** until it went overdue. It now alerts every engineer on arrival; the threshold is `ATLAS_NEW_TICKET_ALERT_FROM`.
+- **The same failed checklist item could be ticketed twice**, and the development data held such a pair (TKT-2026-00049 and 00050). A new nullable `tickets.inspection_result_id` records the answer; a second ticket is refused and the inspection shows the first. The pre-filled title now reads "Failed check: …", not the check's own wording, which said the opposite of the fault.
+- **An engineer opening a ticket notification landed on the assistant's read-only page.** The existing test asserted that, so it was updated rather than just passing.
+- **The audit screen showed moments in UTC**, so an 11:16 check-in read 03:16.
+
+**Verified.** 958 passing and 1 skipped on SQLite, 959 on MariaDB, Pint clean; every new test was checked by breaking its fix.
+
+**Then the engineer role**, signed in as Yar Zar Min: the queue, an internal note, acknowledge (which assigns), start work, resolve refused without notes and accepted with them, close, and the reporter's view checked at each step (resolution notes shown, internal notes not). A critical ticket raised as Swan rang both engineers' bells, and the notification opened the engineer's ticket screen. The overdue alarm fired a minute after the deadline. The maintenance ranking's preventive ticket pre-fills correctly. Two more fixes:
+
+- **Reassigning a ticket told nobody.** The new assignee now gets a `ticket_assigned` alarm; taking one yourself does not.
+- **Every status change read "added an internal note"** in the timeline. They now read "updated the ticket".
+
+The simulation controls were exercised by hand: forcing an outage on all 29 access points raised 26 tickets (the other three already had one open) and alerted both engineers once per access point, as designed.
+
+**Verified.** 961 passing and 1 skipped on SQLite, 962 on MariaDB, Pint clean; the new tests were checked by breaking their fixes. All three roles have now been clicked through.
+
+---
+
+## Review, fixes and cleanup — 2026-09-23
+
+A scored end-to-end review, then fixes for everything it found, each with a test that was checked by breaking the fix. Every decision is in the [decision log](decision-log.md) under 2026-09-23.
+
+**Seven defects, all reproduced before they were fixed.**
+
+- **A deactivated account kept working through any route without `role:` middleware.** With a live session it could still raise tickets, read notifications and poll `api/dashboard`, and a "remember me" cookie never expired. `EnsureAccountIsActive` on the `web` group now signs it out. The calendar feed refuses its token too.
+- **Every telemetry round wrote one audit row per access point** (`last_seen_at`): about 42,000 a day with the scheduler running. Models now declare their system-written caches in `AUDIT_EXCEPT`. The 166 heartbeat rows already in the development database were left alone.
+- **Two shift tests failed every night from 00:00 to 08:00 campus time**, because their fixtures used UTC `today()`. CI would have gone red on any push between 16:00 and 24:00 UTC. A third clock-dependent test, `the backfill never overrules a newer live reading`, failed in the first minute of every hour; it now freezes the clock at half past.
+- **Reassigning a shift dropped its inspection-round reminders** and a pending handover note.
+- **The forgot-password form told strangers which addresses had accounts.**
+- **FR-305 was half built:** a degraded access point never alerted anybody.
+- **A hand-edited `?week=`, `?from=` or `?to=` was a 500** on three screens.
+
+**Smaller fixes.** A view queried the database (`shift-templates/edit`); the layout's notification count moved into the `AppLayout` component; ticket transitions re-read the row under a lock; the SLA sweep uses `NOT EXISTS` instead of an unbounded `NOT IN` list; a test was appending fake reset links to the real `storage/logs/laravel.log`, so `atlas:reset-link` could print a test's link instead of yours.
+
+**Cleanup.** `axios` and `bootstrap.js` removed (unused); the three polling screens share helpers in `app.js`; `AuditReviewFixesTest` split into the module test files its tests belong to, with its one tautological test replaced by a real check; six unused methods and scopes removed; the code map stopped listing line counts; about 840 comment lines of retold history removed from `app/`, with a token comparison proving no code changed.
+
+**Verified.** 921 passing and 1 skipped on SQLite, 922 on MariaDB, Pint clean, zero deprecations. The polling helpers were exercised in a browser, and the three screens' inline scripts were rendered and syntax-checked with Node. The signed-in screens were not clicked through by hand.
+
+**Still open, and a decision for the project lead rather than a fix:** whether `atlas:reset-link`, `atlas:renumber-tickets` and the code map earn their keep, and what to do with the stale `live-telemetry`, `telemetry-fixes` and `ui-redesign` branches.
 
 ---
 
