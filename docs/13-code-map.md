@@ -613,7 +613,6 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |
 | `Feature/AuditObserverTest.php` | What the audit log leaves out (FR-509, NFR-06) |
-| `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |
 | `Feature/Auth/DeactivatedAccountTest.php` | FR-106 for a session that already exists |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them |
@@ -641,7 +640,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
 | `Feature/ProfileTest.php` | Atlas NetCare is an internal, privilege-based system. Users cannot delete |
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable |
-| `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every teammate runs on their first |
+| `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every fresh install runs through |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) |
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) |
 | `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it |
@@ -657,6 +656,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render |
+| `Feature/Tickets/TicketAssignmentTest.php` | FR-307's "assign": handing a ticket to an engineer, or back to the queue |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA |
 | `TestCase.php` | _no summary in the file_ |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file |

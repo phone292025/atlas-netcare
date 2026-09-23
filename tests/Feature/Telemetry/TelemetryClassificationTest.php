@@ -242,4 +242,40 @@ class TelemetryClassificationTest extends TestCase
 
         $this->assertSame(1, AccessPoint::query()->collectable()->count());
     }
+
+    // ---------------------------------------------------- the silence sweep
+
+    public function test_an_access_point_that_stops_reporting_goes_offline(): void
+    {
+        // A real SNMP driver omits a device it cannot enumerate, so no reading
+        // arrives to be classified. Without the sweep it kept its last status
+        // forever and the dashboard went on calling it online.
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap->forceFill(['last_seen_at' => now()->subHours(3)])->save();
+
+        $this->assertCount(1, $this->service()->markStaleOffline());
+        $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
+    }
+
+    public function test_an_access_point_never_heard_from_is_left_alone(): void
+    {
+        // Newly added kit the collector has not reached yet, not a device that
+        // has gone away.
+        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap->forceFill(['last_seen_at' => null])->save();
+
+        $this->assertCount(0, $this->service()->markStaleOffline());
+        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+    }
+
+    public function test_an_access_point_under_maintenance_is_not_marked_offline(): void
+    {
+        // Being quiet is what maintenance means.
+        $ap = AccessPoint::factory()->maintenance()->create();
+        $ap->forceFill(['last_seen_at' => now()->subDay()])->save();
+
+        $this->service()->markStaleOffline();
+
+        $this->assertSame(ApStatus::Maintenance, $ap->fresh()->status);
+    }
 }

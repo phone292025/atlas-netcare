@@ -15,9 +15,8 @@ use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * ReferenceSeeder is what every teammate runs on their first
- * `php artisan migrate --seed`, and what a marker runs from the Installation
- * Guide. If it is wrong, nobody can sign in.
+ * ReferenceSeeder is what every fresh install runs through
+ * `php artisan migrate --seed`. If it is wrong, nobody can sign in.
  *
  * @see docs/05-data-strategy.md — Mechanism 2
  */
@@ -253,5 +252,33 @@ class ReferenceSeederTest extends TestCase
         $this->assertTrue($restored->is_active);
         $this->assertSame(UserRole::Admin, $restored->role);
         $this->assertNull($restored->deleted_at);
+    }
+
+    public function test_the_administrator_password_has_no_published_default(): void
+    {
+        // Both files are in the public repository. A fallback in either once
+        // seeded the highest-privilege account with a password anybody could
+        // read.
+        $this->assertMatchesRegularExpression(
+            "/'password' => env\('ATLAS_ADMIN_PASSWORD'\),/",
+            file_get_contents(config_path('atlas.php')),
+            'config/atlas.php gives the administrator password a fallback.',
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/^ATLAS_ADMIN_PASSWORD=$/m',
+            file_get_contents(base_path('.env.example')),
+            '.env.example ships an administrator password.',
+        );
+    }
+
+    public function test_the_seeder_refuses_rather_than_using_a_known_password(): void
+    {
+        config(['atlas.first_admin.password' => null]);
+
+        $this->artisan('db:seed', ['--class' => ReferenceSeeder::class])
+            ->expectsOutputToContain('ATLAS_ADMIN_PASSWORD is not set');
+
+        $this->assertSame(0, User::where('role', UserRole::Admin)->count());
     }
 }

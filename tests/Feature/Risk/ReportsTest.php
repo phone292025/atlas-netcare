@@ -491,4 +491,31 @@ class ReportsTest extends TestCase
         $this->assertIsArray($response->viewData('inspectionChart'));
         $this->assertIsArray($response->viewData('ticketHeaders'));
     }
+
+    public function test_a_pass_with_issues_counts_as_a_pass(): void
+    {
+        // A machine that works with something cosmetic noted was once reported
+        // under "Failed" and dragged its location's pass rate below the truth.
+        $location = Location::factory()->create();
+        $pc = LabPc::factory()->create(['location_id' => $location->id]);
+        $assistant = $this->assistant();
+
+        foreach ([InspectionOutcome::Pass, InspectionOutcome::PassWithIssues] as $outcome) {
+            Inspection::factory()->create([
+                'lab_pc_id' => $pc->id,
+                'user_id' => $assistant->id,
+                'overall_result' => $outcome,
+                'completed_at' => now(),
+            ]);
+        }
+
+        $rates = $this->actingAs($this->admin())
+            ->get(route('admin.reports.index'))
+            ->assertOk()
+            ->viewData('inspections');
+
+        $this->assertSame(2, $rates[0]['passed']);
+        $this->assertSame(0, $rates[0]['failed']);
+        $this->assertSame(100.0, $rates[0]['rate']);
+    }
 }

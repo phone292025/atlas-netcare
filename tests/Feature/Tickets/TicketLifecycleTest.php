@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Tickets;
 
+use App\Enums\DeviceStatus;
+use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\LabPc;
+use App\Models\Location;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Tickets\TicketService;
@@ -526,5 +529,63 @@ class TicketLifecycleTest extends TestCase
         $next = $this->service()->open($this->attributes(), $reporter);
 
         $this->assertNotSame($taken, $next->ticket_number);
+    }
+
+    // ------------------------------------------------ which asset it is about
+
+    public function test_a_ticket_cannot_name_an_asset_that_does_not_exist(): void
+    {
+        // `ticketable_id` was once validated as nothing but an integer, and a
+        // ticket naming lab PC 999999 was created silently detached.
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->from(route('assistant.tickets.create'))
+            ->post(route('assistant.tickets.store'), [
+                'title' => 'Will not boot',
+                'description' => 'Nothing on screen.',
+                'category' => TicketCategory::Hardware->value,
+                'priority' => TicketPriority::Medium->value,
+                'ticketable_type' => 'lab_pc',
+                'ticketable_id' => 999999,
+            ])
+            ->assertSessionHasErrors('ticketable_id');
+
+        $this->assertSame(0, Ticket::count());
+    }
+
+    public function test_a_ticket_cannot_be_raised_against_a_retired_machine(): void
+    {
+        // Retired kit is excluded from every list, report and risk score, so a
+        // ticket against one sits in the queue attached to something nothing
+        // else acknowledges.
+        $retired = LabPc::factory()->create(['status' => DeviceStatus::Retired->value]);
+
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->from(route('assistant.tickets.create'))
+            ->post(route('assistant.tickets.store'), [
+                'title' => 'Will not boot',
+                'description' => 'Nothing on screen.',
+                'category' => TicketCategory::Hardware->value,
+                'priority' => TicketPriority::Medium->value,
+                'ticketable_type' => 'lab_pc',
+                'ticketable_id' => $retired->id,
+            ])
+            ->assertSessionHasErrors('ticketable_id');
+    }
+
+    public function test_a_fault_about_a_place_rather_than_a_machine_still_works(): void
+    {
+        // "No network anywhere on Level 6" is a real fault with no asset.
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->post(route('assistant.tickets.store'), [
+                'title' => 'No network on Level 6',
+                'description' => 'Whole floor is down.',
+                'category' => TicketCategory::Network->value,
+                'priority' => TicketPriority::Critical->value,
+                'location_id' => Location::factory()->create()->id,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Ticket::count());
+        $this->assertNull(Ticket::first()->ticketable_id);
     }
 }

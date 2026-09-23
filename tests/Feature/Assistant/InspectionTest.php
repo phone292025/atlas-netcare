@@ -3,6 +3,7 @@
 namespace Tests\Feature\Assistant;
 
 use App\Enums\ChecklistResult;
+use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
 use App\Enums\UserRole;
 use App\Models\ChecklistItem;
@@ -11,6 +12,7 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\User;
 use App\Services\Maintenance\InspectionService;
+use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -335,7 +337,7 @@ class InspectionTest extends TestCase
         try {
             app(InspectionService::class)->complete($inspection, $onlyTheFirst);
             $this->fail('An inspection with an item unanswered was accepted.');
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             $this->assertStringContainsString('1 of 2 still have no answer', $e->getMessage());
         }
 
@@ -361,7 +363,7 @@ class InspectionTest extends TestCase
 
         $this->mock(InspectionService::class)
             ->shouldReceive('complete')
-            ->andThrow(new \DomainException('Something the form did not catch.'));
+            ->andThrow(new DomainException('Something the form did not catch.'));
 
         $payload = $template->items->mapWithKeys(fn ($item) => [$item->id => ['result' => ChecklistResult::Ok->value]])->all();
 
@@ -568,5 +570,26 @@ class InspectionTest extends TestCase
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->get(route('assistant.inspections.index'))
             ->assertForbidden();
+    }
+
+    public function test_a_retired_machine_cannot_be_inspected(): void
+    {
+        // An inspection of hardware that is physically gone from the room is a
+        // record nothing else acknowledges.
+        $pc = LabPc::factory()->create(['status' => DeviceStatus::Retired->value]);
+        $pc->delete();
+
+        $this->expectException(DomainException::class);
+
+        app(InspectionService::class)->start($pc, $this->assistant());
+    }
+
+    public function test_an_operational_machine_can_still_be_inspected(): void
+    {
+        $this->template();
+
+        $inspection = app(InspectionService::class)->start(LabPc::factory()->create(), $this->assistant());
+
+        $this->assertNotNull($inspection->id);
     }
 }

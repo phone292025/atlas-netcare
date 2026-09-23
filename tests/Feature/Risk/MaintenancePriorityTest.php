@@ -260,4 +260,16 @@ class MaintenancePriorityTest extends TestCase
             ->assertOk()
             ->assertDontSee('Preventive maintenance');
     }
+
+    public function test_a_risk_score_reads_the_same_from_the_asset_and_the_assessment(): void
+    {
+        // The ranking reads the cached column and the detail page reads the
+        // assessment. They once came back as different types, so a strict
+        // comparison between them was false.
+        $pc = LabPc::factory()->create();
+        $assessment = RiskAssessment::factory()->forAsset($pc)->score(72.5)->create();
+        $pc->forceFill(['risk_score' => 72.5])->save();
+
+        $this->assertSame($pc->fresh()->risk_score, $assessment->fresh()->score);
+    }
 }
