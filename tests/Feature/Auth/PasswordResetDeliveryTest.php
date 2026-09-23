@@ -142,14 +142,10 @@ class PasswordResetDeliveryTest extends TestCase
         });
     }
 
-    public function test_the_throttle_says_how_long_to_wait(): void
+    public function test_the_answer_says_how_often_a_link_can_be_sent(): void
     {
-        /*
-         * One request per address per minute. Laravel answers a second one
-         * with "Please wait before retrying", which does not say how long and
-         * reads like a broken button — and the person most likely to click
-         * twice is a marker seeing the screen for the first time.
-         */
+        // One link per address per throttle window. Without the number, a
+        // second click that sends nothing reads like a broken button.
         config(['auth.passwords.users.throttle' => 90]);
 
         $user = User::factory()->create();
@@ -158,7 +154,34 @@ class PasswordResetDeliveryTest extends TestCase
 
         $this->from(route('password.request'))
             ->post(route('password.email'), ['email' => $user->email])
-            ->assertSessionHasErrors(['email' => 'A link was sent to that address moments ago. Wait 90 seconds before asking for another.']);
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'If that address has an account, a reset link is on its way. Only one link is sent every 90 seconds.');
+    }
+
+    public function test_an_unknown_address_gets_the_same_answer_as_a_real_one(): void
+    {
+        // Anything else tells a stranger which addresses have accounts.
+        $user = User::factory()->create();
+
+        $known = $this->from(route('password.request'))
+            ->post(route('password.email'), ['email' => $user->email]);
+        $unknown = $this->from(route('password.request'))
+            ->post(route('password.email'), ['email' => 'nobody@example.com']);
+
+        $unknown->assertSessionHasNoErrors();
+        $this->assertSame($known->getSession()->get('status'), $unknown->getSession()->get('status'));
+    }
+
+    public function test_asking_for_links_is_throttled_per_client(): void
+    {
+        // The broker throttles per address; this stops one client walking
+        // through a list of addresses.
+        foreach (range(1, 6) as $i) {
+            $this->post(route('password.email'), ['email' => "person{$i}@example.com"]);
+        }
+
+        $this->post(route('password.email'), ['email' => 'person7@example.com'])
+            ->assertTooManyRequests();
     }
 
     public function test_the_throttle_is_still_a_real_control(): void

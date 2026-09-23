@@ -1,32 +1,12 @@
 <?php
 
 /*
-| Registration is intentionally absent. Atlas NetCare is an internal,
-| privilege-based system: administrators create every account (FR-105, FR-401).
-| See docs/02-open-questions.md Q6 and the project Keynote in the proposal.
+| No registration: administrators create every account (FR-105, FR-401, Q6).
 |
-| PASSWORD RESET IS FR-102 AND IS APPROVED IN THE PROPOSAL, which lists
-| "recover password" for all three roles. It was briefly removed on 2026-08-29
-| because it was lying to the user, and restored the same day once the
-| proposal was checked. Being broken is grounds for fixing a requirement, not
-| for deleting it.
-|
-| The thing that was broken is DELIVERY, not the flow. Every account used
-| @apu.test or @atlas.local, reserved domains that can never receive mail, and
-| MAIL_MAILER was `log` — so the screen said "We have emailed your password
-| reset link" while writing the link into storage/logs/laravel.log.
-|
-| Both are fixed. Accounts now use Gmail plus-addresses, which are real and all
-| land in one inbox, and the mailer is Gmail SMTP. The one manual step left is
-| pasting a Google app password into MAIL_PASSWORD; until somebody does, the
-| screen says so rather than pretending. See docs/02-open-questions.md Q11.
-|
-| EMAIL VERIFICATION AND PASSWORD CONFIRMATION stay removed. Neither appears in
-| the proposal or in docs/01-requirements.md, and neither could ever run: User
-| does not implement MustVerifyEmail, and no route carried either middleware.
-| RemovedAuthFeaturesTest keeps them out.
-|
-| @see docs/progress/decision-log.md — 2026-08-29
+| Password reset is FR-102. Delivery needs a Gmail app password in
+| MAIL_PASSWORD; until one is set, the forgot-password screen says so rather
+| than pretending (Q11). Email verification and password confirmation are
+| not requirements and stay removed; RemovedAuthFeaturesTest keeps them out.
 */
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -45,7 +25,9 @@ Route::middleware('guest')->group(function () {
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Throttled per address by the password broker, and per client here.
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:6,1')
         ->name('password.email');
 
 });

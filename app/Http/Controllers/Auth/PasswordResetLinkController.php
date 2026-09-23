@@ -49,8 +49,11 @@ class PasswordResetLinkController extends Controller
          * harmless: it goes unused and expires on config('auth.passwords').
          */
         try {
-            $status = Password::sendResetLink($request->only('email'));
+            Password::sendResetLink($request->only('email'));
         } catch (TransportExceptionInterface $e) {
+            // Only reachable for a real account, so this does say one exists.
+            // A broken mail server is an administrator's problem to hear
+            // about, and pretending a link is on its way would be worse.
             Log::error('Password reset mail failed to send.', [
                 'email' => $request->input('email'),
                 'error' => $e->getMessage(),
@@ -61,35 +64,18 @@ class PasswordResetLinkController extends Controller
                 ->withErrors(['email' => __('We could not send the email. Tell an administrator that the mail server rejected it.')]);
         }
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with('status', __($status))
-            : back()->withInput($request->only('email'))
-                ->withErrors(['email' => $this->explain($status)]);
-    }
-
-    /**
-     * Laravel's stock wording, except where it leaves out the useful part.
-     *
-     * The broker allows one request per address per
-     * config('auth.passwords.*.throttle') seconds, which is a real control —
-     * without it anyone can fill a colleague's inbox with reset links. But it
-     * answers with "Please wait before retrying", which does not say how long,
-     * so it reads like the button is broken. Somebody clicking twice during a
-     * demonstration is exactly who sees it.
-     *
-     * The number is read from config rather than written into the sentence,
-     * for the same reason the expiry in the email is.
-     */
-    private function explain(string $status): string
-    {
-        if ($status !== Password::RESET_THROTTLED) {
-            return __($status);
-        }
-
+        /*
+         * One answer whatever the broker said. "We can't find a user with
+         * that email address" and "a link was sent moments ago" both tell a
+         * stranger which addresses have accounts, which the login form is
+         * careful never to do. The broker's own throttle (one link per address
+         * per config('auth.passwords.*.throttle') seconds) still applies; the
+         * sentence says so, because a second click otherwise looks broken.
+         */
         $seconds = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.throttle');
 
-        return __('A link was sent to that address moments ago. Wait :seconds seconds before asking for another.', [
+        return back()->with('status', __('If that address has an account, a reset link is on its way. Only one link is sent every :seconds seconds.', [
             'seconds' => $seconds,
-        ]);
+        ]));
     }
 }
