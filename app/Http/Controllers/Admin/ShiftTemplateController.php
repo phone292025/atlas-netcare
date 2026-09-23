@@ -49,6 +49,9 @@ class ShiftTemplateController extends Controller
     {
         return view('admin.shift-templates.edit', [
             'template' => $shiftTemplate,
+            // Deleting a pattern that has generated shifts would orphan the
+            // shifts people worked, so the screen offers deactivation instead.
+            'hasShifts' => $shiftTemplate->shifts()->exists(),
             'locations' => $this->locationOptions(),
             'days' => $this->dayOptions(),
         ]);

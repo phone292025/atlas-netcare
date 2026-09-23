@@ -10,9 +10,7 @@
             @include('admin.shift-templates._form', ['template' => $template, 'locations' => $locations, 'days' => $days])
             <x-slot:footer>
                 <div class="flex items-center justify-between gap-2">
-                    @if ($template->shifts()->exists())
-                        {{-- Deleting would orphan real worked shifts rather
-                             than fail, because the FK is nullOnDelete. --}}
+                    @if ($hasShifts)
                         <span class="text-xs text-slate-400">Has generated shifts — deactivate rather than delete.</span>
                     @else
                         <button type="button" @click="$dispatch('open-modal', 'delete-template')"
@@ -30,7 +28,7 @@
         </x-card>
     </form>
 
-    @unless ($template->shifts()->exists())
+    @unless ($hasShifts)
         <x-modal name="delete-template" title="Delete {{ $template->name }}?">
             <p>No shifts have been generated from this pattern, so nothing depends on it.</p>
             <x-slot:footer>

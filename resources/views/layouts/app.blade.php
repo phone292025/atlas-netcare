@@ -105,18 +105,7 @@
             </h1>
 
             <div class="ml-auto flex items-center gap-1">
-                {{-- Live as of M6.
-
-                     The count is resolved through the service rather than
-                     queried here: a layout that runs its own query does it on
-                     every page in the system, and this one is on all of them.
-                     One count, one place, and Alarm::scopeVisibleTo() decides
-                     what is countable — scheduled-but-not-yet-sent alarms are
-                     deliberately not. --}}
-                @php($unreadAlarms = auth()->check()
-                    ? app(\App\Services\Shifts\AlarmService::class)->unreadCount(auth()->user())
-                    : 0)
-
+                {{-- $unreadAlarms comes from App\View\Components\AppLayout. --}}
                 <a href="{{ route('notifications.index') }}"
                    class="relative p-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700
                           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"

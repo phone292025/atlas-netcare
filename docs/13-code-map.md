@@ -308,7 +308,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 <!-- code-map:app/View/Components/ -->
 | File | What it does |
 |---|---|
-| `AppLayout.php` | Get the view / contents that represents the component |
+| `AppLayout.php` | The signed-in shell. The notification count is fetched here rather than |
 | `GuestLayout.php` | Get the view / contents that represents the component |
 <!-- /code-map -->
 
