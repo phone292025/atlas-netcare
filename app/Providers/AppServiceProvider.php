@@ -6,6 +6,7 @@ use App\Models\AccessPoint;
 use App\Models\ChecklistTemplate;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
@@ -27,8 +28,9 @@ class AppServiceProvider extends ServiceProvider
      * it is audited; there is no call site to forget.
      *
      * Tickets because they carry the state machine, so "who closed this and
-     * when" is answerable. The two templates because they are configuration
-     * that changes what everybody else's work means.
+     * when" is answerable. Shifts because they are attendance: who was given
+     * one, who took it over, who removed it. The two templates because they
+     * are configuration that changes what everybody else's work means.
      *
      * @see App\Observers\AuditObserver
      * @see docs/01-requirements.md FR-509, NFR-06
@@ -39,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         LabPc::class,
         AccessPoint::class,
         Ticket::class,
+        Shift::class,
         ChecklistTemplate::class,
         ShiftTemplate::class,
     ];

@@ -63,38 +63,27 @@ class AuditLog extends Model
     }
 
     /**
-     * Foreign-key columns worth showing as a name instead of a number.
-     *
-     * `assigned to: empty → 5` is accurate and useless: nobody reading an
-     * audit log knows who 5 is. Each entry is the column, the model it points
-     * at, and the attribute to show.
-     *
-     * Deliberately a short explicit list rather than anything that guesses
-     * from a `_id` suffix. `tickets.ticketable_id` is polymorphic and has no
-     * single model to resolve against, and `inspection_id` has no short label
-     * a person would recognise — both are better left as numbers than
-     * resolved wrongly.
+     * Foreign-key columns shown as a name instead of a number: column => the
+     * model it points at and the attribute to show. An explicit list rather
+     * than a guess from an `_id` suffix, because `ticketable_id` is
+     * polymorphic and a number beats a wrong name.
      *
      * @var array<string, array{class-string<Model>, string}>
      */
     private const LABELLED = [
         'assigned_to' => [User::class, 'name'],
         'reported_by' => [User::class, 'name'],
+        'user_id' => [User::class, 'name'],
         'location_id' => [Location::class, 'code'],
     ];
 
     /**
-     * Names for every foreign key across a page of audit rows, in one query
-     * per model rather than one per row.
+     * Names for every foreign key across a page of audit rows, one query per
+     * model rather than one per row.
      *
-     * Resolved at READ time on purpose. Writing the name into the log instead
-     * would freeze it, and `changes` would stop being a record of what was
-     * actually written to the column — the audit log's whole job. The cost is
-     * that a renamed person shows under their current name, which for a log
-     * read by administrators is the more useful of the two.
-     *
-     * Soft-deleted users are included: an account being deactivated is
-     * precisely when its history matters.
+     * Resolved at READ time, so `changes` stays a record of what was actually
+     * written to the column; a renamed person shows under their current name.
+     * Soft-deleted users are included.
      *
      * @param  iterable<AuditLog>  $logs
      * @return array<string, array<int, string>>
@@ -133,25 +122,16 @@ class AuditLog extends Model
     }
 
     /**
-     * One readable line per changed field: "priority: low → critical".
+     * One readable line per changed field: "priority: low → critical", so the
+     * audit screen prints strings and decides nothing.
      *
-     * Here rather than in the Blade file so the audit screen prints strings
-     * and decides nothing.
+     * `getAttribute('changes')`, never `$this->changes`: inside the model that
+     * reads Eloquent's own protected dirty-tracking property of the same name,
+     * not the column.
      *
-     * **`getAttribute('changes')`, never `$this->changes`.** Eloquent's
-     * HasAttributes trait has its own protected `$changes` property for dirty
-     * tracking, so inside this class `$this->changes` reads that array and
-     * never reaches the column of the same name. It works from Blade only
-     * because a protected property is invisible from outside and `__get()`
-     * takes over. A real trap, and the reason this method exists rather than
-     * an accessor named after the column.
-     *
-     * Rows written before 2026-09-04 have no `previous`, so they degrade to
-     * "field: newvalue" rather than pretending to know what it had been.
-     *
-     * $labels comes from labelsFor(), and turns "assigned to: empty → 5" into
-     * "assigned to: empty → Phone Myat Ko". Optional: without it the numbers
-     * still render, so nothing that forgets to pass it breaks.
+     * A row with no `previous` (written before 2026-09-04) shows only the new
+     * value. `$labels` from labelsFor() turns ids into names; without it the
+     * numbers still render.
      *
      * @return list<string>
      */

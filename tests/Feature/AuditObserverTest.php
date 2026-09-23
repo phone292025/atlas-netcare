@@ -4,11 +4,15 @@ namespace Tests\Feature;
 
 use App\Enums\ApStatus;
 use App\Enums\RiskBand;
+use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\AuditLog;
 use App\Models\ChecklistTemplate;
 use App\Models\LabPc;
+use App\Models\Shift;
 use App\Models\ShiftTemplate;
+use App\Models\User;
+use App\Services\Shifts\ShiftService;
 use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\TelemetryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,6 +44,14 @@ class AuditObserverTest extends TestCase
             throughputMbps: 50.0,
             source: 'simulated',
         );
+    }
+
+    private function assistant(): User
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['role' => UserRole::Assistant, 'is_active' => true])->save();
+
+        return $user;
     }
 
     private function updates(): int
@@ -135,6 +147,38 @@ class AuditObserverTest extends TestCase
             'auditable_type' => ChecklistTemplate::class,
             'auditable_id' => $template->id,
             'action' => 'updated',
+        ]);
+    }
+
+    public function test_reassigning_a_shift_is_audited_with_both_names(): void
+    {
+        // Who was given the shift, and who took it off them, is attendance.
+        $from = $this->assistant();
+        $to = $this->assistant();
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $from->id]);
+
+        app(ShiftService::class)->reassign($shift, $to);
+
+        $row = AuditLog::forSubject($shift)->where('action', 'updated')->sole();
+
+        $this->assertSame($shift->label(), $row->description);
+        $this->assertSame(
+            ["user id: {$from->name} → {$to->name}"],
+            $row->changeSummary(AuditLog::labelsFor([$row])),
+        );
+    }
+
+    public function test_removing_a_shift_is_audited(): void
+    {
+        $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);
+
+        app(ShiftService::class)->remove($shift);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'auditable_type' => Shift::class,
+            'auditable_id' => $shift->id,
+            'action' => 'deleted',
+            'description' => $shift->label(),
         ]);
     }
 

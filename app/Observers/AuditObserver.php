@@ -119,7 +119,8 @@ class AuditObserver
 
     /**
      * Something a human can recognise in a list: an email, an asset tag, a
-     * name. Falls back to the id when the model offers nothing better.
+     * name, or the model's own label(), such as a shift's day and hours. Falls
+     * back to the id when the model offers nothing better.
      */
     private function describe(Model $model): string
     {
@@ -127,6 +128,10 @@ class AuditObserver
             if (filled($model->getAttribute($attribute))) {
                 return (string) $model->getAttribute($attribute);
             }
+        }
+
+        if (method_exists($model, 'label')) {
+            return $model->label();
         }
 
         return '#'.$model->getKey();

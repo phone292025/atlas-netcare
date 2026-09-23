@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AccessPoint;
 use App\Models\LabPc;
+use App\Models\Shift;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -135,6 +136,8 @@ class PurgeDemoData extends Command
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', AccessPoint::class)->whereIn('auditable_id', $demoAps()))
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', Ticket::class)
                         ->whereIn('auditable_id', DB::table('tickets')->where('is_demo', true)->select('id')))
+                    ->orWhere(fn (Builder $x) => $x->where('auditable_type', Shift::class)
+                        ->whereIn('auditable_id', DB::table('shifts')->whereIn('user_id', $demoUsers())->select('id')))
                 )],
 
             // Polymorphic, so no cascade and no foreign key to complain.
