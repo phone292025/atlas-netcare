@@ -7,6 +7,7 @@ use Database\Factories\InspectionResultFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One answer to one checklist item within one inspection.
@@ -52,12 +53,21 @@ class InspectionResult extends Model
     }
 
     /**
-     * Whether this answer is the kind that fails the whole inspection.
+     * The ticket raised from this answer (FR-207), so the summary shows it
+     * instead of offering to raise the same fault again.
+     *
+     * @return HasOne<Ticket, $this>
+     */
+    public function ticket(): HasOne
+    {
+        return $this->hasOne(Ticket::class)->oldestOfMany();
+    }
+
+    /**
+     * Whether this answer fails the whole inspection.
      *
      * An Issue on a critical item is a `fail`; the same Issue on a
-     * non-critical item is only `pass_with_issues`. Both InspectionService and
-     * the summary screen need this distinction, so it lives here rather than
-     * being written twice.
+     * non-critical item is only `pass_with_issues`.
      */
     public function isCriticalFailure(): bool
     {

@@ -15,9 +15,11 @@ use App\Models\Location;
 use App\Models\RiskAssessment;
 use App\Models\Ticket;
 use App\Services\Tickets\TicketService;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * An assistant raising and following their own tickets (FR-206, FR-207,
@@ -53,7 +55,7 @@ class TicketController extends Controller
      * location and the fault, so the assistant re-types nothing. That is the
      * hand-off M3 built the panel for.
      */
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
         $this->authorize('create', Ticket::class);
 
@@ -62,6 +64,14 @@ class TicketController extends Controller
         // at once, so the first that matches wins.
         $prefill = $this->prefillFromInspection($request)
             ?: $this->prefillFromRiskyAsset($request);
+
+        // A fault already ticketed goes back to the inspection, which links
+        // to the ticket, rather than to a form for a second one.
+        if ($existing = $this->tickets->raisedFromCheck($prefill['inspection_result_id'] ?? null)) {
+            return redirect()
+                ->route('assistant.inspections.show', $prefill['inspection_id'])
+                ->with('warning', "That fault was already raised as {$existing->ticket_number}.");
+        }
 
         return view('assistant.tickets.create', [
             'categories' => TicketCategory::options(),
@@ -83,11 +93,15 @@ class TicketController extends Controller
     {
         $this->authorize('create', Ticket::class);
 
-        $ticket = $this->tickets->open(
-            $request->ticketAttributes(),
-            $request->user(),
-            $request->subject(),
-        );
+        try {
+            $ticket = $this->tickets->open(
+                $request->ticketAttributes(),
+                $request->user(),
+                $request->subject(),
+            );
+        } catch (DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('assistant.tickets.show', $ticket)
@@ -130,12 +144,15 @@ class TicketController extends Controller
         $result = $inspection->results->firstWhere('checklist_item_id', $request->integer('item'));
 
         return [
-            'title' => $result?->item?->label,
+            // Checklist items are worded as what should be true, so the bare
+            // label read as the opposite of the fault in the queue.
+            'title' => $result?->item ? Str::limit('Failed check: '.$result->item->label, 159, '…') : null,
             'description' => $result?->remark,
             'ticketable_type' => 'lab_pc',
             'ticketable_id' => $inspection->lab_pc_id,
             'location_id' => $inspection->labPc?->location_id,
             'inspection_id' => $inspection->id,
+            'inspection_result_id' => $result?->id,
             // A critical checklist item failing is what makes an inspection a
             // Fail, so it arrives suggesting the matching priority. The
             // assistant can still change it.
@@ -147,23 +164,13 @@ class TicketController extends Controller
     }
 
     /**
-     * Pre-fill from an asset the risk model has flagged (FR-311).
+     * Pre-fill a PREVENTIVE ticket from an asset the risk model has flagged
+     * (FR-311), with the actual reasons in the description.
      *
-     * PREVENTIVE, not reactive. Every other ticket in the system is raised
-     * because something has already broken. This one is raised because the
-     * scoring says it is about to, and that distinction is the whole point of
-     * M7 existing — so the description arrives carrying the actual reasons
-     * rather than a blank box the engineer has to justify from memory.
-     *
-     * The asset is LOCKED here rather than offered as a dropdown. You arrived
-     * from one specific machine's detail screen; re-picking it from a list of
-     * two hundred is a chance to pick the wrong one.
-     *
-     * Access points are reachable this way and not through the normal form.
-     * `StoreTicketRequest` has always accepted `access_point`; the assistant
-     * form hardcodes `lab_pc` because an assistant raises faults about
-     * machines they are standing at. An engineer acting on a risk ranking is a
-     * different situation.
+     * The asset is locked rather than offered as a dropdown: the engineer came
+     * from that machine's detail screen. This is also the only way to ticket
+     * an access point through the form, which otherwise offers the lab PCs an
+     * assistant is standing at.
      *
      * @return array<string, mixed>
      */

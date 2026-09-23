@@ -75,12 +75,24 @@ class TicketService
      * `atlas:purge-demo-data` can remove it. A person raising one by hand is
      * never demo data, whatever the asset.
      *
+     * A failed checklist answer is ticketed once (FR-207): a second ticket for
+     * the same fault splits its history across two rows in the queue.
+     *
      * @param  array<string, mixed>  $attributes
      *
+     * @throws DomainException when that checklist answer already has a ticket
      * @throws UniqueConstraintViolationException after NUMBER_ATTEMPTS
      */
     public function open(array $attributes, User $reporter, ?Model $subject = null, bool $isDemo = false): Ticket
     {
+        $existing = $this->raisedFromCheck(
+            isset($attributes['inspection_result_id']) ? (int) $attributes['inspection_result_id'] : null
+        );
+
+        if ($existing) {
+            throw new DomainException("That fault was already raised as {$existing->ticket_number}.");
+        }
+
         for ($attempt = 1; ; $attempt++) {
             try {
                 return DB::transaction(fn () => $this->insert($attributes, $reporter, $subject, $isDemo));
@@ -246,6 +258,20 @@ class TicketService
         }
 
         return $breaching->count();
+    }
+
+    /**
+     * The ticket already raised from this failed checklist answer, if any
+     * (FR-207). Any status: a fault ticketed and then resolved is not a new
+     * fault, and a later inspection that finds it again has its own answer.
+     */
+    public function raisedFromCheck(?int $inspectionResultId): ?Ticket
+    {
+        if ($inspectionResultId === null) {
+            return null;
+        }
+
+        return Ticket::query()->where('inspection_result_id', $inspectionResultId)->oldest('id')->first();
     }
 
     /**

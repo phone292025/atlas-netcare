@@ -409,6 +409,7 @@ database silently.
 | `2026_09_04_090001_add_previous_values_to_audit_logs_table.php` | Record what a value WAS, not only what it became |
 | `2026_09_08_090001_finish_converting_domain_timestamps_to_datetime.php` | Disarm the rest of the MariaDB timestamp trap, rather than leaving it loaded |
 | `2026_09_19_090001_add_simulation_scenario_to_access_points_table.php` | Which condition the simulated driver is forcing on an access point, if any |
+| `2026_09_23_090001_add_inspection_result_id_to_tickets_table.php` | Which checklist answer a ticket was raised from (FR-207) |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`

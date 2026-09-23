@@ -42,17 +42,30 @@
                                 @endif
                             </div>
 
-                            <a href="{{ route('assistant.tickets.create', [
-                                   'inspection' => $inspection->id,
-                                   'item' => $result->checklist_item_id,
-                               ]) }}"
-                               {{-- py-3, not py-2: this lands at 44px like the
-                                    checklist buttons. It was 36px, measured at
-                                    375px on 2026-09-04, and it is the one tap
-                                    that carries a fault into a ticket. --}}
-                               class="flex-none rounded-md bg-brand-600 px-3 py-3 text-sm font-medium text-white hover:bg-brand-700">
-                                Raise ticket
-                            </a>
+                            {{-- Raised already: the ticket, not a second one. --}}
+                            @if ($result->ticket)
+                                <div class="flex-none text-right">
+                                    @can('view', $result->ticket)
+                                        <a href="{{ route(auth()->user()->isAssistant() ? 'assistant.tickets.show' : 'engineer.tickets.show', $result->ticket) }}"
+                                           class="text-sm font-medium text-brand-700 hover:underline">{{ $result->ticket->ticket_number }}</a>
+                                    @else
+                                        <span class="text-sm font-medium text-slate-700">{{ $result->ticket->ticket_number }}</span>
+                                    @endcan
+                                    <x-status-badge :status="$result->ticket->status" class="mt-1" />
+                                </div>
+                            @else
+                                <a href="{{ route('assistant.tickets.create', [
+                                       'inspection' => $inspection->id,
+                                       'item' => $result->checklist_item_id,
+                                   ]) }}"
+                                   {{-- py-3, not py-2: this lands at 44px like the
+                                        checklist buttons. It was 36px, measured at
+                                        375px on 2026-09-04, and it is the one tap
+                                        that carries a fault into a ticket. --}}
+                                   class="flex-none rounded-md bg-brand-600 px-3 py-3 text-sm font-medium text-white hover:bg-brand-700">
+                                    Raise ticket
+                                </a>
+                            @endif
                         </li>
                     @endforeach
                 </ul>

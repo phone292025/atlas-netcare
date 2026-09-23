@@ -43,6 +43,13 @@ class StoreTicketRequest extends FormRequest
 
             'location_id' => ['nullable', 'exists:locations,id'],
             'inspection_id' => ['nullable', 'exists:inspections,id'],
+
+            // The failed answer it came from, which must belong to that
+            // inspection. It is what stops the same fault being raised twice.
+            'inspection_result_id' => [
+                'nullable', 'integer',
+                Rule::exists('inspection_results', 'id')->where('inspection_id', $this->integer('inspection_id')),
+            ],
         ];
     }
 
@@ -151,7 +158,7 @@ class StoreTicketRequest extends FormRequest
     public function ticketAttributes(): array
     {
         return $this->safe()->only([
-            'title', 'description', 'category', 'priority', 'location_id', 'inspection_id',
+            'title', 'description', 'category', 'priority', 'location_id', 'inspection_id', 'inspection_result_id',
         ]);
     }
 }

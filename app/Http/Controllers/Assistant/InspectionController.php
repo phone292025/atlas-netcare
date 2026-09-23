@@ -122,17 +122,9 @@ class InspectionController extends Controller
         $this->authorize('view', $inspection);
 
         /*
-         * An inspection still in progress has no summary to show yet, so the
-         * assistant goes to the form they were part-way through. Anybody else
-         * is refused: a half-answered checklist is not evidence, and the
-         * engineer and administrator read access this route exists for is
-         * access to a SUBMITTED inspection.
-         *
-         * The redirect used to be missing. The guard ran, and then the summary
-         * rendered anyway — and it opens with
-         * <x-status-badge :status="$inspection->overall_result" /> on a column
-         * that stays null until submission, so the one person entitled to look
-         * at it got a 500 calling tone() on null.
+         * An unfinished inspection has no summary (its outcome is still null),
+         * so the assistant goes back to the form. Anybody else is refused: a
+         * half-answered checklist is not evidence.
          */
         if ($inspection->isInProgress()) {
             abort_unless($inspection->user_id === request()->user()->id, 403);
@@ -141,7 +133,7 @@ class InspectionController extends Controller
         }
 
         return view('assistant.inspections.show', [
-            'inspection' => $inspection->load(['labPc.location', 'user', 'template', 'results.item']),
+            'inspection' => $inspection->load(['labPc.location', 'user', 'template', 'results.item', 'results.ticket']),
         ]);
     }
 

@@ -39,6 +39,7 @@ class Ticket extends Model
         'ticketable_id',
         'location_id',
         'inspection_id',
+        'inspection_result_id',
         'reported_by',
     ];
 

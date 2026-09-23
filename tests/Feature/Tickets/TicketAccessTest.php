@@ -361,6 +361,86 @@ class TicketAccessTest extends TestCase
         $this->assertDatabaseHas('tickets', ['inspection_id' => $inspection->id]);
     }
 
+    public function test_the_prefilled_title_says_the_check_failed(): void
+    {
+        // Checklist items say what should be true. The bare label put
+        // "Machine powers on" in the queue for a machine that does not.
+        [$assistant, $inspection, $result] = $this->failedInspection();
+
+        $this->actingAs($assistant)
+            ->get(route('assistant.tickets.create', [
+                'inspection' => $inspection->id,
+                'item' => $result->checklist_item_id,
+            ]))
+            ->assertSee('value="Failed check: Machine powers on"', false);
+    }
+
+    public function test_a_failed_check_is_ticketed_once(): void
+    {
+        [$assistant, $inspection, $result] = $this->failedInspection();
+        $raise = fn () => $this->actingAs($assistant)->post(route('assistant.tickets.store'), $this->payload([
+            'ticketable_type' => 'lab_pc',
+            'ticketable_id' => $inspection->lab_pc_id,
+            'inspection_id' => $inspection->id,
+            'inspection_result_id' => $result->id,
+        ]));
+
+        $raise()->assertSessionHasNoErrors();
+        $raise()->assertSessionHas('error');
+
+        $this->assertSame(1, Ticket::where('inspection_result_id', $result->id)->count());
+    }
+
+    public function test_coming_back_to_a_ticketed_check_goes_to_the_inspection(): void
+    {
+        [$assistant, $inspection, $result] = $this->failedInspection();
+        $ticket = Ticket::factory()->create([
+            'reported_by' => $assistant->id,
+            'inspection_id' => $inspection->id,
+            'inspection_result_id' => $result->id,
+        ]);
+
+        $this->actingAs($assistant)
+            ->get(route('assistant.tickets.create', [
+                'inspection' => $inspection->id,
+                'item' => $result->checklist_item_id,
+            ]))
+            ->assertRedirect(route('assistant.inspections.show', $inspection))
+            ->assertSessionHas('warning', "That fault was already raised as {$ticket->ticket_number}.");
+    }
+
+    public function test_the_inspection_shows_the_ticket_instead_of_offering_another(): void
+    {
+        [$assistant, $inspection, $result] = $this->failedInspection();
+        $inspection->forceFill(['completed_at' => now(), 'overall_result' => 'fail'])->save();
+        $ticket = Ticket::factory()->create([
+            'reported_by' => $assistant->id,
+            'inspection_id' => $inspection->id,
+            'inspection_result_id' => $result->id,
+        ]);
+
+        $this->actingAs($assistant)
+            ->get(route('assistant.inspections.show', $inspection))
+            ->assertOk()
+            ->assertSee($ticket->ticket_number)
+            ->assertDontSee('Raise ticket');
+    }
+
+    public function test_a_check_from_another_inspection_is_refused(): void
+    {
+        // The answer must belong to the inspection the ticket names, or a
+        // crafted POST could mark somebody else's fault as ticketed.
+        [$assistant, $inspection] = $this->failedInspection();
+        [, , $otherResult] = $this->failedInspection();
+
+        $this->actingAs($assistant)
+            ->post(route('assistant.tickets.store'), $this->payload([
+                'inspection_id' => $inspection->id,
+                'inspection_result_id' => $otherResult->id,
+            ]))
+            ->assertSessionHasErrors('inspection_result_id');
+    }
+
     /**
      * An assistant's completed inspection with one failed critical item.
      *

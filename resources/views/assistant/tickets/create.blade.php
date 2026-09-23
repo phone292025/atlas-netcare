@@ -19,6 +19,9 @@
 
             @if (! empty($prefill['inspection_id']))
                 <input type="hidden" name="inspection_id" value="{{ $prefill['inspection_id'] }}">
+                @if (! empty($prefill['inspection_result_id']))
+                    <input type="hidden" name="inspection_result_id" value="{{ $prefill['inspection_result_id'] }}">
+                @endif
             @endif
 
             <x-card>
