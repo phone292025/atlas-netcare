@@ -765,7 +765,13 @@ class TelemetryPipelineTest extends TestCase
          *
          * The previous test could not see this: it only ever had a backfill
          * and nothing newer.
+         *
+         * Frozen at half past the hour. In the first minute of an hour the
+         * backfill's last reading, on the hour, is newer than a reading made a
+         * minute ago, and the test failed for one minute in every sixty.
          */
+        $this->travelTo(now()->startOfHour()->addMinutes(30));
+
         $ap = AccessPoint::factory()->create(['status' => ApStatus::Offline]);
 
         // The collector's reading, newer than anything the backfill will

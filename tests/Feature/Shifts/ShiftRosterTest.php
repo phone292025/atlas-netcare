@@ -11,6 +11,7 @@ use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
 use App\Services\Shifts\ShiftService;
+use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -256,7 +257,7 @@ class ShiftRosterTest extends TestCase
         $assistant = $this->userWith(UserRole::Assistant);
         $shift = Shift::factory()->create([
             'user_id' => $assistant->id,
-            'shift_date' => today()->addWeek()->toDateString(),
+            'shift_date' => CampusClock::today()->addWeek()->toDateString(),
         ]);
 
         $this->expectException(DomainException::class);
@@ -306,7 +307,7 @@ class ShiftRosterTest extends TestCase
         Shift::factory()->create([
             'user_id' => $arriving->id,
             'location_id' => $location->id,
-            'shift_date' => today()->addDay()->toDateString(),
+            'shift_date' => CampusClock::today()->addDay()->toDateString(),
         ]);
 
         $this->service()->checkOut($shift, $leaving, 'Printer in L6 still jamming.');
@@ -346,7 +347,7 @@ class ShiftRosterTest extends TestCase
         // and a report can count it.
         $shift = Shift::factory()->create([
             'user_id' => $this->userWith(UserRole::Assistant)->id,
-            'shift_date' => today()->subDay()->toDateString(),
+            'shift_date' => CampusClock::today()->subDay()->toDateString(),
         ]);
 
         $this->assertSame(1, $this->service()->markMissed());
@@ -368,7 +369,7 @@ class ShiftRosterTest extends TestCase
     {
         $shift = Shift::factory()->create([
             'user_id' => $this->userWith(UserRole::Assistant)->id,
-            'shift_date' => today()->addDay()->toDateString(),
+            'shift_date' => CampusClock::today()->addDay()->toDateString(),
         ]);
 
         $this->service()->markMissed();
@@ -388,12 +389,12 @@ class ShiftRosterTest extends TestCase
         $today = Shift::factory()->create([
             'user_id' => $assistant->id,
             'location_id' => $location->id,
-            'shift_date' => today()->toDateString(),
+            'shift_date' => CampusClock::today()->toDateString(),
         ]);
         $tomorrow = Shift::factory()->create([
             'user_id' => $assistant->id,
             'location_id' => $location->id,
-            'shift_date' => today()->addDay()->toDateString(),
+            'shift_date' => CampusClock::today()->addDay()->toDateString(),
         ]);
 
         $upcoming = $this->actingAs($assistant)
