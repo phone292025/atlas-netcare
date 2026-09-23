@@ -168,6 +168,21 @@ class AuditObserverTest extends TestCase
         );
     }
 
+    public function test_a_moment_in_a_change_is_shown_on_the_campus_clock(): void
+    {
+        // Stored in UTC like every moment; a check-in at 11:16 read as 03:16.
+        $shift = Shift::factory()->inProgressWindow()->create(['user_id' => $this->assistant()->id]);
+
+        app(ShiftService::class)->checkIn($shift, $shift->user);
+
+        $row = AuditLog::forSubject($shift)->where('action', 'updated')->sole();
+
+        $this->assertContains(
+            'checked in at: empty → '.now()->campus()->format('j M Y, H:i'),
+            $row->changeSummary(),
+        );
+    }
+
     public function test_removing_a_shift_is_audited(): void
     {
         $shift = Shift::factory()->upcoming()->create(['user_id' => $this->assistant()->id]);

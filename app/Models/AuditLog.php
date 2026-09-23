@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Carbon;
 
 /**
  * One recorded fact: who changed what, when, from where.
@@ -145,12 +147,13 @@ class AuditLog extends Model
 
         $previous = $this->getAttribute('previous');
         $previous = is_array($previous) ? $previous : [];
+        $casts = $this->subjectCasts();
 
         return collect($changes)
-            ->map(function (mixed $new, string $field) use ($previous, $labels): string {
+            ->map(function (mixed $new, string $field) use ($previous, $labels, $casts): string {
                 $label = str($field)->replace('_', ' ')->toString();
 
-                $show = fn (mixed $value) => $this->readable($labels[$field][$value] ?? $value);
+                $show = fn (mixed $value) => $this->readable($labels[$field][$value] ?? $value, $casts[$field] ?? null);
 
                 if (! array_key_exists($field, $previous)) {
                     return $label.': '.$show($new);
@@ -162,11 +165,33 @@ class AuditLog extends Model
             ->all();
     }
 
-    /** A value a person can read, short enough for a table cell. */
-    private function readable(mixed $value): string
+    /**
+     * The subject model's casts, so a stored moment can be shown as one.
+     * Cached per class: a page of fifty rows is a handful of models.
+     *
+     * @return array<string, string>
+     */
+    private function subjectCasts(): array
+    {
+        static $cache = [];
+
+        $class = Relation::getMorphedModel($this->auditable_type) ?? $this->auditable_type;
+
+        return $cache[$class] ??= is_string($class) && is_subclass_of($class, Model::class)
+            ? (new $class)->getCasts()
+            : [];
+    }
+
+    /**
+     * A value a person can read, short enough for a table cell. A moment is
+     * stored in UTC and shown on the campus clock, like everywhere else: a
+     * check-in at 11:16 read as 03:16.
+     */
+    private function readable(mixed $value, ?string $cast = null): string
     {
         return match (true) {
             $value === null, $value === '' => 'empty',
+            is_string($value) && in_array($cast, ['datetime', 'immutable_datetime'], true) => Carbon::parse($value, 'UTC')->campus()->format('j M Y, H:i'),
             is_bool($value) => $value ? 'yes' : 'no',
             is_array($value) => '('.count($value).' items)',
             default => str((string) $value)->limit(40)->toString(),
