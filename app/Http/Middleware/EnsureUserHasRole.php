@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
  * here and never as an inline role check inside a controller.
  *
  * @see docs/03-architecture.md — Authorisation
- * @see docs/01-requirements.md FR-104, FR-106
+ * @see docs/01-requirements.md FR-104
  */
 class EnsureUserHasRole
 {
@@ -31,21 +31,11 @@ class EnsureUserHasRole
         // Unauthenticated requests are the `auth` middleware's job, not ours.
         // Reaching here without a user means the route is misconfigured, so
         // fail closed rather than letting the request through.
+        //
+        // Deactivated accounts are EnsureAccountIsActive's job: it runs on the
+        // whole `web` group and signs them out before they get this far.
         if ($user === null) {
             abort(403, 'Authentication required.');
-        }
-
-        // Part of FR-106, not all of it. FR-106 says a deactivated user cannot
-        // SIGN IN; this only stops them reaching role-guarded areas. The login
-        // check belongs in LoginRequest::authenticate() and is M1's work, and
-        // until then no route actually uses this middleware anyway.
-        //
-        // Deliberately a loose truthiness check, not `=== false`. Without a
-        // model cast Eloquent hands back int(0) for a boolean column, so a
-        // strict comparison never matches and the guard fails OPEN. A missing
-        // attribute means active, so this is safe before the column exists.
-        if (! ($user->is_active ?? true)) {
-            abort(403, 'This account has been deactivated.');
         }
 
         if (! $this->hasAnyRole($user->role, $roles)) {

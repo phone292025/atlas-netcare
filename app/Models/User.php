@@ -43,6 +43,18 @@ class User extends Authenticatable
     ];
 
     /**
+     * The column defaults, so a model that has not been re-read from the
+     * database does not report them as null.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+        'must_change_password' => false,
+        'is_demo' => false,
+    ];
+
+    /**
      * @var list<string>
      */
     protected $hidden = [
@@ -63,15 +75,11 @@ class User extends Authenticatable
             'password' => 'hashed',
 
             // Without this cast Eloquent hands back int(0) for a boolean
-            // column, and a strict `=== false` comparison silently fails
-            // open. EnsureUserHasRole is written to survive a missing cast,
-            // but the cast should exist. See the Stage 2 review.
+            // column, and a strict `=== false` comparison silently fails open.
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'is_demo' => 'boolean',
 
-            // Turns the string column into App\Enums\UserRole, so the rest of
-            // the system compares enum cases rather than magic strings.
             'role' => UserRole::class,
         ];
     }

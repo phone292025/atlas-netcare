@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -50,23 +51,20 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // FR-106: a deactivated account cannot sign in.
+        // FR-106: a deactivated account cannot sign in. EnsureAccountIsActive
+        // covers a session that already exists.
         //
         // Checked AFTER the credentials, not before — answering "that account
         // is deactivated" to a wrong password would confirm the address exists
         // to someone guessing.
-        //
-        // The role middleware also blocks deactivated users, but only from
-        // role-guarded areas. This is the half that stops them getting a
-        // session at all.
-        if (! (Auth::user()->is_active ?? true)) {
+        if (! Auth::user()->is_active) {
             Auth::logout();
             $this->session()->invalidate();
 
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => 'This account has been deactivated. Contact the IT office.',
+                'email' => EnsureAccountIsActive::MESSAGE,
             ]);
         }
 

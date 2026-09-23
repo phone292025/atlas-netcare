@@ -53,13 +53,13 @@ class ShiftCalendarController extends Controller
      *
      * NO `auth` MIDDLEWARE, and that is not an oversight. A calendar client
      * fetches this on a timer with no session and no way to be prompted, so
-     * the token is the credential. It is looked up in constant time by the
-     * database's unique index, and a wrong or retired token is a flat 404
-     * rather than a message confirming that some tokens are valid.
+     * the token is the credential. A wrong or retired token, or one belonging
+     * to a deactivated account, is a flat 404 rather than a message confirming
+     * that some tokens are valid.
      */
     public function feed(string $token): Response
     {
-        $user = User::query()->where('calendar_token', $token)->first();
+        $user = User::query()->active()->where('calendar_token', $token)->first();
 
         abort_if($user === null, 404);
 

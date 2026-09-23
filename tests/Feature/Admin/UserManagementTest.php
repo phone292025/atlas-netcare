@@ -54,10 +54,12 @@ class UserManagementTest extends TestCase
 
     public function test_a_deactivated_admin_cannot_reach_user_management(): void
     {
-        // FR-106 through the role middleware.
+        // FR-106: signed out by EnsureAccountIsActive before the role check.
         $this->actingAs($this->userWith(UserRole::Admin, active: false))
             ->get(route('admin.users.index'))
-            ->assertForbidden();
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
     }
 
     public function test_an_admin_sees_the_user_list(): void

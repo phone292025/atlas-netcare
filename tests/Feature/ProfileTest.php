@@ -105,19 +105,5 @@ class ProfileTest extends TestCase
         );
     }
 
-    public function test_a_deactivated_account_is_turned_away_from_every_screen(): void
-    {
-        // Deactivation has to hold against a session that already exists, not
-        // only at the login form. FR-106.
-        $user = User::factory()->create();
-        $user->forceFill(['role' => UserRole::Assistant, 'is_active' => true])->save();
-
-        $this->actingAs($user)->get(route('assistant.shifts.today'))->assertOk();
-
-        $user->forceFill(['is_active' => false])->save();
-
-        $this->actingAs($user->fresh())
-            ->get(route('assistant.shifts.today'))
-            ->assertForbidden();
-    }
+    // A deactivated account with a live session: see Auth\DeactivatedAccountTest.
 }

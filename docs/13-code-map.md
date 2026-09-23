@@ -131,6 +131,7 @@ They answer different questions.
 <!-- code-map:app/Http/Middleware/ -->
 | File | What it does |
 |---|---|
+| `EnsureAccountIsActive.php` | Signs out a deactivated account on its next request (FR-106) |
 | `EnsurePasswordIsChanged.php` | Stops a user who is still on an administrator-chosen password (Q6) |
 | `EnsureUserHasRole.php` | Area-level authorisation: may this role reach this part of the system at all? |
 <!-- /code-map -->
@@ -613,6 +614,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |
 | `Feature/AuditReviewFixesTest.php` | Defects found in the M1 to M7 review of 2026-09-02 |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |
+| `Feature/Auth/DeactivatedAccountTest.php` | FR-106 for a session that already exists |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them |
 | `Feature/Auth/PasswordResetDeliveryTest.php` | FR-102 delivery, which is the half that was actually broken |
 | `Feature/Auth/PasswordResetTest.php` | _no summary in the file_ |
