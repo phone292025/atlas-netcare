@@ -9,32 +9,22 @@ use RecursiveIteratorIterator;
 /**
  * Rebuild the file tables in `docs/13-code-map.md`.
  *
- * WHY THIS EXISTS. The code map lists every file in the project and what it
- * does. Written by hand it would be wrong within a week, and this project has
- * spent enough time finding documents that stopped being true: a badge
- * promising a control nobody built, an installation guide contradicting
- * itself, a test count in five files with three of them disagreeing. A page
- * that has to be maintained by remembering to maintain it will not be.
- *
- * WHAT IT REGENERATES. Only the tables, between HTML comment markers. The
- * prose around them stays hand-written and hand-edited, because "what this
- * layer is for" is a judgement no script can make. Edit the words freely; they
- * are never touched.
+ * The code map lists every file and what it does. Written by hand it would be
+ * wrong within a week, so the tables are generated and a test fails when they
+ * are stale. Only the tables between the HTML comment markers are rewritten;
+ * the prose around them is hand-written and never touched.
  *
  *   <!-- code-map:app/Services/ -->
  *   ...the table this command owns...
  *   <!-- /code-map -->
  *
- * WHERE THE DESCRIPTIONS COME FROM. The first prose line of each file's class
- * docblock. Nothing is invented here and nothing is retyped, so a file's entry
- * cannot disagree with the file. Give a new class a docblock whose first line
- * says what it does in one sentence and it appears correctly.
+ * Each description is the first prose line of the file's class docblock, so an
+ * entry cannot disagree with its file. The map lists no line counts: they
+ * changed on nearly every commit, and a page that goes stale on every commit
+ * becomes a merge conflict on every branch.
  *
  *   php artisan atlas:code-map
  *   php artisan atlas:code-map --check
- *
- * `--check` writes nothing and fails when the page is out of date, so CI can
- * catch a stale map the way it catches a failing test.
  *
  * @see docs/13-code-map.md
  */
@@ -51,7 +41,7 @@ class BuildCodeMap extends Command
      * Marker id => the path prefix it lists.
      *
      * `views` is the exception: Blade files carry no class docblock, so that
-     * table is names and lengths only.
+     * table is names only.
      */
     private const SECTIONS = [
         'routes/',
@@ -168,9 +158,9 @@ class BuildCodeMap extends Command
     }
 
     /**
-     * The first prose line of every PHP file's class docblock.
+     * The first prose line of every PHP file's class docblock, by path.
      *
-     * @return array<string, array{summary: string, lines: int}>
+     * @return array<string, string>
      */
     private function summaries(): array
     {
@@ -183,14 +173,8 @@ class BuildCodeMap extends Command
         $root = str_replace('\\', '/', base_path()).'/';
 
         foreach (['app', 'database', 'routes', 'config', 'tests'] as $dir) {
-            foreach ($this->phpFilesIn(base_path($dir)) as $path) {
-                $relative = str_replace($root, '', $path);
-                $source = file_get_contents($path);
-
-                $found[$relative] = [
-                    'summary' => $this->firstDocblockLine($source),
-                    'lines' => $this->lineCount($source),
-                ];
+            foreach ($this->filesIn(base_path($dir), '.php') as $path) {
+                $found[str_replace($root, '', $path)] = $this->firstDocblockLine(file_get_contents($path));
             }
         }
 
@@ -224,25 +208,24 @@ class BuildCodeMap extends Command
         return '';
     }
 
-    /** @param  array<string, array{summary: string, lines: int}>  $summaries */
+    /** @param  array<string, string>  $summaries */
     private function fileTable(array $summaries, string $prefix): string
     {
         $rows = '';
 
-        foreach ($summaries as $path => $meta) {
+        foreach ($summaries as $path => $summary) {
             if (! str_starts_with($path, $prefix)) {
                 continue;
             }
 
             $rows .= sprintf(
-                "| `%s` | %s | %d |\n",
+                "| `%s` | %s |\n",
                 substr($path, strlen($prefix)),
-                $this->readable($meta['summary']) ?: '_no summary in the file_',
-                $meta['lines'],
+                $this->readable($summary) ?: '_no summary in the file_',
             );
         }
 
-        return "| File | What it does | Lines |\n|---|---|---|\n".$rows;
+        return "| File | What it does |\n|---|---|\n".$rows;
     }
 
     private function viewTable(): string
@@ -250,22 +233,15 @@ class BuildCodeMap extends Command
         // Normalised for the same reason as summaries(): the iterator returns
         // forward slashes and base_path() does not, on Windows.
         $root = str_replace(DIRECTORY_SEPARATOR, '/', base_path('resources/views'));
-        $rows = [];
 
-        foreach ($this->filesIn($root, '.blade.php') as $path) {
-            $name = str_replace($root.'/', '', $path);
-            $rows[$name] = $this->lineCount(file_get_contents($path));
-        }
+        $names = array_map(
+            fn (string $path) => str_replace($root.'/', '', $path),
+            $this->filesIn($root, '.blade.php'),
+        );
 
-        ksort($rows);
+        sort($names);
 
-        $body = '';
-
-        foreach ($rows as $name => $lines) {
-            $body .= sprintf("| `%s` | %d |\n", $name, $lines);
-        }
-
-        return "| File | Lines |\n|---|---|\n".$body;
+        return "| File |\n|---|\n".implode('', array_map(fn (string $name) => "| `{$name}` |\n", $names));
     }
 
     /**
@@ -286,25 +262,6 @@ class BuildCodeMap extends Command
         $summary = preg_replace('/\s+/', ' ', trim($summary));
 
         return rtrim($summary, '.');
-    }
-
-    /**
-     * How many lines a file has, the way `wc -l` counts them.
-     *
-     * Counting newlines and adding one reports a phantom extra line for every
-     * file that ends with a newline, which is every file in this project.
-     */
-    private function lineCount(string $source): int
-    {
-        $newlines = substr_count($source, "\n");
-
-        return str_ends_with($source, "\n") ? $newlines : $newlines + 1;
-    }
-
-    /** @return list<string> */
-    private function phpFilesIn(string $root): array
-    {
-        return $this->filesIn($root, '.php');
     }
 
     /** @return list<string> */

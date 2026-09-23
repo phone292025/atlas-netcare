@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\BuildCodeMap;
+use ReflectionMethod;
 use Tests\TestCase;
 
 /**
@@ -99,37 +101,33 @@ class BuildCodeMapTest extends TestCase
         $this->assertSame([], $missing, 'Files absent from the code map: '.implode(', ', $missing));
     }
 
-    public function test_the_line_counts_are_what_wc_would_say(): void
+    public function test_an_edit_that_changes_no_docblock_leaves_the_page_alone(): void
     {
-        /*
-         * Counting newlines and adding one reports a phantom extra line for
-         * every file ending in a newline, which is every file here. The first
-         * version of this command did exactly that and was wrong by one on all
-         * 309 rows.
-         */
-        $page = file_get_contents($this->page);
+        // The map lists no line counts, so ordinary work does not make it
+        // stale and branches do not collide on it.
+        $service = base_path('app/Services/Tickets/TicketService.php');
+        $source = file_get_contents($service);
 
-        preg_match('/\| `Tickets\/TicketService\.php` \| [^|]+ \| (\d+) \|/', $page, $m);
+        try {
+            file_put_contents($service, $source."\n");
 
-        $this->assertNotEmpty($m, 'TicketService is not listed.');
-
-        $this->assertSame(
-            count(file(base_path('app/Services/Tickets/TicketService.php'))),
-            (int) $m[1],
-        );
+            $this->artisan('atlas:code-map --check')->assertExitCode(0);
+        } finally {
+            file_put_contents($service, $source);
+        }
     }
 
     public function test_a_dash_between_clauses_and_a_dash_in_a_range_read_differently(): void
     {
-        /*
-         * "M1-M7 review" must not become "M1,M7 review", and "Demo accounts -
-         * one per role" must not become "Demo accounts , one per role". One
-         * character, two jobs.
-         */
-        $page = file_get_contents($this->page);
+        // One character, two jobs: a spaced dash separates clauses, a bare
+        // one is a range. Checked on the formatter itself, so it does not
+        // depend on which docblocks happen to contain a dash today.
+        $readable = new ReflectionMethod(BuildCodeMap::class, 'readable');
+        $command = app(BuildCodeMap::class);
 
-        $this->assertStringContainsString('M1 to M7 review', $page);
-        $this->assertStringNotContainsString(' , ', $page);
+        $this->assertSame('the M1 to M7 review', $readable->invoke($command, 'the M1–M7 review'));
+        $this->assertSame('Demo accounts, one per role', $readable->invoke($command, 'Demo accounts — one per role.'));
+        $this->assertStringNotContainsString(' , ', file_get_contents($this->page));
     }
 
     public function test_a_missing_marker_fails_rather_than_dropping_a_section(): void
