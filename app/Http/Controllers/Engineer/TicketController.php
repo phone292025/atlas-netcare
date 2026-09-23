@@ -116,15 +116,15 @@ class TicketController extends Controller
     public function assign(AssignTicketRequest $request, Ticket $ticket): RedirectResponse
     {
         try {
-            $this->tickets->assign($ticket, $request->engineer(), $request->user());
+            $ticket = $this->tickets->assign($ticket, $request->engineer(), $request->user());
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return back()->with(
             'success',
-            $ticket->fresh()->assignee
-                ? "{$ticket->ticket_number} is now with {$ticket->fresh()->assignee->name}."
+            $ticket->assignee
+                ? "{$ticket->ticket_number} is now with {$ticket->assignee->name}."
                 : "{$ticket->ticket_number} is back in the queue.",
         );
     }

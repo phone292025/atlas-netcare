@@ -191,7 +191,7 @@ Every rule in the system. If code decides something, it belongs here.
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it |
 | `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database |
-| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but not invented carelessly |
+| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
@@ -348,7 +348,7 @@ and why each runs when it does.
 | File | What it does |
 |---|---|
 | `AggregateTelemetry.php` | Roll raw readings up into hourly buckets |
-| `BackfillTelemetry.php` | Invent plausible history, so the charts have something to draw |
+| `BackfillTelemetry.php` | Invent plausible telemetry history, so the charts have something to draw |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
 | `CollectTelemetry.php` | Take one reading from every access point and store it |

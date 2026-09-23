@@ -1,31 +1,17 @@
 <?php
 
 use App\Support\CampusClock;
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
-
 /*
-|--------------------------------------------------------------------------
-| Scheduled work
-|--------------------------------------------------------------------------
-|
-| Nothing here runs unless the scheduler itself is running. On a development
-| machine that means one long-lived process:
+| Scheduled work. Nothing here runs unless the scheduler does; on a
+| development machine that is one long-lived process:
 |
 |     php artisan schedule:work
 |
-| Without it the dashboard shows whatever the last manual `atlas:collect-
-| telemetry` produced and quietly goes stale — which looks exactly like a
-| broken dashboard.
-|
-| Every command below enters at the SERVICE layer and skips controllers
-| entirely. That is the point of putting the rules in services: a scheduled
-| command and a browser request share one code path.
+| Without it the dashboards quietly go stale. Each command calls a service,
+| so a scheduled run and a browser request share one code path. Times of day
+| are on the campus clock.
 |
 | @see docs/modules/M5-telemetry-and-dashboard.md
 */
@@ -36,12 +22,8 @@ Schedule::command('atlas:collect-telemetry')
     ->everyMinute()
     ->withoutOverlapping();
 
-/*
- * Rebuilds the last few hours rather than only the last one — a late
- * collection run or a backfill landing after the previous aggregation would
- * otherwise leave a permanently wrong bucket nothing revisits. Safe to repeat:
- * it upserts against a unique index.
- */
+// The last few hours, not just the last one, so a late round is still
+// counted. Safe to repeat: it upserts against a unique index.
 Schedule::command('atlas:aggregate-telemetry --hours=3')
     ->hourly()
     ->withoutOverlapping();
@@ -52,47 +34,24 @@ Schedule::command('atlas:prune-telemetry')
     ->weeklyOn(0, '03:15')
     ->timezone(CampusClock::timezone());
 
-/*
- * M6 — shifts and alarms.
- *
- * Alarms are written ahead of time with a `trigger_at`; this is what turns
- * them into something a person can see. Every minute, because a reminder that
- * arrives twenty minutes after the round should have started is worse than
- * none — it teaches people the reminders are not to be trusted.
- */
+// M6: alarms are written ahead with a `trigger_at`; this delivers them.
+// Every minute, because a late reminder teaches people to ignore them.
 Schedule::command('atlas:dispatch-alarms')
     ->everyMinute()
     ->withoutOverlapping();
 
-/*
- * Next week's roster, generated on Sunday evening so it is populated before
- * anybody looks on Monday. Idempotent, and it also marks past shifts nobody
- * turned up to — a roster full of shifts that are neither done nor missed is
- * exactly the kind of stale screen people stop trusting.
- */
+// Next week's roster on Sunday evening, and past shifts nobody attended
+// marked missed. Idempotent.
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00')
     ->timezone(CampusClock::timezone());
 
 /*
- * M7 — predictive risk (FR-505).
- *
- * Daily and out of hours, because it rewrites the cached risk columns on
- * every asset and the maintenance ranking should not reorder underneath
- * somebody who is reading it.
- *
- * 02:00 rather than midnight, so it runs AFTER the previous day's telemetry
- * has been aggregated into hourly buckets. Scoring an access point on trends
- * that stop several hours short of "now" makes a link that failed last night
- * look fine this morning, which is the one morning it matters.
- *
- * A second run the same day is harmless: it adds a history row rather than
- * overwriting one.
+ * M7: risk scores (FR-505), out of hours so the ranking does not reorder under
+ * somebody reading it, and at 02:00 so the previous day's telemetry has been
+ * aggregated first.
  */
 Schedule::command('atlas:recalculate-risk --show=0')
     ->dailyAt('02:00')
-    // 02:00 ON CAMPUS. Without a zone the scheduler reads every time in UTC,
-    // so this ran at 10:00 local — in the middle of the working day it was
-    // meant to finish before. The two weekly jobs above carry the same zone.
     ->timezone(CampusClock::timezone())
     ->withoutOverlapping();

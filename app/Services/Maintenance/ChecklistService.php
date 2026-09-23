@@ -2,7 +2,6 @@
 
 namespace App\Services\Maintenance;
 
-use App\Models\ChecklistItem;
 use App\Models\ChecklistTemplate;
 use Illuminate\Support\Facades\DB;
 
@@ -138,18 +137,5 @@ class ChecklistService
 
             return $template->load('items');
         });
-    }
-
-    /**
-     * Add one item to the end of a template.
-     */
-    public function addItem(ChecklistTemplate $template, array $attributes): ChecklistItem
-    {
-        return $template->items()->create([
-            'label' => $attributes['label'],
-            'category' => $attributes['category'],
-            'is_critical' => (bool) ($attributes['is_critical'] ?? false),
-            'sort_order' => ((int) $template->items()->max('sort_order')) + 1,
-        ]);
     }
 }

@@ -42,14 +42,4 @@ enum ApStatus: string implements HasLabel, HasTone
             self::Maintenance => 'neutral',
         };
     }
-
-    /**
-     * Whether this state should raise an alarm or auto-ticket.
-     *
-     * Planned maintenance must not page anybody.
-     */
-    public function isAlarmable(): bool
-    {
-        return $this === self::Offline || $this === self::Degraded;
-    }
 }

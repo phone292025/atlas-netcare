@@ -68,10 +68,4 @@ class TelemetryReading extends Model
     {
         $query->where('source', 'simulated');
     }
-
-    /** @param  Builder<TelemetryReading>  $query */
-    public function scopeSince(Builder $query, \DateTimeInterface $from): void
-    {
-        $query->where('recorded_at', '>=', $from);
-    }
 }

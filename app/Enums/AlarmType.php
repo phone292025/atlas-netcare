@@ -46,17 +46,4 @@ enum AlarmType: string implements HasLabel, HasTone
             self::ApOffline, self::SlaBreach => 'urgent',
         };
     }
-
-    /**
-     * Which module raises this alarm. Recorded here because AlarmService is
-     * shared: M4 and M5 call into M6 rather than writing alarms themselves.
-     */
-    public function raisedBy(): string
-    {
-        return match ($this) {
-            self::ShiftStart, self::InspectionRound, self::Handover => 'M6',
-            self::ApOffline => 'M5',
-            self::SlaBreach => 'M4',
-        };
-    }
 }

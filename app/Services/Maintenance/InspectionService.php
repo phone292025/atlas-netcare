@@ -7,6 +7,7 @@ use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
+use App\Models\InspectionResult;
 use App\Models\LabPc;
 use App\Models\User;
 use DomainException;
@@ -16,10 +17,9 @@ use RuntimeException;
 /**
  * Starting, saving and finishing an inspection.
  *
- * The controller does none of this. Everything here has to happen together or
- * not at all — writing the answers, deriving the outcome, and stamping the
- * machine's `last_inspected_at` — and a half-finished inspection is worse than
- * no inspection, because it looks like the machine was checked.
+ * Writing the answers, deriving the outcome and stamping the machine's
+ * `last_inspected_at` happen together or not at all: a half-finished
+ * inspection looks like the machine was checked.
  *
  * @see docs/modules/M3-checklists-and-inspections.md
  * @see docs/03-architecture.md — services hold the rules
@@ -27,27 +27,13 @@ use RuntimeException;
 class InspectionService
 {
     /**
-     * Begin an inspection, or hand back the one already in progress.
-     *
-     * Idempotent on purpose. An assistant on bad campus Wi-Fi taps "start"
-     * twice and gets one inspection, not two half-filled ones competing to be
-     * the record of the same visit.
+     * Begin an inspection, or hand back the one already in progress, so a
+     * second tap of "start" on bad Wi-Fi does not create a competing record.
      */
     public function start(LabPc $labPc, User $user, ?ChecklistTemplate $template = null): Inspection
     {
-        /*
-         * A retired machine cannot be inspected.
-         *
-         * Retirement writes `status = retired` AND the soft-delete stamp
-         * together, and every list, report and risk calculation excludes it —
-         * so an inspection against one produces a record nothing else
-         * acknowledges, on a machine that is physically gone from the room.
-         *
-         * There was no guard at all here once: an inspection could
-         * be started on a machine that was both retired and soft-deleted, and
-         * nothing complained. Completed inspections on retired machines stay
-         * readable; this only governs starting new ones.
-         */
+        // Retired kit is excluded from every list, report and risk score, and
+        // is physically gone from the room. Past inspections stay readable.
         if ($labPc->trashed() || $labPc->status === DeviceStatus::Retired) {
             throw new DomainException(
                 'That machine has been retired, so it can no longer be inspected.'
@@ -95,13 +81,9 @@ class InspectionService
             $itemIds = $inspection->template->items->pluck('id');
 
             foreach ($answers as $itemId => $answer) {
-                /*
-                 * Ignore anything not on this inspection's own template. The
-                 * item id arrives from a form field name, so without this an
-                 * edited request could attach an answer belonging to another
-                 * template — and the outcome would then be derived partly
-                 * from questions this inspection never asked.
-                 */
+                // Only items on this inspection's own template. The id comes
+                // from a form field name, and an edited request could
+                // otherwise answer questions this inspection never asked.
                 if (! $itemIds->contains((int) $itemId)) {
                     continue;
                 }
@@ -112,40 +94,24 @@ class InspectionService
                     continue;
                 }
 
-                /*
-                 * updateOrCreate against the (inspection_id, checklist_item_id)
-                 * unique index, so a resubmitted form corrects the answers
-                 * rather than doubling them.
-                 */
+                // updateOrCreate against the unique index, so a resubmission
+                // corrects answers rather than doubling them.
                 $inspection->results()->updateOrCreate(
                     ['checklist_item_id' => (int) $itemId],
                     [
                         'result' => $result,
                         // A remark only means something against an Issue.
-                        // Keeping one on an item flipped back to OK would
-                        // leave "left USB port dead" attached to a pass.
                         'remark' => $result->isFailure() ? ($answer['remark'] ?? null) : null,
                     ],
                 );
             }
 
             /*
-             * EVERY ITEM ANSWERED, enforced here and not only in the form.
-             *
-             * deriveOutcome() looks for failures among the answers it has. An
-             * item with no answer is not a failure, so a checklist with one
-             * question answered and twelve skipped derived as Pass and stamped
-             * the machine inspected: a machine certified working on questions
-             * nobody asked, feeding M7's risk score. InspectionRequest has
-             * refused that since M3 and its docblock calls it "the failure
-             * mode that matters here" — but the rule lived only in the form,
-             * so this method, called directly, accepted 1 of 13. Found by
-             * driving the service against the live database.
-             *
-             * Checked after saving, against what the inspection now holds, so
-             * a resubmission that corrects answers is judged on the whole set.
-             * Throwing inside this transaction rolls back the answers just
-             * written, so a refused inspection is left exactly as it was.
+             * Every item answered, enforced here as well as in the form. An
+             * unanswered item is not a failure, so one answer out of thirteen
+             * would otherwise derive Pass and certify the machine on questions
+             * nobody asked. Checked against what the inspection now holds, and
+             * the throw rolls back the answers just written.
              */
             $unanswered = $itemIds->diff($inspection->results()->pluck('checklist_item_id'));
 
@@ -164,11 +130,7 @@ class InspectionService
                 'completed_at' => now(),
             ])->save();
 
-            /*
-             * The machine's own record of when it was last looked at. M2
-             * leaves this column for M3 to write, M7 reads it as a risk
-             * factor, and the lab PC show page renders it.
-             */
+            // Read by M7 as a risk factor and shown on the lab PC page.
             $inspection->labPc->forceFill(['last_inspected_at' => $inspection->completed_at])->save();
 
             return $inspection;
@@ -176,32 +138,23 @@ class InspectionService
     }
 
     /**
-     * The whole point of the module, in three lines.
+     * The outcome of an inspection:
      *
      *   any critical item marked Issue -> Fail
      *   any other item marked Issue    -> PassWithIssues
      *   otherwise                      -> Pass
      *
-     * N/A is not a failure. An assistant marking "external monitor" as N/A on
-     * a machine that has no external monitor has not found a fault, and
-     * counting it as one would make every such machine look broken.
+     * N/A is not a failure: "external monitor" on a machine without one is not
+     * a fault.
      */
     public function deriveOutcome(Inspection $inspection): InspectionOutcome
     {
-        $issues = $inspection->results->filter(
-            fn ($result) => $result->result->isFailure()
-        );
+        $results = $inspection->results;
 
-        if ($issues->isEmpty()) {
-            return InspectionOutcome::Pass;
-        }
-
-        $hasCritical = $issues->contains(
-            fn ($result) => (bool) $result->item?->is_critical
-        );
-
-        return $hasCritical
-            ? InspectionOutcome::Fail
-            : InspectionOutcome::PassWithIssues;
+        return match (true) {
+            $results->contains(fn (InspectionResult $r) => $r->isCriticalFailure()) => InspectionOutcome::Fail,
+            $results->contains(fn (InspectionResult $r) => $r->result->isFailure()) => InspectionOutcome::PassWithIssues,
+            default => InspectionOutcome::Pass,
+        };
     }
 }

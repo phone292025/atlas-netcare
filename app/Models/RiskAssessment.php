@@ -60,28 +60,18 @@ class RiskAssessment extends Model
     }
 
     /**
-     * Newest first.
-     *
-     * `id` breaks the tie because a whole run shares one `calculated_at` —
-     * that is deliberate, so a run can be selected as a unit — and ordering on
-     * the date alone would leave rows from the same run in arbitrary order.
-     *
-     * @param  Builder<RiskAssessment>  $query
-     */
-    public function scopeLatestFirst(Builder $query): void
-    {
-        $query->orderByDesc('calculated_at')->orderByDesc('id');
-    }
-
-    /**
      * The chart's data, oldest first, as a trend reads.
+     *
+     * `id` breaks ties: a whole run shares one `calculated_at`, and the screen
+     * takes the last row as the latest score.
      *
      * @param  Builder<RiskAssessment>  $query
      */
     public function scopeTrend(Builder $query, int $days = 90): void
     {
         $query->where('calculated_at', '>=', now()->subDays($days))
-            ->orderBy('calculated_at');
+            ->orderBy('calculated_at')
+            ->orderBy('id');
     }
 
     /**
