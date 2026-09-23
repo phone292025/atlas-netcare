@@ -27,15 +27,10 @@ class ShiftService
     /**
      * Create shifts for a week from the active templates (Q4).
      *
-     * IDEMPOTENT. It is scheduled weekly, and somebody will also run it by
-     * hand — the unique index on (user_id, shift_date, start_time) plus the
-     * existence check below mean a second pass adds nothing rather than
-     * rostering everybody twice.
-     *
-     * Assistants are assigned round-robin by how few shifts they already have
-     * that week. That is not a real fairness algorithm and does not pretend to
-     * be; it just stops the same person being given every slot, which is what
-     * assigning in id order does.
+     * Idempotent: it runs weekly and somebody will also run it by hand, so a
+     * second pass fills only the slots still empty. Assistants are picked by
+     * how few shifts they already have that week; not a fairness algorithm,
+     * but it stops one person being given every slot.
      *
      * @return Collection<int, Shift>
      */
@@ -57,8 +52,8 @@ class ShiftService
         $created = collect();
 
         DB::transaction(function () use ($templates, $assistants, $weekStart, &$created) {
-            // Shifts already in this week, so re-running counts existing work
-            // rather than piling more on the same people.
+            // Existing shifts count towards each person's load, so a re-run
+            // does not pile more work on the same people.
             $load = Shift::query()
                 ->whereBetween('shift_date', [$weekStart, $weekStart->copy()->endOfWeek()])
                 ->get()
@@ -66,27 +61,14 @@ class ShiftService
 
             foreach ($templates as $template) {
                 $date = $weekStart->copy()->addDays(
-                    // 0 = Sunday to match Carbon::dayOfWeek, and startOfWeek()
-                    // is Monday — so Sunday is the last day of this week, not
-                    // the first. Getting this wrong shifts the whole roster by
-                    // six days and looks like the generator simply not working.
+                    // day_of_week is 0 = Sunday (Carbon's numbering), and the
+                    // week starts on Monday, so Sunday is the last day.
                     ($template->day_of_week + 6) % 7
                 );
 
-                /*
-                 * Start from what this slot already has, not from zero.
-                 *
-                 * The guard below is per PERSON: it stops one assistant being
-                 * double-booked. It does not stop the SLOT being filled twice,
-                 * so a second run simply picked a different assistant and
-                 * created a duplicate. The docblock claimed idempotence and
-                 * the method delivered it only when there was exactly one
-                 * assistant to choose from, which is why the test missed it.
-                 *
-                 * Found on the live roster: one template needing one assistant
-                 * had two shifts on the same Monday morning, held by different
-                 * people.
-                 */
+                // Start from what the slot already holds. The per-person check
+                // below stops double-booking one assistant, not filling one
+                // slot twice with two different people.
                 $alreadyFilled = Shift::query()
                     ->where('shift_template_id', $template->id)
                     ->whereDate('shift_date', $date)
@@ -98,8 +80,8 @@ class ShiftService
                         ->first(fn (User $u) => ! $this->alreadyRostered($u, $date, $template));
 
                     if (! $assistant) {
-                        // Every assistant is already on at this exact time.
-                        // Under-filling is honest; double-booking is not.
+                        // Everyone is already on at this time. Under-filling
+                        // is honest; double-booking is not.
                         continue;
                     }
 
@@ -108,9 +90,8 @@ class ShiftService
                         'user_id' => $assistant->id,
                         'location_id' => $template->location_id,
                         'shift_date' => $date->toDateString(),
-                        // Copied, not read through the template: changing
-                        // "Mondays 09:00" to 10:00 must not rewrite what
-                        // somebody already worked.
+                        // Copied, not read through the template, so editing a
+                        // pattern never rewrites what somebody already worked.
                         'start_time' => $template->start_time,
                         'end_time' => $template->end_time,
                     ]);
@@ -127,30 +108,29 @@ class ShiftService
     }
 
     /**
-     * Reminders for one shift, scheduled in advance.
-     *
-     * This is why alarms carry `trigger_at` rather than being written when
-     * they fire: the shift exists a week early, so its reminders can too.
+     * Reminders for one shift, scheduled in advance through `trigger_at`.
+     * Roster generation and reassignment both come through here, so a shift
+     * that changes hands keeps its inspection-round reminders.
      */
-    private function scheduleShiftAlarms(Shift $shift, User $assistant): void
-    {
+    private function scheduleShiftAlarms(
+        Shift $shift,
+        User $assistant,
+        string $title = 'Your shift starts soon',
+        ?string $message = null,
+    ): void {
         $startsAt = $shift->startsAt();
 
         $this->alarms->raise(
             AlarmType::ShiftStart,
             $assistant,
-            'Your shift starts soon',
-            $shift->location?->label().', '.$shift->label(),
+            $title,
+            $message ?? $shift->location?->label().', '.$shift->label(),
             at: $startsAt->copy()->subMinutes((int) config('atlas.shifts.reminder_before_min', 30)),
             shift: $shift,
         );
 
-        /*
-         * Inspection-round reminders, spaced through the shift. A four-hour
-         * shift at a 120-minute interval gets one at +2h; the reminder at the
-         * very end is skipped, because being told to start a round as you
-         * leave is noise, and noise is how people learn to ignore the bell.
-         */
+        // Round reminders spaced through the shift. None in the last quarter
+        // hour: being told to start a round as you leave is noise.
         $interval = (int) config('atlas.shifts.round_interval_min', 120);
         $cursor = $startsAt->copy()->addMinutes($interval);
 
@@ -232,12 +212,8 @@ class ShiftService
     }
 
     /**
-     * Tell the next person on this location what was left for them.
-     *
-     * Handover notes nobody reads are just a diary. The next scheduled shift
-     * in the same place gets an alarm when it starts — not now, because
-     * telling somebody at 13:00 about a shift they begin tomorrow is how it
-     * gets forgotten.
+     * Send the notes to the next scheduled shift in the same place, timed for
+     * when it starts rather than now, so they arrive when they are useful.
      */
     private function passHandoverOn(Shift $shift, string $notes): void
     {
@@ -264,12 +240,8 @@ class ShiftService
     }
 
     /**
-     * Mark shifts nobody turned up to.
-     *
-     * A missed shift is a status rather than an absence of one, so the roster
-     * can show it and a report can count it. Only shifts whose end time has
-     * passed while still `scheduled` — a shift someone checked into and forgot
-     * to check out of is a different problem and not this one's to guess at.
+     * Mark shifts nobody turned up to: ended and still `scheduled`. A shift
+     * somebody checked into and forgot to leave is a different problem.
      *
      * @return int how many were marked
      */
@@ -277,9 +249,6 @@ class ShiftService
     {
         $stale = Shift::query()
             ->where('status', ShiftStatus::Scheduled)
-            // The campus date, not UTC's: between midnight and 08:00 on campus
-            // UTC is still yesterday, and a shift that had already ended would
-            // wait eight hours to be marked.
             ->whereDate('shift_date', '<=', CampusClock::today())
             ->get()
             ->filter(fn (Shift $shift) => $shift->endsAt()->isPast());
@@ -291,13 +260,7 @@ class ShiftService
         return $stale->count();
     }
 
-    /**
-     * Today's shift for this person, if they have one.
-     *
-     * Today ON CAMPUS. This asked for today() in UTC, so from midnight until
-     * 08:00 an assistant opening "My shift" was told they had no shift that
-     * day while rostered for 09:00.
-     */
+    /** Today's shift on campus for this person, if they have one. */
     public function todayFor(User $user): ?Shift
     {
         return Shift::query()
@@ -309,46 +272,25 @@ class ShiftService
     }
 
     /**
-     * Move one shift to a different assistant (FR-408).
+     * Move one shift to a different assistant (FR-408): how a real week
+     * diverges from the generated pattern.
      *
-     * The other half of Q4. `generateWeek()` materialises a roster from
-     * templates; this is how a real week diverges from the pattern, which it
-     * always does — somebody is ill, somebody swaps, somebody is on leave.
-     * Without it the only way to change an assignment is to edit the database.
+     * Only a SCHEDULED shift. A started, completed or missed one is history,
+     * and `checked_in_at` records who was actually there.
      *
-     * FOUR RULES, and each one exists because breaking it loses information:
+     * Only to an ACTIVE ASSISTANT, or nobody will ever check in to it.
      *
-     * A shift that has been STARTED cannot be reassigned. `checked_in_at`
-     * records that a particular person was physically there, and handing the
-     * shift to somebody else would attach their name to work they did not do.
-     * The same reasoning covers completed and missed shifts: all three are
-     * history, and history is not reassignable.
+     * Not onto a CLASH. The unique index would refuse it anyway; checked here
+     * so the admin gets a sentence rather than an integrity error.
      *
-     * ONLY TO AN ACTIVE ASSISTANT. Rostering a deactivated account, or an
-     * engineer, produces a shift nobody will ever check in to — and it would
-     * be invisible until the morning it was needed.
+     * Unsent alarms follow the shift: its reminders are rebuilt for the new
+     * assignee and anything else pending, such as a handover note, moves
+     * across. Delivered alarms stay; they record something that happened.
      *
-     * NOT ONTO A CLASH. `shifts` has a unique index on
-     * (user_id, shift_date, start_time), so a double-booking would surface as
-     * a raw integrity error. Checked here so the user gets a sentence instead.
-     *
-     * THE ORIGINAL PERSON'S ALARMS GO. A pre-shift reminder written for
-     * somebody who is no longer on the shift is worse than no reminder: they
-     * turn up, and the person actually rostered does not. The new assignee
-     * gets their own reminder through the same path generateWeek() uses.
-     *
-     * @throws DomainException when any of the four rules is broken
+     * @throws DomainException when any of those rules is broken
      */
     public function reassign(Shift $shift, User $to): Shift
     {
-        /*
-         * Scheduled only, deliberately narrower than isOutstanding().
-         *
-         * That helper answers "is this still work to do", and a CHECKED-IN
-         * shift is — but it is also a shift somebody is standing in the room
-         * doing right now, and `checked_in_at` says who. Reassigning it would
-         * attach their attendance to a different name.
-         */
         if ($shift->status !== ShiftStatus::Scheduled) {
             throw new DomainException(
                 'This shift has already started or finished, so it cannot be reassigned.'
@@ -378,21 +320,18 @@ class ShiftService
 
             $shift->forceFill(['user_id' => $to->id])->save();
 
-            // Drop the old reminder before writing the new one. Only unsent
-            // alarms: one already delivered is a record of something that
-            // happened and is not ours to erase.
-            $shift->alarms()->whereNull('sent_at')->delete();
+            $shift->alarms()->whereNull('sent_at')
+                ->whereIn('type', [AlarmType::ShiftStart, AlarmType::InspectionRound])
+                ->delete();
 
-            $this->alarms->raise(
-                AlarmType::ShiftStart,
+            $shift->alarms()->whereNull('sent_at')->update(['user_id' => $to->id]);
+
+            $this->scheduleShiftAlarms(
+                $shift,
                 $to,
                 'You have been given a shift',
                 trim(($shift->location?->label() ?? 'No location').', '.$shift->label()
                     .($from ? ' — taken over from '.$from->name : '')),
-                at: $shift->startsAt()->copy()->subMinutes(
-                    (int) config('atlas.shifts.reminder_before_min', 30)
-                ),
-                shift: $shift,
             );
 
             return $shift->fresh(['user', 'location']);

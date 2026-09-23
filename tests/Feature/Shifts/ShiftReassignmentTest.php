@@ -173,7 +173,46 @@ class ShiftReassignmentTest extends TestCase
         $this->shifts->reassign($shift, $to);
 
         $this->assertSame(0, Alarm::where('shift_id', $shift->id)->where('user_id', $from->id)->count());
-        $this->assertSame(1, Alarm::where('shift_id', $shift->id)->where('user_id', $to->id)->count());
+        $this->assertSame(1, Alarm::where('shift_id', $shift->id)->where('user_id', $to->id)
+            ->where('type', AlarmType::ShiftStart)->count());
+    }
+
+    public function test_the_new_assignee_gets_the_inspection_round_reminders_too(): void
+    {
+        // An eight-hour shift at the default 120-minute interval has three
+        // rounds. Reassignment used to rebuild only the start reminder.
+        $from = $this->assistant();
+        $to = $this->assistant();
+        $shift = Shift::factory()->create([
+            'user_id' => $from->id,
+            'start_time' => '09:00',
+            'end_time' => '17:00',
+        ]);
+
+        $this->shifts->reassign($shift, $to);
+
+        $this->assertSame(3, Alarm::where('shift_id', $shift->id)->where('user_id', $to->id)
+            ->where('type', AlarmType::InspectionRound)->count());
+    }
+
+    public function test_a_pending_handover_note_moves_to_the_new_assignee(): void
+    {
+        // Left by the previous shift at this location, for whoever works this
+        // one. Deleting it with the reminders lost the note.
+        $from = $this->assistant();
+        $to = $this->assistant();
+        $shift = Shift::factory()->create(['user_id' => $from->id]);
+
+        $handover = Alarm::factory()->pending()->create([
+            'user_id' => $from->id,
+            'shift_id' => $shift->id,
+            'type' => AlarmType::Handover,
+            'message' => 'Printer in lab 3 is jammed.',
+        ]);
+
+        $this->shifts->reassign($shift, $to);
+
+        $this->assertSame($to->id, $handover->fresh()->user_id);
     }
 
     public function test_an_alarm_already_delivered_is_not_erased(): void
@@ -207,7 +246,7 @@ class ShiftReassignmentTest extends TestCase
 
         $this->assertStringContainsString(
             $from->name,
-            Alarm::where('user_id', $to->id)->latest('id')->first()->message,
+            Alarm::where('user_id', $to->id)->where('type', AlarmType::ShiftStart)->sole()->message,
         );
     }
 
