@@ -48,7 +48,7 @@
             @if (! $shift)
                 <x-card>
                     <x-empty-state title="Nothing rostered today"
-                                   message="You have no shift scheduled for today. Anything coming up is listed alongside."
+                                   message="You have no shift scheduled for today. Your next ones are under Coming up."
                                    icon="calendar" />
                 </x-card>
             @else
