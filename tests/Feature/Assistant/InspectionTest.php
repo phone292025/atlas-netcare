@@ -504,6 +504,31 @@ class InspectionTest extends TestCase
         $this->assertNull($inspection->fresh()->completed_at);
     }
 
+    public function test_a_refused_checklist_says_at_the_top_how_many_items_are_missing(): void
+    {
+        // The page reloads at the top, and on a phone the missed item can be
+        // far below. Found in an end-to-end run of the seeded install.
+        $template = $this->template();
+        $assistant = $this->assistant();
+        $inspection = Inspection::factory()->create([
+            'checklist_template_id' => $template->id,
+            'user_id' => $assistant->id,
+        ]);
+        $form = route('assistant.inspections.edit', $inspection);
+        $missing = $template->items->count() - 1;
+
+        $this->actingAs($assistant)->from($form)
+            ->patch(route('assistant.inspections.update', $inspection), [
+                'results' => [$template->items->first()->id => ['result' => ChecklistResult::Ok->value]],
+            ])
+            ->assertRedirect($form);
+
+        $this->actingAs($assistant)->get($form)
+            ->assertOk()
+            ->assertSee($missing.' '.($missing === 1 ? 'item still needs' : 'items still need').' an answer')
+            ->assertSee('Answer this item before submitting.');
+    }
+
     // ------------------------------------------------- authorisation
 
     public function test_an_assistant_cannot_open_someone_elses_inspection(): void

@@ -35,6 +35,17 @@
             </x-slot:actions>
         </x-page-header>
 
+        {{-- A refused submission reloads at the top of the page, and the item
+             that was missed can be twelve screens down on a phone. Say how
+             many there are, and that they are marked, before anything else. --}}
+        @php($unanswered = collect($errors->keys())->filter(fn ($key) => preg_match('/^results\.\d+\.result$/', $key))->count())
+        @if ($unanswered > 0)
+            <x-alert type="error" class="mb-6"
+                     :title="$unanswered.' '.Str::plural('item', $unanswered).' '.($unanswered === 1 ? 'still needs' : 'still need').' an answer'">
+                {{ $unanswered === 1 ? 'It is' : 'They are' }} marked in red below. Choose N/A for anything that does not apply to this machine.
+            </x-alert>
+        @endif
+
         @if ($inspection->results->isNotEmpty())
             <x-alert type="info" class="mb-6">
                 You started this inspection {{ $inspection->started_at?->diffForHumans() }} and
