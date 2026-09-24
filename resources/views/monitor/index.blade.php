@@ -88,7 +88,9 @@
                             'bg-amber-500': tab.key === 'degraded',
                             'bg-red-500': tab.key === 'offline',
                             'bg-slate-400': tab.key === 'maintenance',
-                            'bg-fuchsia-500': tab.key === 'stale',
+                            {{-- Hollow: no reading is not a colour. Fuchsia is
+                                 reserved for an unrecognised tone, i.e. a bug. --}}
+                            'border border-slate-400': tab.key === 'stale',
                         }"></span>
                         <span x-text="tab.label"></span>
                     </span>
