@@ -2,7 +2,12 @@
     <x-slot:heading>Reset your password</x-slot:heading>
     <x-slot:intro>Forgot your password? Enter the email you sign in with and we will send you a link to choose a new one.</x-slot:intro>
 
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    {{-- With no mail server the usual "a reset link is on its way" sat just
+         above "Nothing will be sent", which contradicted itself. Only on a
+         development install: a configured one never shows the warning. --}}
+    <x-auth-session-status class="mb-4" :status="session('status') && config('app.debug') && ! config('atlas.mail_configured')
+        ? 'If that address has an account, its reset link is below. Nothing is emailed until a mail server is set up.'
+        : session('status')" />
 
     {{-- Say what will actually happen when this machine cannot send mail:
          with MAIL_MAILER=log the link lands in storage/logs/laravel.log, and

@@ -52,6 +52,21 @@ class ResetWithoutMailTest extends TestCase
             ->assertSee('reset-password/', false);
     }
 
+    public function test_the_page_does_not_promise_an_email_it_will_not_send(): void
+    {
+        // It said "a reset link is on its way" directly above "Nothing will
+        // be sent". Found by walking a fresh clone the way a new user would.
+        $this->freshClone();
+        $user = User::factory()->create();
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        $this->get(route('password.request'))
+            ->assertOk()
+            ->assertSee('its reset link is below')
+            ->assertDontSee('on its way');
+    }
+
     public function test_the_shown_link_actually_works(): void
     {
         /*
