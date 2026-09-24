@@ -53,7 +53,7 @@ class NetworkMonitorController extends Controller
                 ->whereNotNull('location_id')
                 ->unique('location_id')
                 ->sortBy('location')
-                ->mapWithKeys(fn (array $ap) => [$ap['location_id'] => $ap['location'].' — '.$ap['location_name']])
+                ->mapWithKeys(fn (array $ap) => [$ap['location_id'] => $ap['location'].' · '.$ap['location_name']])
                 ->all(),
         ]);
     }

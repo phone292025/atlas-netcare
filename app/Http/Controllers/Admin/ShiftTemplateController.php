@@ -76,7 +76,7 @@ class ShiftTemplateController extends Controller
     public function destroy(ShiftTemplate $shiftTemplate): RedirectResponse
     {
         if ($shiftTemplate->shifts()->exists()) {
-            return back()->with('error', "{$shiftTemplate->label()} has generated shifts. Deactivate it instead — that stops new shifts without disturbing the ones people worked.");
+            return back()->with('error', "{$shiftTemplate->label()} has generated shifts. Deactivate it instead. That stops new shifts without disturbing the ones people worked.");
         }
 
         $shiftTemplate->delete();

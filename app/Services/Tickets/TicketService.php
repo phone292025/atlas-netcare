@@ -257,7 +257,7 @@ class TicketService
                 AlarmType::SlaBreach,
                 UserRole::Engineer,
                 "{$ticket->ticket_number} is past its target",
-                "{$ticket->title} — {$ticket->priority->label()}, due {$due}.",
+                "{$ticket->title}. {$ticket->priority->label()} priority, due {$due}.",
                 related: $ticket,
             );
         }

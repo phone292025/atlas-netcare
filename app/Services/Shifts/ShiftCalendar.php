@@ -105,7 +105,7 @@ class ShiftCalendar
             'DTSTAMP:'.gmdate('Ymd\THis\Z'),
             'DTSTART;TZID='.$this->timezone().':'.$this->localStamp($shift, $shift->start_time),
             'DTEND;TZID='.$this->timezone().':'.$this->localStamp($shift, $shift->end_time),
-            'SUMMARY:'.$this->escape('IT Assistant shift'.($location ? ' — '.$location->code : '')),
+            'SUMMARY:'.$this->escape('IT Assistant shift'.($location ? ', '.$location->code : '')),
             'DESCRIPTION:'.$this->escape($description),
             $location ? 'LOCATION:'.$this->escape($location->label()) : null,
 

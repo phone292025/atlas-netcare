@@ -68,11 +68,11 @@ class ShiftTemplate extends Model
         ][$this->day_of_week] ?? 'Unknown';
     }
 
-    /** "Mondays 09:00–13:00" */
+    /** "Mondays 09:00-13:00" */
     public function label(): string
     {
         return $this->dayName().'s '
-            .substr((string) $this->start_time, 0, 5).'–'
+            .substr((string) $this->start_time, 0, 5).'-'
             .substr((string) $this->end_time, 0, 5);
     }
 }

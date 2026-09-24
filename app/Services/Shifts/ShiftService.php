@@ -354,7 +354,7 @@ class ShiftService
                 $to,
                 'You have been given a shift',
                 trim(($shift->location?->label() ?? 'No location').', '.$shift->label()
-                    .($from ? ' — taken over from '.$from->name : '')),
+                    .($from ? ', taken over from '.$from->name : '')),
             );
 
             return $shift->fresh(['user', 'location']);

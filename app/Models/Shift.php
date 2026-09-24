@@ -187,11 +187,11 @@ class Shift extends Model
         );
     }
 
-    /** "Mon 1 Sep, 09:00–13:00" */
+    /** "Mon 1 Sep, 09:00-13:00" */
     public function label(): string
     {
         return $this->shift_date->format('D j M').', '
-            .substr((string) $this->start_time, 0, 5).'–'
+            .substr((string) $this->start_time, 0, 5).'-'
             .substr((string) $this->end_time, 0, 5);
     }
 }
