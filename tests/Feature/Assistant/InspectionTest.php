@@ -443,15 +443,16 @@ class InspectionTest extends TestCase
         ]);
 
         /*
-         * The marker element, not the bare words. The card subtitle always
-         * reads "Already checked today are marked", so this used to assert
-         * 'checked today' and pass whether the machine was marked or not: it
-         * matched the subtitle. It had never been able to fail.
+         * The marker element, not the bare words. A card subtitle once read
+         * "Already checked today are marked", so asserting 'checked today'
+         * passed whether the machine was marked or not: it matched the
+         * subtitle. It had never been able to fail. The attribute survives a
+         * restyle; the words and classes do not.
          */
         $this->actingAs($this->assistant())
             ->get(route('assistant.inspections.create', ['location' => $labPc->location_id]))
             ->assertOk()
-            ->assertSee('<span class="text-emerald-600">checked today</span>', false);
+            ->assertSee('data-checked-today', false);
     }
 
     public function test_an_assistant_can_submit_a_full_checklist_through_the_form(): void

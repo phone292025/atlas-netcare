@@ -160,13 +160,12 @@ class CampusClockTest extends TestCase
 
         $this->atCampusTime('2026-09-21 09:00');
 
-        // The marker element itself. The card subtitle always reads "Already
-        // checked today are marked", so asserting the bare words matches the
-        // subtitle and can never fail.
+        // The marker itself, not the bare words, which other text on the page
+        // can contain.
         $this->actingAs($this->userWith(UserRole::Assistant))
             ->get(route('assistant.inspections.create', ['location' => $labPc->location_id]))
             ->assertOk()
-            ->assertSee('<span class="text-emerald-600">checked today</span>', false);
+            ->assertSee('data-checked-today', false);
     }
 
     // ------------------------------------------------ what a person is shown
