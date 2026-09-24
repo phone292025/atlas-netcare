@@ -4,7 +4,7 @@
     <x-page-header :title="'Edit '.$user->name" subtitle="{{ $user->email }}">
         <x-slot:actions>
             <a href="{{ route('admin.users.show', $user) }}"
-               class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
+               class="btn btn-secondary">
                 View account
             </a>
         </x-slot:actions>
@@ -28,11 +28,11 @@
             <x-slot:footer>
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.users.index') }}"
-                       class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
+                       class="btn btn-secondary">
                         Cancel
                     </a>
                     <button type="submit"
-                            class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                            class="btn btn-primary">
                         Save changes
                     </button>
                 </div>

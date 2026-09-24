@@ -1,71 +1,65 @@
 <x-app-layout>
     <x-slot name="title">{{ $user->name }}</x-slot>
 
-    <x-page-header :title="$user->name" :subtitle="$user->email">
-        <x-slot:actions>
-            <a href="{{ route('admin.users.edit', $user) }}"
-               class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-                Edit
-            </a>
+    <a href="{{ route('admin.users.index') }}"
+       class="mb-4 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg">
+        <x-icon name="arrow-left" class="size-4" /> Users
+    </a>
+
+    {{-- Who this is, at a glance, with the two things an administrator comes
+         here to do. --}}
+    <section class="mb-6 flex flex-col gap-5 rounded-xl border border-line bg-surface p-5 shadow-xs sm:flex-row sm:items-center sm:p-6">
+        <x-avatar :name="$user->name" size="xl" />
+        <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-2xl font-semibold tracking-tight text-fg">{{ $user->name }}</h2>
+                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset
+                             {{ \App\Support\Tone::badge($user->is_active ? 'healthy' : 'neutral') }}">
+                    <span class="size-1.5 rounded-full {{ $user->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                    {{ $user->is_active ? 'Active' : 'Deactivated' }}
+                </span>
+            </div>
+            <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted">
+                <span class="inline-flex items-center gap-1.5"><x-icon name="envelope" class="size-4 text-fg-subtle" />{{ $user->email }}</span>
+                <span class="inline-flex items-center gap-1.5"><x-icon name="user-circle" class="size-4 text-fg-subtle" />{{ $user->role?->label() ?? 'No role assigned' }}</span>
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <x-button variant="secondary" icon="edit" :href="route('admin.users.edit', $user)">Edit</x-button>
 
             @can('deactivate', $user)
-                <button type="button"
-                        @click="$dispatch('open-modal', 'confirm-toggle-active')"
-                        class="rounded-md px-3 py-2 text-sm font-medium text-white
-                               {{ $user->is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
+                <x-button :variant="$user->is_active ? 'danger' : 'primary'"
+                          @click="$dispatch('open-modal', 'confirm-toggle-active')">
                     {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
-                </button>
+                </x-button>
             @endcan
-        </x-slot:actions>
-    </x-page-header>
+        </div>
+    </section>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-        <x-card title="Account" class="lg:col-span-1">
-            <dl class="space-y-3 text-sm">
-                <div>
-                    <dt class="text-slate-500">Role</dt>
-                    <dd class="mt-0.5">
-                        @if ($user->role)
-                            <x-badge tone="neutral">{{ $user->role->label() }}</x-badge>
-                        @else
-                            <span class="text-slate-400">No role assigned</span>
-                        @endif
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Status</dt>
-                    <dd class="mt-0.5">
-                        <x-badge :tone="$user->is_active ? 'healthy' : 'urgent'">
-                            {{ $user->is_active ? 'Active' : 'Deactivated' }}
-                        </x-badge>
-                    </dd>
-                </div>
-                @if ($user->tp_number)
-                    <div>
-                        <dt class="text-slate-500">TP number</dt>
-                        <dd class="mt-0.5 text-slate-900">{{ $user->tp_number }}</dd>
+    @if ($user->must_change_password)
+        <x-alert type="warning" class="mb-6">
+            This account must choose a new password the next time it signs in.
+        </x-alert>
+    @endif
+
+    <div class="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <x-card title="Account" class="self-start">
+            <dl class="divide-y divide-line text-sm">
+                @foreach (array_filter([
+                    'Role' => $user->role?->label() ?? 'No role assigned',
+                    'TP number' => $user->tp_number,
+                    'Phone' => $user->phone,
+                    'Created' => $user->created_at?->campus()->format('j M Y'),
+                ], 'filled') as $term => $value)
+                    <div class="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+                        <dt class="flex-none text-fg-muted">{{ $term }}</dt>
+                        <dd @class(['min-w-0 truncate text-right text-fg', 'font-mono text-[13px]' => $term === 'TP number'])>{{ $value }}</dd>
                     </div>
-                @endif
-                @if ($user->phone)
-                    <div>
-                        <dt class="text-slate-500">Phone</dt>
-                        <dd class="mt-0.5 text-slate-900">{{ $user->phone }}</dd>
-                    </div>
-                @endif
-                <div>
-                    <dt class="text-slate-500">Created</dt>
-                    <dd class="mt-0.5 text-slate-900">{{ $user->created_at?->campus()->format('j M Y') }}</dd>
-                </div>
-                @if ($user->must_change_password)
-                    <div>
-                        <dt class="text-slate-500">Password</dt>
-                        <dd class="mt-0.5"><x-badge tone="attention">Must be changed at next sign-in</x-badge></dd>
-                    </div>
-                @endif
+                @endforeach
             </dl>
         </x-card>
 
-        <x-card title="History" subtitle="Everything recorded against this account." class="lg:col-span-2">
+        <x-card title="History" subtitle="Everything recorded against this account, newest first.">
             {{-- NFR-06: every significant change is attributable to a person
                  and a time. This is that trail, for one account. --}}
             <x-timeline :events="$events->map(fn ($e) => [
@@ -87,25 +81,20 @@
                  :title="$user->is_active ? 'Deactivate this account?' : 'Reactivate this account?'">
             @if ($user->is_active)
                 <p>{{ $user->name }} will be signed out and cannot sign in again.
-                   Their inspections, tickets and audit history are kept — this is
+                   Their inspections, tickets and audit history are kept. This is
                    not a deletion.</p>
             @else
                 <p>{{ $user->name }} will be able to sign in again with their existing password.</p>
             @endif
 
             <x-slot:footer>
-                <button type="button" @click="$dispatch('close-modal', 'confirm-toggle-active')"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-                    Cancel
-                </button>
+                <x-button variant="secondary" @click="$dispatch('close-modal', 'confirm-toggle-active')">Cancel</x-button>
                 <form method="POST" action="{{ route('admin.users.toggle-active', $user) }}">
                     @csrf
                     @method('PATCH')
-                    <button type="submit"
-                            class="rounded-md px-3 py-2 text-sm font-medium text-white
-                                   {{ $user->is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
+                    <x-button type="submit" :variant="$user->is_active ? 'danger' : 'primary'">
                         {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
-                    </button>
+                    </x-button>
                 </form>
             </x-slot:footer>
         </x-modal>

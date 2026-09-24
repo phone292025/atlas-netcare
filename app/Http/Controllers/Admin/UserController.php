@@ -42,9 +42,22 @@ class UserController extends Controller
             // just chose and the list appears to reset itself.
             ->withQueryString();
 
+        // The tab counts, in one grouped query whatever the filters say.
+        $tally = User::query()->toBase()
+            ->selectRaw('role, is_active, count(*) as total')
+            ->groupBy('role', 'is_active')
+            ->get();
+
         return view('admin.users.index', [
             'users' => $users,
             'roles' => UserRole::options(),
+            'counts' => [
+                'all' => (int) $tally->sum('total'),
+                'inactive' => (int) $tally->where('is_active', false)->sum('total'),
+                ...collect(UserRole::cases())->mapWithKeys(fn (UserRole $role) => [
+                    $role->value => (int) $tally->where('role', $role->value)->sum('total'),
+                ])->all(),
+            ],
         ]);
     }
 
