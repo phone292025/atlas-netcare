@@ -47,6 +47,12 @@
             return [...$el.querySelectorAll(selector)].filter(el => ! el.hasAttribute('disabled'))
         },
         firstFocusable() { return this.focusables()[0] },
+        // The first field to type in, else the first control. Focusing the
+        // close button left the cursor out of the one box a dialog asks for.
+        initialFocus() {
+            return $el.querySelector('textarea, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio])')
+                || this.firstFocusable()
+        },
         lastFocusable() { return this.focusables().slice(-1)[0] },
         nextFocusable() { return this.focusables()[this.nextFocusableIndex()] || this.firstFocusable() },
         prevFocusable() { return this.focusables()[this.prevFocusableIndex()] || this.lastFocusable() },
@@ -56,7 +62,7 @@
     x-init="$watch('show', value => {
         // The page behind a dialog must not scroll under it.
         document.body.classList.toggle('overflow-y-hidden', value)
-        if (value) setTimeout(() => firstFocusable()?.focus(), 100)
+        if (value) setTimeout(() => initialFocus()?.focus(), 100)
     })"
     x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
     x-on:close-modal.window="$event.detail == '{{ $name }}' ? show = false : null"
