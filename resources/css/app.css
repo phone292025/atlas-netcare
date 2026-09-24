@@ -1,12 +1,376 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- | Alpine sets x-cloak on elements that must stay hidden until Alpine has
- | initialised. Without this rule the mobile sidebar flashes open on every page
- | load before Alpine boots.
+ | Design tokens. Values are RGB channels so Tailwind's opacity modifiers work
+ | (`bg-brand-600/10`). tailwind.config.js maps every colour name onto these.
+ |
+ | The head script sets data-theme to the resolved theme, "light" or "dark",
+ | from the viewer's choice or their device setting, before first paint.
+ |
+ | In the dark theme the neutral and hue scales are inverted by role, not
+ | mirrored: 50-200 are tints that sit behind text, 500 keeps its hue, 600 is a
+ | mid tone that works as a button fill under white text, 700-900 are light
+ | text on the tints. That is why `bg-red-50 text-red-700` reads well in both.
+ */
+@layer base {
+    :root {
+        color-scheme: light;
+
+        --canvas: 246 247 249;
+        --surface: 255 255 255;
+        --raised: 255 255 255;
+        --sunken: 241 243 246;
+        --line: 228 231 236;
+        --line-strong: 206 211 219;
+        --fg: 15 20 27;
+        --fg-muted: 90 99 114;
+        --fg-subtle: 138 147 162;
+        --accent-fg: 255 255 255;
+        --shadow: 16 24 40;
+
+        --c-slate-50: 247 248 250;
+        --c-slate-100: 240 242 245;
+        --c-slate-200: 227 230 235;
+        --c-slate-300: 205 210 218;
+        --c-slate-400: 150 158 171;
+        --c-slate-500: 106 115 130;
+        --c-slate-600: 78 87 102;
+        --c-slate-700: 58 65 78;
+        --c-slate-800: 36 41 51;
+        --c-slate-900: 21 25 32;
+        --c-slate-950: 12 15 20;
+
+        --c-brand-50: 239 243 255;
+        --c-brand-100: 222 231 255;
+        --c-brand-200: 196 211 254;
+        --c-brand-300: 156 181 252;
+        --c-brand-400: 110 145 247;
+        --c-brand-500: 70 111 240;
+        --c-brand-600: 45 88 222;
+        --c-brand-700: 34 70 190;
+        --c-brand-800: 30 58 150;
+        --c-brand-900: 28 50 118;
+        --c-brand-950: 18 30 72;
+
+        --c-emerald-50: 236 253 245;
+        --c-emerald-100: 209 250 229;
+        --c-emerald-200: 167 243 208;
+        --c-emerald-300: 110 231 183;
+        --c-emerald-400: 52 211 153;
+        --c-emerald-500: 16 185 129;
+        --c-emerald-600: 5 150 105;
+        --c-emerald-700: 4 120 87;
+        --c-emerald-800: 6 95 70;
+        --c-emerald-900: 6 78 59;
+        --c-emerald-950: 2 44 34;
+
+        --c-amber-50: 255 251 235;
+        --c-amber-100: 254 243 199;
+        --c-amber-200: 253 230 138;
+        --c-amber-300: 252 211 77;
+        --c-amber-400: 251 191 36;
+        --c-amber-500: 245 158 11;
+        --c-amber-600: 217 119 6;
+        --c-amber-700: 180 83 9;
+        --c-amber-800: 146 64 14;
+        --c-amber-900: 120 53 15;
+        --c-amber-950: 69 26 3;
+
+        --c-orange-50: 255 247 237;
+        --c-orange-100: 255 237 213;
+        --c-orange-200: 254 215 170;
+        --c-orange-300: 253 186 116;
+        --c-orange-400: 251 146 60;
+        --c-orange-500: 249 115 22;
+        --c-orange-600: 234 88 12;
+        --c-orange-700: 194 65 12;
+        --c-orange-800: 154 52 18;
+        --c-orange-900: 124 45 18;
+        --c-orange-950: 67 20 7;
+
+        --c-red-50: 254 242 242;
+        --c-red-100: 254 226 226;
+        --c-red-200: 254 202 202;
+        --c-red-300: 252 165 165;
+        --c-red-400: 248 113 113;
+        --c-red-500: 239 68 68;
+        --c-red-600: 220 38 38;
+        --c-red-700: 185 28 28;
+        --c-red-800: 153 27 27;
+        --c-red-900: 127 29 29;
+        --c-red-950: 69 10 10;
+    }
+
+    :root[data-theme='dark'] {
+        color-scheme: dark;
+
+        --canvas: 11 14 19;
+        --surface: 18 22 29;
+        --raised: 24 29 38;
+        --sunken: 14 17 23;
+        --line: 37 43 54;
+        --line-strong: 52 60 73;
+        --fg: 232 235 240;
+        --fg-muted: 154 163 177;
+        --fg-subtle: 107 116 131;
+        --accent-fg: 255 255 255;
+        --shadow: 0 0 0;
+
+        --c-slate-50: 14 17 23;
+        --c-slate-100: 28 33 42;
+        --c-slate-200: 37 43 54;
+        --c-slate-300: 52 60 73;
+        --c-slate-400: 107 116 131;
+        --c-slate-500: 138 147 162;
+        --c-slate-600: 170 178 191;
+        --c-slate-700: 198 204 214;
+        --c-slate-800: 220 224 231;
+        --c-slate-900: 234 237 242;
+        --c-slate-950: 246 247 250;
+
+        --c-brand-50: 23 31 56;
+        --c-brand-100: 28 40 74;
+        --c-brand-200: 38 55 104;
+        --c-brand-300: 54 80 150;
+        --c-brand-400: 84 116 220;
+        --c-brand-500: 96 130 245;
+        --c-brand-600: 65 105 232;
+        --c-brand-700: 152 177 255;
+        --c-brand-800: 186 204 255;
+        --c-brand-900: 214 225 255;
+        --c-brand-950: 234 240 255;
+
+        --c-emerald-50: 11 35 29;
+        --c-emerald-100: 13 48 39;
+        --c-emerald-200: 16 72 57;
+        --c-emerald-300: 20 104 80;
+        --c-emerald-400: 30 150 112;
+        --c-emerald-500: 16 185 129;
+        --c-emerald-600: 13 160 110;
+        --c-emerald-700: 110 231 183;
+        --c-emerald-800: 167 243 208;
+        --c-emerald-900: 209 250 229;
+        --c-emerald-950: 236 253 245;
+
+        --c-amber-50: 40 30 10;
+        --c-amber-100: 57 42 12;
+        --c-amber-200: 82 59 14;
+        --c-amber-300: 118 84 16;
+        --c-amber-400: 176 122 16;
+        --c-amber-500: 245 158 11;
+        --c-amber-600: 224 136 14;
+        --c-amber-700: 252 211 77;
+        --c-amber-800: 253 230 138;
+        --c-amber-900: 254 243 199;
+        --c-amber-950: 255 251 235;
+
+        --c-orange-50: 42 24 13;
+        --c-orange-100: 59 32 15;
+        --c-orange-200: 86 44 18;
+        --c-orange-300: 122 60 22;
+        --c-orange-400: 186 88 28;
+        --c-orange-500: 249 115 22;
+        --c-orange-600: 232 98 24;
+        --c-orange-700: 253 186 116;
+        --c-orange-800: 254 215 170;
+        --c-orange-900: 255 237 213;
+        --c-orange-950: 255 247 237;
+
+        --c-red-50: 45 18 21;
+        --c-red-100: 62 22 26;
+        --c-red-200: 90 28 33;
+        --c-red-300: 128 36 42;
+        --c-red-400: 196 54 58;
+        --c-red-500: 239 68 68;
+        --c-red-600: 217 48 54;
+        --c-red-700: 252 165 165;
+        --c-red-800: 254 202 202;
+        --c-red-900: 254 226 226;
+        --c-red-950: 254 242 242;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-rendering: optimizeLegibility;
+    }
+
+    body {
+        @apply bg-canvas text-fg antialiased;
+        font-feature-settings: 'ss01' on;
+    }
+
+    /* Digits line up wherever numbers sit in columns or change on a poll. */
+    table,
+    .font-mono,
+    time {
+        font-variant-numeric: tabular-nums;
+    }
+
+    :focus-visible {
+        outline: 2px solid rgb(var(--c-brand-500));
+        outline-offset: 2px;
+    }
+
+    ::selection {
+        background: rgb(var(--c-brand-500) / 0.25);
+    }
+
+    /*
+     | @tailwindcss/forms paints controls with a literal white and grey. These
+     | put them on the theme instead.
+     */
+    [type='text'],
+    [type='email'],
+    [type='url'],
+    [type='password'],
+    [type='number'],
+    [type='date'],
+    [type='datetime-local'],
+    [type='month'],
+    [type='search'],
+    [type='tel'],
+    [type='time'],
+    [type='week'],
+    [multiple],
+    textarea,
+    select {
+        @apply rounded-md border-line-strong bg-surface text-fg shadow-xs;
+    }
+
+    [type='text']:focus,
+    [type='email']:focus,
+    [type='url']:focus,
+    [type='password']:focus,
+    [type='number']:focus,
+    [type='date']:focus,
+    [type='datetime-local']:focus,
+    [type='month']:focus,
+    [type='search']:focus,
+    [type='tel']:focus,
+    [type='time']:focus,
+    [type='week']:focus,
+    [multiple]:focus,
+    textarea:focus,
+    select:focus {
+        @apply border-brand-500 ring-2 ring-brand-500/20;
+        outline: none;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: rgb(var(--fg-subtle));
+        opacity: 1;
+    }
+
+    [type='checkbox'],
+    [type='radio'] {
+        @apply border-line-strong bg-surface text-brand-600;
+    }
+
+    [type='checkbox']:focus,
+    [type='radio']:focus {
+        @apply ring-2 ring-brand-500/30 ring-offset-0;
+    }
+
+    /* Thin scrollbars that follow the theme. */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(var(--line-strong)) transparent;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+/*
+ | Buttons. One family for the whole system, so a primary action looks the
+ | same on every screen. <x-button> renders these; plain markup may use them
+ | directly when a component would be heavier than the element.
+ */
+@layer components {
+    .btn {
+        @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md px-3.5
+               text-sm font-medium transition duration-150 ease-out
+               active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
+    }
+
+    .btn-sm {
+        @apply h-8 gap-1.5 px-2.5 text-[13px];
+    }
+
+    .btn-lg {
+        @apply h-11 px-5 text-[15px];
+    }
+
+    .btn-primary {
+        @apply bg-brand-600 text-white shadow-xs hover:bg-brand-600/90;
+    }
+
+    .btn-secondary {
+        @apply border border-line-strong bg-surface text-fg shadow-xs hover:bg-sunken;
+    }
+
+    .btn-ghost {
+        @apply text-fg-muted hover:bg-sunken hover:text-fg;
+    }
+
+    .btn-danger {
+        @apply bg-red-600 text-white shadow-xs hover:bg-red-600/90;
+    }
+
+    .btn-icon {
+        @apply h-9 w-9 px-0;
+    }
+
+    .btn-icon.btn-sm {
+        @apply h-8 w-8;
+    }
+
+    /* A link inside running text. */
+    .link {
+        @apply font-medium text-brand-700 underline-offset-4 hover:underline;
+    }
+
+    /* Small uppercase label above a group, used sparingly. */
+    .kicker {
+        @apply text-2xs font-medium uppercase tracking-[0.08em] text-fg-subtle;
+    }
+
+    .kbd {
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-line bg-sunken px-1
+               font-mono text-[11px] text-fg-muted;
+    }
+}
+
+/*
+ | Alpine sets x-cloak on elements that must stay hidden until it has started.
+ | Without this the mobile navigation flashes open on every page load.
  */
 [x-cloak] {
     display: none !important;
+}
+
+/*
+ | Printing: the page, not the app around it. The layout hides its own
+ | chrome with print:hidden; this keeps cards whole across page breaks and
+ | prints the light palette whatever the screen was showing.
+ */
+@media print {
+    :root { color-scheme: light; }
+    body { background: #fff; }
+    section, table, canvas { break-inside: avoid; }
+    .shadow-xs, .shadow-sm, .shadow-md { box-shadow: none !important; }
 }

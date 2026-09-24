@@ -4,48 +4,119 @@ import forms from '@tailwindcss/forms';
 /**
  * Atlas NetCare design tokens.
  *
- * Semantic status colour is deliberately NOT defined here. The four tones map
- * to Tailwind's own emerald / amber / red / slate scales, and the mapping lives
- * in exactly one place: app/Support/Tone.php.
+ * Every colour resolves through a CSS variable defined in resources/css/app.css,
+ * once for the light theme and once for the dark. Class names therefore mean a
+ * role, not a swatch: `bg-white` is "a panel", `text-slate-500` is "muted text",
+ * and both follow the theme without a `dark:` variant anywhere.
  *
- * It has to be a literal class string, because Tailwind scans source for class
- * names — a class assembled at runtime from config would be purged from the
- * build and silently render unstyled. That is also why `./app/**\/*.php` is in
- * the content array below: without it, Tone.php is never scanned and every
- * badge and alert in the system renders colourless.
+ * New code should prefer the semantic names (`bg-surface`, `border-line`,
+ * `text-fg-muted`). The Tailwind hue names stay mapped so every existing class
+ * keeps working and follows the theme too.
  *
- * `brand` is the accent for links, primary buttons and active navigation. It is
- * deliberately none of the four status hues, so a coloured button never reads
- * as a status.
+ * Status hues (emerald, amber, orange, red) are for status only and are chosen
+ * in exactly one place, app/Support/Tone.php. `brand` is the single accent, and
+ * is none of them, so a button never reads as a status.
  *
- * @see docs/06-ui-conventions.md
+ * `./app/**\/*.php` is scanned because Tone.php holds literal class strings.
  */
+const scale = (hue) =>
+    Object.fromEntries(
+        [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((shade) => [
+            shade,
+            `rgb(var(--c-${hue}-${shade}) / <alpha-value>)`,
+        ]),
+    );
+
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './resources/js/**/*.js',
         './app/**/*.php',
     ],
 
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['"Geist Variable"', 'Geist', ...defaultTheme.fontFamily.sans],
+                mono: ['"Geist Mono Variable"', '"Geist Mono"', ...defaultTheme.fontFamily.mono],
             },
+
+            fontSize: {
+                // One step below text-xs, for table headers and meta lines.
+                '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+            },
+
             colors: {
-                brand: {
-                    50: '#eef2ff',
-                    100: '#e0e7ff',
-                    200: '#c7d2fe',
-                    300: '#a5b4fc',
-                    400: '#818cf8',
-                    500: '#6366f1',
-                    600: '#4f46e5',
-                    700: '#4338ca',
-                    800: '#3730a3',
-                    900: '#312e81',
+                // A panel: white in light, the surface colour in dark.
+                white: token('surface'),
+
+                canvas: token('canvas'),
+                surface: token('surface'),
+                raised: token('raised'),
+                sunken: token('sunken'),
+                line: {
+                    DEFAULT: token('line'),
+                    strong: token('line-strong'),
                 },
+                fg: {
+                    DEFAULT: token('fg'),
+                    muted: token('fg-muted'),
+                    subtle: token('fg-subtle'),
+                },
+                accent: {
+                    DEFAULT: token('c-brand-600'),
+                    fg: token('accent-fg'),
+                    soft: token('c-brand-50'),
+                },
+
+                slate: scale('slate'),
+                brand: scale('brand'),
+                emerald: scale('emerald'),
+                amber: scale('amber'),
+                orange: scale('orange'),
+                red: scale('red'),
+            },
+
+            // Text on a filled button is always white, in both themes.
+            textColor: {
+                white: '#ffffff',
+            },
+
+            borderRadius: {
+                sm: '4px',
+                DEFAULT: '6px',
+                md: '8px',
+                lg: '10px',
+                xl: '14px',
+                '2xl': '18px',
+            },
+
+            boxShadow: {
+                xs: '0 1px 2px rgb(var(--shadow) / 0.06)',
+                sm: '0 1px 2px rgb(var(--shadow) / 0.06), 0 1px 3px rgb(var(--shadow) / 0.05)',
+                md: '0 4px 12px -2px rgb(var(--shadow) / 0.10), 0 2px 4px rgb(var(--shadow) / 0.05)',
+                lg: '0 16px 40px -12px rgb(var(--shadow) / 0.28), 0 4px 10px rgb(var(--shadow) / 0.08)',
+            },
+
+            ringColor: {
+                DEFAULT: token('c-brand-500'),
+            },
+
+            transitionTimingFunction: {
+                out: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            },
+
+            zIndex: {
+                // One scale for the shell. Nothing else should need a z-index.
+                sticky: '30',
+                drawer: '40',
+                popover: '50',
+                modal: '60',
+                toast: '70',
             },
         },
     },
