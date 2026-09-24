@@ -105,7 +105,7 @@ deciding things.
 | `Auth/PasswordResetLinkController.php` | FR-102, step one: ask for a link |
 | `Controller.php` | Laravel 12 ships this class empty. AuthorizesRequests is added here so every |
 | `DashboardRedirect.php` | Sends a signed-in user to the home screen for their role |
-| `Engineer/DashboardController.php` | The access point health dashboard (FR-301, FR-304) |
+| `Engineer/DashboardController.php` | The engineer's overview and the access point health screens (FR-301, FR-304) |
 | `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) |
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along |
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) |
@@ -567,6 +567,7 @@ Blade files. Views receive data as props and never query.
 | `components/timeline.blade.php` |
 | `dev/gallery.blade.php` |
 | `engineer/access-point.blade.php` |
+| `engineer/access-points.blade.php` |
 | `engineer/dashboard.blade.php` |
 | `engineer/risk/index.blade.php` |
 | `engineer/risk/show.blade.php` |
@@ -668,6 +669,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
 | `Feature/TicketDueTest.php` | <x-ticket-due>: when a ticket is due, in the words a queue is scanned by |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it |
+| `Feature/Tickets/EngineerOverviewTest.php` | The engineer's dashboard: their own work, what nobody has picked up, and |
 | `Feature/Tickets/NewTicketAlertTest.php` | Engineers are told about an urgent ticket when it is raised, not only when |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory |
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render |

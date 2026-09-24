@@ -138,8 +138,9 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('id')
             ->name('risk.show');
 
-        // M5: telemetry and the access point dashboard.
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        // M5: telemetry and the access point dashboard. The dashboard is the
+        // engineer's overview; the access point list is its own screen.
+        Route::get('dashboard', [DashboardController::class, 'overview'])->name('dashboard');
         Route::get('aps', [DashboardController::class, 'index'])->name('aps.index');
         Route::get('aps/{accessPoint}', [DashboardController::class, 'show'])->name('aps.show');
         Route::get('traffic', [TrafficLogController::class, 'index'])->name('traffic.index');
