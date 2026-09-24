@@ -304,6 +304,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 |---|---|
 | `CampusClock.php` | The campus wall clock, and the one place the application asks what day it is |
 | `FormField.php` | Shared derivations for form controls |
+| `Icons.php` | The icon set: Phosphor glyphs under the app's own names |
 | `Tone.php` | The single source of truth for what a tone looks like |
 <!-- /code-map -->
 

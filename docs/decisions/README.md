@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Last updated:** 2026-08-26
+> **Last updated:** 2026-09-23
 
 An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and so that in the viva anyone on the team can explain any choice.
 
@@ -16,6 +16,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0006](ADR-0006-alpine-chartjs-not-livewire.md) | Alpine.js and Chart.js, not Livewire | Accepted |
 | [0007](ADR-0007-weighted-risk-not-ml.md) | Weighted-factor risk scoring, not machine learning | Accepted |
 | [0008](ADR-0008-laravel-12-pinned.md) | Pin to Laravel 12, not the latest release | Accepted |
+| [0009](ADR-0009-themed-design-system.md) | Rebuild the interface on themed tokens, Geist and Phosphor | Accepted |
 
 ## Rules
 
