@@ -311,7 +311,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 <!-- code-map:app/View/Components/ -->
 | File | What it does |
 |---|---|
-| `AppLayout.php` | The signed-in shell. The notification count is fetched here rather than |
+| `AppLayout.php` | The signed-in shell, and everything it shows on every page: the grouped |
 | `GuestLayout.php` | Get the view / contents that represents the component |
 <!-- /code-map -->
 
@@ -583,6 +583,9 @@ Blade files. Views receive data as props and never query.
 | `errors/layout.blade.php` |
 | `layouts/app.blade.php` |
 | `layouts/guest.blade.php` |
+| `layouts/partials/command-menu.blade.php` |
+| `layouts/partials/flash.blade.php` |
+| `layouts/partials/head.blade.php` |
 | `monitor/index.blade.php` |
 | `monitor/partials/range.blade.php` |
 | `notifications/index.blade.php` |

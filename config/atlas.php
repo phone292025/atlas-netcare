@@ -330,44 +330,45 @@ return [
     | Navigation
     |--------------------------------------------------------------------------
     |
-    | The sidebar, one list per role. An entry whose route is not registered
+    | The sidebar, one list per role, drawn in groups by `group`. The command
+    | menu offers the same entries. An entry whose route is not registered
     | shows struck through while APP_DEBUG is on, so a mistyped name is
-    | visible, and is hidden otherwise. See docs/06-ui-conventions.md
+    | visible, and is hidden otherwise. `short` is the label under the icon
+    | in the assistant's phone tab bar, where a long one gets cut off.
     |
     */
 
     'navigation' => [
 
         'assistant' => [
-            ['label' => 'My Shift',        'route' => 'assistant.shifts.today',      'icon' => 'calendar'],
-            ['label' => 'Network Monitor', 'route' => 'assistant.monitor.index',     'icon' => 'broadcast'],
-            ['label' => 'Inspections',     'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
-            ['label' => 'My Tickets',      'route' => 'assistant.tickets.index',     'icon' => 'ticket'],
-            ['label' => 'AP Status',       'route' => 'assistant.aps.index',         'icon' => 'wifi'],
+            ['label' => 'My shift',        'route' => 'assistant.shifts.today',      'icon' => 'calendar-check', 'group' => 'My work'],
+            ['label' => 'Inspections',     'route' => 'assistant.inspections.index', 'icon' => 'list-checks',    'group' => 'My work'],
+            ['label' => 'My tickets',      'route' => 'assistant.tickets.index',     'icon' => 'ticket',         'group' => 'My work'],
+            ['label' => 'Network monitor', 'route' => 'assistant.monitor.index',     'icon' => 'broadcast',      'group' => 'Network', 'short' => 'Network'],
+            ['label' => 'Access points',   'route' => 'assistant.aps.index',         'icon' => 'wifi',           'group' => 'Network'],
         ],
 
         'engineer' => [
-            ['label' => 'Dashboard',       'route' => 'engineer.dashboard',     'icon' => 'gauge'],
-            ['label' => 'Network Monitor', 'route' => 'engineer.monitor.index', 'icon' => 'broadcast'],
-            ['label' => 'Access Points',   'route' => 'engineer.aps.index',     'icon' => 'wifi'],
-            ['label' => 'Traffic Logs',    'route' => 'engineer.traffic.index', 'icon' => 'chart'],
-            ['label' => 'Ticket Queue',    'route' => 'engineer.tickets.index', 'icon' => 'ticket'],
-            ['label' => 'Maintenance',     'route' => 'engineer.risk.index',    'icon' => 'wrench'],
+            ['label' => 'Dashboard',       'route' => 'engineer.dashboard',     'icon' => 'dashboard',  'group' => 'Overview'],
+            ['label' => 'Network monitor', 'route' => 'engineer.monitor.index', 'icon' => 'broadcast',  'group' => 'Network'],
+            ['label' => 'Access points',   'route' => 'engineer.aps.index',     'icon' => 'wifi',       'group' => 'Network'],
+            ['label' => 'Traffic',         'route' => 'engineer.traffic.index', 'icon' => 'chart-line', 'group' => 'Network'],
+            ['label' => 'Ticket queue',    'route' => 'engineer.tickets.index', 'icon' => 'ticket',     'group' => 'Operations'],
+            ['label' => 'Maintenance',     'route' => 'engineer.risk.index',    'icon' => 'wrench',     'group' => 'Operations'],
         ],
 
         'admin' => [
-            ['label' => 'Network Monitor', 'route' => 'admin.monitor.index',         'icon' => 'broadcast'],
-            ['label' => 'Users',           'route' => 'admin.users.index',           'icon' => 'users'],
-            ['label' => 'Locations',       'route' => 'admin.locations.index',       'icon' => 'building'],
-            ['label' => 'Lab PCs',         'route' => 'admin.lab-pcs.index',         'icon' => 'desktop'],
-            ['label' => 'Access Points',   'route' => 'admin.aps.index',             'icon' => 'wifi'],
-            ['label' => 'Checklists',      'route' => 'admin.checklists.index',      'icon' => 'clipboard'],
-            ['label' => 'Shift Templates', 'route' => 'admin.shift-templates.index', 'icon' => 'calendar'],
-            ['label' => 'Roster',          'route' => 'admin.roster.index',          'icon' => 'calendar'],
-            ['label' => 'Audit Log',       'route' => 'admin.audit.index',           'icon' => 'shield'],
-            ['label' => 'Reports',         'route' => 'admin.reports.index',         'icon' => 'chart'],
+            ['label' => 'Network monitor', 'route' => 'admin.monitor.index',         'icon' => 'broadcast',   'group' => 'Overview'],
+            ['label' => 'Reports',         'route' => 'admin.reports.index',         'icon' => 'chart',       'group' => 'Overview'],
+            ['label' => 'Users',           'route' => 'admin.users.index',           'icon' => 'users',       'group' => 'People'],
+            ['label' => 'Roster',          'route' => 'admin.roster.index',          'icon' => 'calendar',    'group' => 'People'],
+            ['label' => 'Shift templates', 'route' => 'admin.shift-templates.index', 'icon' => 'clock',       'group' => 'People'],
+            ['label' => 'Locations',       'route' => 'admin.locations.index',       'icon' => 'building',    'group' => 'Assets'],
+            ['label' => 'Lab PCs',         'route' => 'admin.lab-pcs.index',         'icon' => 'desktop',     'group' => 'Assets'],
+            ['label' => 'Access points',   'route' => 'admin.aps.index',             'icon' => 'wifi',        'group' => 'Assets'],
+            ['label' => 'Checklists',      'route' => 'admin.checklists.index',      'icon' => 'list-checks', 'group' => 'Assets'],
+            ['label' => 'Audit log',       'route' => 'admin.audit.index',           'icon' => 'shield',      'group' => 'Oversight'],
         ],
 
     ],
-
 ];

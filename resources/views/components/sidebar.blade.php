@@ -1,55 +1,46 @@
-{{--
-    Role-filtered navigation, built once from config('atlas.navigation').
+@props(['navigation'])
 
-    Nobody hand-writes a menu. Add the route to the table in
-    docs/06-ui-conventions.md and to config/atlas.php, and it appears here.
+{{--
+    The role's navigation, in the groups config('atlas.navigation') names.
+    Built once from config, so nobody hand-writes a menu.
 
     An entry whose route is not registered renders struck through while
     APP_DEBUG is on, so a mistyped name is visible during development rather
     than silently missing, and is hidden when debug is off.
-
-    @see docs/06-ui-conventions.md — Route names are fixed vocabulary
 --}}
 
-@php
-    use Illuminate\Support\Str;
+<nav class="space-y-5 pt-2" aria-label="Main navigation">
+    @foreach ($navigation as $group => $entries)
+        <div>
+            @if (filled($group))
+                <p class="kicker px-2.5 pb-1.5">{{ $group }}</p>
+            @endif
 
-    $role = auth()->user()?->role;
-    $entries = $role instanceof \App\Enums\UserRole ? $role->navigation() : [];
-
-    $isActive = function (string $route): bool {
-        // admin.users.index -> match the whole admin.users.* section, so a
-        // create or edit screen keeps its parent menu item highlighted.
-        // engineer.dashboard has no resource segment, so match it exactly.
-        return substr_count($route, '.') >= 2
-            ? request()->routeIs(Str::beforeLast($route, '.').'.*')
-            : request()->routeIs($route);
-    };
-@endphp
-
-<nav class="flex flex-col gap-0.5 px-3 py-4" aria-label="Main navigation">
-    @foreach ($entries as $entry)
-        @php $exists = Route::has($entry['route']); @endphp
-
-        @if ($exists)
-            <a href="{{ route($entry['route']) }}"
-               @if ($isActive($entry['route'])) aria-current="page" @endif
-               class="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium
-                      focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
-                      {{ $isActive($entry['route'])
-                          ? 'bg-brand-50 text-brand-700'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                <x-icon :name="$entry['icon']"
-                        class="w-5 h-5 shrink-0 {{ $isActive($entry['route']) ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-500' }}" />
-                <span>{{ $entry['label'] }}</span>
-            </a>
-        @elseif (config('app.debug'))
-            <span class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-300"
-                  title="Route {{ $entry['route'] }} is not registered yet">
-                <x-icon :name="$entry['icon']" class="w-5 h-5 shrink-0" />
-                <span class="line-through">{{ $entry['label'] }}</span>
-                <span class="ml-auto text-[10px] uppercase tracking-wide">soon</span>
-            </span>
-        @endif
+            <ul class="space-y-0.5">
+                @foreach ($entries as $entry)
+                    <li>
+                        @if ($entry['exists'])
+                            <a href="{{ route($entry['route']) }}"
+                               @if ($entry['active']) aria-current="page" @endif
+                               class="group flex h-9 items-center gap-3 rounded-md px-2.5 text-sm transition
+                                      {{ $entry['active']
+                                          ? 'bg-brand-50 font-medium text-brand-800'
+                                          : 'text-fg-muted hover:bg-sunken hover:text-fg' }}">
+                                <x-icon :name="$entry['icon']" :fill="$entry['active']"
+                                        class="size-[18px] flex-none {{ $entry['active'] ? 'text-brand-600' : 'text-fg-subtle group-hover:text-fg-muted' }}" />
+                                <span class="truncate">{{ $entry['label'] }}</span>
+                            </a>
+                        @elseif (config('app.debug'))
+                            <span class="flex h-9 items-center gap-3 rounded-md px-2.5 text-sm text-fg-subtle"
+                                  title="Route {{ $entry['route'] }} is not registered yet">
+                                <x-icon :name="$entry['icon']" class="size-[18px] flex-none" />
+                                <span class="truncate line-through">{{ $entry['label'] }}</span>
+                                <span class="kicker ml-auto">soon</span>
+                            </span>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     @endforeach
 </nav>

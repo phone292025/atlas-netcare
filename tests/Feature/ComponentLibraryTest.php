@@ -261,19 +261,20 @@ class ComponentLibraryTest extends TestCase
     }
 
     /**
-     * The shell's flash messages go through the same component, so a success
-     * banner on one module's screen is the same green as on another's.
+     * The shell's flash messages take their colour from the shared tone
+     * source, so an error on one module's screen is the same red as on
+     * another's, and an error is announced rather than only shown.
      */
-    public function test_the_shell_renders_a_flash_message_through_the_alert_component(): void
+    public function test_the_shell_renders_a_flash_message_in_the_shared_tone(): void
     {
         $user = User::factory()->create();
-        $marker = explode(' ', Tone::banner(Tone::URGENT))[0];
 
         $this->actingAs($user)
             ->withSession(['error' => 'Asset tag APU-1042 is already in use.'])
             ->get(route('profile.edit'))
             ->assertSee('Asset tag APU-1042 is already in use.')
-            ->assertSee($marker, false);
+            ->assertSee(Tone::accent(Tone::URGENT), false)
+            ->assertSee('role="alert"', false);
     }
 
     private function paginator(int $total, int $perPage, int $page): LengthAwarePaginator

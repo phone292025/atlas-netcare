@@ -104,12 +104,12 @@ class AppShellTest extends TestCase
         $this->actingAs($this->userWithRole(UserRole::Admin))
             ->get('/profile')
             ->assertSee('Users')
-            ->assertDontSee('Ticket Queue');
+            ->assertDontSee('Ticket queue');
 
         $this->actingAs($this->userWithRole(UserRole::Engineer))
             ->get('/profile')
             ->assertSee('Dashboard')
-            ->assertDontSee('Audit Log');
+            ->assertDontSee('Audit log');
     }
 
     public function test_a_registered_navigation_route_renders_as_a_link(): void

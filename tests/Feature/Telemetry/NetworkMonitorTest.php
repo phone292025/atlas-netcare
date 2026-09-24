@@ -156,19 +156,21 @@ class NetworkMonitorTest extends TestCase
          * role. A route nothing links to is a page nobody can find, so this
          * asserts the sidebar entry and not only the response code.
          *
-         * "Network Monitor" is the sidebar label. The page's own heading is
-         * "Network monitor", so this cannot pass on the heading alone.
+         * The sidebar link to this route, marked as the current page, so
+         * this cannot pass on the page's own heading.
          */
         foreach ([
             'assistant.monitor.index' => UserRole::Assistant,
             'engineer.monitor.index' => UserRole::Engineer,
             'admin.monitor.index' => UserRole::Admin,
         ] as $route => $role) {
-            $this->actingAs($this->userWith($role))
+            $page = $this->actingAs($this->userWith($role))
                 ->get(route($route))
                 ->assertOk()
-                ->assertSee('Network Monitor')
-                ->assertSee(route($route), escape: false);
+                ->assertSee('Network monitor')
+                ->getContent();
+
+            $this->assertMatchesRegularExpression('/href="'.preg_quote(route($route), '/').'"\s+aria-current="page"/', $page);
         }
     }
 

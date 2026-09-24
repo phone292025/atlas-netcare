@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <x-slot:heading>Choose a new password</x-slot:heading>
+    <x-slot:intro>A long one you do not use anywhere else. A phrase of a few words works well.</x-slot:intro>
+
     {{-- This screen is reachable while signed in, unlike the rest of the
          signed-out shell. The link arrives by email and nobody controls which
          browser opens it, so refusing an authenticated visitor just makes a
@@ -35,13 +38,6 @@
         <x-form.input name="password_confirmation" label="Confirm new password"
                       type="password" required autocomplete="new-password" />
 
-        <div class="flex justify-end pt-2">
-            <button type="submit"
-                    class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white
-                           hover:bg-brand-700 focus:outline-none focus-visible:ring-2
-                           focus-visible:ring-brand-500 focus-visible:ring-offset-2">
-                Reset password
-            </button>
-        </div>
+        <x-button type="submit" size="lg" class="w-full">Reset password</x-button>
     </form>
 </x-guest-layout>

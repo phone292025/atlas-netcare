@@ -1,45 +1,70 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ isset($title) ? $title.' · ' : '' }}{{ config('app.name') }}</title>
-
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet">
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('layouts.partials.head')
 </head>
-<body class="font-sans antialiased bg-slate-50 text-slate-900">
+<body class="min-h-[100dvh]">
 
-{{-- The signed-out shell. Only the login screen uses it now: password reset
-     and email verification were removed, so there is nothing else a
-     signed-out person can reach.
+{{--
+    The signed-out shell: sign in, forgot password, reset password.
 
-     Palette matches layouts/app.blade.php — slate, not Breeze's gray. They are
-     different neutrals, and the seam between them is visible when a user signs
-     in and the page changes shade. --}}
+    Two columns on a wide screen, the form on the right and a short statement
+    of what the system is on the left. One column on a phone, form first.
+    Pages may pass a `heading` and an `intro`.
+--}}
 
-<div class="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+<div class="grid min-h-[100dvh] lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)]">
 
-    <a href="{{ route('login') }}" class="rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-        <x-brand-mark size="lg" />
-    </a>
+    <section class="relative hidden overflow-hidden border-r border-line bg-sunken lg:flex lg:flex-col lg:justify-between lg:p-12"
+             aria-hidden="true">
+        <div class="pointer-events-none absolute inset-0 opacity-70"
+             style="background-image: radial-gradient(rgb(var(--line-strong)) 1px, transparent 1px); background-size: 22px 22px;
+                    mask-image: radial-gradient(ellipse 70% 60% at 30% 40%, black, transparent);"></div>
+        <div class="pointer-events-none absolute -left-40 -top-40 size-[36rem] rounded-full"
+             style="background: radial-gradient(circle, rgb(var(--c-brand-500) / 0.14), transparent 65%);"></div>
 
-    <p class="mt-2 text-sm text-slate-500">Campus network monitoring and IT operations</p>
+        <x-brand-mark size="md" class="relative" />
 
-    <div class="mt-8 w-full max-w-md rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        {{ $slot }}
-    </div>
+        <div class="relative max-w-md">
+            <p class="text-3xl font-semibold leading-tight tracking-tight text-fg text-balance">
+                The campus network, lab rounds and IT tickets, in one place.
+            </p>
+            <p class="mt-4 max-w-sm text-base leading-relaxed text-fg-muted">
+                Assistants check machines and raise faults. Engineers watch the access points and work the queue.
+                Administrators keep the roster and the records.
+            </p>
+        </div>
 
-    {{-- Accounts are created by an administrator (FR-105). Saying so here stops
-         a new assistant hunting for a sign-up link that does not exist. --}}
-    <p class="mt-6 text-center text-xs text-slate-400">
-        Accounts are created by a system administrator.<br>
-        Contact the IT office if you cannot sign in.
-    </p>
+        <p class="relative text-xs text-fg-subtle">Atlas NetCare, campus IT operations</p>
+    </section>
+
+    <main class="flex flex-col px-5 py-8 sm:px-10">
+        <div class="lg:hidden">
+            <a href="{{ route('login') }}" class="inline-flex rounded-md">
+                <x-brand-mark size="md" />
+            </a>
+        </div>
+
+        <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+            @isset($heading)
+                <h1 class="text-2xl font-semibold tracking-tight text-fg">{{ $heading }}</h1>
+            @endisset
+            @isset($intro)
+                <p class="mt-2 text-sm leading-relaxed text-fg-muted">{{ $intro }}</p>
+            @endisset
+
+            <div class="{{ isset($heading) || isset($intro) ? 'mt-8' : '' }}">
+                {{ $slot }}
+            </div>
+        </div>
+
+        {{-- Accounts are created by an administrator (FR-105). Saying so here
+             stops a new assistant hunting for a sign-up link that does not exist. --}}
+        <p class="mx-auto max-w-sm text-center text-xs leading-relaxed text-fg-subtle">
+            Accounts are created by a system administrator.
+            Contact the IT office if you cannot sign in.
+        </p>
+    </main>
 </div>
 
 </body>
