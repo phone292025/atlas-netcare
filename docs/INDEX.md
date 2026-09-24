@@ -59,7 +59,6 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 |---|---|
 | [progress/build-log.md](progress/build-log.md) | Session handover. Read first in a new development session |
 | [progress/decision-log.md](progress/decision-log.md) | Every decision with a date and a reason, newest first. Nothing is deleted, only superseded |
-| [progress/what-is-left.md](progress/what-is-left.md) | Everything outstanding, checked against the code rather than recalled |
 
 ---
 
