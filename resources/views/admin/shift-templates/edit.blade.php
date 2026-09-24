@@ -11,17 +11,17 @@
             <x-slot:footer>
                 <div class="flex items-center justify-between gap-2">
                     @if ($hasShifts)
-                        <span class="text-xs text-slate-400">Has generated shifts — deactivate rather than delete.</span>
+                        <span class="text-xs text-fg-subtle">Has generated shifts, so deactivate it rather than delete it.</span>
                     @else
                         <button type="button" @click="$dispatch('open-modal', 'delete-template')"
-                                class="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>
+                                class="btn btn-ghost text-red-700 hover:bg-red-50">Delete</button>
                     @endif
 
                     <div class="flex gap-2">
                         <a href="{{ route('admin.shift-templates.index') }}"
-                           class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Cancel</a>
+                           class="btn btn-secondary">Cancel</a>
                         <button type="submit"
-                                class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">Save changes</button>
+                                class="btn btn-primary">Save changes</button>
                     </div>
                 </div>
             </x-slot:footer>
@@ -33,12 +33,12 @@
             <p>No shifts have been generated from this pattern, so nothing depends on it.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'delete-template')"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300">Cancel</button>
+                        class="btn btn-secondary">Cancel</button>
                 <form method="POST" action="{{ route('admin.shift-templates.destroy', $template) }}">
                     @csrf
                     @method('DELETE')
                     <button type="submit"
-                            class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Delete</button>
+                            class="btn btn-danger">Delete</button>
                 </form>
             </x-slot:footer>
         </x-modal>

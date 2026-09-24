@@ -6,39 +6,52 @@
 
     {{-- Read-only on purpose. There is no edit or delete here: a log somebody
          can change is not evidence of anything. NFR-06, FR-409. --}}
-    <x-data-table :headers="['When', 'Who', 'Action', 'Subject', 'Detail']">
-        <x-slot:filters>
-            <form method="GET" class="flex flex-wrap items-end gap-2">
-                <div class="w-40">
-                    <x-form.select name="action" label="Action" placeholder="Any action"
-                                   :options="$actions" :selected="request('action')" />
-                </div>
-                <div class="w-48">
-                    <x-form.select name="type" label="Subject" placeholder="Anything"
-                                   :options="$types" :selected="request('type')" />
-                </div>
-                <button type="submit"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-                    Filter
-                </button>
-                @if (request()->hasAny(['action', 'type', 'user']))
-                    <a href="{{ route('admin.audit.index') }}" class="px-2 py-2 text-sm text-slate-500 underline">Clear</a>
-                @endif
-            </form>
-        </x-slot:filters>
+    <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
+        @if (request()->filled('user'))
+            <input type="hidden" name="user" value="{{ request('user') }}">
+        @endif
 
+        <select name="action" aria-label="Action" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Any action</option>
+            @foreach ($actions as $value => $label)
+                <option value="{{ $value }}" @selected(request('action') === (string) $value)>{{ ucfirst($label) }}</option>
+            @endforeach
+        </select>
+
+        <select name="type" aria-label="Subject" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Anything</option>
+            @foreach ($types as $value => $label)
+                <option value="{{ $value }}" @selected(request('type') === (string) $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        <noscript><x-button type="submit" variant="secondary" size="sm">Filter</x-button></noscript>
+
+        @if (request()->hasAny(['action', 'type', 'user']))
+            <x-button variant="ghost" size="sm" icon="close" :href="route('admin.audit.index')">Clear filters</x-button>
+        @endif
+    </form>
+
+    <x-data-table :headers="['When', 'Who', 'Action', 'Subject', 'Detail']">
         @foreach ($logs as $log)
-            <tr class="hover:bg-slate-50">
+            <tr class="hover:bg-sunken/70">
                 <td class="px-4 py-3 whitespace-nowrap">
                     <time datetime="{{ $log->created_at->toIso8601String() }}"
-                          title="{{ $log->created_at->campus()->format('D j M Y, H:i:s') }}"
-                          class="text-slate-600">
-                        {{ $log->created_at->diffForHumans() }}
+                          title="{{ $log->created_at->campus()->format('D j M Y, H:i:s') }}">
+                        <span class="block text-fg">{{ $log->created_at->diffForHumans() }}</span>
+                        <span class="block text-xs tabular-nums text-fg-subtle">{{ $log->created_at->campus()->format('j M, H:i') }}</span>
                     </time>
                 </td>
                 <td class="px-4 py-3">
                     {{-- Null when a seeder or a scheduled command did it. --}}
-                    {{ $log->user?->name ?? 'System' }}
+                    <span class="flex items-center gap-2 whitespace-nowrap text-fg">
+                        @if ($log->user)
+                            <x-avatar :name="$log->user->name" />
+                        @else
+                            <span class="grid size-6 place-items-center rounded-md bg-sunken text-fg-subtle"><x-icon name="gear" class="size-3.5" /></span>
+                        @endif
+                        {{ $log->user?->name ?? 'System' }}
+                    </span>
                 </td>
                 <td class="px-4 py-3">
                     <x-badge :tone="match ($log->action) {
@@ -47,25 +60,25 @@
                         default => 'attention',
                     }">{{ ucfirst($log->action) }}</x-badge>
                 </td>
-                <td class="px-4 py-3 text-slate-600">
-                    <span class="text-slate-900">{{ $log->subjectLabel() }}</span>
+                <td class="px-4 py-3 text-fg-muted">
+                    <span class="text-fg">{{ $log->subjectLabel() }}</span>
                     <span class="block text-xs">{{ $log->description }}</span>
                 </td>
                 {{-- "priority: low → critical", not just "priority". The model
                      builds the strings; this decides nothing.
                      @see App\Models\AuditLog::changeSummary() --}}
-                <td class="px-4 py-3 text-xs text-slate-500">
+                <td class="px-4 py-3 text-xs text-fg-muted">
                     @forelse ($log->changeSummary($labels) as $line)
                         <span class="block">{{ $line }}</span>
                     @empty
-                        —
+                        <span class="text-fg-subtle">-</span>
                     @endforelse
                 </td>
             </tr>
         @endforeach
 
         <x-slot:empty>
-            <x-empty-state title="Nothing recorded yet"
+            <x-empty-state title="Nothing recorded"
                            message="Creating or changing a user, location or asset will appear here."
                            icon="shield" />
         </x-slot:empty>

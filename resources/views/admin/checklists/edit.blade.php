@@ -9,7 +9,7 @@
                     @csrf
                     @method('PATCH')
                     <button type="submit"
-                            class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                            class="btn btn-primary">
                         Make active
                     </button>
                 </form>
@@ -35,19 +35,19 @@
             <x-slot:footer>
                 <div class="flex items-center justify-between gap-2">
                     @if ($isLocked || $template->is_active)
-                        <span class="text-xs text-slate-400">
-                            {{ $isLocked ? 'Used by an inspection — cannot be deleted.' : 'Active — activate another before deleting.' }}
+                        <span class="text-xs text-fg-subtle">
+                            {{ $isLocked ? 'Used by an inspection, so it cannot be deleted.' : 'Active. Activate another before deleting.' }}
                         </span>
                     @else
                         <button type="button" @click="$dispatch('open-modal', 'delete-checklist')"
-                                class="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>
+                                class="btn btn-ghost text-red-700 hover:bg-red-50">Delete</button>
                     @endif
 
                     <div class="flex gap-2">
                         <a href="{{ route('admin.checklists.index') }}"
-                           class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Cancel</a>
+                           class="btn btn-secondary">Cancel</a>
                         <button type="submit"
-                                class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                                class="btn btn-primary">
                             {{ $isLocked ? 'Save as version '.($template->version + 1) : 'Save changes' }}
                         </button>
                     </div>
@@ -61,12 +61,12 @@
             <p>No inspection has used this checklist, so nothing depends on it.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'delete-checklist')"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300">Cancel</button>
+                        class="btn btn-secondary">Cancel</button>
                 <form method="POST" action="{{ route('admin.checklists.destroy', $template) }}">
                     @csrf
                     @method('DELETE')
                     <button type="submit"
-                            class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Delete</button>
+                            class="btn btn-danger">Delete</button>
                 </form>
             </x-slot:footer>
         </x-modal>

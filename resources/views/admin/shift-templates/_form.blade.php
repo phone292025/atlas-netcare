@@ -26,10 +26,10 @@
     <x-form.select name="location_id" label="Location" required :options="$locations"
                    :selected="$template?->location_id" placeholder="Choose a location" />
 
-    <label class="flex items-center gap-2 text-sm text-slate-600">
+    <label class="flex items-center gap-2 text-sm text-fg-muted">
         <input type="hidden" name="is_active" value="0">
         <input type="checkbox" name="is_active" value="1" @checked($template?->is_active ?? true)
-               class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-        Active — include this slot when generating a roster
+               class="rounded border-line-strong text-brand-600 focus:ring-brand-500">
+        Active, so this slot is included when a roster is generated
     </label>
 </div>

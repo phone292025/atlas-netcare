@@ -71,15 +71,15 @@
 }">
     <div class="mb-2 flex items-end justify-between gap-2">
         <div>
-            <h3 class="text-sm font-semibold text-slate-900">Items</h3>
-            <p class="text-sm text-slate-500">
+            <h3 class="text-sm font-semibold text-fg">Items</h3>
+            <p class="text-sm text-fg-muted">
                 Asked in this order. Mark an item <span class="font-medium">critical</span> when
-                failing it means the machine cannot be used at all — that is what turns an
+                failing it means the machine cannot be used at all. That is what turns an
                 inspection into a Fail rather than Pass with issues.
             </p>
         </div>
         <button type="button" @click="add()"
-                class="flex-none rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
+                class="btn btn-secondary flex-none">
             Add item
         </button>
     </div>
@@ -90,20 +90,20 @@
 
     <ul class="space-y-2">
         <template x-for="(row, index) in rows" :key="row._key">
-            <li class="rounded-lg bg-white p-3 ring-1 ring-slate-200">
+            <li class="rounded-lg bg-surface p-3 ring-1 ring-line">
                 <div class="flex items-start gap-2">
                     {{-- Move controls. Disabled at the ends rather than hidden,
                          so the row's controls do not shift position as it moves. --}}
                     <div class="flex flex-none flex-col gap-1 pt-1">
                         <button type="button" @click="move(index, -1)" :disabled="index === 0"
-                                class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                class="rounded p-1 text-fg-subtle hover:bg-sunken hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent"
                                 aria-label="Move up">
-                            <x-icon name="chevron-up" class="h-4 w-4" />
+                            <x-icon name="chevron-up" class="size-4" />
                         </button>
                         <button type="button" @click="move(index, 1)" :disabled="index === rows.length - 1"
-                                class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                class="rounded p-1 text-fg-subtle hover:bg-sunken hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent"
                                 aria-label="Move down">
-                            <x-icon name="chevron-down" class="h-4 w-4" />
+                            <x-icon name="chevron-down" class="size-4" />
                         </button>
                     </div>
 
@@ -112,25 +112,25 @@
                                :name="`items[${index}][label]`"
                                x-model="row.label"
                                placeholder="What should the assistant check?"
-                               class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                               class="block w-full rounded-md border-line-strong text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
 
                         <div class="flex flex-wrap items-center gap-3">
                             <select :name="`items[${index}][category]`"
                                     x-model="row.category"
-                                    class="rounded-md border-slate-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                                    class="rounded-md border-line-strong text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
                                 @foreach ($categories as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
                             </select>
 
-                            <label class="flex items-center gap-2 text-sm text-slate-600">
+                            <label class="flex items-center gap-2 text-sm text-fg-muted">
                                 {{-- The hidden field makes an unchecked box post
                                      0 rather than nothing, so unticking critical
                                      actually saves. --}}
                                 <input type="hidden" :name="`items[${index}][is_critical]`" value="0">
                                 <input type="checkbox" :name="`items[${index}][is_critical]`" value="1"
                                        x-model="row.is_critical"
-                                       class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                       class="rounded border-line-strong text-brand-600 focus:ring-brand-500">
                                 Critical
                             </label>
 

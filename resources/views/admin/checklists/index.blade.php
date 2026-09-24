@@ -5,25 +5,25 @@
                    subtitle="What an assistant is asked at each machine. Editing a used checklist creates a new version rather than changing history.">
         <x-slot:actions>
             <a href="{{ route('admin.checklists.create') }}"
-               class="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                <x-icon name="plus" class="h-4 w-4" /> New checklist
+               class="btn btn-primary">
+                <x-icon name="plus" class="size-4" /> New checklist
             </a>
         </x-slot:actions>
     </x-page-header>
 
     <x-data-table :headers="['Checklist', 'Version', 'Items', 'Used by', 'Status', '']">
         @foreach ($templates as $template)
-            <tr class="hover:bg-slate-50">
+            <tr class="hover:bg-sunken/70">
                 <td class="px-4 py-3">
                     <a href="{{ route('admin.checklists.edit', $template) }}"
-                       class="font-medium text-slate-900 hover:text-brand-700">{{ $template->name }}</a>
+                       class="font-medium text-fg hover:text-brand-700">{{ $template->name }}</a>
                     @if (filled($template->description))
-                        <span class="block text-xs text-slate-400">{{ Str::limit($template->description, 70) }}</span>
+                        <span class="block text-xs text-fg-subtle">{{ Str::limit($template->description, 70) }}</span>
                     @endif
                 </td>
-                <td class="px-4 py-3 tabular-nums text-slate-600">v{{ $template->version }}</td>
-                <td class="px-4 py-3 tabular-nums text-slate-600">{{ $template->items_count }}</td>
-                <td class="px-4 py-3 tabular-nums text-slate-600">
+                <td class="px-4 py-3 tabular-nums text-fg-muted">v{{ $template->version }}</td>
+                <td class="px-4 py-3 tabular-nums text-fg-muted">{{ $template->items_count }}</td>
+                <td class="px-4 py-3 tabular-nums text-fg-muted">
                     {{ $template->inspections_count }} {{ Str::plural('inspection', $template->inspections_count) }}
                 </td>
                 <td class="px-4 py-3">
@@ -42,7 +42,7 @@
                         <form method="POST" action="{{ route('admin.checklists.activate', $template) }}" class="inline">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="text-sm text-brand-700 hover:underline">Make active</button>
+                            <button type="submit" class="link text-sm">Make active</button>
                         </form>
                     @endunless
                 </td>
@@ -54,7 +54,7 @@
                            message="Assistants cannot start an inspection until one checklist is active."
                            icon="clipboard">
                 <x-slot:action>
-                    <a href="{{ route('admin.checklists.create') }}" class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">Build the first checklist</a>
+                    <a href="{{ route('admin.checklists.create') }}" class="btn btn-primary">Build the first checklist</a>
                 </x-slot:action>
             </x-empty-state>
         </x-slot:empty>
