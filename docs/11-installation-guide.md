@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-09-23 · **For the report's Appendix (item 21).**
+> **Last updated:** 2026-09-25 · **For the report's Appendix (item 21).**
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on submission day.
 
@@ -39,7 +39,7 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Then open `.env` and set these. **The application will not seed without the first two.**
+Then open `.env` and check these. Every one already has a working value for a machine running XAMPP.
 
 | Key | What to put |
 |---|---|
@@ -47,12 +47,12 @@ Then open `.env` and set these. **The application will not seed without the firs
 | `DB_USERNAME` | `root` — XAMPP's default |
 | `DB_PASSWORD` | Empty on a default XAMPP install |
 | `ATLAS_ADMIN_EMAIL` | The first administrator's address |
-| `ATLAS_ADMIN_PASSWORD` | **Choose your own.** There is deliberately no default |
+| `ATLAS_ADMIN_PASSWORD` | `AtlasAdmin!2026` to start with. Replaced at first sign-in |
 | `ATLAS_DEMO_PASSWORD` | One shared password for the demonstration accounts |
 
 `DB_CONNECTION` is already `mariadb`, not `mysql`. XAMPP ships MariaDB and Laravel 12 has a dedicated driver for it; the distinction matters because MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than as a native type.
 
-**There is no default administrator password.** If `ATLAS_ADMIN_PASSWORD` is unset the seeder refuses and says so, rather than creating the highest-privilege account with a credential printed in a public repository.
+**The administrator starts on a public password, `AtlasAdmin!2026`,** so a fresh clone can sign in without editing anything. It works once: the first sign-in forces a new one. If the app will be reachable from other machines, set your own in `.env` before seeding. Emptying it makes the seeder refuse to create the administrator.
 
 ---
 
@@ -112,11 +112,11 @@ Then browse to `http://<your-machine-ip>:8000`. `ipconfig` gives the IP. Windows
 
 ## 6. Sign in
 
-The demonstration accounts come straight from `.env.example`, so a fresh clone can open every role's screens. The administrator does not: its password is blank in that file and you set it in step 2.
+Every account's password comes straight from `.env.example`, so a fresh clone can open every role's screens without editing anything.
 
 | Role | Email | Password |
 |---|---|---|
-| Administrator | `admin@atlas.local` | whatever you set as `ATLAS_ADMIN_PASSWORD` |
+| Administrator | `admin@atlas.local` | `AtlasAdmin!2026`, then your own |
 | Network Engineer | `engineer@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
@@ -219,7 +219,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 **`Please provide a valid cache path`** — the storage directories are missing after a fresh clone. `php artisan optimize:clear`, and make sure `storage/framework/{cache,sessions,views}` exist.
 
-**The administrator was not created** — `ATLAS_ADMIN_PASSWORD` is unset. That refusal is deliberate.
+**The administrator was not created**: `ATLAS_ADMIN_PASSWORD` is empty in `.env`. Put `AtlasAdmin!2026` or your own there and seed again.
 
 **Every asset scores Low** — the risk model has not run, or the assets seeded without ages. `php artisan atlas:recalculate-risk`.
 

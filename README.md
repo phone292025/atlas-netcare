@@ -81,13 +81,13 @@ Atlas NetCare has **no self-registration** — an administrator creates every ac
 | | |
 |---|---|
 | Email | `admin@atlas.local` |
-| Password | whatever you set as `ATLAS_ADMIN_PASSWORD` |
+| Password | `AtlasAdmin!2026` |
 
-**`.env.example` ships that blank on purpose**, and the seeder refuses to create the administrator until you set it. It used to ship `ChangeMeNow!2026`, which put the highest privilege account in the system behind a password printed in a public repository.
+That is the starting password a fresh clone gets from `.env.example` (`ATLAS_ADMIN_PASSWORD`). **It only works once:** the account is flagged `must_change_password`, so the first sign-in lands on the profile screen and every other page redirects back there until you choose your own.
 
-> **The administrator does not share the demo password.** `ATLAS_ADMIN_PASSWORD` and `ATLAS_DEMO_PASSWORD` are different values, and typing the demo one at the admin login gives "These credentials do not match our records" with nothing to explain why. If a sign-in fails, check which of the two the account uses before assuming the account is broken.
+> **The administrator does not share the demo password.** The administrator starts on `AtlasAdmin!2026`; the demo accounts below use `AtlasDemo!2026`. Typing one at the other's login gives "These credentials do not match our records" with nothing to explain why.
 
-**Set your own password in `.env` before seeding.** The account is flagged `must_change_password`, so the first sign-in lands on the profile screen and every other page redirects back there until you choose a new one.
+> **This password is public too: it is printed right here.** Before the app is reachable from anywhere but your own machine, change `ATLAS_ADMIN_PASSWORD` in `.env` before seeding, or sign in and change it straight away.
 
 Re-running `migrate --seed` after that is safe: since 2026-09-04 the seeder leaves an existing administrator's password and flag alone. It used to overwrite both on every run, which silently undid the password you had just chosen. Role, activation and the soft delete **are** still restored, so re-seeding remains the way back in if you lock yourself out. To reset a forgotten administrator password, use the reset link rather than a seeder.
 

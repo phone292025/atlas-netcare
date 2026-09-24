@@ -254,22 +254,35 @@ class ReferenceSeederTest extends TestCase
         $this->assertNull($restored->deleted_at);
     }
 
-    public function test_the_administrator_password_has_no_published_default(): void
+    public function test_the_published_administrator_password_is_documented_and_only_a_start(): void
     {
-        // Both files are in the public repository. A fallback in either once
-        // seeded the highest-privilege account with a password anybody could
-        // read.
+        /*
+         * Since 2026-09-25 .env.example ships a starting password, so a fresh
+         * clone can sign in. That is only safe because the account must
+         * choose its own at first sign-in, and only useful if the README and
+         * the guide name the same value: in August the file and its own
+         * documentation disagreed.
+         */
+        preg_match('/^ATLAS_ADMIN_PASSWORD=(.+)$/m', file_get_contents(base_path('.env.example')), $match);
+        $published = trim($match[1] ?? '');
+
+        $this->assertNotSame('', $published, '.env.example no longer ships a starting password.');
+        $this->assertStringContainsString("`{$published}`", file_get_contents(base_path('README.md')), 'The README names a different administrator password.');
+        $this->assertStringContainsString("`{$published}`", file_get_contents(base_path('docs/11-installation-guide.md')), 'The install guide names a different administrator password.');
+
+        // Still no fallback in config: an emptied .env must refuse, not quietly use something.
         $this->assertMatchesRegularExpression(
             "/'password' => env\('ATLAS_ADMIN_PASSWORD'\),/",
             file_get_contents(config_path('atlas.php')),
             'config/atlas.php gives the administrator password a fallback.',
         );
 
-        $this->assertMatchesRegularExpression(
-            '/^ATLAS_ADMIN_PASSWORD=$/m',
-            file_get_contents(base_path('.env.example')),
-            '.env.example ships an administrator password.',
-        );
+        config(['atlas.first_admin.password' => $published]);
+        $this->seed(ReferenceSeeder::class);
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+
+        $this->assertTrue(Hash::check($published, $admin->password));
+        $this->assertTrue($admin->must_change_password, 'The published password must be replaced at first sign-in.');
     }
 
     public function test_the_seeder_refuses_rather_than_using_a_known_password(): void

@@ -1,6 +1,6 @@
 # Decision Log
 
-> **Last updated:** 2026-09-23
+> **Last updated:** 2026-09-25
 
 Small calls that affect other people but do not warrant a full ADR. One line each. Newest at the top.
 
@@ -10,6 +10,7 @@ Small calls that affect other people but do not warrant a full ADR. One line eac
 
 | Date | Decision | Made by | Affects |
 |---|---|---|---|
+| 2026-09-25 | **The first administrator has a documented starting password again: `AtlasAdmin!2026`.** Supersedes the 2026-09-04 entry below. With the value blank, somebody cloning the project to look at it found no password to sign in with, and the README could only say "whatever you set". What makes a public value acceptable now, and did not in August, is that since 2026-09-04 the account is forced to choose its own at first sign-in and every other screen is locked until it does. The README warns, as it does for the demo password, to change it before the app is reachable from other machines. The seeder still refuses an empty value. | Project owner | README, install guide, `.env.example`, anyone setting up |
 | 2026-09-23 | **An engineer given a ticket by somebody else is told** (new alarm type `ticket_assigned`). `TicketService` now takes `AlarmService` in its constructor, and `raiseSlaBreachAlarms()` and `announce()` use it rather than a parameter. Status changes and assignments show in the timeline as "updated the ticket" (`TicketComment::isRecordedAction()`). | Live testing | M4, M6 |
 | 2026-09-23 | **Generating a week skips slots that have already started.** A shift created after its start can only be a no-show: a week generated on the Saturday after it produced six false "missed" shifts, each with reminders sent at once. Fourteen such rows were removed from the development database, backed up to JSON first. Covering a shift under way likewise dates the notice now and skips round reminders already past. | Live testing | M6 |
 | 2026-09-23 | **A Critical ticket alerts every engineer when a person raises it** (`TicketService::announce()`, `ATLAS_NEW_TICKET_ALERT_FROM`, default `critical`). Lower priorities wait in the queue. Not the collector's tickets, which alert through `ap_offline`, and not the engineer who raised it. New alarm type `ticket_raised`. | Live testing | M4, M6 |

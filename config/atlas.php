@@ -57,9 +57,10 @@ return [
     | There is no self-registration (FR-105), so ReferenceSeeder creates the
     | first administrator, flagged must_change_password.
     |
-    | The password has NO fallback: a default here would be a credential in
-    | the repository. ReferenceSeeder refuses to create the account without
-    | one, which is a visible problem rather than a known admin password.
+    | The password has no fallback here. .env.example supplies a documented
+    | starting password, which the first sign-in forces the administrator to
+    | replace. If .env leaves it empty, ReferenceSeeder refuses to create the
+    | account and says so, rather than inventing one.
     |
     */
 
