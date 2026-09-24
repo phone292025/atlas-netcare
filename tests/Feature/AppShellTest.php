@@ -82,6 +82,13 @@ class AppShellTest extends TestCase
             ->assertSee('<title>Profile · Atlas NetCare</title>', escape: false);
     }
 
+    public function test_a_signed_out_page_takes_its_title_from_its_heading(): void
+    {
+        // Every sign-in and password tab read only "Atlas NetCare".
+        $this->get(route('login'))->assertOk()->assertSee('<title>Sign in · Atlas NetCare</title>', escape: false);
+        $this->get(route('password.request'))->assertOk()->assertSee('<title>Reset your password · Atlas NetCare</title>', escape: false);
+    }
+
     public function test_the_signed_in_users_role_is_shown(): void
     {
         $this->actingAs($this->userWithRole(UserRole::Assistant))

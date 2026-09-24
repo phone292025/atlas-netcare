@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    @include('layouts.partials.head')
+    {{-- The page's heading doubles as its tab title: "Sign in · Atlas NetCare". --}}
+    @include('layouts.partials.head', ['title' => $title ?? (isset($heading) ? trim(strip_tags((string) $heading)) : null)])
 </head>
 <body class="min-h-[100dvh]">
 
