@@ -163,8 +163,11 @@ class TicketAssignmentTest extends TestCase
 
         $page = $this->actingAs($engineer)->get(route('engineer.tickets.show', $ticket))->assertOk()->getContent();
 
-        $this->assertSame(2, substr_count($page, 'updated the ticket'));
-        $this->assertSame(1, substr_count($page, 'added an internal note'));
+        // The two recorded entries read as things that happened, and only the
+        // note somebody wrote carries the internal label.
+        $this->assertStringContainsString('moved this ticket from Open to Acknowledged.', $page);
+        $this->assertStringContainsString('assigned to ', $page);
+        $this->assertSame(1, substr_count($page, 'Internal note'));
     }
 
     public function test_taking_a_ticket_yourself_or_unassigning_tells_nobody(): void

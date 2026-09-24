@@ -1,99 +1,166 @@
 <x-app-layout>
     <x-slot name="title">Ticket queue</x-slot>
 
+    @php
+        $view = match (true) {
+            request()->boolean('breaching') => 'breaching',
+            request()->boolean('mine') => 'mine',
+            request()->boolean('unassigned') => 'unassigned',
+            request('status') === 'resolved' => 'resolved',
+            request('status') === 'closed' => 'closed',
+            request()->filled('status') || request()->filled('search') => null,
+            default => 'open',
+        };
+        $to = fn (array $query = []) => route('engineer.tickets.index', $query);
+        $tabs = [
+            ['label' => 'Open', 'url' => $to(), 'count' => $counts['open'], 'active' => $view === 'open'],
+            ['label' => 'Mine', 'url' => $to(['mine' => 1]), 'count' => $counts['mine'], 'active' => $view === 'mine'],
+            ['label' => 'Unassigned', 'url' => $to(['unassigned' => 1]), 'count' => $counts['unassigned'], 'active' => $view === 'unassigned'],
+            ['label' => 'Past due', 'url' => $to(['breaching' => 1]), 'count' => $breachCount, 'active' => $view === 'breaching', 'tone' => 'urgent'],
+            ['label' => 'Resolved', 'url' => $to(['status' => 'resolved']), 'count' => $counts['resolved'], 'active' => $view === 'resolved'],
+            ['label' => 'Closed', 'url' => $to(['status' => 'closed']), 'count' => $counts['closed'], 'active' => $view === 'closed'],
+        ];
+        // The tab's own filter rides along when the toolbar is used.
+        $keep = array_filter(request()->only(['mine', 'unassigned', 'breaching', 'status']), 'filled');
+        $narrowed = collect(request()->only(['search', 'priority', 'location', 'assignee']))->filter()->isNotEmpty();
+    @endphp
+
     <x-page-header title="Ticket queue"
-                   subtitle="{{ $tickets->total() }} {{ Str::plural('ticket', $tickets->total()) }}. Highest priority first, then whatever is due soonest.">
+                   :subtitle="$counts['open'].' open'.($breachCount > 0 ? ', '.$breachCount.' past due' : '').'. Most urgent first, then whatever is due soonest.'">
         <x-slot:actions>
-            @if ($breachCount > 0)
-                <a href="{{ route('engineer.tickets.index', ['breaching' => 1]) }}"
-                   class="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 hover:bg-red-100">
-                    <x-icon name="warning" class="h-4 w-4" />
-                    {{ $breachCount }} past due
-                </a>
-            @endif
+            <x-button :href="route('assistant.tickets.create')" icon="plus">Raise ticket</x-button>
         </x-slot:actions>
     </x-page-header>
 
-    <x-data-table :headers="[
-        'Ticket',
-        'Subject',
-        'Priority',
-        'Status',
-        'Assigned to',
-        'Due',
-        '',
-    ]">
-        <x-slot:filters>
-            <form method="GET" class="flex flex-wrap items-end gap-2">
-                <div class="w-44">
-                    <x-form.input name="search" label="Search" :value="request('search')" placeholder="Number or title" />
-                </div>
-                <div class="w-40">
-                    <x-form.select name="status" label="Status" blank="Outstanding" :options="$statuses" :selected="request('status')" />
-                </div>
-                <div class="w-36">
-                    <x-form.select name="priority" label="Priority" blank="Any" :options="$priorities" :selected="request('priority')" />
-                </div>
-                <div class="w-48">
-                    <x-form.select name="location" label="Location" blank="Anywhere" :options="$locations" :selected="request('location')" />
-                </div>
-                <div class="w-44">
-                    <x-form.select name="assignee" label="Engineer" blank="Anyone" :options="$engineers" :selected="request('assignee')" />
-                </div>
-                <label class="flex items-center gap-2 py-2 text-sm text-slate-600">
-                    <input type="checkbox" name="mine" value="1" @checked(request()->boolean('mine'))
-                           class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-                    Mine
-                </label>
-                <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Filter</button>
-                @if (request()->hasAny(['search', 'status', 'priority', 'location', 'assignee', 'mine', 'breaching']))
-                    <a href="{{ route('engineer.tickets.index') }}" class="px-2 py-2 text-sm text-slate-500 underline">Clear</a>
-                @endif
-            </form>
-        </x-slot:filters>
+    <x-tab-nav :tabs="$tabs" label="Ticket views" class="mb-4" />
 
-        @foreach ($tickets as $ticket)
-            <tr class="hover:bg-slate-50">
-                <td class="px-4 py-3">
-                    <a href="{{ route('engineer.tickets.show', $ticket) }}"
-                       class="font-mono text-xs font-medium text-slate-900 hover:text-brand-700">{{ $ticket->ticket_number }}</a>
-                    <span class="block max-w-xs truncate text-sm text-slate-700">{{ $ticket->title }}</span>
-                </td>
-                <td class="px-4 py-3">
-                    {{-- nowrap: an asset tag is one token. Letting "APU-1801"
-                         break after the hyphen makes it unreadable at a glance,
-                         which is the only thing this column is for. --}}
-                    <span class="block whitespace-nowrap text-sm text-slate-700">{{ $ticket->subjectLabel() }}</span>
-                    <span class="block whitespace-nowrap text-xs text-slate-400">{{ $ticket->location?->code }}</span>
-                </td>
-                <td class="px-4 py-3"><x-priority-pill :priority="$ticket->priority" /></td>
-                <td class="px-4 py-3"><x-status-badge :status="$ticket->status" /></td>
-                <td class="px-4 py-3 text-sm text-slate-600">
-                    {{ $ticket->assignee?->name ?? '—' }}
-                </td>
-                <td class="px-4 py-3 text-sm">
-                    @if ($ticket->dueInWords())
-                        {{-- Past due is the one thing in this table that has to
-                             be visible without reading. --}}
-                        <span class="{{ $ticket->isBreaching() ? 'font-medium text-red-700' : 'text-slate-600' }}">
-                            {{ $ticket->dueInWords() }}
-                        </span>
-                    @else
-                        <span class="text-slate-400">—</span>
-                    @endif
-                </td>
-                <td class="px-4 py-3 text-right">
-                    <a href="{{ route('engineer.tickets.show', $ticket) }}" class="text-sm text-brand-700 hover:underline">Open</a>
-                </td>
-            </tr>
+    {{-- Filters submit themselves on change; search on Enter. --}}
+    <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
+        @foreach ($keep as $key => $value)
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
         @endforeach
 
-        <x-slot:empty>
-            <x-empty-state title="Nothing in the queue"
-                           message="Tickets raised by assistants during lab rounds appear here, along with any raised automatically when an access point drops."
-                           icon="ticket" />
-        </x-slot:empty>
+        <label class="relative min-w-[14rem] flex-1 sm:max-w-xs">
+            <span class="sr-only">Search tickets</span>
+            <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" />
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Search number or title"
+                   class="h-9 w-full pl-9 text-sm">
+        </label>
 
-        <x-slot:pagination><x-pagination :paginator="$tickets" /></x-slot:pagination>
-    </x-data-table>
+        <select name="priority" aria-label="Priority" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Any priority</option>
+            @foreach ($priorities as $value => $label)
+                <option value="{{ $value }}" @selected(request('priority') === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        <select name="location" aria-label="Location" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Any location</option>
+            @foreach ($locations as $value => $label)
+                <option value="{{ $value }}" @selected((string) request('location') === (string) $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        @unless ($view === 'mine' || $view === 'unassigned')
+            <select name="assignee" aria-label="Engineer" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+                <option value="">Anyone</option>
+                @foreach ($engineers as $value => $label)
+                    <option value="{{ $value }}" @selected((string) request('assignee') === (string) $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        @endunless
+
+        @if ($narrowed)
+            <a href="{{ route('engineer.tickets.index', $keep) }}" class="btn btn-ghost btn-sm">
+                <x-icon name="close" class="size-3.5" />
+                Clear filters
+            </a>
+        @endif
+    </form>
+
+    @if ($tickets->isEmpty())
+        <div class="rounded-xl border border-line bg-surface">
+            @if ($narrowed)
+                <x-empty-state title="No tickets match" icon="funnel"
+                               message="Nothing in this view matches those filters.">
+                    <x-slot:action>
+                        <x-button variant="secondary" :href="route('engineer.tickets.index', $keep)">Clear filters</x-button>
+                    </x-slot:action>
+                </x-empty-state>
+            @else
+                <x-empty-state title="Nothing in the queue" icon="ticket"
+                               message="Tickets raised by assistants during lab rounds appear here, along with any raised automatically when an access point drops." />
+            @endif
+        </div>
+    @else
+        {{-- Desktop: a table, each row a way into the ticket. --}}
+        <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-xs max-md:hidden">
+            <table class="min-w-full text-sm">
+                <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
+                    <tr>
+                        <th scope="col" class="h-10 px-4 font-medium">Ticket</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Asset</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Priority</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Status</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Assignee</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Due</th>
+                        <th scope="col" class="h-10 w-10 px-4"><span class="sr-only">Open</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                    @foreach ($tickets as $ticket)
+                        @php $url = route('engineer.tickets.show', $ticket); @endphp
+                        <tr class="group cursor-pointer transition-colors hover:bg-sunken/70" onclick="window.location='{{ $url }}'">
+                            <td class="max-w-md px-4 py-3">
+                                <a href="{{ $url }}" class="block font-mono text-xs text-fg-muted group-hover:text-brand-700">{{ $ticket->ticket_number }}</a>
+                                <span class="mt-0.5 block truncate font-medium text-fg">{{ $ticket->title }}</span>
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-3">
+                                {{-- nowrap: an asset tag is one token, unreadable broken at its hyphen. --}}
+                                <span class="block font-mono text-xs text-fg">{{ $ticket->subjectLabel() }}</span>
+                                <span class="block text-xs text-fg-subtle">{{ $ticket->location?->code }}</span>
+                            </td>
+                            <td class="px-4 py-3"><x-priority-pill :priority="$ticket->priority" /></td>
+                            <td class="px-4 py-3"><x-status-badge :status="$ticket->status" /></td>
+                            <td class="px-4 py-3">
+                                <span class="flex items-center gap-2">
+                                    <x-avatar :name="$ticket->assignee?->name" />
+                                    <span class="truncate {{ $ticket->assignee ? 'text-fg' : 'text-fg-subtle' }}">{{ $ticket->assignee?->name ?? 'Nobody yet' }}</span>
+                                </span>
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-sm"><x-ticket-due :ticket="$ticket" /></td>
+                            <td class="px-4 py-3 text-right">
+                                <x-icon name="chevron-right" class="size-4 text-fg-subtle transition group-hover:translate-x-0.5 group-hover:text-fg" />
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Phone: one card per ticket, the same facts. --}}
+        <ul id="mobile-ticket-list" class="space-y-2 md:hidden">
+            @foreach ($tickets as $ticket)
+                <li>
+                    <a href="{{ route('engineer.tickets.show', $ticket) }}"
+                       class="block rounded-xl border border-line bg-surface p-4 shadow-xs active:bg-sunken">
+                        <span class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-xs text-fg-muted">{{ $ticket->ticket_number }}</span>
+                            <x-priority-pill :priority="$ticket->priority" />
+                        </span>
+                        <span class="mt-1 block font-medium text-fg">{{ $ticket->title }}</span>
+                        <span class="mt-1 block text-xs text-fg-muted">{{ $ticket->subjectLabel() }} &middot; {{ $ticket->location?->code }}</span>
+                        <span class="mt-3 flex items-center justify-between gap-2">
+                            <x-status-badge :status="$ticket->status" />
+                            <x-ticket-due :ticket="$ticket" class="text-xs" />
+                        </span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+
+        <div class="mt-4">
+            <x-pagination :paginator="$tickets" />
+        </div>
+    @endif
 </x-app-layout>

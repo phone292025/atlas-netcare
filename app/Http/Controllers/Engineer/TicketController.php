@@ -43,11 +43,11 @@ class TicketController extends Controller
                 ->when($request->filled('location'), fn ($q) => $q->where('location_id', $request->integer('location')))
                 ->when($request->filled('assignee'), fn ($q) => $q->where('assigned_to', $request->integer('assignee')))
                 ->when($request->boolean('mine'), fn ($q) => $q->where('assigned_to', $request->user()->id))
+                ->when($request->boolean('unassigned'), fn ($q) => $q->whereNull('assigned_to'))
                 ->when($request->boolean('breaching'), fn ($q) => $q->breaching())
                 // Default view is work that still needs somebody.
                 ->when(! $request->hasAny(['status', 'search']), fn ($q) => $q->outstanding())
-                ->orderByRaw($this->priorityOrdering())
-                ->orderBy('due_at')
+                ->mostUrgentFirst()
                 ->paginate(25)
                 ->withQueryString(),
 
@@ -57,6 +57,16 @@ class TicketController extends Controller
             'engineers' => User::query()->active()->role(UserRole::Engineer)
                 ->orderBy('name')->get()->mapWithKeys(fn ($u) => [$u->id => $u->name])->all(),
             'breachCount' => Ticket::query()->breaching()->count(),
+
+            // The view tabs above the queue. One query per tab, a handful of
+            // counts on an indexed table.
+            'counts' => [
+                'open' => Ticket::query()->outstanding()->count(),
+                'mine' => Ticket::query()->outstanding()->where('assigned_to', $request->user()->id)->count(),
+                'unassigned' => Ticket::query()->outstanding()->whereNull('assigned_to')->count(),
+                'resolved' => Ticket::query()->where('status', TicketStatus::Resolved)->count(),
+                'closed' => Ticket::query()->where('status', TicketStatus::Closed)->count(),
+            ],
         ]);
     }
 
@@ -139,26 +149,5 @@ class TicketController extends Controller
             TicketStatus::Reopened => 'reopen',
             default => 'work',
         };
-    }
-
-    /**
-     * Critical first, then medium, then low.
-     *
-     * A CASE expression rather than MySQL's FIELD(), which SQLite does not
-     * have — the test suite runs on SQLite and MariaDB is what ships, so
-     * anything vendor-specific here passes review and fails the moment a test
-     * touches the queue.
-     *
-     * Built from the enum's own weights, so adding a priority cannot leave the
-     * queue silently sorting it last. Every value is enum-derived and never
-     * request input, so there is nothing here to inject.
-     */
-    private function priorityOrdering(): string
-    {
-        $cases = collect(TicketPriority::cases())
-            ->map(fn (TicketPriority $p) => "WHEN '{$p->value}' THEN {$p->weight()}")
-            ->implode(' ');
-
-        return "CASE priority {$cases} ELSE 0 END DESC";
     }
 }

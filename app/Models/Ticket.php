@@ -107,6 +107,30 @@ class Ticket extends Model
         $query->whereNotIn('status', [TicketStatus::Resolved->value, TicketStatus::Closed->value]);
     }
 
+    /**
+     * Critical first, then medium, then low, and within each whatever is due
+     * soonest.
+     *
+     * A CASE expression rather than MySQL's FIELD(), which SQLite does not
+     * have. The test suite runs on SQLite and MariaDB is what ships, so
+     * anything vendor-specific here passes review and fails the moment a test
+     * touches the queue.
+     *
+     * Built from the enum's own weights, so adding a priority cannot leave the
+     * queue silently sorting it last. Every value is enum-derived and never
+     * request input, so there is nothing here to inject.
+     *
+     * @param  Builder<Ticket>  $query
+     */
+    public function scopeMostUrgentFirst(Builder $query): void
+    {
+        $cases = collect(TicketPriority::cases())
+            ->map(fn (TicketPriority $p) => "WHEN '{$p->value}' THEN {$p->weight()}")
+            ->implode(' ');
+
+        $query->orderByRaw("CASE priority {$cases} ELSE 0 END DESC")->orderBy('due_at');
+    }
+
     /** @param  Builder<Ticket>  $query */
     public function scopeReportedBy(Builder $query, User $user): void
     {
