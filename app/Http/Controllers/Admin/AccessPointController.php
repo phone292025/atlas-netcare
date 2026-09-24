@@ -75,6 +75,9 @@ class AccessPointController extends Controller
         return view('admin.access-points.show', [
             'accessPoint' => $accessPoint->load('location'),
             'events' => AuditLog::forSubject($accessPoint)->with('user')->latest('created_at')->limit(20)->get(),
+            // Newest first, open or not: a device that keeps coming back is the
+            // pattern worth seeing here.
+            'tickets' => $accessPoint->tickets()->with('assignee')->latest('opened_at')->limit(10)->get(),
         ]);
     }
 

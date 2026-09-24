@@ -1,15 +1,48 @@
 <x-app-layout>
     <x-slot name="title">Lab PCs</x-slot>
 
+    @php($narrowed = request()->hasAny(['search', 'location', 'status', 'retired']))
+
     <x-page-header title="Lab PC inventory"
                    subtitle="{{ $labPcs->total() }} {{ Str::plural('machine', $labPcs->total()) }}. Retired machines are hidden unless you ask for them.">
         <x-slot:actions>
-            <a href="{{ route('admin.lab-pcs.create') }}"
-               class="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                <x-icon name="plus" class="h-4 w-4" /> Add machine
-            </a>
+            <x-button icon="plus" :href="route('admin.lab-pcs.create')">Add machine</x-button>
         </x-slot:actions>
     </x-page-header>
+
+    {{-- Selects submit themselves; search submits on Enter. --}}
+    <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
+        @foreach (array_filter(request()->only(['sort', 'direction']), 'filled') as $key => $value)
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+        @endforeach
+
+        <x-search-input placeholder="Asset tag or hostname" />
+
+        <select name="location" aria-label="Location" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Anywhere</option>
+            @foreach ($locations as $value => $label)
+                <option value="{{ $value }}" @selected((string) request('location') === (string) $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        <select name="status" aria-label="Status" onchange="this.form.requestSubmit()" class="h-9 w-auto py-0 pl-3 pr-8 text-sm">
+            <option value="">Any status</option>
+            @foreach ($statuses as $value => $label)
+                <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        <label class="flex h-9 items-center gap-2 rounded-md px-2 text-sm text-fg-muted hover:text-fg">
+            <input type="checkbox" name="retired" value="1" @checked(request()->boolean('retired')) onchange="this.form.requestSubmit()">
+            Include retired
+        </label>
+
+        <noscript><x-button type="submit" variant="secondary" size="sm">Filter</x-button></noscript>
+
+        @if ($narrowed)
+            <x-button variant="ghost" size="sm" icon="close" :href="route('admin.lab-pcs.index')">Clear filters</x-button>
+        @endif
+    </form>
 
     <x-data-table :headers="[
         ['label' => 'Asset tag', 'sort' => 'asset_tag'],
@@ -19,62 +52,62 @@
         'Risk',
         '',
     ]">
-        <x-slot:filters>
-            <form method="GET" class="flex flex-wrap items-end gap-2">
-                <div class="w-48">
-                    <x-form.input name="search" label="Search" :value="request('search')" placeholder="Asset tag or hostname" />
-                </div>
-                <div class="w-52">
-                    <x-form.select name="location" label="Location" blank="Anywhere" :options="$locations" :selected="request('location')" />
-                </div>
-                <div class="w-40">
-                    <x-form.select name="status" label="Status" blank="Any status" :options="$statuses" :selected="request('status')" />
-                </div>
-                <label class="flex items-center gap-2 py-2 text-sm text-slate-600">
-                    <input type="checkbox" name="retired" value="1" @checked(request()->boolean('retired'))
-                           class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-                    Include retired
-                </label>
-                <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Filter</button>
-                @if (request()->hasAny(['search', 'location', 'status', 'retired']))
-                    <a href="{{ route('admin.lab-pcs.index') }}" class="px-2 py-2 text-sm text-slate-500 underline">Clear</a>
-                @endif
-            </form>
-        </x-slot:filters>
-
         @foreach ($labPcs as $pc)
-            <tr class="hover:bg-slate-50 {{ $pc->trashed() ? 'opacity-60' : '' }}">
+            @php($url = route('admin.lab-pcs.show', $pc))
+            <tr @class(['group cursor-pointer transition-colors hover:bg-sunken/70', 'opacity-60' => $pc->trashed()])
+                onclick="window.location='{{ $url }}'">
                 <td class="px-4 py-3">
-                    <a href="{{ route('admin.lab-pcs.show', $pc) }}" class="font-medium text-slate-900 hover:text-brand-700">{{ $pc->asset_tag }}</a>
-                    @if ($pc->trashed())
-                        <span class="ml-1 text-xs text-slate-400">retired</span>
-                    @endif
+                    <span class="flex items-center gap-3">
+                        <span class="grid size-8 flex-none place-items-center rounded-lg bg-sunken text-fg-muted">
+                            <x-icon name="desktop" class="size-4" />
+                        </span>
+                        <span>
+                            <a href="{{ $url }}" class="font-mono font-medium text-fg group-hover:text-brand-700">{{ $pc->asset_tag }}</a>
+                            @if ($pc->trashed())
+                                <x-badge class="ml-1">Retired</x-badge>
+                            @endif
+                        </span>
+                    </span>
                 </td>
-                <td class="px-4 py-3 text-slate-600">{{ $pc->location?->code }}</td>
-                <td class="px-4 py-3 text-slate-600">{{ $pc->hostname ?? '—' }}</td>
+                <td class="px-4 py-3 text-fg-muted">{{ $pc->location?->code }}</td>
+                <td class="px-4 py-3 font-mono text-[13px] text-fg-muted">{{ $pc->hostname ?? '-' }}</td>
                 <td class="px-4 py-3"><x-status-badge :status="$pc->status" /></td>
                 <td class="px-4 py-3">
                     @if ($pc->risk_band)
-                        <x-status-badge :status="$pc->risk_band" />
+                        <span class="flex items-center gap-2">
+                            <x-status-badge :status="$pc->risk_band" />
+                            <span class="text-xs tabular-nums text-fg-subtle">{{ round((float) $pc->risk_score) }}</span>
+                        </span>
                     @else
-                        {{-- M7 writes this. Until then, saying so beats an empty cell. --}}
-                        <span class="text-xs text-slate-400">Not scored yet</span>
+                        {{-- Saying so beats an empty cell. --}}
+                        <span class="text-xs text-fg-subtle">Not scored yet</span>
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <a href="{{ route('admin.lab-pcs.edit', $pc) }}" class="text-sm text-brand-700 hover:underline">Edit</a>
+                    <a href="{{ route('admin.lab-pcs.edit', $pc) }}" onclick="event.stopPropagation()"
+                       class="btn btn-ghost btn-sm opacity-0 transition group-hover:opacity-100 focus:opacity-100">
+                        <x-icon name="edit" class="size-3.5" /> Edit
+                    </a>
                 </td>
             </tr>
         @endforeach
 
         <x-slot:empty>
-            <x-empty-state title="No machines match those filters"
-                           message="Lab PCs are added here and inspected by assistants during their rounds."
-                           icon="desktop">
-                <x-slot:action>
-                    <a href="{{ route('admin.lab-pcs.create') }}" class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">Add the first machine</a>
-                </x-slot:action>
-            </x-empty-state>
+            @if ($narrowed)
+                <x-empty-state title="No machines match" icon="funnel"
+                               message="Nothing in the inventory matches those filters.">
+                    <x-slot:action>
+                        <x-button variant="secondary" :href="route('admin.lab-pcs.index')">Clear filters</x-button>
+                    </x-slot:action>
+                </x-empty-state>
+            @else
+                <x-empty-state title="No machines yet" icon="desktop"
+                               message="Lab PCs are added here and inspected by assistants during their rounds.">
+                    <x-slot:action>
+                        <x-button icon="plus" :href="route('admin.lab-pcs.create')">Add the first machine</x-button>
+                    </x-slot:action>
+                </x-empty-state>
+            @endif
         </x-slot:empty>
 
         <x-slot:pagination><x-pagination :paginator="$labPcs" /></x-slot:pagination>

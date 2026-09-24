@@ -514,6 +514,7 @@ Blade files. Views receive data as props and never query.
 | `admin/locations/create.blade.php` |
 | `admin/locations/edit.blade.php` |
 | `admin/locations/index.blade.php` |
+| `admin/partials/device-tickets.blade.php` |
 | `admin/roster/index.blade.php` |
 | `admin/shift-templates/_form.blade.php` |
 | `admin/shift-templates/create.blade.php` |

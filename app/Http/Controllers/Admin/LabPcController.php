@@ -75,6 +75,9 @@ class LabPcController extends Controller
         return view('admin.lab-pcs.show', [
             'labPc' => $labPc->load('location'),
             'events' => AuditLog::forSubject($labPc)->with('user')->latest('created_at')->limit(20)->get(),
+            // Newest first, open or not: a device that keeps coming back is the
+            // pattern worth seeing here.
+            'tickets' => $labPc->tickets()->with('assignee')->latest('opened_at')->limit(10)->get(),
         ]);
     }
 
