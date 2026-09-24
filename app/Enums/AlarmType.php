@@ -55,4 +55,20 @@ enum AlarmType: string implements HasLabel, HasTone
             self::ApOffline, self::SlaBreach => 'urgent',
         };
     }
+
+    /** The glyph beside it in the notification list, from App\Support\Icons. */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::ShiftStart => 'calendar-check',
+            self::InspectionRound => 'list-checks',
+            self::Handover => 'handover',
+            self::ShiftRemoved => 'calendar',
+            self::TicketRaised => 'ticket',
+            self::TicketAssigned => 'user',
+            self::ApDegraded => 'warning',
+            self::ApOffline => 'wifi-off',
+            self::SlaBreach => 'clock',
+        };
+    }
 }

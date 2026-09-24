@@ -15,7 +15,7 @@
     <button type="button"
             x-data
             @click="window.history.back()"
-            class="rounded-md bg-white px-4 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+            class="btn btn-secondary">
         Go back
     </button>
 @endsection

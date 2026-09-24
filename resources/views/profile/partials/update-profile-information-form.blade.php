@@ -1,10 +1,7 @@
-<section>
+<section class="grid gap-4 py-8 first:pt-0 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-8">
     <header>
-        <h2 class="text-lg font-medium text-slate-900">Profile Information</h2>
-
-        <p class="mt-1 text-sm text-slate-600">
-            Update your account's profile information and email address.
-        </p>
+        <h3 class="text-[15px] font-semibold text-fg">Your details</h3>
+        <p class="mt-1 text-sm text-fg-muted">Your name as colleagues see it, and the email you sign in with.</p>
     </header>
 
     {{-- Breeze's "resend verification email" form used to sit here. Email
@@ -13,31 +10,27 @@
          block below it could never render either. Both are gone.
          See routes/auth.php. --}}
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-4">
+    <form method="post" action="{{ route('profile.update') }}" class="rounded-xl border border-line bg-surface shadow-xs">
         @csrf
         @method('patch')
 
-        <x-form.input name="name" label="Name" required autofocus
-                      autocomplete="name" :value="$user->name" />
+        <div class="space-y-4 p-5">
+            <x-form.input name="name" label="Name" required
+                          autocomplete="name" :value="$user->name" />
 
-        <x-form.input name="email" label="Email" type="email" required
-                      autocomplete="username" :value="$user->email" />
+            <x-form.input name="email" label="Email" type="email" required
+                          autocomplete="username" :value="$user->email" />
+        </div>
 
-        <div class="flex items-center gap-4 pt-2">
-            <button type="submit"
-                    class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white
-                           hover:bg-brand-700 focus:outline-none focus-visible:ring-2
-                           focus-visible:ring-brand-500 focus-visible:ring-offset-2">
-                Save
-            </button>
-
+        <div class="flex items-center justify-end gap-3 border-t border-line px-5 py-3">
             @if (session('status') === 'profile-updated')
-                <p x-data="{ show: true }"
-                   x-show="show"
-                   x-transition
-                   x-init="setTimeout(() => show = false, 2000)"
-                   class="text-sm text-slate-600">Saved.</p>
+                <p x-data="{ show: true }" x-show="show" x-transition
+                   x-init="setTimeout(() => show = false, 2500)"
+                   class="flex items-center gap-1.5 text-sm text-emerald-700">
+                    <x-icon name="check" class="size-4" /> Saved
+                </p>
             @endif
+            <x-button type="submit">Save details</x-button>
         </div>
     </form>
 </section>

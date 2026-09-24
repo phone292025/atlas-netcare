@@ -98,7 +98,7 @@ class ForcedPasswordChangeTest extends TestCase
             ->get(route('profile.edit'))
             ->assertOk()
             ->assertSee('An administrator set this password')
-            ->assertSee('Update Password');
+            ->assertSee('Change password');
     }
 
     public function test_they_can_still_sign_out(): void
