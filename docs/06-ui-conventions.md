@@ -1,6 +1,6 @@
 # UI Conventions
 
-> **Last updated:** 2026-09-04 · **Decision:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-23 · **Decisions:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md), [ADR-0009](decisions/ADR-0009-themed-design-system.md)
 >
 > Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
 
@@ -25,22 +25,32 @@ Two, and only two.
 
 | Layout | Used by | Structure |
 |---|---|---|
-| `layouts/guest.blade.php` | Login, forgot password, reset password | Centred card on a plain ground. No navigation. |
+| `layouts/guest.blade.php` | Login, forgot password, reset password | Two columns on a wide screen: what the system is on the left, the form on the right. One column on a phone. Pages pass `heading` and `intro` slots. |
 | `layouts/app.blade.php` | Everything else | Left sidebar + topbar + content slot |
 
 ### The app shell
 
 ```
-┌──────────┬────────────────────────────────────────────┐
-│          │  Topbar: page title · 🔔 notifications · user menu │
-│ Sidebar  ├────────────────────────────────────────────┤
-│          │                                            │
-│ role-    │  <x-page-header> title + actions           │
-│ filtered │                                            │
-│ nav      │  {{ $slot }}                               │
-│          │                                            │
-└──────────┴────────────────────────────────────────────┘
++------------+----------------------------------------------+
+| Brand      | Topbar: section > page title      bell (count) |
+| Search  K  +----------------------------------------------+
+|            |                                              |
+| Grouped,   |  <x-page-header> title + actions             |
+| role-      |                                              |
+| filtered   |  {{ $slot }}                                 |
+| nav        |                                              |
+|            |                                              |
+| User card: |                                              |
+| profile,   |                                              |
+| theme,     |                                              |
+| sign out   |                                              |
++------------+----------------------------------------------+
 ```
+
+- **Command menu.** Ctrl+K (Cmd+K on a Mac) or `/` opens it anywhere. It offers every screen in the sidebar plus the role's common actions ("Raise a ticket", "Add a user"). The entries come from `AppLayout::commands()`.
+- **Notifications** open as a popover from the bell, with the six newest and a link to the full list.
+- **Assistants get a tab bar** along the bottom of a phone: their first four screens and "More", which opens the drawer.
+- **Toasts, not banners,** for flash messages. See Interaction conventions.
 
 **Build the sidebar once**, from a config array keyed by role. Seven people must never each invent their own navigation.
 
@@ -56,7 +66,7 @@ This matters more than it looks: the sidebar silently skips any entry whose rout
 | M3 | `assistant.inspections.index` | Inspection rounds |
 | M4 | `assistant.tickets.index` | My tickets |
 | M5 | `assistant.aps.index` | AP status (read-only) |
-| M5 | `engineer.dashboard` | AP health dashboard |
+| M4, M5 | `engineer.dashboard` | Engineer dashboard: their queue, waiting tickets, AP health |
 | M5 | `engineer.aps.index` | Access point list |
 | M5 | `engineer.traffic.index` | Traffic & congestion logs |
 | M4 | `engineer.tickets.index` | Ticket queue |
@@ -74,16 +84,19 @@ This matters more than it looks: the sidebar silently skips any entry whose rout
 Conventions: role prefix, kebab-case for multi-word resources (`lab-pcs`, `shift-templates`), and standard Laravel resource verbs (`index`, `create`, `edit`, `show`) beneath each. Adding a sidebar entry means adding a row here **and** to `config/atlas.php` in the same commit.
 
 ```php
-// config/atlas.php → 'navigation'
+// config/atlas.php, 'navigation'
 'assistant' => [
-    ['label' => 'My Shift', 'route' => 'assistant.shifts.today', 'icon' => 'calendar'],
-    ['label' => 'Inspections', 'route' => 'assistant.inspections.index', 'icon' => 'clipboard'],
-    ['label' => 'My Tickets', 'route' => 'assistant.tickets.index', 'icon' => 'ticket'],
-    ['label' => 'AP Status', 'route' => 'assistant.aps.index', 'icon' => 'wifi'],
+    ['label' => 'My shift',        'route' => 'assistant.shifts.today',      'icon' => 'calendar-check', 'group' => 'My work'],
+    ['label' => 'Inspections',     'route' => 'assistant.inspections.index', 'icon' => 'list-checks',    'group' => 'My work'],
+    ['label' => 'My tickets',      'route' => 'assistant.tickets.index',     'icon' => 'ticket',         'group' => 'My work'],
+    ['label' => 'Network monitor', 'route' => 'assistant.monitor.index',     'icon' => 'broadcast',      'group' => 'Network', 'short' => 'Network'],
+    ['label' => 'Access points',   'route' => 'assistant.aps.index',         'icon' => 'wifi',           'group' => 'Network'],
 ],
 ```
 
-On mobile the sidebar collapses to a hamburger drawer driven by Alpine.
+`group` is the heading the entry sits under in the sidebar. `short` is the label under the icon in the assistant's phone tab bar, where a long one is cut off. Labels are sentence case.
+
+Below `lg` the sidebar becomes a drawer, opened from the menu button in the topbar.
 
 ---
 
@@ -96,11 +109,11 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-page-header>` | `title`, `subtitle`, actions slot | Every page |
 | `<x-card>` | `title`, `subtitle`, `flush`, header + footer slots | Everywhere |
 | `<x-empty-state>` | `title`, `message`, `icon`, action slot | **Every list view** |
-| `<x-stat-tile>` | `label`, `value`, `delta`, `trend`, sparkline slot | All three dashboards |
+| `<x-stat-tile>` | `label`, `value`, `unit`, `delta`, `trend`, `tone`, `icon`, `href`, sparkline slot | Dashboards and summary rows |
 | `<x-status-badge>` | `:status` (any enum implementing `HasTone`) | Tickets, assets, shifts, alarms |
 | `<x-priority-pill>` | `:priority` | Ticket lists and detail |
 | `<x-risk-gauge>` | `:score`, `:band` | Asset detail, risk ranking |
-| `<x-data-table>` | `headers`, rows slot, `filters` / `empty` / `pagination` slots | Every index page |
+| `<x-data-table>` | `headers`, `flat`, rows slot, `filters` / `empty` / `pagination` slots. `flat` drops the frame when the table sits inside a card. | Every index page |
 | `<x-form.field>` | *internal* — label, help and error scaffolding the three controls share | Not used directly |
 | `<x-form.input>` | `name`, `label`, `help`, `type` — error display built in | Every form |
 | `<x-form.select>` | `name`, `label`, `options`, `selected`, plus **`placeholder`** (disabled prompt, for forms) or **`blank`** (selectable "any", for filter bars) — one or the other, never both | Every form |
@@ -109,8 +122,15 @@ Live in `resources/views/components/`. Build these in Sprint 0, before any modul
 | `<x-checklist-item>` | `:item`, `:result` — OK / Issue / N/A with expanding remark | Inspection form |
 | `<x-timeline>` | `:events` — actor, action, timestamp | Ticket detail, audit log |
 | `<x-modal>` | `name`, `title`, `maxWidth`, footer slot — Alpine-driven | Confirmations, quick forms |
-| `<x-alert>` | `type` — success / warning / error — plus `title`, `dismissible` | Flash messages |
+| `<x-alert>` | `type` (success, warning, error, info) plus `title`, `dismissible` | Inline notices on a page |
 | `<x-pagination>` | `:paginator` | Every index page |
+| `<x-button>` | `variant` (primary, secondary, ghost, danger), `size` (sm, lg), `href`, `icon`, `type` | Every action. A link when given `href`. |
+| `<x-icon>` | `name`, `fill` | Everywhere. Names are the map in `scripts/build-icons.mjs`. |
+| `<x-badge>` | `tone`, `dot` | Labels that are not an enum status |
+| `<x-avatar>` | `name`, `size` (sm, md, lg, xl) | People: assignees, reporters, the user menu |
+| `<x-tab-nav>` | `tabs` (label, url, count, active, tone) | Views over one list: the ticket queue, My tickets, Users |
+| `<x-ticket-due>` | `:ticket` | "Overdue by 3 hours" or "Due in 2 days", coloured by how close |
+| `<x-search-input>` | `name`, `placeholder` | The search box at the start of a list toolbar |
 
 **All of these are built.** See them rendered together at **`/dev/gallery`**, which is registered only when `APP_ENV=local`. Look there before building anything — the component you need probably already exists. If one genuinely does not, say so rather than hand-rolling it on your own screen.
 
@@ -138,7 +158,29 @@ Paired with this: **every list view needs a real `<x-empty-state>`**, because on
 
 ## Design tokens
 
-Define these in `tailwind.config.js` before the first screen is built, so nobody hand-picks colours later.
+Every colour is a CSS variable in `resources/css/app.css`, defined once for the light theme and once for the dark one, and `tailwind.config.js` reads them. Write the token, never a hex value, and the screen is themed in both modes. See [ADR-0009](decisions/ADR-0009-themed-design-system.md).
+
+### Surfaces and text
+
+| Token | Use |
+|---|---|
+| `bg-canvas` | The page behind everything |
+| `bg-surface` | Cards, tables, the sidebar, inputs |
+| `bg-sunken` | Wells inside a surface: table headers, chips, empty tracks |
+| `border-line` / `border-line-strong` | Dividers / input borders and hover edges |
+| `text-fg` / `text-fg-muted` / `text-fg-subtle` | Body text / secondary text / hints and placeholders |
+| `brand-*` | The one accent: primary buttons, links, focus, the active nav item |
+
+The `slate` scale is themed too, so an older view that still says `text-slate-500` keeps working, but new work uses the tokens above. **Check both themes** before calling a screen done: `slate-100` is pale grey in one and near-black in the other.
+
+### Type, shape and depth
+
+- **Geist** for everything, **Geist Mono** for identifiers that must be read exactly: asset tags, AP codes, MAC and IP addresses, ticket numbers. Both are self-hosted.
+- Tabular numerals are on by default in tables, `time` and `.font-mono`. Add `tabular-nums` anywhere else digits line up.
+- Page titles `text-2xl` (26px from `sm`) semibold; card titles 15px semibold; body `text-sm`.
+- Radii: `rounded-md` for controls, `rounded-lg` for chips and inner panels, `rounded-xl` for cards. Nothing else.
+- Shadows are `shadow-xs` on cards and `shadow-md` on things that float. Z-index uses the named scale: `z-sticky`, `z-drawer`, `z-popover`, `z-modal`, `z-toast`.
+- Cards pad `p-5`. Page sections are `space-y-6` apart.
 
 ### Semantic status colours
 
@@ -181,11 +223,11 @@ An unrecognised tone renders fuchsia on purpose. A bug should be visible, not si
 
 > **Semantic colour is not the brand colour.** Pick one brand accent for links, primary buttons and active nav; keep it distinct from all four status colours so a coloured button never reads as a status.
 
-### Type and spacing
+### Writing on screen
 
-- One font family throughout. One type scale — do not invent sizes per page.
-- Tabular numerals (`tabular-nums`) wherever digits line up in a column: latency, client counts, ticket numbers, dates.
-- Consistent spacing scale. If a card has `p-6`, every card has `p-6`.
+- **Sentence case** for every heading, button, label and badge. "Raise a ticket", not "Raise A Ticket". Enum labels follow the same rule.
+- **No em or en dashes** in anything a user reads. Use a full stop, a comma, or "to" for a range ("21 Sep to 27 Sep"). A time range is written `09:00-13:00`.
+- **Plain words.** Say what happens ("Take it", "Hand to somebody else"), not what the system calls it.
 
 ---
 
@@ -224,7 +266,8 @@ Every admin resource follows the same four screens. Build one, copy the shape.
 - **Loading states exist.** The dashboard poll shows a subtle indicator; form submits disable the button.
 - **Keyboard focus is visible everywhere.** Never `outline: none` without a replacement.
 - **Respect `prefers-reduced-motion`.**
-- **Flash messages go through the layout, not your page.** `layouts/app.blade.php` renders `<x-alert>` for four session keys — `status` (Breeze's), `success`, `warning` and `error`. Redirect with `->with('success', 'Ticket resolved.')` and the banner appears. Do not add your own banner to a page.
+- **Flash messages go through the layout, not your page.** `layouts/partials/flash.blade.php` shows a toast for four session keys: `status` (Breeze's), `success`, `warning` and `error`. Redirect with `->with('success', 'Ticket resolved.')` and it appears. Success fades after six seconds, a warning after ten, and an error stays until it is closed. Do not add your own banner to a page.
+- **Lists filter as you choose.** Selects in a list toolbar submit on change; search submits on Enter. A "Clear filters" link appears only when something is narrowed.
 
 ---
 
@@ -246,7 +289,7 @@ Section F item 15 requires every screen documented as a user manual. Keep this l
 My shift today · Start inspection round · Select PC · Checklist form · Inspection summary · My tickets · Raise ticket · AP status (read-only) · Notifications · Shift handover
 
 ### Engineer (desktop-first)
-AP health dashboard · AP detail with 24h chart · Traffic & congestion logs · Ticket queue · Ticket detail · Maintenance priority ranking · Asset risk detail · Notifications
+Dashboard (their queue, tickets waiting for somebody, AP health) · Access point list · AP detail with 24h chart · Traffic & congestion logs · Ticket queue · Ticket detail · Maintenance priority ranking · Asset risk detail · Notifications
 
 ### Admin
 Users · Locations · Lab PC inventory · Access point inventory · Checklist templates · Checklist items · Shift templates · Roster generator · Audit log · Reports

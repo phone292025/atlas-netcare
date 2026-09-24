@@ -34,7 +34,7 @@ FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-312, FR-313, FR-314, FR-501, 
 
 ## Screens
 
-Engineer: AP health dashboard (tiles + status grid, polling) · Network monitor with simulation controls · AP detail with 24h chart · traffic and congestion logs with date range
+Engineer: dashboard (their tickets, what is waiting, and a live AP health panel) · access point list (tiles + table, polling, worst first) · Network monitor with simulation controls · AP detail with 24h chart · traffic and congestion logs with date range
 Administrator: Network monitor with simulation controls
 Assistant: AP status, read-only · Network monitor, read-only
 
