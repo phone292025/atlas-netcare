@@ -1,4 +1,4 @@
-@props(['headers' => []])
+@props(['headers' => [], 'flat' => false])
 
 {{--
     The table every index screen uses. Build one shape, use it seven times.
@@ -75,10 +75,14 @@
     $hasRows = trim($slot->toHtml()) !== '';
 @endphp
 
-<div {{ $attributes->merge(['class' => 'bg-white rounded-lg ring-1 ring-slate-200 shadow-sm overflow-hidden']) }}>
+{{-- `flat` drops the frame, for a table that sits inside a card which
+     already draws one. --}}
+<div {{ $attributes->merge(['class' => $flat
+        ? 'overflow-hidden rounded-lg border border-line'
+        : 'overflow-hidden rounded-xl border border-line bg-surface shadow-xs']) }}>
 
     @isset($filters)
-        <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-200 bg-slate-50/60">
+        <div class="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
             {{ $filters }}
         </div>
     @endisset
@@ -87,11 +91,11 @@
         {{-- overflow-x-auto belongs here, on the table's own container. --}}
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
-                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                     <tr>
                         @foreach ($columns as $column)
                             <th scope="col"
-                                class="px-4 py-3 font-medium {{ $column['align'] }} {{ $column['class'] }}"
+                                class="h-10 px-4 font-medium {{ $column['align'] }} {{ $column['class'] }}"
                                 @if ($column['sort'] && $currentSort === $column['sort'])
                                     aria-sort="{{ $currentDirection === 'asc' ? 'ascending' : 'descending' }}"
                                 @endif>
@@ -107,14 +111,13 @@
                                            'direction' => $nextDirection,
                                            'page' => null,
                                        ]) }}"
-                                       class="inline-flex items-center gap-1 hover:text-slate-900
-                                              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded">
+                                       class="inline-flex items-center gap-1 rounded hover:text-fg">
                                         {{ $column['label'] }}
                                         @if ($isSorted)
                                             <x-icon :name="$currentDirection === 'asc' ? 'chevron-up' : 'chevron-down'"
-                                                    class="w-3.5 h-3.5 text-slate-700" />
+                                                    class="size-3.5 text-fg" />
                                         @else
-                                            <x-icon name="sort" class="w-3.5 h-3.5 text-slate-300" />
+                                            <x-icon name="sort" class="size-3.5 text-fg-subtle" />
                                         @endif
                                     </a>
                                 @else
@@ -125,14 +128,14 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tbody class="divide-y divide-line text-fg [&_td]:align-middle">
                     {{ $slot }}
                 </tbody>
             </table>
         </div>
 
         @isset($pagination)
-            <div class="border-t border-slate-200 px-4 py-3">{{ $pagination }}</div>
+            <div class="border-t border-line px-4 py-3">{{ $pagination }}</div>
         @endisset
     @else
         {{-- No rows. Every index view must supply an empty slot; without one

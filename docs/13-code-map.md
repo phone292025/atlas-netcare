@@ -540,8 +540,10 @@ Blade files. Views receive data as props and never query.
 | `auth/reset-password.blade.php` |
 | `components/alert.blade.php` |
 | `components/auth-session-status.blade.php` |
+| `components/avatar.blade.php` |
 | `components/badge.blade.php` |
 | `components/brand-mark.blade.php` |
+| `components/button.blade.php` |
 | `components/card.blade.php` |
 | `components/chart.blade.php` |
 | `components/checklist-item.blade.php` |
@@ -557,9 +559,12 @@ Blade files. Views receive data as props and never query.
 | `components/pagination.blade.php` |
 | `components/priority-pill.blade.php` |
 | `components/risk-gauge.blade.php` |
+| `components/search-input.blade.php` |
 | `components/sidebar.blade.php` |
 | `components/stat-tile.blade.php` |
 | `components/status-badge.blade.php` |
+| `components/tab-nav.blade.php` |
+| `components/ticket-due.blade.php` |
 | `components/timeline.blade.php` |
 | `dev/gallery.blade.php` |
 | `engineer/access-point.blade.php` |
@@ -659,6 +664,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
+| `Feature/TicketDueTest.php` | <x-ticket-due>: when a ticket is due, in the words a queue is scanned by |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it |
 | `Feature/Tickets/NewTicketAlertTest.php` | Engineers are told about an urgent ticket when it is raised, not only when |
 | `Feature/Tickets/RenumberTicketsCommandTest.php` | `atlas:renumber-tickets` repairs a database seeded before TicketFactory |

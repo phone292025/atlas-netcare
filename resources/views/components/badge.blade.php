@@ -1,16 +1,12 @@
-@props(['tone' => 'neutral', 'pill' => false])
+@props(['tone' => 'neutral', 'pill' => false, 'dot' => false])
 
 {{--
-    A small inline chip carrying a semantic tone.
+    A small label coloured by tone. Enums return a tone, never a colour, and
+    App\Support\Tone turns the tone into classes.
 
-    Enums return a tone, never a colour. App\Support\Tone turns that tone
-    into classes, and it is the only place in the system that does.
-
-    Do not use this component directly in a page. Use <x-status-badge> or
-    <x-priority-pill>, so the tone always comes from an enum rather than a
-    hand-typed string.
-
-    @see docs/06-ui-conventions.md — Design tokens
+    Pages use <x-status-badge> or <x-priority-pill>, so the tone always comes
+    from an enum rather than being picked on the page. `dot` adds a status dot
+    in the tone's solid colour.
 --}}
 
 @php
@@ -19,8 +15,10 @@
 @endphp
 
 <span {{ $attributes->merge([
-    'class' => "inline-flex items-center gap-1 py-0.5 text-xs font-medium
-                ring-1 ring-inset whitespace-nowrap {$shape} {$classes}",
+    'class' => "inline-flex h-6 items-center gap-1.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap {$shape} {$classes}",
 ]) }}>
+    @if ($dot)
+        <span class="size-1.5 flex-none rounded-full {{ \App\Support\Tone::solid($tone) }}" aria-hidden="true"></span>
+    @endif
     {{ $slot }}
 </span>

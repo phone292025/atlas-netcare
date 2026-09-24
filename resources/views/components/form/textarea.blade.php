@@ -43,10 +43,8 @@
         @if ($hasError) aria-invalid="true" @endif
         @if ($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
         {{ $attributes->merge([
-            'class' => 'block w-full rounded-md border-slate-300 text-sm shadow-sm
-                        focus:border-brand-500 focus:ring-brand-500
-                        disabled:bg-slate-50 disabled:text-slate-500
-                        '.($hasError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : ''),
+            'class' => 'block w-full text-sm disabled:cursor-not-allowed disabled:bg-sunken disabled:text-fg-subtle
+                        '.($hasError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''),
         ]) }}
     >{{ old($errorKey, $value) }}</textarea>
 </x-form.field>

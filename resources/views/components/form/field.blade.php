@@ -30,7 +30,7 @@
 
 <div {{ $attributes->merge(['class' => 'space-y-1.5']) }}>
     @if (filled($label))
-        <label for="{{ $fieldId }}" class="block text-sm font-medium text-slate-700">
+        <label for="{{ $fieldId }}" class="block text-sm font-medium text-fg">
             {{ $label }}
             @if ($required)
                 <span class="text-red-600" aria-hidden="true">*</span>
@@ -44,14 +44,14 @@
     {{ $slot }}
 
     @if (filled($help))
-        <p id="{{ $fieldId }}-help" class="text-xs text-slate-500">{{ $help }}</p>
+        <p id="{{ $fieldId }}-help" class="text-xs leading-relaxed text-fg-muted">{{ $help }}</p>
     @endif
 
     @if ($hasError)
         {{-- One message, not all of them. A field showing four stacked errors
              for the same value is noise; the first is the one to fix. --}}
-        <p id="{{ $fieldId }}-error" class="flex items-start gap-1 text-xs text-red-600">
-            <x-icon name="x-circle" class="w-3.5 h-3.5 flex-none mt-px" />
+        <p id="{{ $fieldId }}-error" class="flex items-start gap-1.5 text-xs font-medium text-red-700">
+            <x-icon name="warning" :fill="true" class="mt-px size-3.5 flex-none" />
             <span>{{ $errors->getBag($bag)->first(\App\Support\FormField::errorKey($name)) }}</span>
         </p>
     @endif

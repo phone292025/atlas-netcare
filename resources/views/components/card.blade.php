@@ -1,53 +1,41 @@
 @props(['title' => null, 'subtitle' => null, 'flush' => false])
 
 {{--
-    The standard content container. Everything that is not a bare table sits in
-    one of these, so pages across seven module owners share one surface.
+    A panel: a titled group of content on the page.
 
-    Padding is p-6 and stays p-6. If a card somewhere needs different padding,
-    the answer is almost always that it should not be a card.
+    `flush` drops the body padding, for a table or list that brings its own.
+    A `header` slot sits on the right of the title, a `footer` slot below.
 
-    `flush` removes the body padding, for content that manages its own edges —
-    a <x-data-table> is the usual case, because a table's own cell padding
-    already provides the inset and doubling it looks like a mistake.
-
-    Usage:
-        <x-card title="Access point health">
+        <x-card title="Access point health" subtitle="Updated every 20 seconds">
+            <x-slot:header><a href="..." class="link text-sm">View all</a></x-slot:header>
             ...
-            <x-slot:footer>
-                <a href="...">View all</a>
-            </x-slot:footer>
         </x-card>
-
-    @see docs/06-ui-conventions.md — Blade components
 --}}
 
-<div {{ $attributes->merge(['class' => 'bg-white rounded-lg ring-1 ring-slate-200 shadow-sm']) }}>
+<section {{ $attributes->merge(['class' => 'rounded-xl border border-line bg-surface shadow-xs']) }}>
     @if (filled($title) || filled($subtitle) || isset($header))
-        <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-slate-200">
+        <header class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div class="min-w-0">
                 @if (filled($title))
-                    <h3 class="text-sm font-semibold text-slate-900">{{ $title }}</h3>
+                    <h3 class="text-[15px] font-semibold text-fg">{{ $title }}</h3>
                 @endif
-
                 @if (filled($subtitle))
-                    <p class="mt-0.5 text-sm text-slate-500">{{ $subtitle }}</p>
+                    <p class="mt-0.5 text-sm text-fg-muted">{{ $subtitle }}</p>
                 @endif
             </div>
-
             @isset($header)
-                <div class="flex-none flex items-center gap-2">{{ $header }}</div>
+                <div class="flex flex-none items-center gap-2">{{ $header }}</div>
             @endisset
-        </div>
+        </header>
     @endif
 
-    <div class="{{ $flush ? '' : 'p-6' }}">
+    <div class="{{ $flush ? '' : 'p-5' }}">
         {{ $slot }}
     </div>
 
     @isset($footer)
-        <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/60 rounded-b-lg text-sm">
+        <footer class="border-t border-line px-5 py-3 text-sm">
             {{ $footer }}
-        </div>
+        </footer>
     @endisset
-</div>
+</section>

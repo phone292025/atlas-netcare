@@ -18,15 +18,15 @@
     @see docs/06-ui-conventions.md — "every list view needs a real <x-empty-state>"
 --}}
 
-<div {{ $attributes->merge(['class' => 'px-6 py-12 text-center']) }}>
-    <div class="mx-auto grid place-items-center w-12 h-12 rounded-full bg-slate-100 text-slate-400">
-        <x-icon :name="$icon" class="w-6 h-6" />
+<div {{ $attributes->merge(['class' => 'px-6 py-14 text-center']) }}>
+    <div class="mx-auto grid size-11 place-items-center rounded-xl border border-line bg-sunken text-fg-subtle">
+        <x-icon :name="$icon" class="size-5" />
     </div>
 
-    <h3 class="mt-4 text-sm font-semibold text-slate-900">{{ $title }}</h3>
+    <h3 class="mt-4 text-sm font-semibold text-fg">{{ $title }}</h3>
 
     @if (filled($message))
-        <p class="mx-auto mt-1 max-w-sm text-sm text-slate-500">{{ $message }}</p>
+        <p class="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-fg-muted">{{ $message }}</p>
     @endif
 
     @isset($action)

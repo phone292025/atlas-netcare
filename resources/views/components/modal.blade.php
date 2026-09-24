@@ -65,44 +65,52 @@
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
-    class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:py-16"
+    class="fixed inset-0 z-modal overflow-y-auto"
     x-cloak
 >
     <div x-show="show"
-         x-transition.opacity
-         class="fixed inset-0 bg-slate-900/50"
+         x-transition.opacity.duration.150ms
+         class="fixed inset-0 bg-[rgb(var(--shadow)/0.45)]"
          x-on:click="show = false"></div>
 
-    <div x-show="show"
-         x-transition
-         role="dialog"
-         aria-modal="true"
-         @if (filled($title)) aria-labelledby="modal-title-{{ $name }}" @endif
-         class="relative mx-auto w-full {{ $maxWidthClass }} bg-white rounded-lg shadow-xl ring-1 ring-slate-200">
+    {{-- A bottom sheet on a phone, a centred dialog from sm up. --}}
+    <div class="relative flex min-h-full items-end justify-center sm:items-start sm:p-6 sm:pt-[12vh]"
+         x-on:click.self="show = false">
+        <div x-show="show"
+             x-transition:enter="transition duration-200 ease-out"
+             x-transition:enter-start="translate-y-4 opacity-0 sm:translate-y-1 sm:scale-[0.98]"
+             x-transition:enter-end="translate-y-0 opacity-100 sm:scale-100"
+             x-transition:leave="transition duration-150 ease-in"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="translate-y-2 opacity-0"
+             role="dialog"
+             aria-modal="true"
+             @if (filled($title)) aria-labelledby="modal-title-{{ $name }}" @endif
+             class="relative w-full {{ $maxWidthClass }} rounded-t-2xl border border-line bg-raised pb-[env(safe-area-inset-bottom)] shadow-lg sm:rounded-2xl sm:pb-0">
 
-        @if (filled($title))
-            <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-slate-200">
-                <h2 id="modal-title-{{ $name }}" class="text-base font-semibold text-slate-900">
-                    {{ $title }}
-                </h2>
-                <button type="button"
-                        x-on:click="show = false"
-                        class="-mr-2 -mt-1 p-1 rounded text-slate-400 hover:text-slate-600
-                               focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                        aria-label="Close dialog">
-                    <x-icon name="close" class="w-5 h-5" />
-                </button>
+            @if (filled($title))
+                <div class="flex items-start justify-between gap-4 px-6 pb-1 pt-5">
+                    <h2 id="modal-title-{{ $name }}" class="text-[17px] font-semibold tracking-tight text-fg">
+                        {{ $title }}
+                    </h2>
+                    <button type="button"
+                            x-on:click="show = false"
+                            class="btn btn-ghost btn-icon btn-sm -mr-2 -mt-1"
+                            aria-label="Close dialog">
+                        <x-icon name="close" class="size-4" />
+                    </button>
+                </div>
+            @endif
+
+            <div class="px-6 py-4 text-sm leading-relaxed text-fg-muted">
+                {{ $slot }}
             </div>
-        @endif
 
-        <div class="px-6 py-5 text-sm text-slate-600">
-            {{ $slot }}
+            @isset($footer)
+                <div class="flex flex-wrap justify-end gap-2 px-6 pb-5 pt-2">
+                    {{ $footer }}
+                </div>
+            @endisset
         </div>
-
-        @isset($footer)
-            <div class="flex flex-wrap justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50/60 rounded-b-lg">
-                {{ $footer }}
-            </div>
-        @endisset
     </div>
 </div>

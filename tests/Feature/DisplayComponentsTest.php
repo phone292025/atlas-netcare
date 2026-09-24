@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RiskBand;
+use App\Support\Icons;
 use App\Support\Tone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Blade;
@@ -48,8 +49,9 @@ class DisplayComponentsTest extends TestCase
         $this->assertStringContainsString('text-emerald-600', $good);
 
         // Same trend, so the same arrow in both.
-        $this->assertStringContainsString('M6 15l6-6 6 6', $bad);
-        $this->assertStringContainsString('M6 15l6-6 6 6', $good);
+        $arrow = Icons::markup('trend-up');
+        $this->assertStringContainsString($arrow, $bad);
+        $this->assertStringContainsString($arrow, $good);
     }
 
     public function test_stat_tile_becomes_a_link_only_when_given_a_destination(): void

@@ -61,12 +61,11 @@
         }
     }
 
-    $linkClasses = 'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium
-                    text-slate-600 hover:bg-slate-100 hover:text-slate-900
-                    focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
+    $linkClasses = 'inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-md px-2.5 text-sm font-medium
+                    text-fg-muted transition hover:bg-sunken hover:text-fg';
 
-    $disabledClasses = 'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium
-                        text-slate-300 cursor-default';
+    $disabledClasses = 'inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-sm font-medium
+                        cursor-default text-fg-subtle opacity-60';
 @endphp
 
 @if ($hasPages)
@@ -75,10 +74,10 @@
          aria-label="Pagination">
 
         @if ($isLengthAware)
-            <p class="hidden sm:block text-sm text-slate-500 tabular-nums">
-                Showing <span class="font-medium text-slate-700">{{ $paginator->firstItem() }}</span>
-                to <span class="font-medium text-slate-700">{{ $paginator->lastItem() }}</span>
-                of <span class="font-medium text-slate-700">{{ $paginator->total() }}</span>
+            <p class="hidden text-sm text-fg-muted tabular-nums sm:block">
+                Showing <span class="font-medium text-fg">{{ $paginator->firstItem() }}</span>
+                to <span class="font-medium text-fg">{{ $paginator->lastItem() }}</span>
+                of <span class="font-medium text-fg">{{ $paginator->total() }}</span>
             </p>
         @else
             <span class="hidden sm:block"></span>
@@ -87,23 +86,23 @@
         <div class="flex items-center gap-1">
             @if ($paginator->onFirstPage())
                 <span class="{{ $disabledClasses }}" aria-disabled="true">
-                    <x-icon name="chevron-left" class="w-4 h-4" />
+                    <x-icon name="chevron-left" class="size-4" />
                     <span class="max-sm:sr-only">Previous</span>
                 </span>
             @else
                 <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="{{ $linkClasses }}">
-                    <x-icon name="chevron-left" class="w-4 h-4" />
+                    <x-icon name="chevron-left" class="size-4" />
                     <span class="max-sm:sr-only">Previous</span>
                 </a>
             @endif
 
             @foreach ($pages as $page)
                 @if ($page === null)
-                    <span class="px-1 text-sm text-slate-400" aria-hidden="true">&hellip;</span>
+                    <span class="px-1 text-sm text-fg-subtle" aria-hidden="true">&hellip;</span>
                 @elseif ($page === $paginator->currentPage())
                     <span aria-current="page"
-                          class="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5
-                                 text-sm font-medium text-white tabular-nums">
+                          class="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-line-strong bg-surface px-2.5
+                                 text-sm font-semibold text-fg shadow-xs tabular-nums">
                         {{ $page }}
                     </span>
                 @else
@@ -118,12 +117,12 @@
             @if ($paginator->hasMorePages())
                 <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="{{ $linkClasses }}">
                     <span class="max-sm:sr-only">Next</span>
-                    <x-icon name="chevron-right" class="w-4 h-4" />
+                    <x-icon name="chevron-right" class="size-4" />
                 </a>
             @else
                 <span class="{{ $disabledClasses }}" aria-disabled="true">
                     <span class="max-sm:sr-only">Next</span>
-                    <x-icon name="chevron-right" class="w-4 h-4" />
+                    <x-icon name="chevron-right" class="size-4" />
                 </span>
             @endif
         </div>

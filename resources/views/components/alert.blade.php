@@ -5,11 +5,11 @@
 
     TWO VOCABULARIES, ON PURPOSE
 
-    The prop is `type` — success / warning / error — because that is what a
-    controller has to hand after an action, and what session keys are
-    conventionally called. Tone is the internal colour vocabulary. This is the
-    one place the two meet, and the translation is three lines rather than a
-    concept anyone has to learn.
+    The prop is `type` (success, warning, error, or info for a plain note)
+    because that is what a controller has to hand after an action, and what
+    session keys are conventionally called. Tone is the internal colour
+    vocabulary. This is the one place the two meet, and the translation is a
+    few lines rather than a concept anyone has to learn.
 
     An unrecognised type renders fuchsia through App\Support\Tone, the same way
     an unrecognised tone does, so a typo is visible on screen instead of quietly
@@ -32,6 +32,7 @@
         'success' => \App\Support\Tone::HEALTHY,
         'warning' => \App\Support\Tone::ATTENTION,
         'error' => \App\Support\Tone::URGENT,
+        'info' => \App\Support\Tone::NEUTRAL,
         default => null,
     };
 
@@ -39,6 +40,7 @@
         'success' => 'check-circle',
         'warning' => 'warning',
         'error' => 'x-circle',
+        'info' => 'info',
         default => 'help',
     };
 @endphp
@@ -47,11 +49,11 @@
      x-show="shown"
      role="alert"
      {{ $attributes->merge([
-         'class' => 'flex items-start gap-3 rounded-md px-4 py-3 text-sm
+         'class' => 'flex items-start gap-3 rounded-lg px-4 py-3 text-sm leading-relaxed
                      ring-1 ring-inset '.\App\Support\Tone::banner($tone),
      ]) }}>
 
-    <x-icon :name="$icon" class="w-5 h-5 flex-none mt-px {{ \App\Support\Tone::accent($tone) }}" />
+    <x-icon :name="$icon" :fill="true" class="mt-0.5 size-[18px] flex-none {{ \App\Support\Tone::accent($tone) }}" />
 
     <div class="min-w-0 flex-1">
         @if (filled($title))
@@ -67,7 +69,7 @@
                 class="flex-none -mr-1 -mt-1 p-1 rounded opacity-60 hover:opacity-100
                        focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
                 aria-label="Dismiss message">
-            <x-icon name="close" class="w-4 h-4" />
+            <x-icon name="close" class="size-4" />
         </button>
     @endif
 </div>

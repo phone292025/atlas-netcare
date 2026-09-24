@@ -52,30 +52,30 @@
                 {{-- The connecting rule, stopped short on the last item so the
                      list ends rather than trailing off. --}}
                 @unless ($isLast)
-                    <span class="absolute left-[7px] top-5 -bottom-0 w-px bg-slate-200" aria-hidden="true"></span>
+                    <span class="absolute left-[7px] top-5 -bottom-0 w-px bg-line" aria-hidden="true"></span>
                 @endunless
 
-                <span class="relative z-10 mt-1.5 grid h-3.5 w-3.5 flex-none place-items-center
-                             rounded-full ring-4 ring-white {{ \App\Support\Tone::solid($get('tone')) }}">
+                <span class="relative z-10 mt-1.5 grid size-3.5 flex-none place-items-center
+                             rounded-full ring-4 ring-surface {{ \App\Support\Tone::solid($get('tone')) }}">
                     @if ($get('icon'))
-                        <x-icon :name="$get('icon')" class="h-2.5 w-2.5 text-white" />
+                        <x-icon :name="$get('icon')" class="size-2.5 text-white" />
                     @endif
                 </span>
 
                 <div class="min-w-0 flex-1 -mt-0.5">
-                    <p class="text-sm text-slate-900">
+                    <p class="text-sm text-fg">
                         <span class="font-medium">{{ $get('actor', 'System') }}</span>
                         {{ $get('action') }}
                     </p>
 
                     @if (filled($get('description')))
-                        <p class="mt-0.5 text-sm text-slate-500">{{ $get('description') }}</p>
+                        <p class="mt-0.5 text-sm text-fg-muted">{{ $get('description') }}</p>
                     @endif
 
                     @if ($at)
                         <time datetime="{{ $at->toIso8601String() }}"
                               title="{{ $at->campus()->format('D j M Y, H:i') }}"
-                              class="mt-0.5 block text-xs text-slate-400">
+                              class="mt-0.5 block text-xs text-fg-subtle">
                             {{ $at->diffForHumans() }}
                         </time>
                     @endif

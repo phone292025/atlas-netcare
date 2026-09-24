@@ -51,25 +51,45 @@
 
 <div x-data="{ result: @js((string) $current) }"
      {{ $attributes->merge([
-         'class' => 'rounded-lg bg-white p-4 ring-1 '
-             .($hasError ? 'ring-red-300' : 'ring-slate-200'),
-     ]) }}>
+         'class' => 'rounded-xl border bg-surface p-4 transition-colors '
+             .($hasError ? 'border-red-500' : 'border-line'),
+     ]) }}
+     :class="result === '{{ \App\Enums\ChecklistResult::Issue->value }}' ? 'border-red-300' : ''">
 
-    <div class="flex items-start justify-between gap-3">
-        <p class="text-sm font-medium text-slate-900">{{ $item->label ?? '' }}</p>
+    <div class="flex items-start gap-3">
+        {{-- Where this item stands, so progress down the list is visible at a glance. --}}
+        <span class="mt-0.5 grid size-5 flex-none place-items-center rounded-full border border-line-strong text-white transition"
+              :class="{
+                  'border-transparent bg-emerald-500': result === '{{ \App\Enums\ChecklistResult::Ok->value }}',
+                  'border-transparent bg-red-500': result === '{{ \App\Enums\ChecklistResult::Issue->value }}',
+                  'border-transparent bg-slate-400': result === '{{ \App\Enums\ChecklistResult::Na->value }}',
+              }"
+              aria-hidden="true">
+            <x-icon name="check" class="size-3" x-show="result === '{{ \App\Enums\ChecklistResult::Ok->value }}'" x-cloak />
+            <x-icon name="warning" :fill="true" class="size-3" x-show="result === '{{ \App\Enums\ChecklistResult::Issue->value }}'" x-cloak />
+            <x-icon name="minus" class="size-3" x-show="result === '{{ \App\Enums\ChecklistResult::Na->value }}'" x-cloak />
+        </span>
+
+        <p class="min-w-0 flex-1 text-[15px] font-medium leading-snug text-fg">{{ $item->label ?? '' }}</p>
 
         @if ($isCritical)
             <x-badge tone="urgent">Critical</x-badge>
         @endif
     </div>
 
-    {{-- Three tap targets. `flex-1` so they share the width evenly and stay
-         comfortably wide at 375px. --}}
-    <div class="mt-3 flex gap-2" role="radiogroup" aria-labelledby="{{ $resultId }}-label">
+    {{-- Three tap targets, 44px tall, sharing the width so they stay wide at 375px. --}}
+    <div class="mt-3.5 grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="{{ $resultId }}-label">
         <span id="{{ $resultId }}-label" class="sr-only">{{ $item->label ?? 'Result' }}</span>
 
         @foreach (\App\Enums\ChecklistResult::cases() as $choice)
-            <label class="flex-1 cursor-pointer select-none">
+            @php
+                $glyph = match ($choice) {
+                    \App\Enums\ChecklistResult::Ok => 'check',
+                    \App\Enums\ChecklistResult::Issue => 'warning',
+                    default => 'minus',
+                };
+            @endphp
+            <label class="cursor-pointer select-none">
                 <input type="radio"
                        name="{{ $resultName }}"
                        value="{{ $choice->value }}"
@@ -82,11 +102,12 @@
                      prefixing Tone::badge() would produce class names Tailwind
                      never sees in a scanned file, and every selected choice
                      would render colourless. --}}
-                <span class="flex items-center justify-center gap-1.5 rounded-md px-2 py-3
-                             text-sm font-medium ring-1 ring-inset
-                             text-slate-600 ring-slate-200 bg-white
+                <span class="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-surface px-2
+                             text-sm font-medium text-fg-muted ring-1 ring-inset ring-line-strong transition
+                             hover:bg-sunken active:scale-[0.98]
                              peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500
                              {{ \App\Support\Tone::choice($choice->tone()) }}">
+                    <x-icon :name="$glyph" class="size-4" />
                     {{ $choice->label() }}
                 </span>
             </label>
@@ -94,22 +115,20 @@
     </div>
 
     @error($errorKey)
-        <p class="mt-2 flex items-start gap-1 text-xs text-red-600">
-            <x-icon name="x-circle" class="w-3.5 h-3.5 flex-none mt-px" />
+        <p class="mt-2.5 flex items-start gap-1.5 text-xs font-medium text-red-700">
+            <x-icon name="warning" :fill="true" class="mt-px size-3.5 flex-none" />
             <span>{{ $message }}</span>
         </p>
     @enderror
 
     {{-- Only for Issue. A clean machine should be three taps, not six. --}}
-    {{-- x-show, not the x-collapse plugin: @alpinejs/collapse is not installed
-         and adding a package needs an ADR. A plain show is enough here. --}}
     <div x-show="result === '{{ \App\Enums\ChecklistResult::Issue->value }}'"
          x-cloak
-         class="mt-3">
+         class="mt-3.5">
         <x-form.textarea :name="$remarkName"
                          label="What is wrong?"
                          rows="2"
                          :value="$remark"
-                         help="One line is enough. This becomes the ticket description." />
+                         help="One line is enough. It becomes the ticket description." />
     </div>
 </div>

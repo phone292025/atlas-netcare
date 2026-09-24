@@ -70,13 +70,13 @@ class ComponentLibraryTest extends TestCase
     }
 
     /**
-     * A table inside a card would otherwise be inset twice — the card's p-6
-     * plus the table's own cell padding.
+     * A table inside a card would otherwise be inset twice: the card's own
+     * padding plus the table's cell padding.
      */
     public function test_card_flush_drops_the_body_padding(): void
     {
-        $this->assertStringContainsString('p-6', Blade::render('<x-card>rows</x-card>'));
-        $this->assertStringNotContainsString('p-6', Blade::render('<x-card flush>rows</x-card>'));
+        $this->assertStringContainsString('p-5', Blade::render('<x-card>rows</x-card>'));
+        $this->assertStringNotContainsString('p-5', Blade::render('<x-card flush>rows</x-card>'));
     }
 
     public function test_empty_state_renders_its_message_and_action(): void

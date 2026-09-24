@@ -127,6 +127,7 @@ class ChecklistItemTest extends TestCase
         $html = $this->render($this->item(id: 7));
 
         $this->assertStringContainsString('Choose a result for this item.', $html);
-        $this->assertStringContainsString('ring-red-300', $html);
+        // The item's own border turns red, not only the message below it.
+        $this->assertStringContainsString('border-red-500', $html);
     }
 }
