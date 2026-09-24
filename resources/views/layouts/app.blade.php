@@ -53,7 +53,7 @@
                            transition hover:border-line-strong hover:text-fg-muted">
                 <x-icon name="search" class="size-4" />
                 <span>Search or jump to</span>
-                <span class="kbd ml-auto">Ctrl K</span>
+                <span class="kbd ml-auto max-lg:hidden">Ctrl K</span>
             </button>
         </div>
 
