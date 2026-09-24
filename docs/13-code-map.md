@@ -531,7 +531,6 @@ Blade files. Views receive data as props and never query.
 | `assistant/inspections/show.blade.php` |
 | `assistant/shifts/index.blade.php` |
 | `assistant/shifts/today.blade.php` |
-| `assistant/tickets/_filters.blade.php` |
 | `assistant/tickets/create.blade.php` |
 | `assistant/tickets/index.blade.php` |
 | `assistant/tickets/show.blade.php` |

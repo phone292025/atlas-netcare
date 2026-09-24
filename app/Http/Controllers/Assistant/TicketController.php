@@ -35,7 +35,17 @@ class TicketController extends Controller
     {
         $this->authorize('viewAny', Ticket::class);
 
+        // One grouped query for the tab counts, whatever the filters say.
+        $byStatus = Ticket::query()->reportedBy($request->user())->toBase()
+            ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+
         return view('assistant.tickets.index', [
+            'counts' => [
+                'all' => (int) $byStatus->sum(),
+                'open' => (int) $byStatus->filter(fn ($n, $status) => TicketStatus::from($status)->isOutstanding())->sum(),
+                'resolved' => (int) $byStatus->get(TicketStatus::Resolved->value, 0),
+                'closed' => (int) $byStatus->get(TicketStatus::Closed->value, 0),
+            ],
             'tickets' => Ticket::query()
                 ->with(['ticketable', 'location', 'assignee'])
                 ->reportedBy($request->user())
