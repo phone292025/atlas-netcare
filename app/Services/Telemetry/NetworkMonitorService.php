@@ -92,7 +92,7 @@ class NetworkMonitorService
         $current = in_array($state, ['online', 'degraded'], true);
 
         [$label, $tone] = $state === 'stale'
-            ? ['Stale / unknown', Tone::NEUTRAL]
+            ? ['Unknown', Tone::NEUTRAL]
             : [$ap->status->label(), $ap->status->tone()];
 
         $scenario = $ap->simulation_scenario;
@@ -109,7 +109,7 @@ class NetworkMonitorService
             'accent' => Tone::accent($tone),
             'fill' => Tone::solid($tone),
             // Numbers are only shown when they describe now. A two-week-old
-            // client count beside "Stale / unknown" would contradict it.
+            // client count beside "Unknown" would contradict it.
             'clients' => $current ? $reading?->client_count : null,
             'capacity' => $ap->client_capacity,
             // Clamped for the bar: readings the simulator wrote before
