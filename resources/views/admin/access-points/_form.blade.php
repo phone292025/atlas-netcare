@@ -31,9 +31,9 @@
     </div>
 
     {{-- Administrative state, not measured state. An engineer sets
-         Under Maintenance to stop a planned outage paging anybody; the
+         Under maintenance to stop a planned outage paging anybody; the
          collector overwrites the other three from telemetry. --}}
     <x-form.select name="status" label="Status" required :options="$statuses"
                    :selected="$accessPoint?->status?->value"
-                   help="Set Under Maintenance during planned work to suppress alarms. The other states are kept up to date by the collector." />
+                   help="Set Under maintenance during planned work to suppress alarms. The other states are kept up to date by the collector." />
 </div>

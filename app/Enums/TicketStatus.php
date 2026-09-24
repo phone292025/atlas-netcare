@@ -35,7 +35,7 @@ enum TicketStatus: string implements HasLabel, HasTone
         return match ($this) {
             self::Open => 'Open',
             self::Acknowledged => 'Acknowledged',
-            self::InProgress => 'In Progress',
+            self::InProgress => 'In progress',
             self::Resolved => 'Resolved',
             self::Closed => 'Closed',
             self::Reopened => 'Reopened',

@@ -26,10 +26,10 @@ enum RiskBand: string implements HasLabel, HasTone
     public function label(): string
     {
         return match ($this) {
-            self::Low => 'Low Risk',
-            self::Medium => 'Medium Risk',
-            self::High => 'High Risk',
-            self::Critical => 'Critical Risk',
+            self::Low => 'Low risk',
+            self::Medium => 'Medium risk',
+            self::High => 'High risk',
+            self::Critical => 'Critical risk',
         };
     }
 

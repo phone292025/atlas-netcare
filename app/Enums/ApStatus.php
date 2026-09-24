@@ -29,7 +29,7 @@ enum ApStatus: string implements HasLabel, HasTone
             self::Online => 'Online',
             self::Degraded => 'Degraded',
             self::Offline => 'Offline',
-            self::Maintenance => 'Under Maintenance',
+            self::Maintenance => 'Under maintenance',
         };
     }
 

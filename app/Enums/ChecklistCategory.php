@@ -9,7 +9,7 @@ use App\Enums\Contracts\HasLabel;
  * What part of a machine a checklist item is about.
  *
  * The inspection form groups items under these headings, so an assistant
- * working down a phone screen sees "Boot & Power" then "Display" rather than
+ * working down a phone screen sees "Boot and power" then "Display" rather than
  * twelve unsorted questions. `checklist_items.category` in the ERD is a bare
  * string; per ADR-0004 every such column gets a backed enum, which is also the
  * only way the headings can have proper labels instead of `ucfirst()`.
@@ -32,7 +32,7 @@ enum ChecklistCategory: string implements HasLabel
     public function label(): string
     {
         return match ($this) {
-            self::Boot => 'Boot & Power',
+            self::Boot => 'Boot and power',
             self::Display => 'Display',
             self::Peripheral => 'Peripherals',
             self::Network => 'Network',

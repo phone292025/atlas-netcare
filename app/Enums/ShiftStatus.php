@@ -40,7 +40,7 @@ enum ShiftStatus: string implements HasLabel, HasTone
     {
         return match ($this) {
             self::Scheduled => 'Scheduled',
-            self::CheckedIn => 'Checked In',
+            self::CheckedIn => 'Checked in',
             self::Completed => 'Completed',
             self::Missed => 'Missed',
         };

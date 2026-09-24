@@ -34,7 +34,7 @@ enum InspectionOutcome: string implements HasLabel, HasTone
     {
         return match ($this) {
             self::Pass => 'Pass',
-            self::PassWithIssues => 'Pass with Issues',
+            self::PassWithIssues => 'Pass with issues',
             self::Fail => 'Fail',
         };
     }

@@ -32,7 +32,7 @@
         <p>It stops being polled and drops off the dashboard. Its telemetry readings
            and alarm history are kept — this is not a deletion, and it can be brought back.</p>
         <p class="mt-2 text-slate-500">If the unit is only coming down for planned work,
-           set its status to <span class="font-medium">Under Maintenance</span> instead.
+           set its status to <span class="font-medium">Under maintenance</span> instead.
            That suppresses alarms without losing it from the dashboard.</p>
         <x-slot:footer>
             <button type="button" @click="$dispatch('close-modal', 'confirm-remove-ap')"

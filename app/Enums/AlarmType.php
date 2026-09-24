@@ -35,15 +35,15 @@ enum AlarmType: string implements HasLabel, HasTone
     public function label(): string
     {
         return match ($this) {
-            self::ShiftStart => 'Shift Starting',
-            self::InspectionRound => 'Inspection Round Due',
-            self::Handover => 'Handover Required',
-            self::ShiftRemoved => 'Shift Removed',
-            self::TicketRaised => 'New Ticket',
-            self::TicketAssigned => 'Ticket Assigned',
-            self::ApDegraded => 'Access Point Degraded',
-            self::ApOffline => 'Access Point Offline',
-            self::SlaBreach => 'Ticket Overdue',
+            self::ShiftStart => 'Shift starting',
+            self::InspectionRound => 'Inspection round due',
+            self::Handover => 'Handover required',
+            self::ShiftRemoved => 'Shift removed',
+            self::TicketRaised => 'New ticket',
+            self::TicketAssigned => 'Ticket assigned',
+            self::ApDegraded => 'Access point degraded',
+            self::ApOffline => 'Access point offline',
+            self::SlaBreach => 'Ticket overdue',
         };
     }
 

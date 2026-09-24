@@ -84,7 +84,7 @@ class ReportsTest extends TestCase
         $this->actingAs($this->admin())
             ->get(route('admin.reports.index'))
             ->assertOk()
-            ->assertSee('Critical Risk')
+            ->assertSee('Critical risk')
             ->assertSee('Not yet scored');
     }
 

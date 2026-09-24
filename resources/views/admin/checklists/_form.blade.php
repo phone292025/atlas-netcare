@@ -75,7 +75,7 @@
             <p class="text-sm text-slate-500">
                 Asked in this order. Mark an item <span class="font-medium">critical</span> when
                 failing it means the machine cannot be used at all — that is what turns an
-                inspection into a Fail rather than Pass with Issues.
+                inspection into a Fail rather than Pass with issues.
             </p>
         </div>
         <button type="button" @click="add()"
