@@ -136,7 +136,7 @@ class MaintenancePriorityTest extends TestCase
             ->assertOk()
             ->assertSee('APU-WHY')
             ->assertSee('Age')
-            ->assertSee('Days Since Inspect');
+            ->assertSee('Days since inspection');
     }
 
     public function test_the_detail_screen_renders_for_an_asset_never_scored(): void

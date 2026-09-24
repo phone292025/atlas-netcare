@@ -41,13 +41,23 @@
         : \App\Enums\RiskBand::fromScore($numeric);
 
     $fill = \App\Support\Tone::solid($riskBand->tone());
+
+    // Each factor's most possible points, so its bar shows how much of its own
+    // share it is using. The scorer drops a factor it cannot measure and
+    // spreads the weights over the rest (RiskScoringService::combine()), so a
+    // share is the factor's weight over the weights that were measured.
+    $weights = collect(config('atlas.risk_weights', []))->collapse()->map(fn ($weight) => (float) $weight);
+    $measured = $weights->only(array_keys((array) $factors))->sum();
+    $caps = $weights->map(fn ($weight) => $measured > 0 ? $weight / $measured * 100 : 0.0);
 @endphp
 
 <div {{ $attributes->merge(['class' => 'space-y-2']) }}>
 
     @if ($showLabel)
-        <div class="flex items-baseline justify-between gap-3">
-            <span class="text-2xl font-semibold text-slate-900 tabular-nums">{{ round($numeric) }}</span>
+        <div class="flex items-center justify-between gap-3">
+            <span class="text-[32px] font-semibold leading-none tracking-tight text-fg tabular-nums">
+                {{ round($numeric) }}<span class="ml-1 text-sm font-normal text-fg-subtle">/ 100</span>
+            </span>
             <x-status-badge :status="$riskBand" />
         </div>
     @endif
@@ -55,7 +65,7 @@
     {{-- role="meter" is the honest element here: it is a measurement in a known
          range, not a task in progress. Screen readers announce the value and
          the range rather than reading a decorative bar. --}}
-    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+    <div class="h-2 w-full overflow-hidden rounded-full bg-sunken"
          role="meter"
          aria-valuenow="{{ round($numeric) }}"
          aria-valuemin="0"
@@ -69,11 +79,22 @@
         {{-- factors is the JSON column from risk_assessments: a name => weighted
              contribution map. Sorted heaviest first, because the top one or two
              are what someone would actually act on. --}}
-        <dl class="mt-3 space-y-1 text-xs">
+        <dl class="mt-5 space-y-3 text-xs">
             @foreach (collect($factors)->sortDesc() as $name => $contribution)
-                <div class="flex items-baseline justify-between gap-3">
-                    <dt class="text-slate-600">{{ Str::headline($name) }}</dt>
-                    <dd class="tabular-nums text-slate-900">{{ round((float) $contribution, 1) }}</dd>
+                @php
+                    $points = (float) $contribution;
+                    $cap = $caps->get($name) ?: max(1, $points);
+                @endphp
+                <div>
+                    <div class="flex items-baseline justify-between gap-3">
+                        <dt class="text-fg-muted">{{ \App\Models\RiskAssessment::factorLabel($name) }}</dt>
+                        <dd class="tabular-nums text-fg">
+                            {{ round($points, 1) }}<span class="text-fg-subtle"> of {{ round($cap, 1) }}</span>
+                        </dd>
+                    </div>
+                    <div class="mt-1 h-1 overflow-hidden rounded-full bg-sunken" aria-hidden="true">
+                        <div class="h-full rounded-full {{ $fill }} opacity-70" style="width: {{ (int) round(min(1, $points / $cap) * 100) }}%"></div>
+                    </div>
                 </div>
             @endforeach
         </dl>

@@ -91,4 +91,24 @@ class RiskAssessment extends Model
             ->take($limit)
             ->all();
     }
+
+    /**
+     * A factor key as words a person would say: `days_since_inspect` reads
+     * "Days since inspection". A key added to the scorer later still reads as
+     * words, just less polished, until it is named here.
+     */
+    public static function factorLabel(string $key): string
+    {
+        return match ($key) {
+            'age' => 'Age',
+            'fault_frequency' => 'Fault frequency',
+            'critical_fail_rate' => 'Critical failure rate',
+            'days_since_inspect' => 'Days since inspection',
+            'latency_trend' => 'Latency trend',
+            'packet_loss_trend' => 'Packet loss trend',
+            'offline_events' => 'Offline events',
+            'client_saturation' => 'Client saturation',
+            default => ucfirst(str_replace('_', ' ', $key)),
+        };
+    }
 }

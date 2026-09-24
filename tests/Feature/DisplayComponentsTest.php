@@ -106,12 +106,12 @@ class DisplayComponentsTest extends TestCase
             ['factors' => ['days_since_inspect' => 4.2, 'fault_frequency' => 22.5, 'age' => 11.0]]
         );
 
-        $this->assertStringContainsString('Fault Frequency', $html);
-        $this->assertStringContainsString('Days Since Inspect', $html);
+        $this->assertStringContainsString('Fault frequency', $html);
+        $this->assertStringContainsString('Days since inspection', $html);
 
         $this->assertLessThan(
-            strpos($html, 'Days Since Inspect'),
-            strpos($html, 'Fault Frequency'),
+            strpos($html, 'Days since inspection'),
+            strpos($html, 'Fault frequency'),
             'The heaviest contributing factor should be listed first.'
         );
     }
