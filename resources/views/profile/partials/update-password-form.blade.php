@@ -1,6 +1,10 @@
 <section class="grid gap-4 py-8 first:pt-0 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-8">
     <header>
         <h3 class="text-[15px] font-semibold text-fg">Change password</h3>
+        @if ($highlight ?? false)
+            {{-- The toast that explains why fades; this does not. --}}
+            <p class="mt-1 text-sm font-medium text-amber-700">Needed before you can use the rest of the system.</p>
+        @endif
         <p class="mt-1 text-sm text-fg-muted">A long one you do not use anywhere else. A phrase of a few words works well.</p>
     </header>
 
