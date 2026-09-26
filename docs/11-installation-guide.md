@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-09-25 · **For the report's Appendix (item 21).**
+> **Last updated:** 2026-09-26 · **For the report's Appendix (item 21).**
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on submission day.
 
@@ -223,7 +223,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 **Every asset scores Low** — the risk model has not run, or the assets seeded without ages. `php artisan atlas:recalculate-risk`.
 
-**Charts are blank** — no telemetry. `php artisan atlas:backfill-telemetry --days=14`, then run the aggregator.
+**Charts are blank** — nothing has been collected in the last day, because the scheduler is not running (section 7). Start `php artisan schedule:work` and the charts fill from now on. To fill the last day at once, `php artisan atlas:backfill-telemetry --days=1`. Keep `--days` that short: it overwrites every hour it covers, and a longer run reaches the seeded fortnight and flattens the three degrading access points the risk model needs.
 
 **Styles look broken** — the front end has not been built. `php artisan view:clear && npm run build`.
 

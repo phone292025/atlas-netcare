@@ -70,9 +70,10 @@ Then migrate, seed and run:
 php artisan migrate --seed
 npm run dev               # keep this running in its own terminal
 php artisan serve         # in a second terminal
+php artisan schedule:work # in a third terminal
 ```
 
-The app is at `http://127.0.0.1:8000`.
+The app is at `http://127.0.0.1:8000`. It opens without the scheduler, but the Network Monitor then shows every access point as Unknown and no alarms reach the bell. [Keeping the monitor live](#keeping-the-monitor-live) explains what the scheduler does.
 
 ### Signing in
 
@@ -154,22 +155,31 @@ That sends one real message and, if the server refuses it, reads the error and t
 
 Leaving `MAIL_PASSWORD` empty is supported. The reset screen detects it and says so, rather than claiming to have sent something. Nobody has to configure mail to work on the rest of the system.
 
-### Seeing the dashboard with data
-
-
-The AP health dashboard is driven by telemetry, and telemetry only exists once something has collected it. Two commands:
-
-```bash
-php artisan atlas:backfill-telemetry --days=14
-```
-
-Invents two weeks of plausible history and rolls it into the hourly buckets the charts read — so the 24-hour chart has something to draw immediately, instead of after you have left the collector running for a day.
+### Keeping the monitor live
 
 ```bash
 php artisan schedule:work
 ```
 
-Keeps it live: one reading per access point per minute, aggregated hourly, pruned weekly. **Without the scheduler the dashboard shows whatever the last collection produced and quietly goes stale**, which looks exactly like a broken dashboard.
+Leave this running in its own terminal. It runs seven jobs on a timer:
+
+| Job | When | What it does |
+|---|---|---|
+| `atlas:collect-telemetry` | every minute | Takes one reading per access point. One that has been silent for 5 minutes goes offline and gets a ticket |
+| `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
+| `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
+| `atlas:aggregate-telemetry` | hourly | Rolls the last 3 hours of readings into the hourly chart data |
+| `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |
+| `atlas:generate-shifts` | Sundays at 18:00 | Builds next week's roster |
+| `atlas:prune-telemetry` | Sundays at 03:15 | Deletes raw readings older than 90 days and hourly data older than 12 months |
+
+The times are campus time.
+
+Without the scheduler nothing looks broken at first. Five minutes after the last reading, every access point on the Network Monitor reads Unknown, and no new alarms reach the bell.
+
+The charts don't need it to start with. `migrate --seed` writes two weeks of hourly history, including three access points whose latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
+
+> **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings over every hour it covers and re-aggregates them, so those three trends go flat. A one-day backfill dropped their average latency from 153 ms to 41 ms. Use it only for access points with no history.
 
 Telemetry is simulated by default (`ATLAS_TELEMETRY_DRIVER=simulated`). Switching to real access points is that one `.env` value plus implementing `SnmpTelemetrySource` — nothing else in the system changes. See [ADR-0002](docs/decisions/ADR-0002-telemetry-source-driver.md).
 

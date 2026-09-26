@@ -2,7 +2,7 @@
 
 **Track:** B · **Owner:** *unassigned* · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
 
-> **Last updated:** 2026-09-19
+> **Last updated:** 2026-09-26
 
 > **The hardest module, and the project's headline feature.** Give it to whoever is strongest with data. It cannot slip.
 
@@ -98,8 +98,9 @@ Latency averages **exclude offline readings**. An unreachable AP has no latency,
 ## Running it
 
 ```bash
-php artisan atlas:backfill-telemetry --days=14   # invent history, then aggregate
 php artisan schedule:work                        # keep it live
 ```
+
+In demo mode `migrate --seed` already writes two weeks of hourly history, so a fresh install needs no backfill. Running one after seeding overwrites the hours it covers with steady readings and flattens the three degrading access points. Keep it for access points with no history.
 
 Without `schedule:work` the dashboard shows whatever the last manual collection produced and quietly goes stale — which looks exactly like a broken dashboard.
