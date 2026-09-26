@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-09-23 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-09-26 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -157,7 +157,7 @@ Keep the tree **shallow**. Deep nesting is where student projects lose people.
 
 2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or traverse a relationship that triggers a query. This is the single most common cause of N+1 problems in student projects, and it will be visible to anyone who opens the debug bar during your demo.
 
-3. **No magic numbers.** Every threshold, weight, SLA hour and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead. When a marker asks "where did 120 ms come from?", the answer should be one file.
+3. **No magic numbers.** Every threshold, weight, SLA hour and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead. When somebody asks "where did 120 ms come from?", the answer should be one file.
 
 4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every teammate's local database and produces the "it works on my machine" bug that costs a whole evening.
 
@@ -253,7 +253,7 @@ return [
 | `atlas:generate-shifts` | weekly, Sunday 18:00 | Materialises next week's shifts from templates |
 | `atlas:prune-telemetry` | weekly, Sunday 03:15 | Drops raw readings past retention |
 
-Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all seven scheduled commands; `php artisan schedule:work` does the same in a terminal. **Document this in the Installation Guide** for the report appendix — graders do check.
+Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all seven scheduled commands; `php artisan schedule:work` does the same in a terminal.
 
 ---
 
@@ -263,7 +263,7 @@ Times are on the campus clock. Locally, one Windows Task Scheduler entry running
 |---|---|---|
 | **Unit** | Pure logic: `RiskScoringService`, the enums, `Tone`, the config's invariants | `tests/Unit/` |
 | **Feature** | Every service against a real database, and every screen through HTTP: a happy path, an empty state and an authorisation failure | `tests/Feature/{Module}/` |
-| **Manual / UAT** | 4 documented sessions, required by the guidelines | [07-testing.md](07-testing.md) |
+| **Manual / UAT** | 4 documented sessions | [07-testing.md](07-testing.md) |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of test fixtures.
 
@@ -271,7 +271,7 @@ Use the same factories that power `DemoDataSeeder`. Do not maintain a second set
 
 ## What we deliberately did not do
 
-Recorded here so nobody re-proposes them, and so the viva answer is ready.
+Recorded here so nobody re-proposes them.
 
 | Not doing | Why |
 |---|---|
@@ -279,5 +279,5 @@ Recorded here so nobody re-proposes them, and so the viva answer is ready.
 | WebSockets / Laravel Reverb | A persistent server process and a real debugging burden, for a dashboard whose data changes once a minute. [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md) |
 | Livewire or Inertia | A second mental model on top of Laravel, for seven people learning Laravel. [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md) |
 | Separate mock database | Doubles migrations, breaks foreign keys across the boundary, schemas drift. [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md) |
-| Machine learning for risk scoring | Cannot be explained in a viva. Weighted factors can. [ADR-0007](decisions/ADR-0007-weighted-risk-not-ml.md) |
+| Machine learning for risk scoring | Nobody can say why a model scored an asset the way it did. Weighted factors show their working. [ADR-0007](decisions/ADR-0007-weighted-risk-not-ml.md) |
 | Microservices, event sourcing, CQRS | Not appropriate at this scale by any measure. |

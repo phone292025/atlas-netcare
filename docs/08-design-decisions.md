@@ -1,8 +1,8 @@
 # What the proposal did not say
 
-> **Last updated:** 2026-08-29
+> **Last updated:** 2026-09-26
 >
-> **Read this before your viva.** Every decision here was made while building, because the code needed an answer and the proposal did not have one. None of them were agreed by the team.
+> Every decision here was made while building, because the code needed an answer and the proposal did not have one. None of them were agreed by the team.
 
 ## Why this file exists
 
@@ -10,11 +10,7 @@ Your approved proposal describes what Atlas NetCare does. It does not describe i
 
 So at roughly forty points during the build, something had to be decided. I decided them. They are all working, all tested, and all invented.
 
-That matters for two reasons.
-
-If your supervisor asks "why 120 milliseconds?", the true answer right now is "an AI picked it". That is a weak answer in a viva. The strong answer is "we agreed it, because that is roughly where a video call starts to stutter".
-
-The second reason is that the marking scheme rewards this. Depth of approach and design justification are graded. A decision you can explain is worth marks. The same decision, unexplained, is worth nothing and invites a hard question.
+That matters. Ask "why 120 milliseconds?" and the true answer right now is "an AI picked it". A better answer is "we agreed it, because that is roughly where a video call starts to stutter".
 
 ## How to use this
 
@@ -260,7 +256,7 @@ A status rather than an absence of one, so the roster can show it and a report c
 
 **I chose:** a notification bell with an unread count. No email, no phone push.
 
-**Say this in your Limitations section.** Mobile push needs a native app or service worker infrastructure this project does not have time for. Stating the limit honestly is better than a marker noticing it.
+Mobile push needs a native app or service worker infrastructure this project does not have time for.
 
 Phone Myat Ko has said the team is willing to add email. **As of 2026-08-29 nothing stands in the way of it:** FR-102 needed a working mailer, so one exists, and every account now has a deliverable address. Emailing alarms is a decision nobody has taken rather than infrastructure nobody has. See [Q11](02-open-questions.md#q11).
 
@@ -319,7 +315,7 @@ Each access point gets a fixed personality from its ID, so the same one is consi
 
 Measured on generated data: 3 to 4 clients and about 21 ms overnight, against 31 to 33 clients and about 210 ms at the 11:00 peak.
 
-**Why go to that trouble.** If latency were random noise, M7's predictive scoring would have nothing real to find, and a sharp marker looking at the chart would see it. The correlation has to actually be there.
+**Why go to that trouble.** If latency were random noise, M7's predictive scoring would have nothing real to find. The correlation has to actually be there.
 
 ### The six campus locations
 
@@ -333,8 +329,6 @@ Check these against real APU room codes. It costs nothing and makes the demo mor
 
 Forty access points at one reading a minute is about 1.7 million rows a month. Keeping everything forever would make the database the largest thing in the project.
 
-Worth mentioning in the report even though it is a small decision. It shows you thought about data volume rather than ignoring it.
-
 ---
 
 ## Still genuinely open
@@ -345,7 +339,7 @@ Worth mentioning in the report even though it is a small decision. It shows you 
 
 ## Sign-off
 
-When the group has been through this list, record it here. That record is evidence of design reasoning, and it is worth marks.
+When the group has been through this list, record it here.
 
 | Date | Who was there | Decisions changed |
 |---|---|---|

@@ -1,8 +1,8 @@
 # Testing
 
-> **Last updated:** 2026-09-23 · **Worth 10 marks in the report rubric**
+> **Last updated:** 2026-09-26
 
-Section F item 17 requires a test plan covering unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
+The test plan covers unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
 ---
 
@@ -33,7 +33,7 @@ Not everything. Test the code where a mistake would be silent:
 
 ## Test case format
 
-Every test case in the report uses this shape. Fill in **Actual Result** — the guidelines explicitly require it.
+Every test case uses this shape. Fill in **Actual Result** as well as the expected one.
 
 | Field | Example |
 |---|---|
@@ -53,16 +53,16 @@ Number cases as `TC-{module}-{seq}` so they trace back to modules and requiremen
 
 ## Coverage to aim for
 
-At minimum, one test case per functional requirement in [01-requirements.md](01-requirements.md). That is roughly 50 cases across seven modules — about 7 each, which is achievable if each owner writes theirs as they build rather than in week 12.
+At minimum, one test case per functional requirement in [01-requirements.md](01-requirements.md). That is roughly 50 cases across seven modules — about 7 each.
 
-Include **negative cases**. A test plan that only proves things work when used correctly is a weak test plan, and markers notice.
+Include **negative cases**. A test plan that only proves things work when used correctly is a weak test plan.
 
 ---
 ---
 
 ## Four habits that came out of building this
 
-Every one of these was learned by shipping a defect through a fully green suite. They are worth a paragraph in the report's testing section, because they show the difference between having tests and having *useful* tests.
+Every one of these was learned by shipping a defect through a fully green suite. They show the difference between having tests and having *useful* tests.
 
 **A route whose tests only assert failures has never been rendered.** M3 shipped three 500 errors onto routes that all had tests, every one asserting a 403 or a redirect. Nothing had ever fetched those pages successfully. Every screen now has a test that loads it, in its empty state as well as its populated one — empty is what every screen looks like on the day it ships.
 
@@ -81,7 +81,7 @@ php artisan test -c phpunit.mariadb.xml   # MariaDB, nothing skipped
 
 The skip matters: `SchemaIntegrityTest` guards the timestamp trap and skips itself on SQLite, so until CI existed **the test protecting against the worst of the four had never run**. The MariaDB job earned itself on its first run by failing a telemetry test that had been green for weeks while measuring the wrong thing.
 
-`php artisan atlas:check-schema` still audits the live database for schema traps and contradictory data, and is read only, so it is safe to point at real data. **Run it after any migration and before submission.**
+`php artisan atlas:check-schema` still audits the live database for schema traps and contradictory data, and is read only, so it is safe to point at real data. **Run it after any migration.**
 
 ---
 
@@ -96,7 +96,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 | NFR-05 | Checklist operable one-handed at 375 px | Chrome device emulation at 375 px, plus one real phone. Record a screenshot. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
 | NFR-10 | Keyboard reachable with visible focus | Tab through every form and the ticket queue. Record any element that traps focus or shows none. |
-| NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. **State this honestly in the report** as a design target with the mitigations that support it, not as a measured result. |
+| NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. It is a design target with the mitigations that support it, not a measured result. |
 
 > Do not claim to have measured NFR-01. Claiming an unverifiable result is worse than acknowledging the limit.
 
@@ -104,7 +104,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 ## User Acceptance Testing
 
-**Four sessions are required.** Guidelines Section F item 17: "Perform 4 user acceptance testing and documented the feedback."
+**Four sessions, with the feedback from each written down.**
 
 ### Who
 
@@ -132,17 +132,6 @@ Date · participant role · tasks attempted · completion rate · verbatim feedb
 > The last one matters most. A UAT that produced no changes reads as a formality. Showing "participant could not find the handover form, so we moved it into the check-out flow" demonstrates the feedback loop the Agile methodology in your proposal claims.
 
 ---
-
-## Before submission
-
-- [ ] Every functional requirement has at least one test case
-- [ ] Every test case has an **actual result** filled in
-- [ ] Negative and validation cases included
-- [ ] Unit tests pass — `php artisan test` clean
-- [ ] NFR-02 timings recorded with real numbers
-- [ ] 4 UAT sessions documented with feedback and resulting changes
-- [ ] Screenshots of failures alongside successes
-- [ ] Test data sets included, as the guidelines require
 
 ## A fifth habit, from the end-to-end review of 2026-09-04
 

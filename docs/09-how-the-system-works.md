@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-09-04 · **Covers:** all seven modules, built and tested. What remains is the report, not the code.
+> **Last updated:** 2026-09-26 · **Covers:** all seven modules, built and tested.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -267,12 +267,9 @@ Two habits came out of building this.
 
 **Real SNMP telemetry.** The driver is a deliberate stub that throws with instructions.
 
-**Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only. This belongs in the Limitations section of the report.
+**Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only.
 
 Email is no longer on this list. FR-102 sends a password reset link through Gmail SMTP and it was confirmed arriving on a phone on 2026-08-29. Alarms could now be emailed too, since the account and the configuration exist — that is a choice nobody has made rather than a thing that cannot be done.
-
-**The report diagrams.** Context Diagram, DFD 0, and the consolidated ERD are worth 15 marks and none exist. Each of the seven built modules also owes a DFD 1, a data dictionary, and a flowchart from whoever owns it. Nobody owns one yet. **With all seven modules coded, this is now the largest single block of marks still outstanding.**
-
 
 ---
 

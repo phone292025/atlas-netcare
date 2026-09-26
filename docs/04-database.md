@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-09-23 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-09-26 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -293,7 +293,7 @@ erDiagram
     }
 ```
 
-> For the report you need **one consolidated ERD** (Section F item 13). These three clusters are for working comprehension — redraw them as a single diagram in draw.io or Lucidchart before submission.
+> These three clusters are for working comprehension. The consolidated ERD is Figure 3 in [12-system-diagrams.md](12-system-diagrams.md).
 
 ---
 
@@ -345,7 +345,7 @@ Two things follow for anyone adding a column:
 
 ### `risk_assessments` keeps history
 
-A new row per asset per run, rather than overwriting. Costs a few thousand rows and buys the ability to chart an asset's risk trending upward over time — one of the strongest figures available for the report.
+A new row per asset per run, rather than overwriting. Costs a few thousand rows and buys the ability to chart an asset's risk trending upward over time.
 
 The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `access_points` are a deliberate cache of the latest assessment, so list views do not need a subquery. Update them in the same transaction that writes the assessment.
 
@@ -408,21 +408,3 @@ The observer originally wrote only `changes`, from `getChanges()`. That answers 
 On `users`, `lab_pcs`, `access_points`, `tickets`. Set **only** by `DemoDataSeeder`, and read by `php artisan atlas:purge-demo-data`.
 
 Do **not** add a global Eloquent scope that hides demo rows. It will silently hide data during a demo and cost someone an afternoon.
-
----
-
-## Data dictionary ownership
-
-Section F item 12 requires an **individual** data dictionary per member. Each owner documents the tables their module owns.
-
-| Module | Tables |
-|---|---|
-| M1 | `users`, `audit_logs` |
-| M2 | `locations`, `lab_pcs`, `access_points` |
-| M3 | `checklist_templates`, `checklist_items`, `inspections`, `inspection_results` |
-| M4 | `tickets`, `ticket_comments` |
-| M5 | `telemetry_readings`, `telemetry_hourly` |
-| M6 | `shift_templates`, `shifts`, `alarms` |
-| M7 | `risk_assessments` |
-
-Data dictionary format for each column: **name · type · size · constraints · description · example value**.

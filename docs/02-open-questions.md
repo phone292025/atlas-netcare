@@ -1,18 +1,18 @@
 # Open Questions
 
-> **Last updated:** 2026-09-04 · **Bring this to every supervisor meeting — it is the agenda.**
+> **Last updated:** 2026-09-26
 
-Eleven things the approved proposal leaves undefined, or that building it exposed. Ten are settled; Q8 belongs to the report rather than the code. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
+Eleven things the approved proposal leaves undefined, or that building it exposed. Ten are settled. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
 **Status key:** `Open` — no assumption safe enough to build on · `Assumed` — building on a stated default · `Decided` — settled, recorded, safe
 
-**Never delete a resolved question.** Change its status and add the resolution. The history is evidence of design reasoning for the report.
+**Never delete a resolved question.** Change its status and add the resolution. The history records why the code is the way it is.
 
 ---
 
 ## Summary
 
-> **Nine of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because they are the ones a marker is most likely to ask you to justify. Q6 is the one exception: it was put to the project lead and answered, on 2026-09-04.
+> **Nine of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because the most code rests on them. Q6 is the one exception: it was put to the project lead and answered, on 2026-09-04.
 
 | # | Question | Status | Built in | Where to change it |
 |---|---|---|---|---|
@@ -20,10 +20,10 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 | [Q2](#q2) | Is the checklist fixed or admin-editable? | ✅ Settled | M3 | `ChecklistService` |
 | [Q3](#q3) | What is the full ticket lifecycle and SLA? | ✅ Settled | M4 | `TicketService::TRANSITIONS`, `config/atlas.php` → `sla_hours` |
 | [Q4](#q4) | Are shifts recurring or assigned individually? | ✅ Settled | M6 | `ShiftService::generateWeek()` |
-| [Q5](#q5) | How does an alarm reach an assistant? | ✅ Settled | M6 | `AlarmService` — **state the in-app-only limit in the report** |
+| [Q5](#q5) | How does an alarm reach an assistant? | ✅ Settled | M6 | `AlarmService` |
 | [Q6](#q6) | Who creates user accounts? | ✅ Decided | M1 | `EnsurePasswordIsChanged` middleware |
 | [Q7](#q7) | Do lab PCs self-report health? | ✅ Settled | M2, M3 | — inspections are the only health source |
-| [Q8](#q8) | Where do the NFRs live? | `Assumed` | Report | Week 12 |
+| [Q8](#q8) | Where do the NFRs live? | `Assumed` | Requirements | [01-requirements.md](01-requirements.md) → NFR-01, NFR-02 |
 | [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
 | [Q10](#q10) | How long is telemetry retained? | ✅ Settled | M5 | `config/atlas.php` → `retention` |
 | [Q11](#q11) | How does a password reset email reach anyone? | ✅ Settled | M1 | `.env` → `ATLAS_MAIL_ACCOUNT`, `MAIL_PASSWORD` |
@@ -33,11 +33,11 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 <a id="q1"></a>
 ## Q1 — What numerically counts as a "degraded" access point?
 
-**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Blocks:** nothing further
 
-> Built from the working assumption below, which nobody has ratified. **The numbers are five lines in `config/atlas.php` under `thresholds`** — changing them is a config edit, and `TelemetryClassificationTest` covers each threshold separately so you will see immediately what moves. The one thing still worth doing is sanity-checking 120 ms against an actual APU access point, even informally; a number nobody has ever compared to reality is the kind of thing a viva asks about.
+> Built from the working assumption below, which nobody has ratified. **The numbers are five lines in `config/atlas.php` under `thresholds`** — changing them is a config edit, and `TelemetryClassificationTest` covers each threshold separately so you will see immediately what moves. The one thing still worth doing is sanity-checking 120 ms against an actual APU access point, even informally. Nobody has ever compared that number to reality.
 
-The proposal promises to "highlight congested zones" but never defines congestion. Without numbers there is nothing to code, nothing to test, and nothing to defend in the viva.
+The proposal promises to "highlight congested zones" but never defines congestion. Without numbers there is nothing to code and nothing to test.
 
 **Working assumption**
 
@@ -56,7 +56,7 @@ All values live in `config/atlas.php` under `thresholds`. The three-reading requ
 <a id="q2"></a>
 ## Q2 — Is the PC checklist fixed, or can an administrator edit it?
 
-**Status:** ✅ `Settled` — built this way in M3 on 2026-08-28 · **Owner:** M3 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built this way in M3 on 2026-08-28 · **Blocks:** nothing further
 
 A fixed list is one table and one seeder. An editable list is two tables and a CRUD area — and it gives the Admin module enough substance for its own DFD Level 1 and flowchart.
 
@@ -71,7 +71,7 @@ A fixed list is one table and one seeder. An editable list is two tables and a C
 <a id="q3"></a>
 ## Q3 — What is the full ticket lifecycle, and is there an SLA?
 
-**Status:** ✅ `Settled` — the proposal below was adopted and built in M4 on 2026-08-28 · **Owner:** M4 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — the proposal below was adopted and built in M4 on 2026-08-28 · **Blocks:** nothing further
 
 > **Adopted rather than ratified.** The team never met on this, and M4 could not be built without an answer, so the proposal below was implemented exactly as written. **If the team wants a different lifecycle, say so — it is still cheap to change.** The state machine is one array in `TicketService::TRANSITIONS`, the SLA hours are three lines in `config/atlas.php`, and both are covered by tests that will tell you immediately what breaks.
 >
@@ -115,7 +115,7 @@ open ──▶ acknowledged ──▶ in_progress ──▶ resolved ──▶ c
 <a id="q4"></a>
 ## Q4 — Are shifts recurring, or assigned one at a time?
 
-**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Owner:** M6 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Blocks:** nothing further
 
 **Working assumption:** weekly recurring **templates** (e.g. "Mondays 09:00–13:00, Level 6 IT Lab, 2 assistants") that generate dated `shifts` records one week ahead via a scheduled command. An admin can then override any individual shift.
 
@@ -126,20 +126,18 @@ Recurring templates mean the admin sets up a pattern once instead of entering sh
 <a id="q5"></a>
 ## Q5 — How does an alarm actually reach an assistant?
 
-**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Owner:** M6 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built as assumed in M6 on 2026-08-29 · **Blocks:** nothing further
 
 "Alarm" in the proposal could mean an in-app badge, an email, a browser push, or a phone notification. Mobile push is out of reach for this project — it needs a native app or service worker infrastructure we do not have time for.
 
 **Working assumption:** in-app notification bell with an unread count, backed by the `alarms` table and polled alongside the dashboard. Email is wired through Laravel's `log` mailer in development so it is demonstrable without an SMTP account, and can be switched to real SMTP with one `.env` change.
-
-**Say this in the report's Limitations section** — it is an honest constraint, and stating it is better than a marker noticing it.
 
 ---
 
 <a id="q6"></a>
 ## Q6 — Who creates user accounts?
 
-**Status:** ✅ **`Decided`** 2026-09-04 · **Owner:** M1 owner · **Built in:** M1
+**Status:** ✅ **`Decided`** 2026-09-04 · **Built in:** M1
 
 The proposal's Keynote states the system is "for professional use only" and "will refrain from sharing with public." Taken literally that means **self-registration must not exist** — which changes what you install in week one.
 
@@ -147,13 +145,13 @@ The proposal's Keynote states the system is "for professional use only" and "wil
 
 **Why it matters now:** getting this wrong means either building a registration flow nobody wants, or retro-fitting admin account creation after other modules already depend on `users`. Five minutes of agreement now saves a day later.
 
-**Question for the team:** on first login, should a user be forced to change an admin-set password? *(Recommendation: yes — it is one middleware and it is a good answer when a marker asks about security.)*
+**Question for the team:** on first login, should a user be forced to change an admin-set password? *(Recommendation: yes, it is one middleware.)*
 
 ### Decided 2026-09-04: yes
 
 `EnsurePasswordIsChanged` is appended to the `web` middleware group. A user carrying `must_change_password` is redirected to **Profile** from every other screen until they set their own password; `logout` and the profile screen itself stay reachable, so the control is not a trap. Changing the password through the profile form or through the emailed reset link both clear the flag.
 
-**Why this was worth doing rather than deleting the column.** The flag was already written in three places and shown on the account screen as a badge reading "Must be changed at next sign-in", and `11-installation-guide.md` told anybody installing the system that the administrator "asks for a new one immediately". Neither was true. The column had been created under the provisional-values rule and the enforcement deliberately left out pending this answer, which was correct process, but it left two documents describing behaviour that did not exist. A visible control that does nothing is worse than no control, and a marker who reads the badge will test it.
+**Why this was worth doing rather than deleting the column.** The flag was already written in three places and shown on the account screen as a badge reading "Must be changed at next sign-in", and `11-installation-guide.md` told anybody installing the system that the administrator "asks for a new one immediately". Neither was true. The column had been created under the provisional-values rule and the enforcement deliberately left out pending this answer, which was correct process, but it left two documents describing behaviour that did not exist. A visible control that does nothing is worse than no control.
 
 Decided by the project lead rather than the full team, which is a weaker basis than Q1 to Q5 deserve but stronger than leaving a false claim on screen.
 
@@ -162,31 +160,31 @@ Decided by the project lead rather than the full team, which is a weaker basis t
 <a id="q7"></a>
 ## Q7 — Do lab PCs report their own health, or only get inspected?
 
-**Status:** `Assumed` · **Owner:** M2 and M7 owners · **Blocks:** risk scoring inputs
+**Status:** `Assumed` · **Blocks:** risk scoring inputs
 
 Automatic reporting would require an agent installed on every campus lab machine. APU IT will not permit that, and it is not in the proposal's scope statement.
 
 **Working assumption: inspection-only.** Every fact the system knows about a lab PC arrives through an assistant completing a checklist, or through a ticket raised against it. Risk scoring therefore uses inspection history, ticket history, and inventory age — not live machine telemetry.
 
-**This must appear in the report's Assumptions section.** It is a real constraint, it explains why lab PC risk scoring works the way it does, and stating it pre-empts an obvious viva question.
+It is a real constraint, and it explains why lab PC risk scoring works the way it does.
 
 ---
 
 <a id="q8"></a>
 ## Q8 — Where do the non-functional requirements live?
 
-**Status:** `Assumed` · **Owner:** group leader · **Blocks:** final report structure
+**Status:** `Assumed`
 
 The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 minutes and response time under 7 seconds. Neither number appears in the proposal body.
 
-**Working assumption:** carried into [01-requirements.md](01-requirements.md) as NFR-01 and NFR-02, written into a new Non-Functional Requirements section in the final report, and used as explicit pass criteria in the test plan.
+**Working assumption:** carried into [01-requirements.md](01-requirements.md) as NFR-01 and NFR-02, and used as explicit pass criteria in the test plan.
 
 ---
 
 <a id="q9"></a>
 ## Q9 — Does "Traffic and Congestion Logs" mean per-AP history or campus-wide trends?
 
-**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Blocks:** nothing further
 
 **As built:** both, from **one screen**. `engineer.traffic.index` unfiltered is the campus trend; filtered to one access point it is that AP's history. Two screens reading the same table would have been two things to keep in step. The chart above the table is grouped in the database rather than in PHP — a month of hourly rows across forty access points is ~29,000, and summing them in a collection works fine on seeded data and falls over on real volume.
 
@@ -197,20 +195,18 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 <a id="q10"></a>
 ## Q10 — How long is telemetry retained?
 
-**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Owner:** M5 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built as assumed in M5 on 2026-08-28 · **Blocks:** nothing further
 
 **Working assumption:** 90 days of raw readings, 12 months of hourly aggregates, pruned weekly by `atlas:prune-telemetry`.
 
 **As built** exactly that, from `config('atlas.retention')`. The command deletes in chunks rather than one statement — a single `DELETE` across a million rows holds the table long enough to notice, and this is scheduled to run while the system is up. `--dry-run` reports what would go without touching anything.
-
-Worth stating in the report even though it is a small decision — it demonstrates that data volume was considered rather than ignored, which is exactly the kind of thing the "depth of your approach" criterion rewards.
 
 ---
 
 <a id="q11"></a>
 ## Q11 — How does a password reset email actually reach anyone?
 
-**Status:** ✅ `Settled` — built on 2026-08-29 · **Owner:** M1 owner · **Blocks:** nothing further
+**Status:** ✅ `Settled` — built on 2026-08-29 · **Blocks:** nothing further
 
 > **One manual step remains, and it is not optional.** Somebody has to paste a Google app password into `MAIL_PASSWORD` and run `php artisan atlas:mail-test`. Until that happens the reset screen says so instead of pretending. Nothing else in the system depends on it.
 
@@ -247,7 +243,7 @@ The rejected alternatives were Mailpit, which proves the code path but demonstra
 
 ### Still worth knowing
 
-**Requesting a reset for an unknown address says so.** That is Laravel's default and it confirms which addresses exist on the system. On an internal tool with no self-registration the disclosure is small, and the alternative is a demo where a typo looks identical to success. **Left as it is deliberately; say so in the report rather than being asked about it.**
+**Requesting a reset for an unknown address says so.** That is Laravel's default and it confirms which addresses exist on the system. On an internal tool with no self-registration the disclosure is small, and the alternative is a demo where a typo looks identical to success. **Left as it is on purpose.**
 
 **The first message from a new app password usually lands in spam.** Look there before concluding it failed.
 

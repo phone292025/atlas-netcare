@@ -1,8 +1,8 @@
 # Architecture Decision Records
 
-> **Last updated:** 2026-09-23
+> **Last updated:** 2026-09-26
 
-An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and so that in the viva anyone on the team can explain any choice.
+An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and anyone on the team can explain any choice.
 
 ## Index
 

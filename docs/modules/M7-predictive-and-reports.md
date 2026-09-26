@@ -1,8 +1,8 @@
 # M7 — Predictive Risk and Reports
 
-**Track:** B · **Owner:** *unassigned* · **Sprint:** 4 · **Depends on:** M3, M4, M5 · **Blocks:** nothing
+**Track:** B · **Sprint:** 4 · **Depends on:** M3, M4, M5 · **Blocks:** nothing
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-26
 
 > **This module is why the project answers Case Study Category 4.** Without it, Atlas NetCare is monitoring and ticketing — not predictive maintenance. It is not optional.
 
@@ -36,10 +36,10 @@ All roles as permitted: reports — ticket volume by category and priority, mean
 
 ## Key decisions
 
-- **Weighted factors, not machine learning.** See [ADR-0007](../decisions/ADR-0007-weighted-risk-not-ml.md). Every number must be defensible in the viva.
+- **Weighted factors, not machine learning.** See [ADR-0007](../decisions/ADR-0007-weighted-risk-not-ml.md). Every number needs a stated reason.
 - **Weights live in `config('atlas.risk_weights')`**, so they can be tuned live during the demo without a code change. That is a good moment to have prepared.
-- **Store the factors as JSON and show them in the UI.** A bare score is a number; a score with "five years old, three critical failures last month, not inspected in six weeks" is analytics. This is the difference the rubric is looking for.
-- **Keep assessment history.** One row per asset per run. It costs a few thousand rows and buys a risk-trend chart, which is one of the strongest figures available for the report.
+- **Store the factors as JSON and show them in the UI.** A bare score is a number; a score with "five years old, three critical failures last month, not inspected in six weeks" is analytics.
+- **Keep assessment history.** One row per asset per run. It costs a few thousand rows and buys a risk-trend chart.
 - **Update the cached columns in the same transaction** as writing the assessment, or list views will disagree with detail views.
 
 ## Reports to build
@@ -54,7 +54,7 @@ All roles as permitted: reports — ticket volume by category and priority, mean
 
 ## Built on 2026-08-30
 
-Everything below except the report diagrams. 29 tests, and the scoring ones pin their own weights rather than reading config — a test that reads the same configuration as the code cannot detect a weight changing, which is the one thing these numbers need protecting from. The clamp and the renormalising were both checked by reintroducing the bug and confirming the tests fail.
+Everything below. 29 tests, and the scoring ones pin their own weights rather than reading config — a test that reads the same configuration as the code cannot detect a weight changing, which is the one thing these numbers need protecting from. The clamp and the renormalising were both checked by reintroducing the bug and confirming the tests fail.
 
 **Three decisions worth being able to defend.**
 
@@ -75,10 +75,9 @@ Everything below except the report diagrams. 29 tests, and the scoring ones pin 
 - [x] Maintenance priority screen ranks assets and links to detail — both asset types in one queue
 - [x] Risk history chart shows an asset's score trending over time — 90 days, needs two runs before it draws
 - [x] Preventive ticket can be raised directly from a high-risk asset, pre-filled with the actual factors
-- [x] All five reports render with charts and are screenshot-ready for the report
+- [x] All five reports render with charts
 - [x] Daily recalculation runs on schedule and updates cached columns consistently — 02:00, after telemetry aggregation
 - [x] **Unit tests on `RiskScoringService`** — 14 of them, one factor at a time
-- [ ] DFD 1, data dictionary and flowchart drafted — **not started**
 
 ## Not built, and deliberately
 

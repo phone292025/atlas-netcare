@@ -1,9 +1,9 @@
-> **For the report:** [10-simulated-and-real-data.md](10-simulated-and-real-data.md) turns this file's mechanisms into the Limitations and Assumptions wording, with live row counts.
+> [10-simulated-and-real-data.md](10-simulated-and-real-data.md) lists what is simulated and what is real, with live row counts.
 
 # Data Strategy
  — Mock, Real, or Both
 
-> **Last updated:** 2026-08-30 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
+> **Last updated:** 2026-09-26 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
 >
 > **Read this before writing any seeder, factory, or anything that produces data.**
 
@@ -79,7 +79,7 @@ Write it with a little care and it becomes an asset rather than a liability. Rou
 - A small random chance an AP **drops offline** for a few minutes, so the auto-ticketing and alarm paths have something to fire on
 - Latency and packet loss that **rise with saturation**, so the numbers are internally consistent
 
-That last point matters more than it sounds. If latency is random noise uncorrelated with client count, the predictive module has nothing real to find and a sharp marker will notice.
+That last point matters more than it sounds. If latency is random noise uncorrelated with client count, the predictive module has nothing real to find.
 
 ---
 
@@ -171,13 +171,11 @@ Five entry points. Know which one you are working on.
 
 - Switching to live data is a one-line `.env` change plus one class.
 - Every controller, service and view has a single code path, so there is no "works with mock data, breaks with real data" class of bug.
-- Demo data is removable with one command, which is a direct answer to a likely viva question.
+- Demo data is removable with one command.
 - The demo is reproducible: `php artisan migrate:fresh --seed` gives the same rich dataset on any machine, every time.
 
 ---
 
-## The viva answer
+## In one paragraph
 
 > "Only one data source in our system is external, so that is the only place we abstracted. Everything else is user-entered, so mock and real data are the same shape and share one code path. Switching to live telemetry is a config change and one new class, and our demo data is removable with a single artisan command."
-
-That answer demonstrates judgement, which is what the implementation rubric means by innovation.

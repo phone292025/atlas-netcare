@@ -1,8 +1,8 @@
 # What Is Simulated, and What Would Make It Real
 
-> **Last updated:** 2026-09-02
+> **Last updated:** 2026-09-26
 >
-> **This file is written to be lifted into the report.** Section 1 is the Limitations section. Section 2 is the Assumptions section. Section 3 is what to say if a marker asks "is any of this real?"
+> Section 1 lists what the data stops the system from doing. Section 2 lists the numbers that are judgement rather than measurement. Section 4 answers "is any of this real?"
 >
 > Every figure here was read out of a database, not estimated. Section 3 describes what `DemoDataSeeder` produces on a fresh install; sections 1 and 2 were checked on 2026-09-02.
 
@@ -12,11 +12,11 @@
 
 **One thing is simulated: access point telemetry.** Everything else is either real, or is demonstration data standing in for a record somebody already keeps.
 
-That distinction matters because the two need different answers in a viva. Simulated telemetry is a *design decision* with an architecture behind it. Fabricated asset tags are *seed data*, and replacing them is a spreadsheet, not a permission.
+That distinction matters because the two need different answers. Simulated telemetry is a *design decision* with an architecture behind it. Fabricated asset tags are *seed data*, and replacing them is a spreadsheet, not a permission.
 
 ---
 
-## 1. For the Limitations section
+## 1. Limitations
 
 ### 1.1 Access point telemetry is generated, not measured
 
@@ -28,8 +28,6 @@ That distinction matters because the two need different answers in a viva. Simul
 
 **What replacing it costs.** One class. `SnmpTelemetrySource` is a deliberate stub that throws with instructions; implement `collect()`, set `ATLAS_TELEMETRY_DRIVER=snmp`, and nothing else changes — no controller, no view, no migration, no test. The interface is the whole point of ADR-0002, and being able to say "going live is one class" is a stronger answer than having live data would have been.
 
-**State this plainly in the report.** A marker who discovers simulated telemetry unannounced reads it as a gap. A marker told up front that it is simulated *behind a swappable interface, for a stated reason* reads it as design.
-
 ### 1.2 Alarms reach the notification bell and nothing else
 
 In-app only. The one exception is shift reminders, which leave the system as a calendar file and are then handled by the phone's own alarm, working with the app closed. Unplanned events — an access point dropping — reach the bell only.
@@ -40,18 +38,18 @@ Email is no longer a limitation: FR-102 sends password resets through Gmail SMTP
 
 3 tickets, 2 completed inspections, 3 shifts, 1 shift template. These are **not** simulated — they are real records created by using the system. There are simply very few of them, which is why mean time to resolution is computed from two tickets.
 
-Thin real data is more defensible than thick fake data, but the reports do look sparse. Say which it is.
+Thin real data is more defensible than thick fake data, but the reports do look sparse.
 
 ### 1.4 ~~No asset scores High or Critical~~ — fixed 2026-09-02
 
 `DemoDataSeeder` now builds four deliberate age cohorts and three deteriorating access points, so all four bands populate. Five machines score 92, and the ranking's top rows give their reasons as "age, fault frequency".
 
-**The cohorts are designed, and the report should say so.** They are not tuned to make the scoring look good; they are the kind of asset the scoring exists to find — a machine nearly seven years old, never inspected, with eight repairs in three months. That is a fair description of something that should have been replaced, and the model finding it is the point.
+**The cohorts are designed.** They are not tuned to make the scoring look good; they are the kind of asset the scoring exists to find — a machine nearly seven years old, never inspected, with eight repairs in three months. That is a fair description of something that should have been replaced, and the model finding it is the point.
 
 
 ---
 
-## 2. For the Assumptions section
+## 2. Assumptions
 
 Every number below is the team's engineering judgement. **None was derived from measurement**, and ADR-0007 commits to saying so.
 
@@ -118,7 +116,7 @@ Counts are what `DemoDataSeeder` produces on a fresh install.
 
 **1. The lab PC asset register.** A spreadsheet from IT. No network permission, no security review, no SNMP. It is the difference between a risk model scored on ages we chose and one scored on ages the campus actually has — and age is 25% of every lab PC's score, so it is the single largest fabricated input in the system.
 
-**2. One latency measurement from campus wifi.** A single `ping` against a real APU access point. It turns `thresholds.latency_ms = 120` from a guess into a checked number. Q1 has had this as an open action since Sprint 0. It costs five minutes and it is exactly the kind of thing a viva asks about.
+**2. One latency measurement from campus wifi.** A single `ping` against a real APU access point. It turns `thresholds.latency_ms = 120` from a guess into a checked number. Q1 has had this as an open action since Sprint 0. It costs five minutes.
 
 Neither depends on a permission anybody has to grant.
 
@@ -130,7 +128,7 @@ Neither depends on a permission anybody has to grant.
 >
 > Access point telemetry is simulated, deliberately, because reading live campus equipment needs a permission we do not control. It sits behind a `TelemetrySource` interface with a second implementation already stubbed, so going live is one class and a configuration change — no controllers, views, migrations or tests.
 >
-> The asset inventory is demonstration data standing in for IT's register. The thresholds and risk weights are our engineering judgement rather than measured values, which is stated in the Assumptions section.
+> The asset inventory is demonstration data standing in for IT's register. The thresholds and risk weights are our engineering judgement rather than measured values.
 
 ---
 

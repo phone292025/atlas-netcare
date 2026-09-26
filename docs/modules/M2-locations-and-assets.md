@@ -1,8 +1,8 @@
 # M2 — Locations and Asset Inventory
 
-**Track:** B · **Owner:** *unassigned* · **Sprint:** 1 · **Depends on:** M1 · **Blocks:** M3, M5
+**Track:** B · **Sprint:** 1 · **Depends on:** M1 · **Blocks:** M3, M5
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-26
 
 > The lightest module. Whoever owns it should expect to help M5 from around week 9.
 
@@ -50,7 +50,6 @@ The lab PC and AP **show** pages are important — they are where M5, M4 and M7 
 - [x] Show pages expose slots for telemetry, tickets and risk
 - [x] Locations seeded in `ReferenceSeeder`; assets seeded in `DemoDataSeeder` with `is_demo = true`
 - [x] Feature tests: create, duplicate rejection, retire, non-admin denied
-- [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.** Section F wants these per member, from whoever owns this module.
 
 ## How it was built
 

@@ -1,26 +1,23 @@
 # System Diagrams
 
-> **Last updated:** 2026-09-20 · **For report sections 8, 9, 10 and 13.**
+> **Last updated:** 2026-09-26
 >
-> **These four are the whole-system diagrams, worth 15 marks between them.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
->
-> The per-member deliverables — a DFD Level 1, a data dictionary and a flowchart each — are **not** here. They are individually assessed, and each owner should be able to explain theirs under questioning. What is here is the skeleton they hang from: the numbered processes below are the module boundaries, so a DFD 1 for M4 is process 4 expanded.
+> **These four are the whole-system diagrams.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 
 ---
 
 ## How to use these
 
-Every diagram is [Mermaid](https://mermaid.js.org). To get an image for the report:
+Every diagram is [Mermaid](https://mermaid.js.org). To get an image:
 
 1. Paste the block into <https://mermaid.live>
 2. Export PNG or SVG
-3. Caption it with its figure number and refer to it from the text
 
 GitHub renders Mermaid directly, so they are readable in the repository as well. **Keep the source here.** A diagram that only exists as a PNG cannot be corrected when the code changes.
 
 ---
 
-## Figure 1 — Context Diagram (report section 9)
+## Figure 1 — Context Diagram
 
 The system as a single process, with everything outside it that gives it data or takes data from it.
 
@@ -67,11 +64,11 @@ The phone calendar is an external system rather than a feature, and that is the 
 
 ---
 
-## Figure 2 — Data Flow Diagram, Level 0 (report section 10)
+## Figure 2 — Data Flow Diagram, Level 0
 
 The seven processes inside the system, the eight data stores they read and write, and what moves between them.
 
-**The process numbers are the module numbers.** Process 4 is M4, and a DFD Level 1 for M4 is process 4 expanded — which is how the per-member diagrams should be produced.
+**The process numbers are the module numbers.** Process 4 is M4.
 
 ```mermaid
 flowchart TB
@@ -135,7 +132,7 @@ flowchart TB
     class ASSISTANT,ENGINEER,ADMIN,APS ext
 ```
 
-**What the arrows between processes are for.** They are the evidence the modules connect rather than sitting side by side, which is the thing a marker looks for:
+**What the arrows between processes are for.** They show the modules connect rather than sitting side by side:
 
 | From | To | What flows |
 |---|---|---|
@@ -149,7 +146,7 @@ Process 7 reads from four stores and writes to two. That is what makes it analyt
 
 ---
 
-## Figure 3 — Consolidated Entity Relationship Diagram (report section 13)
+## Figure 3 — Consolidated Entity Relationship Diagram
 
 All sixteen domain tables. Laravel's framework tables — `migrations`, `sessions`, `cache`, `jobs`, `password_reset_tokens` — are deliberately excluded: they are infrastructure, not the domain.
 
@@ -361,7 +358,7 @@ erDiagram
     }
 ```
 
-**Four things in this ERD that a viva is likely to ask about.**
+**Four things in this ERD worth knowing.**
 
 **No column is a MySQL `ENUM`.** Every one is a string with a backed PHP enum cast over it — [ADR-0004](decisions/ADR-0004-string-columns-not-mysql-enum.md). Adding a case to a MySQL `ENUM` is a migration and a table lock; adding one to a PHP enum is a line.
 
@@ -373,7 +370,7 @@ erDiagram
 
 ---
 
-## Figure 4 — System Hierarchy Chart (report section 8)
+## Figure 4 — System Hierarchy Chart
 
 Every screen, by the role that reaches it. This is the functional decomposition, so it should match the sidebar — and it does, because both are generated from the same route names.
 
@@ -441,37 +438,9 @@ flowchart LR
 
 ---
 
-## What is still needed, and from whom
+## What Figure 2 leaves out
 
-These four are done. **Twenty-one per-member artefacts are not**, and they cannot start until modules have owners.
-
-| Deliverable | Per | Derive it from |
-|---|---|---|
-| DFD Level 1 | member | The matching process in Figure 2, expanded. Process *n* is module M*n*. |
-| Data Dictionary | member | The matching tables in Figure 3, plus the module spec in [modules/](modules/) |
-| Pseudocode or Flowchart | member | That module's service class — the rules live there, not in the controllers. **Two modules have none**; the table below names what to draw instead |
-
-**Assigning the seven modules is the blocker.** Every module spec still says *unassigned*, and each of these is individually marked, so nobody can be credited for one until it is theirs. See [02-team-and-ownership.md](../coursework/02-team-and-ownership.md).
-
-### Where each member's three artefacts come from
-
-Ownership is the blocker for *credit*. It is not a blocker for knowing what the work is, and the table below removes the "where do I even start" step so that whoever takes a module can begin the hour it is theirs.
-
-Read your row. Everything in it already exists in this repository.
-
-| Module | DFD 1 expands | Data dictionary covers | Flowchart comes from |
-|---|---|---|---|
-| **M1** Identity and audit | Process 1, stores D1 and D8 | `users` · `audit_logs` | `EnsurePasswordIsChanged` and `LoginRequest::authenticate()` — see the note below |
-| **M2** Locations and assets | Process 2, store D2 | `locations` · `lab_pcs` · `access_points` | `LabPcController::destroy()` and `restore()` — see the note below |
-| **M3** Checklists and inspections | Process 3, stores D3 and D4 | `checklist_templates` · `checklist_items` · `inspections` · `inspection_results` | `InspectionService::deriveOutcome()` and `ChecklistService` versioning |
-| **M4** Ticketing | Process 4, store D5 | `tickets` · `ticket_comments` | `TicketService::transition()` — the state machine, and the only one in the system |
-| **M5** Telemetry and dashboard | Process 5, store D6 | `telemetry_readings` · `telemetry_hourly` | `TelemetryService::classify()` and `markStaleOffline()` |
-| **M6** Shifts and alarms | Process 6, store D7 | `shift_templates` · `shifts` · `alarms` | `ShiftService::generateWeek()` and `AlarmService::dispatchDue()` |
-| **M7** Predictive risk and reports | Process 7, store D8, reading D2 D4 D5 D6 | `risk_assessments`, plus the cached `risk_score` / `risk_band` columns on both asset tables | `RiskScoringService::scoreLabPc()` — the four weighted factors |
-
-**Two modules have no service class, and the table above says so rather than sending their owners to look for one.** M1 and M2 are deliberately thin: M1's rules live in a middleware, a Form Request and an observer, and M2 is standard CRUD whose only real decision is the retire/restore pair, which keeps `status` and the soft delete in step in both directions. Those are still perfectly good flowcharts. An owner who assumes every module has a `Service` will waste an afternoon looking for one that was never written, and should draw what is actually there.
-
-**One thing Figure 2 simplifies, and a Level 1 must not.** `AuditObserver` is registered against seven models spanning five of the seven modules, so five processes write to `audit_logs` in D8 without Figure 2 drawing a single one of those arrows:
+`AuditObserver` watches seven models across five of the seven modules, so five processes write to `audit_logs` in D8:
 
 | Writes audit rows | Through |
 |---|---|
@@ -482,14 +451,4 @@ Read your row. Everything in it already exists in this repository.
 | M6 | `ShiftTemplate` |
 | *M5 and M7 do not* | no audited model |
 
-Figure 2 shows only `P7 → D8`, because five more arrows into one store makes a Level 0 unreadable. That is a fair simplification at Level 0 and a wrong one at Level 1 — **if your module is in that table, your Level 1 has to show the write.** Say in the report that the Level 0 collapses it deliberately. A marker who spots the difference between your two diagrams will otherwise read it as an inconsistency rather than as a decision.
-
-### The order to do them in
-
-Not arbitrary. Each one answers a question the next depends on.
-
-1. **Data dictionary first.** It is the most mechanical of the three — column, type, constraint, meaning — and it is where you discover what your module actually stores. `php artisan atlas:code-map` and [04-database.md](04-database.md) between them have every column already.
-2. **DFD Level 1 second**, because by then you know your stores.
-3. **Flowchart last**, because it describes one process from your DFD 1 in detail, and you cannot pick which one until the DFD exists.
-
-**Do not draw any of the three from the proposal.** The four figures above were derived from the code and the live schema on 2026-09-02 for exactly that reason, and a per-member diagram drawn from the original plan will contradict them. Where the code and the proposal disagree, the code is what was built and the disagreement is worth a sentence in the report rather than a quietly corrected diagram.
+Figure 2 draws only `P7 → D8`. Five more arrows into one store would make a Level 0 unreadable. A more detailed diagram of any module in the table should show the write.

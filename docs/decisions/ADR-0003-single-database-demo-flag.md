@@ -26,7 +26,7 @@ No global Eloquent scope hides demo rows.
 **Easier**
 - One schema to migrate, one set of foreign keys, no drift between environments.
 - `php artisan migrate:fresh --seed` reproduces the full demo dataset identically on any machine.
-- Removing demo data is one command, which is a direct answer to an obvious viva question.
+- Removing demo data is one command.
 - Feature tests reuse the same factories as the demo seeder, so there is one set of fixtures.
 
 **Harder**

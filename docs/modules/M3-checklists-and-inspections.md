@@ -1,8 +1,8 @@
 # M3 — Checklists and Inspections
 
-**Track:** A · **Owner:** *unassigned* · **Sprint:** 2 · **Depends on:** M1, M2 · **Blocks:** M4, M7
+**Track:** A · **Sprint:** 2 · **Depends on:** M1, M2 · **Blocks:** M4, M7
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-26
 
 ## Purpose
 
@@ -42,7 +42,7 @@ Admin: checklist template index/create/edit · item management with drag-to-reor
 
 - **Templates are versioned.** Editing an active template creates a new version rather than mutating it, so historical inspections do not reference items that no longer exist. Blocked on [Q2](../02-open-questions.md).
 - **Overall result is derived, not entered.** Any critical item failing means `fail`; any non-critical issue means `pass_with_issues`; otherwise `pass`.
-- **A failed item offers a pre-filled ticket** with asset, location, failed item and suggested priority already populated. This is the hand-off to M4 and it is the demo's best moment — agree the interface with M4's owner early.
+- **A failed item offers a pre-filled ticket** with asset, location, failed item and suggested priority already populated. This is the hand-off to M4 and it is the demo's best moment.
 - **Mobile-first is a requirement, not a preference.** NFR-05 is tested at 375 px.
 
 ## Open questions
@@ -54,10 +54,9 @@ Admin: checklist template index/create/edit · item management with drag-to-reor
 - [x] Admin can build a template with ordered items, marking some critical
 - [x] Assistant can complete a full inspection on a phone one-handed at 375 px
 - [x] Overall result computes correctly for all three outcomes
-- [~] A failed critical item offers a pre-filled ticket that M4 accepts — **the panel is built and lists each issue; the button is inert until M4 registers `assistant.tickets.create`.** M4's owner replaces one `href`, not a screen.
+- [~] A failed critical item offers a pre-filled ticket that M4 accepts — **the panel is built and lists each issue; the button is inert until M4 registers `assistant.tickets.create`.** Wiring it up in M4 replaces one `href`, not a screen.
 - [x] Editing a template creates a new version; old inspections still render correctly
 - [x] Feature tests: complete inspection, derived result, template versioning
-- [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.**
 
 ## How it was built
 

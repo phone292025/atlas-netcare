@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-09-23
+> **Last updated:** 2026-09-26
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -10,13 +10,13 @@
 
 | | |
 |---|---|
-| **Phase** | The code is finished. What remains is the report. |
+| **Phase** | The code is finished. |
 | **Last session** | 2026-09-23 (review, then live testing in the browser) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
 | **Tests** | **972 passing (1 skipped)** on SQLite; **973 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | **The report, not the code.** All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. What is left needs people rather than commits: each module owes a DFD 1, data dictionary and flowchart from an owner **nobody has assigned**, and four UAT sessions need real participants. |
+| **Next action** | All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. Four UAT sessions still need real participants. |
 | **CI** | GitHub Actions runs the suite on SQLite **and** MariaDB 10.4, plus Pint, on every push. `.github/workflows/tests.yml`. |
 | **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
 
@@ -169,7 +169,7 @@ Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and
 1. **Add to my calendar** button on the shift screen. Downloads one event with a reminder already set for 30 minutes before. Works immediately on both platforms.
 2. **Subscribe to my roster.** One link, and every shift appears in the assistant's calendar and keeps appearing as administrators generate new weeks. Needs a per-person secret token in the URL, revocable, because calendar apps cannot sign in. Google refreshes subscriptions slowly, sometimes up to a day, so part 1 stays useful for "I need this on my phone now".
 
-**What it does not solve.** Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. Worth stating plainly in the report's Limitations, along with the note that real APU addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
+**What it does not solve.** Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. Real APU addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
 
 **Built.** 21 tests in `ShiftCalendarTest`, covering the file format as well as the behaviour, because a malformed calendar is rejected silently by the phone and looks exactly like a broken button.
 
@@ -177,21 +177,19 @@ Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and
 
 ## Module progress — the live tracker
 
-This is the table to read. Seven modules, one owner each; the split exists because Section F requires an **individual** DFD 1, data dictionary and flowchart per member.
+This is the table to read.
 
-A module is not done until every box in the definition of done in [../modules/README.md](../modules/README.md) is ticked — migrations, model, service, thin controllers, screens from the shared components, a feature test for the happy path *and* an authorisation failure, and the three report diagrams drafted.
+A module is not done until every box in the definition of done in [../modules/README.md](../modules/README.md) is ticked — migrations, model, service, thin controllers, screens from the shared components, and a feature test for the happy path *and* an authorisation failure.
 
-| Module | Track | Owner | Sprint | Status |
-|---|---|---|---|---|
-| [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | *unassigned* | 1 | ✅ **Done 2026-08-28** |
-| [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | *unassigned* | 1 | ✅ **Done 2026-08-28** |
-| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | *unassigned* | 2 | ✅ **Done 2026-08-28** |
-| [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-28** |
-| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | *unassigned* | 2–3 | ✅ **Done 2026-08-28** |
-| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | *unassigned* | 3 | ✅ **Done 2026-08-29** |
-| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | *unassigned* | 4 | ✅ **Built 2026-08-30.** Scoring, ranking, preventive tickets and five reports. Diagrams outstanding. |
-
-**Seven owners are still unassigned.** Nothing technical is blocked by that, but the individual report deliverables are — each person documents the module they personally built, and nobody currently owns one.
+| Module | Track | Sprint | Status |
+|---|---|---|---|
+| [M1 — Identity, roles, audit log](../modules/M1-identity-and-audit.md) | A | 1 | ✅ **Done 2026-08-28** |
+| [M2 — Locations and asset inventory](../modules/M2-locations-and-assets.md) | B | 1 | ✅ **Done 2026-08-28** |
+| [M3 — Checklists and inspections](../modules/M3-checklists-and-inspections.md) | A | 2 | ✅ **Done 2026-08-28** |
+| [M4 — Workspace ticketing](../modules/M4-ticketing.md) | A | 3 | ✅ **Done 2026-08-28** |
+| [M5 — Telemetry and AP dashboard](../modules/M5-telemetry-and-dashboard.md) | B | 2–3 | ✅ **Done 2026-08-28** |
+| [M6 — Shifts, roster and alarms](../modules/M6-shifts-and-alarms.md) | A | 3 | ✅ **Done 2026-08-29** |
+| [M7 — Predictive risk and reports](../modules/M7-predictive-and-reports.md) | B | 4 | ✅ **Built 2026-08-30.** Scoring, ranking, preventive tickets and five reports. |
 
 ### What M1 delivered
 
@@ -268,7 +266,7 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 
 **The driver swap is the design, and it is tested.** `TelemetrySource` has two implementations chosen by `config('atlas.telemetry_driver')`; going live is an `.env` change and one class. An unknown driver name **throws** rather than falling back — a typo silently producing invented data on a system meant to show real readings is the worst outcome available.
 
-**The simulator is a model, not `rand()`.** Fixed per-AP personalities, a two-humped daily curve, weekends at 28%, and latency rising with the cube of saturation. Generated data measures 3–4 clients / ~21 ms overnight against 31–33 clients / ~210 ms at the 11:00 peak, and the correlation is visible on the chart. ADR-0002 warns a sharp marker will look for exactly this, so there are tests asserting both the curve and the correlation.
+**The simulator is a model, not `rand()`.** Fixed per-AP personalities, a two-humped daily curve, weekends at 28%, and latency rising with the cube of saturation. Generated data measures 3–4 clients / ~21 ms overnight against 31–33 clients / ~210 ms at the 11:00 peak, and the correlation is visible on the chart. Without that correlation M7 has nothing real to detect, so there are tests asserting both the curve and the correlation.
 
 **Classification lives in the service** because it needs history. `consecutive_breach` stops one noisy sample flipping a colour or auto-raising a ticket, and `Maintenance` survives untouched — it is an administrative decision, not a measurement.
 
@@ -312,21 +310,17 @@ Scaffolding, finished 2026-08-28. Kept for the record; nothing here is outstandi
 | 3 | Layouts, role-filtered sidebar, 23 shared Blade components | ✅ 2026-08-28 |
 | 4 | Foundation migrations, `ReferenceSeeder`, empty `DemoDataSeeder` | ✅ 2026-08-28 |
 
-> One Sprint 0 exit condition is still open: **all seven members have run the app successfully.** Until that happens the setup steps in `README.md` are unverified by anyone but the author, and they become the Installation Guide in the report appendix.
+> One Sprint 0 exit condition is still open: **all seven members have run the app successfully.** Until that happens the setup steps in `README.md` are unverified by anyone but the author.
 
 ---
 
 ## Not code, and on a deadline
 
-These do not move when modules get built, and one of them has a date.
+These do not move when modules get built.
 
 | | Status |
 |---|---|
-| **Design freeze — date unknown** | 🟠 Context Diagram, DFD 0 and the consolidated ERD. **15 marks, not started.** The 15 Sep 2026 date was invented, not taken from the brief — see coursework/09-roadmap.md. Still needed; the urgency is unverified. |
 | **Q3 — ticket lifecycle** | 🟠 Adopted as proposed and built in M4, but **never actually agreed by the team.** Confirm it or change it — the code is written to make either cheap. |
-| **Module owners** | 🔴 Seven unassigned. **Four modules are now built with nobody named as their author.** Blocks the individual report deliverables. |
-| **Per-module diagrams** | 🔴 DFD 1, data dictionary and flowchart now owed for M1, M2, M3 and M4. |
-| **Weekly progress reports** | 🟠 10 marks, due every week to week 12. See the files in this folder. |
 
 ---
 
@@ -346,7 +340,7 @@ These do not move when modules get built, and one of them has a date.
 
 > This table was left saying "Composer ❌ Missing" for a day after Composer was installed — the session log recorded the install, the summary at the top did not. Someone read the table and set out to install it again. **If you change the environment, change this table in the same session.** A summary that contradicts the log below it is worse than no summary.
 >
-> Other team members will still need PHP, MariaDB, Node and Composer. The verified setup steps are in `README.md` and become the Installation Guide in the report appendix.
+> Other team members will still need PHP, MariaDB, Node and Composer. The verified setup steps are in `README.md`.
 
 ---
 
@@ -399,7 +393,7 @@ Oldest first — append new entries at the end. One entry per development sessio
 - **Self-delete-account removed**: Breeze lets a user delete their own account, which contradicts M1's "deactivate, never delete" and NFR-06 auditability. Route, controller method, form partial and test removed; `ProfileTest` rewritten to assert DELETE `/profile` returns 405.
 - Chart.js installed and wired into `resources/js/app.js` with shared defaults, so every graph in the system looks consistent
 - Unused `@tailwindcss/vite` v4 dependency removed — Breeze installed a Tailwind **3** setup with `tailwind.config.js`, which is what `06-ui-conventions.md` already specifies
-- `README.md` now carries verified setup steps for teammates; these become the Installation Guide in the report appendix
+- `README.md` now carries verified setup steps for teammates
 
 **Verified**
 - `php artisan test` — 22 passed, 49 assertions
@@ -490,7 +484,7 @@ A follow-up review found seven issues. All were verified against the code before
 - Two docblocks described code that does not exist, in the present tense: `atlas.php` said the driver is "Bound in AppServiceProvider" (that provider is empty) and `UserRole::homeRoute()` referred to `DashboardRedirect` (no such class). Both now say PLANNED and name the stage that will build them.
 
 **Coordination risk — closed**
-- Twelve route names were coined in `config/atlas.php` during Stage 2 and recorded nowhere else; `06-ui-conventions.md` documented only the assistant menu. With seven owners naming their own routes, and a sidebar that **silently skips unregistered routes**, a mismatch would make a menu item vanish with no error. All eighteen route names are now a documented table in `06-ui-conventions.md`, mapped to the owning module.
+- Twelve route names were coined in `config/atlas.php` during Stage 2 and recorded nowhere else; `06-ui-conventions.md` documented only the assistant menu. With seven modules naming their own routes, and a sidebar that **silently skips unregistered routes**, a mismatch would make a menu item vanish with no error. All eighteen route names are now a documented table in `06-ui-conventions.md`, mapped to the owning module.
 
 **Design tokens — settled before Stage 3 bakes them in**
 - The tone `inactive` is renamed **`neutral`**. It has to cover both "out of play" (`retired`, `maintenance`) and "deliberately quiet" (`low` priority, `scheduled`); `inactive` was wrong for a low-priority ticket, which is very much active.
@@ -579,7 +573,7 @@ That required `./app/**/*.php` in the Tailwind `content` array. **Verified in th
 `ToneTest` pins the property rather than the palette — badge, banner and accent must agree on the colour family for a given tone — so a deliberate recolour stays a one-line edit but a drifting one fails.
 
 **Flash messages are the layout's job now**
-The shell was carrying a hand-written emerald `<div>` for `session('status')`. It now renders `<x-alert>` for four keys — `status`, `success`, `warning`, `error`. Seven owners each inventing a banner was a guaranteed inconsistency.
+The shell was carrying a hand-written emerald `<div>` for `session('status')`. It now renders `<x-alert>` for four keys — `status`, `success`, `warning`, `error`. Seven modules each inventing a banner was a guaranteed inconsistency.
 
 **Two traps worth knowing**
 - `ComponentSlot::isEmpty()` compares against `''` **exactly**, and a `@foreach` over an empty collection still emits the whitespace between its tags. The slot is blank on screen but not an empty string, so `<x-data-table>` trims before deciding. Without that, an empty list renders a table header sitting above nothing. There is a test for it.
@@ -636,7 +630,7 @@ The Stage 3b notes blamed Vite for retaining classes from deleted files and pres
 
 The real cause is `./storage/framework/views/*.php` in the Tailwind `content` array — a Laravel default that makes **compiled Blade views count as source**. So build output depends on view-cache state, and a deleted view keeps contributing classes until its compiled artifact is cleared. The fix is `php artisan view:clear` before `npm run build`. Decision log updated; the superseded entry is struck through rather than deleted.
 
-The recorded "41.8 KB actual" also does not reproduce as an unconditional figure — it is the *views-cleared* number. Quote it as such in the report, with the condition attached.
+The recorded "41.8 KB actual" also does not reproduce as an unconditional figure — it is the *views-cleared* number. Quote it with the condition attached.
 
 **Confirmed: `./app/**/*.php` in the content array is the right call**
 This looked over-broad, so it was measured. Narrowing to `./app/Support/*.php` produced 53,612 bytes against 53,675 — a **63 byte** difference, with all `Tone` classes still present either way. The broad glob costs almost nothing, and its failure mode (63 bytes of unused CSS) is far cheaper than the narrow one's: a future file outside `app/Support` holding class strings would be silently purged, which is the exact bug the path exists to prevent. Keep it broad.
@@ -647,7 +641,6 @@ This looked over-broad, so it was measured. Narrowing to `./app/Support/*.php` p
 
 **Still outstanding, unchanged by this review**
 - Q3 and Q6 remain `Open`
-- Design freeze is **15 Sep**. Context Diagram, DFD 0 and the consolidated ERD are worth 15 marks and none exist yet.
 
 ### 2026-08-28 — Stage 3c: dashboards, forms and the inspection control
 
@@ -691,8 +684,7 @@ Stage 3 is complete. The component library is built; every module screen from he
 **`/dev/gallery`**, registered **only when `APP_ENV=local`**, renders every component with its variants: page furniture, the four alert tones, every status enum as badges, dashboard tiles, the risk gauge with factors, a Chart.js line, the data table with sorting and pagination, all four form controls, the timeline, the inspection checklist, the modal, and all 27 icons including a deliberately invalid name.
 
 Three reasons it is worth keeping rather than being a scaffold:
-- Seven module owners can see what already exists instead of each building their own card
-- It is the source of screenshots for the **Screens Design chapter** of the report
+- Whoever builds a module can see what already exists instead of building their own card
 - A component that breaks shows up here before it shows up inside somebody's module
 
 **It cannot leak.** `DevGalleryTest` asserts the test environment is not `local`, that `dev.gallery` is not registered, and that the URL 404s. If the guard in `routes/web.php` is ever loosened, those fail.
@@ -710,7 +702,7 @@ Do not build a throwaway review page again. Add to `resources/views/dev/gallery.
 A review of everything built in Sprint 0 so far, checking the code against what the documents claim rather than assuming they agree.
 
 **Dead code removed — six components**
-`danger-button`, `dropdown`, `dropdown-link`, `nav-link`, `responsive-nav-link` and `secondary-button` had **zero** references. They belonged to Breeze's top-nav layout (deleted in 3a) and the self-delete-account form (deleted in Stage 1). Dead files are worse than clutter here: a module owner opening the components folder cannot tell which of two buttons to use. All 208 tests still pass without them.
+`danger-button`, `dropdown`, `dropdown-link`, `nav-link`, `responsive-nav-link` and `secondary-button` had **zero** references. They belonged to Breeze's top-nav layout (deleted in 3a) and the self-delete-account form (deleted in Stage 1). Dead files are worse than clutter here: anyone opening the components folder cannot tell which of two buttons to use. All 208 tests still pass without them.
 
 **Documentation drift closed**
 - `app/Support/` was **not in the architecture folder tree at all**, despite holding `Tone.php` — the single most rule-bound file in the codebase — and `FormField.php`. Added, with what each is for.
@@ -724,7 +716,7 @@ A review of everything built in Sprint 0 so far, checking the code against what 
 - **New "Editing files from the shell" section** — `sed`/`perl` silently mangle PHP namespaces and report success. This has happened six times; the rule is now written down rather than relearned.
 
 **Outstanding, raised not resolved**
-- **Two form vocabularies coexist.** Four auth views and two profile partials use Breeze's `x-text-input` / `x-input-label` / `x-input-error`; everything built since uses `x-form.*`. Both work, but seven module owners about to build roughly twenty forms need one answer, and consistency is directly marked. Migrating the six views would let four more Breeze components go.
+- **Two form vocabularies coexist.** Four auth views and two profile partials use Breeze's `x-text-input` / `x-input-label` / `x-input-error`; everything built since uses `x-form.*`. Both work, but seven modules about to build roughly twenty forms need one answer, and consistency is directly marked. Migrating the six views would let four more Breeze components go.
 - `DB_CONNECTION` is still `mysql` against a MariaDB server. Matters for M7's JSON column.
 
 **Verified**
@@ -742,7 +734,7 @@ The audit above raised this and left it as a question. Looking at what Breeze's 
 
 Three functional defects, so all seven views migrated to `<x-form.*>`.
 
-**What the migration forced, and it was worth it.** `update-password-form` validates into a **named error bag** (`$errors->updatePassword`) because two forms share the profile page. The form components only read the default bag, so a straight swap would have rendered **no password errors at all** — silently. All four now take a `bag` prop. That capability was missing and would have bitten the first module owner who put two forms on one screen.
+**What the migration forced, and it was worth it.** `update-password-form` validates into a **named error bag** (`$errors->updatePassword`) because two forms share the profile page. The form components only read the default bag, so a straight swap would have rendered **no password errors at all** — silently. All four now take a `bag` prop. That capability was missing and would have bitten the first person who put two forms on one screen.
 
 **Ten Breeze components removed in total** — six dead from the audit, plus `text-input`, `input-label`, `input-error` and `primary-button` once nothing referenced them. 23 components remain, all ours, all documented.
 
@@ -762,7 +754,7 @@ Opening `localhost:8000` as a **guest** showed Laravel's stock welcome page: the
 
 It was worse one level down. Breeze's `<x-application-logo>` is **the Laravel logo SVG**, and `layouts/guest.blade.php` rendered it above the sign-in form — so the very first screen anyone opens carried the framework's branding rather than the project's. The guest layout also used `bg-gray-100` and `text-gray-900` where the rest of the system uses slate, so the page visibly changed shade the moment a user signed in.
 
-For a submission assessed on "innovative and originality of the implemented system", the first impression being Laravel's marketing page is not a small thing.
+The first impression being Laravel's marketing page is not a small thing.
 
 **Fixed**
 - `welcome.blade.php` **deleted**. There is no public landing page by design: Atlas NetCare is internal and privilege-based with no student-facing entry point (NFR-03, proposal Keynote). `/` now sends a signed-in user to their own home screen and everyone else to sign in.
@@ -777,7 +769,7 @@ For a submission assessed on "innovative and originality of the implemented syst
 - Signed out and opened `/` in a browser: redirects to a branded sign-in screen
 
 **Lesson**
-Every visual check so far had been made while signed in. **Check the signed-out state too** — it is the first thing a marker sees, and it was the one part of the application still wearing the framework's clothes.
+Every visual check so far had been made while signed in. **Check the signed-out state too** — it is the first thing anyone sees, and it was the one part of the application still wearing the framework's clothes.
 
 ### Handover — next session starts Stage 4
 
@@ -797,8 +789,6 @@ Every visual check so far had been made while signed in. **Check the signed-out 
 
 **Also still open, unchanged**
 - Q3 (ticket lifecycle) — blocks M4 and M6
-- Seven module owners unassigned
-- **Design freeze 15 Sep**: Context Diagram, DFD 0 and the consolidated ERD are 15 marks and none exist yet
 
 ### 2026-08-28 — Stage 4: foundation schema and seeders. **Sprint 0 complete.**
 
@@ -837,8 +827,6 @@ Constraints enforced by the database, not by form rules: unique `asset_tag`, `ma
 
 **Unchanged and still outstanding**
 - **Q3** (ticket lifecycle) — blocks M4 and M6
-- Seven module owners unassigned
-- **Design freeze 15 Sep** — Context Diagram, DFD 0 and the consolidated ERD, 15 marks, still not started
 
 ### 2026-08-28 — M1: identity, roles and the audit log
 

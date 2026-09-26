@@ -26,8 +26,6 @@ All seven modules, M1 to M7, are built on Laravel 12 and Breeze.
 
 The suite has 973 tests. On SQLite 972 pass and one MariaDB-only test is skipped. On MariaDB all 973 pass. CI runs both.
 
-What is left is the written report and each member's own artefacts.
-
 ## Getting started
 
 ### Prerequisites

@@ -25,12 +25,12 @@ The dashboard polls a JSON endpoint on a timer.
 **Easier**
 - No extra server process, no broadcasting configuration, no third connection to debug at 2am in week 11.
 - Works identically on every member's machine and on any host.
-- Trivially explainable in the viva, and easy to demonstrate by opening the network tab.
+- Easy to explain, and easy to demonstrate by opening the network tab.
 
 **Harder**
 - Up to 20 seconds of staleness. Acceptable for data that changes once a minute.
 - One HTTP request per client per 20 seconds. Irrelevant with a handful of concurrent users.
-- "Real-time" in the report must be described honestly as near-real-time with a stated refresh interval.
+- "Real-time" must be described honestly as near-real-time with a stated refresh interval.
 
 ## Alternatives considered
 

@@ -1,4 +1,4 @@
-> **The weights this decision introduces are listed for the report's Assumptions section in [../10-simulated-and-real-data.md](../10-simulated-and-real-data.md).** Every one is judgement rather than measurement, and that has to be stated.
+> **The weights this decision introduces are listed in section 2 of [../10-simulated-and-real-data.md](../10-simulated-and-real-data.md).** Every one is judgement rather than measurement.
 
 # ADR-0007: Score maintenance risk with weighted factors, not machine learning
 
@@ -10,7 +10,7 @@
 
 The case study category we are answering is "Predictive Maintenance System for Campus Facilities Using Data Analytics" — anticipating equipment failures before they occur. Module M7 must deliver genuine prediction, not just monitoring, or the project does not align with the brief.
 
-The presentation rubric rewards "in-depth understanding of the codes / work done". Whatever we build, every member must be able to explain it.
+Whatever we build, every member must be able to explain it.
 
 We have no historical failure dataset to train on. Our data will be simulated telemetry plus seeded inspection and ticket history.
 
@@ -42,7 +42,7 @@ The contributing factors are stored as JSON on `risk_assessments` and **displaye
 - Showing the factors turns a number into analytics, which is what the category actually asks for.
 
 **Harder**
-- The weights are our judgement, not derived from data. We must say so in the report's Assumptions section.
+- The weights are our judgement, not derived from data.
 - It cannot discover a pattern we did not think of. Accepted — with simulated data there is no genuine pattern to discover.
 
 ## Alternatives considered
@@ -51,4 +51,4 @@ The contributing factors are stored as JSON on `risk_assessments` and **displaye
 
 **Simple threshold rules ("older than 5 years = high risk").** Rejected: not analytics, and it produces no ranking, which is the useful output.
 
-**No predictive module at all.** Rejected: it is the module that aligns the project with Case Study Category 4. See [../01-brief-and-marking.md](../../coursework/01-brief-and-marking.md).
+**No predictive module at all.** Rejected: it is the module that aligns the project with Case Study Category 4.

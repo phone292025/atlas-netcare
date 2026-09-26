@@ -8,7 +8,7 @@
 
 The approved proposal names Laravel, Blade, Tailwind and MySQL. It does not specify how client-side interaction is handled.
 
-We need dropdowns, modals, a collapsing mobile sidebar, expanding remark fields on the checklist, a poll timer, and several charts. Seven students are learning Laravel simultaneously; the implementation rubric rewards a system that runs "complete without any error".
+We need dropdowns, modals, a collapsing mobile sidebar, expanding remark fields on the checklist, a poll timer, and several charts. Seven students are learning Laravel at the same time, and the system has to run without errors.
 
 ## Decision
 
@@ -22,7 +22,7 @@ No React, no Vue, no Livewire, no Inertia.
 **Easier**
 - Alpine is HTML attributes. A member who knows HTML can contribute a working dropdown the same day.
 - Blade stays the single rendering path, so there is one mental model for the whole team.
-- Chart.js is well documented and produces charts good enough to screenshot straight into the report.
+- Chart.js is well documented.
 - Both are small and have no build complexity beyond the Vite setup Tailwind already requires.
 
 **Harder**
@@ -35,4 +35,4 @@ No React, no Vue, no Livewire, no Inertia.
 
 **Vue or React SPA.** Rejected: contradicts the Blade-based stack in the approved proposal, and doubles the work by requiring an API for everything.
 
-**Plain Blade with no JavaScript.** Rejected: the dashboard and checklist would feel dated, and originality is explicitly in the implementation rubric.
+**Plain Blade with no JavaScript.** Rejected: the dashboard and checklist would feel dated.

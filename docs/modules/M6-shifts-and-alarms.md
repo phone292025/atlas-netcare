@@ -1,8 +1,8 @@
 # M6 — Shifts, Roster and Alarms
 
-**Track:** A · **Owner:** *unassigned* · **Sprint:** 3 · **Depends on:** M1 · **Blocks:** nothing
+**Track:** A · **Sprint:** 3 · **Depends on:** M1 · **Blocks:** nothing
 
-> **Last updated:** 2026-09-04
+> **Last updated:** 2026-09-26
 
 ## Purpose
 
@@ -34,8 +34,8 @@ Admin: shift template index/create/edit · roster generator with week preview, p
 ## Key decisions
 
 - **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../02-open-questions.md).
-- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Publish a small, stable interface and tell the other owners.
-- **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. Say so in the report's Limitations. See [Q5](../02-open-questions.md).
+- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Publish a small, stable interface and tell the rest of the team.
+- **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. See [Q5](../02-open-questions.md).
 - **Alarms are scheduled, not immediate.** A row with `trigger_at` in the future is normal; the dispatcher sends it when due. This is what makes inspection-round reminders possible.
 - **A missed shift is a status**, set by `atlas:mark-missed-shifts` within five minutes of a scheduled shift's end with no check-in. Until 2026-09-23 the Sunday generator set it, so Monday's no-show read "Scheduled" all week.
 - **A shift can be removed only before it starts.** From then on it is attendance, and a no-show is recorded as missed rather than erased. Removing tells the assistant, cancels the unsent reminders, keeps delivered ones, and moves a pending handover note to the next shift in the same place. "Clear week" does the same for every shift in the week that has not started.
@@ -46,7 +46,7 @@ Admin: shift template index/create/edit · roster generator with week preview, p
 ## Open questions
 
 - ✅ [Q4](../02-open-questions.md) — **settled**: recurring weekly templates, exactly as assumed.
-- ✅ [Q5](../02-open-questions.md) — **settled**: in-app bell only. **This belongs in the report's Limitations** — mobile push needs a native app or service-worker infrastructure this project does not have time for, and saying so is better than a marker noticing.
+- ✅ [Q5](../02-open-questions.md) — **settled**: in-app bell only. Mobile push needs a native app or service-worker infrastructure this project does not have time for.
 
 ## Definition of done
 
@@ -59,7 +59,6 @@ Admin: shift template index/create/edit · roster generator with week preview, p
 - [x] Feature tests: generate roster, check in/out, alarm dispatch, unread count
 - [x] **FR-408, overriding an individual assignment** — built 2026-09-02. `ShiftService::reassign()`, from the roster screen. The new assignee gets the full set of reminders, inspection rounds included, and a pending handover note moves with the shift (fixed 2026-09-23: only the start reminder used to be rebuilt). A shift can be reassigned until it ends, so a no-show can be covered, but not after (fixed 2026-09-23).
 - [x] **Removing a shift, or clearing a week** — built 2026-09-23. `ShiftService::remove()` and `clearWeek()`, from the roster screen; only shifts that have not started.
-- [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.**
 
 
 ## How it was built
@@ -110,7 +109,7 @@ Tested on 2026-08-29: clicking the subscribe link in Outlook produced **Invalid 
 
 **Turn the flag on once the system is deployed behind HTTPS.** It then becomes the better option, because nothing is ever downloaded again.
 
-**This belongs in the report.** A subscription feed with per-user revocable tokens is more than the assignment asks for, and "we built it, it needs HTTPS, the demonstration environment is HTTP" is a stronger sentence than not mentioning it. The constraint is the environment, not the design.
+The subscription feed, with per-user revocable tokens, is built. It needs HTTPS, and the demonstration environment is HTTP. The constraint is the environment, not the design.
 
 ### The part worth getting right
 
@@ -122,7 +121,7 @@ Tested on 2026-08-29: clicking the subscribe link in Outlook produced **Invalid 
 
 ### Platform support, and how much of it was actually tested
 
-Say this accurately in the report. Two of these were tested on a device and two were not.
+Two of these were tested on a device and two were not.
 
 | Platform | Event imports | Our 30-minute alarm | Evidence |
 |---|---|---|---|
@@ -137,7 +136,7 @@ The file itself was checked against RFC 5545: every mandatory property present i
 
 ### What it does not cover
 
-Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. **Worth stating in the report's Limitations**, along with the note that real `@apu.edu.my` addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
+Access points dropping and tickets going overdue are not calendar events. Those still reach the bell only. Real `@apu.edu.my` addresses would make email the obvious choice in a genuine deployment. The fake domains are a constraint of the demonstration environment, not of the design.
 
 ## Running it
 

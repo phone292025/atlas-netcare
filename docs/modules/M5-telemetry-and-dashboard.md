@@ -1,6 +1,6 @@
 # M5 — Telemetry and AP Dashboard
 
-**Track:** B · **Owner:** *unassigned* · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
+**Track:** B · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
 
 > **Last updated:** 2026-09-26
 
@@ -73,7 +73,6 @@ Assistant: AP status, read-only · Network monitor, read-only
 - [x] Aggregation and pruning commands work and are idempotent
 - [x] An AP going offline notifies M4 exactly once
 - [x] Unit tests on classification; feature test on the polling endpoint
-- [ ] DFD 1, data dictionary and flowchart drafted — **outstanding, and it is a marked deliverable.**
 
 ## How it was built
 
@@ -81,7 +80,7 @@ Assistant: AP status, read-only · Network monitor, read-only
 
 `SnmpTelemetrySource` throws too, rather than returning an empty collection: forty access points appearing to go quiet at once would cost somebody an afternoon. Its docblock lists exactly what implementing it involves.
 
-**The simulator is a model, not `rand()`.** Each access point gets a fixed personality derived from its own id, so the same AP is consistently busier or consistently worse run after run — without that, "which AP is the problem?" has no stable answer and M7's ranking means nothing. On top of that: a two-humped daily curve with a lunch dip, weekends at ~28%, and latency rising with the **cube** of saturation. Measured on generated data: 3–4 clients and ~21 ms overnight, 31–33 clients and ~210 ms at the 11:00 peak. There are tests asserting the daily curve and the latency/saturation correlation, because ADR-0002 says a sharp marker will look for it.
+**The simulator is a model, not `rand()`.** Each access point gets a fixed personality derived from its own id, so the same AP is consistently busier or consistently worse run after run — without that, "which AP is the problem?" has no stable answer and M7's ranking means nothing. On top of that: a two-humped daily curve with a lunch dip, weekends at ~28%, and latency rising with the **cube** of saturation. Measured on generated data: 3–4 clients and ~21 ms overnight, 31–33 clients and ~210 ms at the 11:00 peak. There are tests asserting the daily curve and the latency/saturation correlation, because without that correlation M7 has nothing real to detect.
 
 **Classification needs history, so it lives in the service.** A driver reports numbers; deciding they amount to "degraded" needs the previous readings and the thresholds. `consecutive_breach` means one noisy sample cannot flip a colour or auto-raise a ticket, and an access point with too little history stays Online — a false Degraded on a newly added AP trains people to ignore the dashboard.
 
@@ -93,7 +92,7 @@ Assistant: AP status, read-only · Network monitor, read-only
 
 Latency averages **exclude offline readings**. An unreachable AP has no latency, and counting it as zero would make an outage read as the best hour that access point ever had.
 
-**`atlas:backfill-telemetry` exists so the charts have something to draw.** A dashboard whose 24-hour chart is empty until you have left the collector running for a day is not demonstrable, and the demo is worth 40%. It writes at 5-minute resolution via chunked `insert()`, and refuses to run against the SNMP driver rather than inventing history and stamping it `live`.
+**`atlas:backfill-telemetry` exists so the charts have something to draw.** A dashboard whose 24-hour chart is empty until you have left the collector running for a day is not demonstrable. It writes at 5-minute resolution via chunked `insert()`, and refuses to run against the SNMP driver rather than inventing history and stamping it `live`.
 
 ## Running it
 

@@ -1,6 +1,6 @@
 # UI Conventions
 
-> **Last updated:** 2026-09-23 · **Decisions:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md), [ADR-0009](decisions/ADR-0009-themed-design-system.md)
+> **Last updated:** 2026-09-26 · **Decisions:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md), [ADR-0009](decisions/ADR-0009-themed-design-system.md)
 >
 > Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
 
@@ -56,7 +56,7 @@ Two, and only two.
 
 ### Route names are fixed vocabulary
 
-These names live in `config('atlas.navigation')` and the sidebar renders from them. **A module owner must use the name listed here**, not one of their own choosing.
+These names live in `config('atlas.navigation')` and the sidebar renders from them. **A new screen must use the name listed here**, not one somebody makes up.
 
 This matters more than it looks: the sidebar silently skips any entry whose route is not registered. If M2's owner names their route `admin.assets.index` instead of `admin.lab-pcs.index`, nothing errors — the menu item just quietly disappears, and somebody loses an afternoon finding out why.
 
@@ -211,7 +211,7 @@ The same mapping in badges, gauges, charts and tables. If `critical` is one red 
 | `Tone::banner()` | full-width message | `<x-alert>` |
 | `Tone::accent()` | foreground tint only | icons and rules sitting on a tinted surface |
 
-Adding a surface means adding a method there. **Never write a `match` on a tone anywhere else** — that is how `urgent` ends up as two different reds, one of which nobody notices until a marker does.
+Adding a surface means adding a method there. **Never write a `match` on a tone anywhere else** — that is how `urgent` ends up as two different reds.
 
 The tones are `healthy`, `attention`, `elevated`, `urgent` and `neutral`, running emerald, amber, orange, red, slate.
 
@@ -283,7 +283,7 @@ That single path touches five of the seven modules and demonstrates the whole sy
 
 ## Screen inventory
 
-Section F item 15 requires every screen documented as a user manual. Keep this list current — it becomes that chapter.
+Every screen in the system, by role. Keep this list current.
 
 ### Assistant (mobile-first)
 My shift today · Start inspection round · Select PC · Checklist form · Inspection summary · My tickets · Raise ticket · AP status (read-only) · Notifications · Shift handover

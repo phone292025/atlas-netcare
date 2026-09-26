@@ -1,8 +1,8 @@
 # Glossary
 
-> **Last updated:** 2026-08-26
+> **Last updated:** 2026-09-26
 
-Seven people writing one 50-page document need one word per concept. Use these exactly — in code, in the UI, and in the report.
+Seven people working on one system need one word per concept. Use these exactly, in code and in the UI.
 
 ---
 
@@ -34,7 +34,7 @@ Seven people writing one 50-page document need one word per concept. Use these e
 
 ## Status vocabulary
 
-Use exactly these strings. They are enum values, UI labels, and report terms all at once.
+Use exactly these strings. They are enum values and UI labels at once.
 
 | Entity | Statuses |
 |---|---|

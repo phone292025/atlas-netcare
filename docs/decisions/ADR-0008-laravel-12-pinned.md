@@ -34,11 +34,11 @@ Do not upgrade PHP or XAMPP.
 - `composer.lock` is committed, so all seven members get byte-identical dependencies.
 
 **Harder**
-- We are one major version behind current. For a fourteen-week project with a fixed submission date this costs nothing; no feature we need is Laravel 13-only.
+- We are one major version behind current. For a fourteen-week project with a fixed deadline this costs nothing; no feature we need is Laravel 13-only.
 - If someone installs a newer XAMPP with PHP 8.3 or 8.4, `composer install` still works — Laravel 12 allows `^8.2`, which includes 8.3 and 8.4. The pin is on Laravel, not on PHP, so a newer PHP is not a problem.
 
 **Rule that follows from this**
-Nobody runs `composer update`. It would drift dependencies away from the committed lock file and could pull a Laravel version that no longer matches this ADR. Use `composer install`. If a package genuinely must be added, the module owner does it, commits the updated lock file, and tells the team.
+Nobody runs `composer update`. It would drift dependencies away from the committed lock file and could pull a Laravel version that no longer matches this ADR. Use `composer install`. If a package genuinely must be added, whoever adds it commits the updated lock file and tells the team.
 
 ## Alternatives considered
 

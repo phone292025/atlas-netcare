@@ -6,9 +6,9 @@
 
 ## Context
 
-Seven students must deliver a working, error-free system in eight weeks of development, then each explain their part under questioning in a viva. Several of us are learning Laravel as we go.
+Seven students must deliver a working, error-free system in eight weeks of development, and each of us must be able to explain our part. Several of us are learning Laravel as we go.
 
-The implementation rubric rewards "efficiency, validation, navigation, and consistency" and code that is "neat, readable and commented". It does not reward architectural sophistication. The presentation rubric rewards "in-depth understanding of the codes / work done" — which penalises any structure we cannot explain.
+What the project needs is code that is efficient, validated, consistent, readable and commented, in a structure every one of us can explain. Architectural sophistication buys none of that, and a layer nobody can explain is a cost.
 
 A repository layer over Eloquent is a common suggestion for "clean architecture". It would mean an interface and an implementation for each of 17 models.
 
@@ -19,7 +19,7 @@ Standard Laravel MVC, organised as a modular monolith, with a thin service layer
 - Controllers do HTTP only: validate through a Form Request, call one service method, return a view or JSON.
 - Services hold business logic and are what unit tests point at.
 - Eloquent models are used directly. **No repository interfaces.**
-- Modules are separated by folder and by ownership, not by package boundaries.
+- Modules are separated by folder, not by package boundaries.
 
 ## Consequences
 

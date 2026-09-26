@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-09-23 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-09-26 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
 
@@ -14,9 +14,9 @@ Three carry a caveat worth stating rather than hiding:
 
 - **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
 - **FR-301, FR-303, FR-304, FR-305, FR-312** all read **simulated** telemetry, and FR-313 and FR-314 exist only while the simulated driver is active. The driver is swappable and the real one is a documented stub; see [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
-- **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file. Stated in the report Limitations.
+- **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file.
 
-The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They are listed in [11-submission-checklist.md](../coursework/11-submission-checklist.md) and remain outstanding.
+The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They remain outstanding.
 
 ---
 
@@ -126,7 +126,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 
 ## Non-functional requirements
 
-Two of these come from the Meeting 2 minutes recorded in the proposal appendix but appear nowhere in the proposal body. They belong in the final report.
+Two of these come from the Meeting 2 minutes recorded in the proposal appendix but appear nowhere in the proposal body.
 
 | ID | Requirement | Target | Source |
 |---|---|---|---|
