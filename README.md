@@ -22,17 +22,11 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-**All seven modules are built** (M1–M7) on Laravel 12 + Breeze, and the suite runs on both SQLite and MariaDB in CI.
+All seven modules, M1 to M7, are built on Laravel 12 and Breeze.
 
-The four whole-system diagrams are drawn: [docs/12-system-diagrams.md](docs/12-system-diagrams.md). What is left is the written report and the per-member artefacts.
+The suite has 973 tests. On SQLite 972 pass and one MariaDB-only test is skipped. On MariaDB all 973 pass. CI runs both.
 
-Current build state, including the test count: [docs/progress/build-log.md](docs/progress/build-log.md).
-
-## Documentation
-
-All project knowledge lives in [`docs/`](docs/). Start at **[docs/INDEX.md](docs/INDEX.md)**.
-
-Working on the code? Read **[AGENTS.md](AGENTS.md)** first — it is the short version of the rules, and coding agents load it automatically.
+What is left is the written report and each member's own artefacts.
 
 ## Getting started
 
@@ -40,7 +34,7 @@ Working on the code? Read **[AGENTS.md](AGENTS.md)** first — it is the short v
 
 | Tool | Version | Notes |
 |---|---|---|
-| XAMPP | PHP 8.2+ | Provides PHP and MySQL. Laravel 12 needs PHP `^8.2` — see [ADR-0008](docs/decisions/ADR-0008-laravel-12-pinned.md). |
+| XAMPP | PHP 8.2+ | Provides PHP and MySQL. Laravel 12 runs on XAMPP's PHP 8.2. Laravel 13 needs 8.3, so the project stays on 12. |
 | Composer | 2.x | [getcomposer.org/download](https://getcomposer.org/download/) — the Windows installer finds XAMPP automatically |
 | Node.js | 20+ | For Vite |
 | Git | any recent | |
@@ -51,12 +45,14 @@ Working on the code? Read **[AGENTS.md](AGENTS.md)** first — it is the short v
 git clone https://github.com/phone292025/atlas-netcare.git CP-Project
 cd CP-Project
 
-composer install          # never `composer update` — see ADR-0008
+composer install          # never composer update, see below
 npm install
 
 cp .env.example .env
 php artisan key:generate
 ```
+
+Use `composer install`, never `composer update`. `composer.lock` pins every package, so each teammate gets the same versions. `update` rewrites the lock with whatever is newest on your machine, and everyone else's install changes with it.
 
 Start **Apache and MySQL** from the XAMPP Control Panel, then create the database:
 
@@ -118,7 +114,7 @@ ATLAS_ADMIN_EMAIL="${ATLAS_MAIL_ACCOUNT}+admin@gmail.com"
 ATLAS_DEMO_ENGINEER_EMAIL="${ATLAS_MAIL_ACCOUNT}+engineer@gmail.com"
 ```
 
-The example file ships the `@atlas.local` versions on purpose. Deriving the login from a Gmail account meant anybody cloning this saw `your.gmail.name+admin@gmail.com` on the sign-in screen, which works and reads like a mistake. See [Q11](docs/02-open-questions.md#q11).
+The example file ships the `@atlas.local` versions on purpose. Deriving the login from a Gmail account meant anybody cloning this saw `your.gmail.name+admin@gmail.com` on the sign-in screen, which works and reads like a mistake.
 
 > **Changing one of these on a database that is already seeded gives you a second account, not a renamed one.** Both seeders match on email, so the old row keeps its tickets and shifts and you sign in to an empty copy. Rename the existing rows instead.
 
@@ -135,7 +131,7 @@ These accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never
 Remove them with `php artisan atlas:purge-demo-data`, which also takes `--dry-run` to show what would go. It refuses if a real record points at a demonstration asset, rather than leaving it dangling.
 
 
-> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system. See [docs/05-data-strategy.md](docs/05-data-strategy.md).
+> `ATLAS_DEMO_MODE=true` in `.env` seeds demonstration data. Set it to `false` for a clean system.
 
 ### Email
 
@@ -181,7 +177,7 @@ The charts don't need it to start with. `migrate --seed` writes two weeks of hou
 
 > **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings over every hour it covers and re-aggregates them, so those three trends go flat. A one-day backfill dropped their average latency from 153 ms to 41 ms. Use it only for access points with no history.
 
-Telemetry is simulated by default (`ATLAS_TELEMETRY_DRIVER=simulated`). Switching to real access points is that one `.env` value plus implementing `SnmpTelemetrySource` — nothing else in the system changes. See [ADR-0002](docs/decisions/ADR-0002-telemetry-source-driver.md).
+Telemetry is simulated by default, with `ATLAS_TELEMETRY_DRIVER=simulated`. Real access points need that `.env` value changed and `SnmpTelemetrySource` implemented. Nothing else in the system changes.
 
 ## Team
 
@@ -195,4 +191,4 @@ Telemetry is simulated by default (`ATLAS_TELEMETRY_DRIVER=simulated`). Switchin
 | Sachin Nair A/L C. Suthan | TP087180 | *to be assigned* |
 | Kaung Khant Zin | TP086063 | *to be assigned* |
 
-Assign modules in [`docs/modules/README.md`](docs/modules/README.md), then mirror the assignment here and in the Workload Matrix.
+When the group assigns modules, fill in the table above and the Workload Matrix.
