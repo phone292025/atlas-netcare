@@ -401,6 +401,11 @@
                 const colour = (name, alpha) => window.themeToken(name, alpha);
 
                 const draw = (canvas, points, existing) => {
+                    // A line needs two points. With one, the first ten minutes
+                    // after the collector starts, it is drawn as a dot rather
+                    // than an empty chart.
+                    const pointRadius = points.length === 1 ? 4 : 0;
+
                     const data = {
                         labels: points.map((p) => p.label),
                         datasets: [
@@ -418,7 +423,7 @@
                                 backgroundColor: colour('c-emerald-500', 0.06),
                                 borderWidth: 1.6,
                             },
-                        ].map((set) => ({ ...set, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 3 })),
+                        ].map((set) => ({ ...set, fill: true, tension: 0.35, pointRadius, pointBackgroundColor: set.borderColor, pointHoverRadius: Math.max(3, pointRadius) })),
                     };
 
                     if (existing) {
