@@ -5,9 +5,8 @@ namespace App\Console\Commands;
 use App\Enums\ApStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
-use App\Services\Telemetry\SimulatedTelemetrySource;
+use App\Services\Telemetry\TelemetryBackfill;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 
@@ -37,7 +36,7 @@ class BackfillTelemetry extends Command
 
     protected $description = 'Generate simulated telemetry history so the charts have data';
 
-    public function handle(): int
+    public function handle(TelemetryBackfill $backfill): int
     {
         if (config('atlas.telemetry_driver') !== 'simulated') {
             $this->error('Backfill only makes sense with ATLAS_TELEMETRY_DRIVER=simulated.');
@@ -62,59 +61,22 @@ class BackfillTelemetry extends Command
         $days = max(1, (int) $this->option('days'));
         $step = max(1, (int) $this->option('minutes'));
 
-        $source = new SimulatedTelemetrySource;
-        $cursor = now()->subDays($days)->startOfHour();
+        $from = now()->subDays($days)->startOfHour();
         $end = now();
 
-        $existing = $this->alreadyRecorded($accessPoints, $cursor, $end);
-
-        $rows = [];
-        $written = 0;
-        $skipped = 0;
-
-        $bar = $this->output->createProgressBar((int) ceil($cursor->diffInMinutes($end) / $step));
+        $bar = $this->output->createProgressBar((int) ceil($from->diffInMinutes($end) / $step));
         $bar->start();
 
-        while ($cursor->lt($end)) {
-            foreach ($accessPoints as $ap) {
-                $reading = $source->reading($ap, $cursor);
-
-                // A moment this access point already has a reading for is left
-                // alone. See alreadyRecorded().
-                if (isset($existing[$ap->id][$reading->recordedAt->toDateTimeString()])) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                // Status is set directly, not through classify(), which reads
-                // previous readings: a query per row, a quarter of a million of
-                // them. Backfilled history is scenery for the charts.
-                $status = $reading->unreachable ? ApStatus::Offline : ApStatus::Online;
-                $rows[] = $reading->toRow($status->value);
-            }
-
-            if (count($rows) >= 2000) {
-                TelemetryReading::insert($rows);
-                $written += count($rows);
-                $rows = [];
-            }
-
-            $cursor->addMinutes($step);
-            $bar->advance();
-        }
-
-        if ($rows !== []) {
-            TelemetryReading::insert($rows);
-            $written += count($rows);
-        }
+        // Moments an access point already has a reading for are left alone,
+        // so a re-run fills gaps rather than doubling the window.
+        $result = $backfill->write($accessPoints, $from, $end, $step, fn () => $bar->advance());
 
         $bar->finish();
         $this->newLine(2);
-        $this->info(number_format($written).' readings written across '.$accessPoints->count().' access points.');
+        $this->info(number_format($result['written']).' readings written across '.$accessPoints->count().' access points.');
 
-        if ($skipped > 0) {
-            $this->line('  '.number_format($skipped).' already recorded, left alone.');
+        if ($result['skipped'] > 0) {
+            $this->line('  '.number_format($result['skipped']).' already recorded, left alone.');
         }
 
         $this->settle($accessPoints);
@@ -125,40 +87,6 @@ class BackfillTelemetry extends Command
         Artisan::call('atlas:aggregate-telemetry', ['--hours' => $days * 24], $this->output);
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Every moment each access point already has a reading for, in this window.
-     *
-     * Makes a re-run safe: it fills gaps and writes nothing it already has.
-     * Without this, every run doubled its window, and the duplicates were not
-     * harmless because the simulator draws loss at random. A unique index on
-     * (access_point_id, recorded_at) would be stronger, but cannot be added
-     * while old duplicates exist. `--fresh` still starts from empty.
-     *
-     * Through the query builder, so a fortnight is a list of strings rather
-     * than 160,000 hydrated models.
-     *
-     * @param  Collection<int, AccessPoint>  $accessPoints
-     * @return array<int, array<string, true>> access point id => [moment => true]
-     */
-    private function alreadyRecorded(Collection $accessPoints, Carbon $from, Carbon $to): array
-    {
-        $recorded = [];
-
-        TelemetryReading::query()
-            ->toBase()
-            ->select(['access_point_id', 'recorded_at'])
-            ->whereIn('access_point_id', $accessPoints->pluck('id'))
-            ->whereBetween('recorded_at', [$from, $to])
-            ->orderBy('id')
-            ->chunk(5000, function ($rows) use (&$recorded): void {
-                foreach ($rows as $row) {
-                    $recorded[(int) $row->access_point_id][(string) $row->recorded_at] = true;
-                }
-            });
-
-        return $recorded;
     }
 
     /**

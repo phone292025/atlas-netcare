@@ -196,6 +196,8 @@ Every rule in the system. If code decides something, it belongs here.
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
+| `Telemetry/TelemetryAggregator.php` | Raw readings rolled up into hourly buckets |
+| `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock, for `atlas:backfill-telemetry` |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
 | `Telemetry/TelemetrySource.php` | Where access point telemetry comes from |
