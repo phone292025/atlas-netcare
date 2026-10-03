@@ -1,6 +1,6 @@
 # Decision Log
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-03
 
 Small calls that affect other people but do not warrant a full ADR. One line each. Newest at the top.
 
@@ -10,6 +10,7 @@ Small calls that affect other people but do not warrant a full ADR. One line eac
 
 | Date | Decision | Made by | Affects |
 |---|---|---|---|
+| 2026-10-03 | **A collection gap fills itself, and seeding writes the last day as readings.** With the scheduler off for a week, the Network monitor came back to one point and an empty chart, and the only way out was a backfill by hand. With the simulated driver, the first round after a gap now fills it with simulated readings, up to `gap_fill_hours` (24) back, and aggregates them. It never writes into an hour whose bucket has no readings under it, because the seeder wrote that bucket and the next aggregation would replace it. A real driver never fills: silence from real kit is a fact. Separately, the monitor charts raw readings and seeding wrote only hourly rows, so a fresh install opened onto an empty chart as well. `DemoDataSeeder` now writes the last day as readings from the same model and aggregates them, which keeps the degrading trend when the scheduler rebuilds those hours. A lone point is drawn as a dot. | Project owner | M5, README, install guide |
 | 2026-09-25 | **The first administrator has a documented starting password again: `AtlasAdmin!2026`.** Supersedes the 2026-09-04 entry below. With the value blank, somebody cloning the project to look at it found no password to sign in with, and the README could only say "whatever you set". What makes a public value acceptable now, and did not in August, is that since 2026-09-04 the account is forced to choose its own at first sign-in and every other screen is locked until it does. The README warns, as it does for the demo password, to change it before the app is reachable from other machines. The seeder still refuses an empty value. | Project owner | README, install guide, `.env.example`, anyone setting up |
 | 2026-09-23 | **An engineer given a ticket by somebody else is told** (new alarm type `ticket_assigned`). `TicketService` now takes `AlarmService` in its constructor, and `raiseSlaBreachAlarms()` and `announce()` use it rather than a parameter. Status changes and assignments show in the timeline as "updated the ticket" (`TicketComment::isRecordedAction()`). | Live testing | M4, M6 |
 | 2026-09-23 | **Generating a week skips slots that have already started.** A shift created after its start can only be a no-show: a week generated on the Saturday after it produced six false "missed" shifts, each with reminders sent at once. Fourteen such rows were removed from the development database, backed up to JSON first. Covering a shift under way likewise dates the notice now and skips round reminders already past. | Live testing | M6 |

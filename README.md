@@ -24,7 +24,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 All seven modules, M1 to M7, are built on Laravel 12 and Breeze.
 
-The suite has 973 tests. On SQLite 972 pass and one MariaDB-only test is skipped. On MariaDB all 973 pass. CI runs both.
+The suite has 982 tests. On SQLite 981 pass and one MariaDB-only test is skipped. On MariaDB all 982 pass. CI runs both.
 
 ## Getting started
 
@@ -171,9 +171,11 @@ The times are campus time.
 
 Without the scheduler nothing looks broken at first. Five minutes after the last reading, every access point on the Network Monitor reads Unknown, and no new alarms reach the bell.
 
-The charts don't need it to start with. `migrate --seed` writes two weeks of hourly history, including three access points whose latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
+Turning it back on repairs the charts by itself. Its first round sees the silence and fills it with simulated readings, up to the last 24 hours, so the Network Monitor comes back to a full day instead of a single point.
 
-> **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings over every hour it covers and re-aggregates them, so those three trends go flat. A one-day backfill dropped their average latency from 153 ms to 41 ms. Use it only for access points with no history.
+The charts don't need it to start with. `migrate --seed` writes two weeks of hourly history, with the last day as readings, so the Network Monitor opens on a full day. Three access points' latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
+
+> **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings into every hour it covers that has none and re-aggregates them, so a two-week backfill flattens those three trends. Use it only for access points with no history.
 
 Telemetry is simulated by default, with `ATLAS_TELEMETRY_DRIVER=simulated`. Real access points need that `.env` value changed and `SnmpTelemetrySource` implemented. Nothing else in the system changes.
 

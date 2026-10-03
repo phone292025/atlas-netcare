@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-03
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 
@@ -187,7 +187,7 @@ php artisan atlas:check-schema
 php artisan migrate:status
 ```
 
-Expect **972 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
+Expect **981 passing, 1 skipped**; "Schema and data both look clean"; and no pending migrations.
 
 The skip is deliberate: `SchemaIntegrityTest` only means anything on MariaDB, and `php artisan test` runs on SQLite. To run everything against a real MariaDB, create the test database once and use the other config:
 
@@ -196,7 +196,7 @@ mysql -u root -e "CREATE DATABASE atlas_netcare_test CHARACTER SET utf8mb4 COLLA
 php artisan test -c phpunit.mariadb.xml
 ```
 
-That is **973 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
+That is **982 passing, none skipped**, and it is what CI runs on every push. `atlas_netcare_test` is a separate database on purpose: the suite truncates what it touches, and pointing it at `atlas_netcare` would erase real work.
 
 `atlas:check-schema` is read-only and safe against real data. It catches two things the test suite cannot, because the suite runs on SQLite and the system runs on MariaDB: columns MariaDB silently rewrites on every update, and rows whose own timestamps contradict each other. **Run it after any migration.**
 
@@ -223,7 +223,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 **Every asset scores Low** — the risk model has not run, or the assets seeded without ages. `php artisan atlas:recalculate-risk`.
 
-**Charts are blank** — nothing has been collected in the last day, because the scheduler is not running (section 7). Start `php artisan schedule:work` and the charts fill from now on. To fill the last day at once, `php artisan atlas:backfill-telemetry --days=1`. Keep `--days` that short: it overwrites every hour it covers, and a longer run reaches the seeded fortnight and flattens the three degrading access points the risk model needs.
+**Charts are blank** — nothing has been collected in the last day, because the scheduler is not running (section 7). Start `php artisan schedule:work`. Its first round fills the silence with simulated readings, up to the last 24 hours, so the charts come back full. With a real driver it does not, because a gap in real telemetry is a fact.
 
 **Styles look broken** — the front end has not been built. `php artisan view:clear && npm run build`.
 

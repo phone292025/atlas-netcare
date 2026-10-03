@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-03
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -13,12 +13,12 @@
 | **Phase** | The code is finished. |
 | **Last session** | 2026-09-23 (review, then live testing in the browser) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **972 passing (1 skipped)** on SQLite; **973 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
+| **Tests** | **981 passing (1 skipped)** on SQLite; **982 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
 | **Next action** | All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. Four UAT sessions still need real participants. |
 | **CI** | GitHub Actions runs the suite on SQLite **and** MariaDB 10.4, plus Pint, on every push. `.github/workflows/tests.yml`. |
-| **To see live data** | `php artisan atlas:backfill-telemetry --days=14` then `php artisan schedule:work`. Without the scheduler the dashboard silently goes stale. |
+| **To see live data** | `php artisan schedule:work`. Seeding fills the charts, and the scheduler's first round after a gap fills the silence. Without it the dashboard goes stale. |
 
 ---
 
@@ -272,7 +272,7 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 
 **An access point going offline raises exactly one ticket**, guarded twice: only on the transition, and only if nothing is already open for that asset.
 
-**Run `atlas:backfill-telemetry` before demonstrating.** A 24-hour chart that is empty until you have left the collector running for a day is not demonstrable.
+**No backfill is needed before demonstrating.** Seeding writes the last day as readings, and since 2026-10-03 the scheduler fills any gap when it starts again.
 
 ### What M6 delivered
 

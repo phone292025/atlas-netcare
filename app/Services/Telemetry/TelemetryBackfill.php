@@ -4,6 +4,7 @@ namespace App\Services\Telemetry;
 
 use App\Enums\ApStatus;
 use App\Models\AccessPoint;
+use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use Carbon\CarbonInterface;
 use Closure;
@@ -12,20 +13,65 @@ use Illuminate\Support\Collection;
 use LogicException;
 
 /**
- * Simulated history written behind the clock, for `atlas:backfill-telemetry`.
+ * Simulated history written behind the clock: by `atlas:backfill-telemetry`,
+ * and by the first collection round after the scheduler has been off.
  *
  * Simulated driver only. Inventing history for real access points would put
  * fiction in front of an engineer, and a gap in real telemetry is a fact about
  * the network.
  *
  * @see App\Console\Commands\BackfillTelemetry
+ * @see App\Services\Telemetry\TelemetryCollector
  */
 class TelemetryBackfill
 {
     /** Minutes between filled readings. Live collection is every minute; the charts cannot tell. */
     public const STEP_MINUTES = 5;
 
-    public function __construct(private readonly TelemetrySource $source) {}
+    public function __construct(
+        private readonly TelemetrySource $source,
+        private readonly TelemetryAggregator $aggregator,
+    ) {}
+
+    /**
+     * Fill the silence since collection stopped, so the charts do not come
+     * back empty.
+     *
+     * Nothing happens when the newest reading is fresher than
+     * `offline_after_min`, when nothing was ever collected (that is not a
+     * gap), or with a real driver. The filled hours are aggregated here, so
+     * the hourly charts get them too.
+     *
+     * @return array{from: Carbon, written: int}|null
+     */
+    public function fillGap(): ?array
+    {
+        if (! $this->source instanceof SimulatedTelemetrySource) {
+            return null;
+        }
+
+        $from = $this->gapStart();
+
+        if (! $from || $from->diffInMinutes(now()) < (int) config('atlas.thresholds.offline_after_min')) {
+            return null;
+        }
+
+        $accessPoints = AccessPoint::query()->collectable()->get();
+
+        if ($accessPoints->isEmpty()) {
+            return null;
+        }
+
+        $written = $this->write($accessPoints, $from, now())['written'];
+
+        if ($written === 0) {
+            return null;
+        }
+
+        $this->aggregator->rebuildFrom($from);
+
+        return ['from' => $from, 'written' => $written];
+    }
 
     /**
      * Readings every `$step` minutes from `$from` up to, not including, `$to`,
@@ -92,6 +138,49 @@ class TelemetryBackfill
         }
 
         return ['written' => $written, 'skipped' => $skipped];
+    }
+
+    /**
+     * Where the gap begins: the newest reading, but never more than
+     * `gap_fill_hours` back, and never inside an hour the seeder wrote.
+     *
+     * A newest bucket with no readings under it was written directly by
+     * DemoDataSeeder. Readings added to its hour would let the next
+     * aggregation replace it, and that is how the three degrading access
+     * points once lost their trend. Every older seeded bucket is behind it.
+     *
+     * Database-wide rather than per access point: both columns are indexed on
+     * their own, so this is two cheap lookups once a minute.
+     */
+    private function gapStart(): ?Carbon
+    {
+        $newestReading = TelemetryReading::query()->max('recorded_at');
+        $newestBucket = TelemetryHourly::query()->max('hour_bucket');
+
+        // Never collected: nothing stopped. The chart says "No readings" itself.
+        if ($newestReading === null && $newestBucket === null) {
+            return null;
+        }
+
+        $from = now()->subHours((int) config('atlas.gap_fill_hours'));
+
+        if ($newestReading !== null) {
+            $from = $from->max(Carbon::parse($newestReading));
+        }
+
+        if ($newestBucket !== null) {
+            $hour = Carbon::parse($newestBucket);
+            $seeded = ! TelemetryReading::query()
+                ->where('recorded_at', '>=', $hour)
+                ->where('recorded_at', '<', $hour->copy()->addHour())
+                ->exists();
+
+            if ($seeded) {
+                $from = $from->max($hour->copy()->addHour());
+            }
+        }
+
+        return $from;
     }
 
     /**

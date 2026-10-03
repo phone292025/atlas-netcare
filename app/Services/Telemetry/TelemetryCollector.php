@@ -17,10 +17,10 @@ use Illuminate\Support\Collection;
 /**
  * One collection round, and everything the system does about what it finds.
  *
- * Take a reading from every access point, sweep the silent ones, then act on
- * each status change. The scheduled command and the Network monitor's
- * "Generate sample" button both run this, so both raise the same tickets and
- * alerts.
+ * Fill any gap since the last round, take a reading from every access point,
+ * sweep the silent ones, then act on each status change. The scheduled command
+ * and the Network monitor's "Generate sample" button both run this, so both
+ * raise the same tickets and alerts.
  *
  * @see App\Console\Commands\CollectTelemetry
  * @see docs/modules/M5-telemetry-and-dashboard.md
@@ -31,6 +31,7 @@ class TelemetryCollector
         private readonly TelemetryService $telemetry,
         private readonly TicketService $tickets,
         private readonly AlarmService $alarms,
+        private readonly TelemetryBackfill $backfill,
     ) {}
 
     /**
@@ -43,6 +44,17 @@ class TelemetryCollector
     public function tick(?Closure $report = null): Collection
     {
         $report ??= static function (string $level, string $message): void {};
+
+        /*
+         * The scheduler was off. Without this the charts came back to a single
+         * point and an empty day, and the only way out was a backfill by hand.
+         * Before the live reading, so classification sees the filled history.
+         * Simulated driver only: silence from real kit is a fact.
+         */
+        if ($gap = $this->backfill->fillGap()) {
+            $report('info', 'Filled the gap since '.$gap['from']->campus()->format('j M, H:i')
+                .' with '.number_format($gap['written']).' simulated readings.');
+        }
 
         // Readings that arrived, plus access points that sent nothing. The
         // sweep runs even when collection returned nothing at all, so a

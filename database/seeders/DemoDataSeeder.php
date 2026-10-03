@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ApStatus;
 use App\Enums\ChecklistResult;
 use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
@@ -16,8 +17,10 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\TelemetryHourly;
+use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Telemetry\TelemetryAggregator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -219,15 +222,12 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Two weeks of hourly telemetry.
+     * Two weeks of telemetry: hourly rows, and the last day as readings.
      *
-     * Written straight into `telemetry_hourly` rather than by running the
-     * collector for a fortnight. `atlas:backfill-telemetry` does the same job
-     * more thoroughly, including raw readings; this exists so a fresh install
-     * has charts and risk trends immediately, without a second command.
-     *
-     * Bulk inserted in chunks. Eight thousand individual model saves is about
-     * a minute of somebody's life for no benefit.
+     * Written directly rather than by running the collector for a fortnight,
+     * so a fresh install has charts and risk trends immediately, without a
+     * second command. Bulk inserted in chunks: eight thousand model saves is
+     * about a minute of somebody's life for no benefit.
      */
     private function telemetry(): void
     {
@@ -253,53 +253,85 @@ class DemoDataSeeder extends Seeder
          */
         $windowStart = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
 
+        /*
+         * THE LAST DAY GOES IN AS READINGS. The Network monitor charts raw
+         * readings over the last day, so hourly rows alone opened a fresh
+         * install onto an empty chart. The readings come from the same model,
+         * and aggregation builds that day's buckets from them, so the
+         * scheduler rebuilding those hours keeps the trend rather than
+         * flattening it.
+         */
+        $readingsFrom = now()->subDay()->startOfHour();
+
         TelemetryHourly::whereIn('access_point_id', $aps->pluck('id'))
             ->where('hour_bucket', '>=', $windowStart)
             ->delete();
-        $start = $windowStart;
-        $hours = self::TELEMETRY_DAYS * 24;
+        TelemetryReading::whereIn('access_point_id', $aps->pluck('id'))
+            ->where('recorded_at', '>=', $readingsFrom)
+            ->delete();
 
+        $hours = self::TELEMETRY_DAYS * 24;
         $rows = [];
+        $readings = [];
+        $lastSeen = [];
 
         foreach ($aps as $index => $ap) {
             // The first three deteriorate across the window; the rest hold
             // steady with ordinary daily variation.
             $degrading = $index < 3;
 
-            for ($h = 0; $h < $hours; $h++) {
-                $at = $start->copy()->addHours($h);
+            // Through the current hour, so the readings reach the present.
+            for ($h = 0; $h <= $hours; $h++) {
+                $at = $windowStart->copy()->addHours($h);
                 $progress = $h / $hours;
-                $busy = $this->busyness($at);
 
-                $latency = $degrading
-                    ? 18 + ($progress * 130) + ($busy * 25)
-                    : 16 + ($busy * 22) + (($index % 5) * 3);
+                // A degrading link drops out occasionally, and more often as
+                // it gets worse. That is the offline_events factor.
+                $dropsOut = $degrading && $progress > 0.5 && $h % 17 === 0;
 
-                $loss = $degrading
-                    ? ($progress * 6.5) + ($busy * 0.6)
-                    : ($busy * 0.7);
+                if ($at->lt($readingsFrom)) {
+                    $busy = $this->busyness($at);
+                    [$latency, $loss] = $this->linkQuality($degrading, $progress, $busy, $index);
 
-                $rows[] = [
-                    'access_point_id' => $ap->id,
-                    'hour_bucket' => $at->toDateTimeString(),
-                    'avg_latency_ms' => round($latency, 2),
-                    'peak_client_count' => (int) round($ap->client_capacity * (0.25 + $busy * 0.7)),
-                    'avg_packet_loss_pct' => round($loss, 2),
-                    'avg_channel_util_pct' => round(20 + $busy * 55, 2),
-                    // A degrading link drops out occasionally, and more often
-                    // as it gets worse. That is the offline_events factor.
-                    'uptime_pct' => $degrading && $progress > 0.5 && $h % 17 === 0 ? 92.5 : 100,
-                    'reading_count' => 60,
-                    'source' => 'simulated',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                    $rows[] = [
+                        'access_point_id' => $ap->id,
+                        'hour_bucket' => $at->toDateTimeString(),
+                        'avg_latency_ms' => round($latency, 2),
+                        'peak_client_count' => (int) round($ap->client_capacity * (0.25 + $busy * 0.7)),
+                        'avg_packet_loss_pct' => round($loss, 2),
+                        'avg_channel_util_pct' => round(20 + $busy * 55, 2),
+                        'uptime_pct' => $dropsOut ? 92.5 : 100,
+                        'reading_count' => 60,
+                        'source' => 'simulated',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    continue;
+                }
+
+                $hourEnd = $at->copy()->addHour();
+
+                for ($moment = $at->copy(); $moment->lt($hourEnd) && $moment->lt(now()); $moment->addMinutes(5)) {
+                    $down = $dropsOut && $moment->eq($at);
+                    $readings[] = $this->reading($ap, $moment, $degrading, $progress, $index, $down);
+
+                    if (! $down) {
+                        $lastSeen[$ap->id] = $moment->toDateTimeString();
+                    }
+                }
             }
         }
 
         foreach (array_chunk($rows, 1000) as $chunk) {
             DB::table('telemetry_hourly')->insert($chunk);
         }
+
+        foreach (array_chunk($readings, 1000) as $chunk) {
+            TelemetryReading::insert($chunk);
+        }
+
+        app(TelemetryAggregator::class)->rebuildFrom($readingsFrom);
 
         /*
          * TELL THE ACCESS POINTS THEY HAVE BEEN HEARD FROM. Otherwise they read
@@ -310,11 +342,72 @@ class DemoDataSeeder extends Seeder
          * occasional downtime are degradation, not absence, and the risk model
          * is what surfaces them.
          */
-        AccessPoint::whereIn('id', $aps->pluck('id'))->update([
-            'last_seen_at' => $start->copy()->addHours($hours - 1),
-        ]);
+        foreach ($lastSeen as $id => $at) {
+            AccessPoint::whereKey($id)->update(['last_seen_at' => $at]);
+        }
 
-        $this->command?->line('  '.number_format(count($rows)).' hourly telemetry rows, '.self::TELEMETRY_DAYS.' days');
+        $this->command?->line('  '.number_format(count($rows)).' hourly telemetry rows and '
+            .number_format(count($readings)).' readings, '.self::TELEMETRY_DAYS.' days');
+    }
+
+    /**
+     * Latency and packet loss for one hour, from the model the whole window
+     * shares, so the last day's readings continue the hourly rows' trend.
+     *
+     * @return array{float, float}
+     */
+    private function linkQuality(bool $degrading, float $progress, float $busy, int $index): array
+    {
+        return [
+            $degrading ? 18 + ($progress * 130) + ($busy * 25) : 16 + ($busy * 22) + (($index % 5) * 3),
+            $degrading ? ($progress * 6.5) + ($busy * 0.6) : ($busy * 0.7),
+        ];
+    }
+
+    /**
+     * One five-minute reading for the last seeded day.
+     *
+     * A small wobble so the ten-minute chart is not a staircase of hourly
+     * steps. Throughput follows the simulator's rule, so live readings carry
+     * on from these in the same shape.
+     *
+     * @return array<string, mixed>
+     */
+    private function reading(AccessPoint $ap, Carbon $at, bool $degrading, float $progress, int $index, bool $down): array
+    {
+        $row = [
+            'access_point_id' => $ap->id,
+            'recorded_at' => $at->toDateTimeString(),
+            'source' => 'simulated',
+        ];
+
+        if ($down) {
+            return $row + [
+                'latency_ms' => null,
+                'client_count' => 0,
+                'packet_loss_pct' => 100,
+                'channel_util_pct' => 0,
+                'throughput_mbps' => 0,
+                'status' => ApStatus::Offline->value,
+            ];
+        }
+
+        $busy = $this->busyness($at);
+        $wobble = 1 + 0.05 * sin($at->getTimestamp() / 600 + $ap->id);
+        [$latency, $loss] = $this->linkQuality($degrading, $progress, $busy, $index);
+
+        $capacity = max(1, (int) $ap->client_capacity);
+        $clients = (int) round($capacity * (0.25 + $busy * 0.7) * $wobble);
+        $saturation = $clients / $capacity;
+
+        return $row + [
+            'latency_ms' => (int) round($latency * $wobble),
+            'client_count' => $clients,
+            'packet_loss_pct' => round($loss, 2),
+            'channel_util_pct' => round(20 + $busy * 55, 2),
+            'throughput_mbps' => round($clients * 1.9 * max(0.25, 1 - ($saturation ** 2) * 0.55), 2),
+            'status' => ApStatus::Online->value,
+        ];
     }
 
     /**

@@ -36,6 +36,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Filling a collection gap
+    |--------------------------------------------------------------------------
+    |
+    | With the simulated driver, the first round after the scheduler has been
+    | off fills the silence with simulated readings, so the charts do not come
+    | back empty. At most this many hours back, the longest chart's window. A
+    | real driver never fills: a gap in real telemetry is a fact.
+    |
+    */
+
+    'gap_fill_hours' => 24,
+
+    /*
+    |--------------------------------------------------------------------------
     | Demonstration data
     |--------------------------------------------------------------------------
     |

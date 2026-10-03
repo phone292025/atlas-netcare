@@ -2,7 +2,7 @@
 
 **Track:** B · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-03
 
 > **The hardest module, and the project's headline feature.** Give it to whoever is strongest with data. It cannot slip.
 
@@ -94,12 +94,14 @@ Latency averages **exclude offline readings**. An unreachable AP has no latency,
 
 **`atlas:backfill-telemetry` exists so the charts have something to draw.** A dashboard whose 24-hour chart is empty until you have left the collector running for a day is not demonstrable. It writes at 5-minute resolution via chunked `insert()`, and refuses to run against the SNMP driver rather than inventing history and stamping it `live`.
 
+**A collection gap fills itself.** With the simulated driver, the first round after the scheduler has been off writes readings into the silence, up to `gap_fill_hours` back, and aggregates them, so the charts do not come back to a single point. `TelemetryBackfill::fillGap()` never writes into an hour whose bucket has no readings under it: that bucket was written by the seeder, and the next aggregation would replace it. A real driver never fills, because silence from real kit is a fact about the network.
+
 ## Running it
 
 ```bash
 php artisan schedule:work                        # keep it live
 ```
 
-In demo mode `migrate --seed` already writes two weeks of hourly history, so a fresh install needs no backfill. Running one after seeding overwrites the hours it covers with steady readings and flattens the three degrading access points. Keep it for access points with no history.
+In demo mode `migrate --seed` already writes two weeks of hourly history, the last day as readings, so a fresh install needs no backfill. Running one after seeding overwrites the hours it covers with steady readings and flattens the three degrading access points. Keep it for access points with no history.
 
 Without `schedule:work` the dashboard shows whatever the last manual collection produced and quietly goes stale — which looks exactly like a broken dashboard.

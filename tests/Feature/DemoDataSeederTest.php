@@ -10,6 +10,7 @@ use App\Models\LabPc;
 use App\Models\TelemetryHourly;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Telemetry\NetworkMonitorService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceSeeder;
@@ -194,6 +195,40 @@ class DemoDataSeederTest extends TestCase
 
         $this->assertGreaterThan(0, TelemetryHourly::count());
         $this->assertSame(0, TelemetryHourly::where('source', '!=', 'simulated')->count());
+    }
+
+    public function test_a_fresh_install_shows_a_full_day_on_the_network_monitor(): void
+    {
+        /*
+         * The Network monitor charts raw readings over the last day, and
+         * seeding used to write only hourly rows. A fresh clone opened onto an
+         * empty chart until the collector had run for hours.
+         */
+        $this->seedEverything();
+
+        $activity = app(NetworkMonitorService::class)->snapshot()['activity'];
+
+        // Ten-minute points: a full day is 144.
+        $this->assertGreaterThanOrEqual(140, count($activity));
+    }
+
+    public function test_the_degrading_trend_survives_aggregating_the_last_day(): void
+    {
+        /*
+         * The last day goes in as readings, so the scheduler's hourly run
+         * rebuilds those buckets. They must come out with the trend still in
+         * them, or the first hour after seeding quietly flattens the three
+         * access points the High band depends on.
+         */
+        $this->seedEverything();
+        $this->artisan('atlas:aggregate-telemetry', ['--hours' => 24])->assertExitCode(0);
+
+        $degrading = AccessPoint::where('is_demo', true)->orderBy('id')->limit(3)->pluck('id');
+        $lastDay = TelemetryHourly::whereIn('access_point_id', $degrading)
+            ->where('hour_bucket', '>=', now()->subDay()->startOfHour());
+
+        $this->assertGreaterThan(0, (clone $lastDay)->count());
+        $this->assertGreaterThan(config('atlas.thresholds.latency_ms'), (float) (clone $lastDay)->min('avg_latency_ms'));
     }
 
     public function test_it_produces_assets_in_every_risk_band(): void

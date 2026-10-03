@@ -197,7 +197,7 @@ Every rule in the system. If code decides something, it belongs here.
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
 | `Telemetry/TelemetryAggregator.php` | Raw readings rolled up into hourly buckets |
-| `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock, for `atlas:backfill-telemetry` |
+| `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock: by `atlas:backfill-telemetry`, |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
 | `Telemetry/TelemetrySource.php` | Where access point telemetry comes from |
@@ -667,6 +667,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment |
 | `Feature/Shifts/ShiftRemovalTest.php` | FR-408, taking shifts off the roster, one or a week at a time |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |
+| `Feature/Telemetry/CollectionGapTest.php` | The first collection round after the scheduler has been off |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
