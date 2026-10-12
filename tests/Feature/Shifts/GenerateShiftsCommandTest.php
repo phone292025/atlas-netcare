@@ -8,7 +8,6 @@ use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -71,7 +70,10 @@ class GenerateShiftsCommandTest extends TestCase
         $this->assistant();
         $this->template();
 
-        $wednesday = Carbon::parse('2026-10-07');
+        // Relative, not a fixed date: the generator skips slots that have
+        // already started, so a hard-coded 2026-10-07 stopped producing any
+        // shifts the day that week began.
+        $wednesday = now()->addWeeks(2)->startOfWeek()->addDays(2);
 
         $this->artisan('atlas:generate-shifts', ['--week' => $wednesday->toDateString()])
             ->assertExitCode(0);
