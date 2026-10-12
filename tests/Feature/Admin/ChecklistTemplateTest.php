@@ -137,6 +137,23 @@ class ChecklistTemplateTest extends TestCase
         $this->assertDatabaseCount('checklist_templates', 0);
     }
 
+    public function test_a_blank_item_is_refused_and_says_so(): void
+    {
+        // The error sat under items.1.label, which the form never showed, so
+        // the save was refused with nothing on screen to say why.
+        $this->actingAs($this->admin())
+            ->from(route('admin.checklists.create'))
+            ->followingRedirects()
+            ->post(route('admin.checklists.store'), $this->payload(['items' => [
+                ['label' => 'Machine powers on', 'category' => 'boot', 'is_critical' => '1'],
+                ['label' => '', 'category' => 'display', 'is_critical' => '0'],
+            ]]))
+            ->assertOk()
+            ->assertSee('Every item needs a question.');
+
+        $this->assertDatabaseCount('checklist_templates', 0);
+    }
+
     public function test_a_new_template_is_not_active_until_activated(): void
     {
         $this->actingAs($this->admin())

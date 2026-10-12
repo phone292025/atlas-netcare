@@ -41,6 +41,16 @@
         'is_critical' => filter_var($row['is_critical'] ?? false, FILTER_VALIDATE_BOOLEAN),
         '_key' => $index,
     ], $rows, array_keys($rows)));
+
+    /*
+     * A row's errors arrive under its position, `items.2.label`. They are
+     * listed above the items and the rows outlined, because a refused save
+     * that names no problem looks like a save that did nothing. `_key` is that
+     * same position until somebody moves a row.
+     */
+    $itemErrors = collect($errors->get('items.*'));
+    $messages = collect($errors->get('items'))->merge($itemErrors->flatten())->unique();
+    $badRows = $itemErrors->keys()->map(fn ($key) => (int) explode('.', $key)[1])->unique()->values()->all();
 @endphp
 
 <div class="space-y-4">
@@ -52,6 +62,7 @@
 
 <div class="mt-6" x-data="{
     rows: @js($rows),
+    bad: @js($badRows),
     nextKey: @js(count($rows)),
     add() {
         this.rows.push({ label: '', category: 'boot', is_critical: false, _key: this.nextKey++ });
@@ -84,13 +95,13 @@
         </button>
     </div>
 
-    @error('items')
+    @foreach ($messages as $message)
         <p class="mb-2 text-sm text-red-600">{{ $message }}</p>
-    @enderror
+    @endforeach
 
     <ul class="space-y-2">
         <template x-for="(row, index) in rows" :key="row._key">
-            <li class="rounded-lg bg-surface p-3 ring-1 ring-line">
+            <li class="rounded-lg bg-surface p-3 ring-1" :class="bad.includes(row._key) ? 'ring-red-500' : 'ring-line'">
                 <div class="flex items-start gap-2">
                     {{-- Move controls. Disabled at the ends rather than hidden,
                          so the row's controls do not shift position as it moves. --}}
