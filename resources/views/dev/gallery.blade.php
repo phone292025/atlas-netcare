@@ -60,7 +60,7 @@
                         'Access point' => \App\Enums\ApStatus::cases(),
                         'Lab PC' => \App\Enums\DeviceStatus::cases(),
                         'Ticket status' => \App\Enums\TicketStatus::cases(),
-                        'Inspection' => \App\Enums\InspectionResult::cases(),
+                        'Inspection' => \App\Enums\InspectionOutcome::cases(),
                         'Checklist item' => \App\Enums\ChecklistResult::cases(),
                         'Shift' => \App\Enums\ShiftStatus::cases(),
                         'Risk band' => \App\Enums\RiskBand::cases(),
