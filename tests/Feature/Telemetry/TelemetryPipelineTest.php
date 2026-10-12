@@ -788,6 +788,21 @@ class TelemetryPipelineTest extends TestCase
             ->assertSee($ap->ap_code);
     }
 
+    public function test_a_removed_access_point_keeps_its_name_in_the_traffic_log(): void
+    {
+        // Removing an access point keeps its telemetry, so its hours stay in
+        // the log. They showed a blank name linking to a page that 404s.
+        $ap = AccessPoint::factory()->create();
+        $this->hoursFor($ap, 3);
+        $ap->delete();
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->get(route('engineer.traffic.index'))
+            ->assertOk()
+            ->assertSee($ap->ap_code)
+            ->assertDontSee(route('engineer.aps.show', $ap));
+    }
+
     public function test_an_assistant_sees_a_read_only_status_board(): void
     {
         AccessPoint::factory()->count(2)->create();

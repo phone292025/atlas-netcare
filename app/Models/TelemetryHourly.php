@@ -51,6 +51,8 @@ class TelemetryHourly extends Model
     /** @return BelongsTo<AccessPoint, $this> */
     public function accessPoint(): BelongsTo
     {
-        return $this->belongsTo(AccessPoint::class);
+        // withTrashed: removing an access point keeps its telemetry, and the
+        // traffic log still lists those hours. Without this they had no name.
+        return $this->belongsTo(AccessPoint::class)->withTrashed();
     }
 }
