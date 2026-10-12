@@ -165,7 +165,7 @@
                             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2">
                                 @can('commentInternally', $ticket)
                                     <label class="flex items-center gap-2 text-xs text-fg-muted">
-                                        <input type="checkbox" name="is_internal" value="1" class="size-4 rounded">
+                                        <input type="checkbox" name="is_internal" value="1" class="size-4 rounded" @checked(old('is_internal'))>
                                         Keep it internal, hidden from whoever reported this
                                     </label>
                                 @else

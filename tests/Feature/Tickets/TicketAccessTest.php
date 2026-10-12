@@ -222,6 +222,22 @@ class TicketAccessTest extends TestCase
             ->assertSee('This one always breaks');
     }
 
+    public function test_a_refused_comment_stays_internal(): void
+    {
+        // The box came back unticked after an empty comment was refused, so
+        // the retry went to the reporter.
+        $ticket = Ticket::factory()->create();
+
+        $page = $this->actingAs($this->userWith(UserRole::Engineer))
+            ->from(route('engineer.tickets.show', $ticket))
+            ->followingRedirects()
+            ->post(route('tickets.comments.store', $ticket), ['body' => '', 'is_internal' => '1'])
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/<input type="checkbox" name="is_internal"[^>]*\bchecked\b/', $page);
+    }
+
     public function test_an_assistant_cannot_post_an_internal_note(): void
     {
         // The checkbox is not rendered for them, but a checkbox that is merely
