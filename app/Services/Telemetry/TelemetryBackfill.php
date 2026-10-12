@@ -56,7 +56,10 @@ class TelemetryBackfill
             return null;
         }
 
-        $accessPoints = AccessPoint::query()->collectable()->get();
+        // What the driver polls, the same set live collection reads. An
+        // access point whose feed is interrupted is not listened to, so its
+        // silence is the point and must not be filled in.
+        $accessPoints = $this->source->pollable()->get();
 
         if ($accessPoints->isEmpty()) {
             return null;

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Telemetry;
 
+use App\Enums\SimulationScenario;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\TelemetryHourly;
@@ -158,6 +159,26 @@ class CollectionGapTest extends TestCase
         $this->assertSame(0, TelemetryReading::where('recorded_at', '<', '2026-09-16 10:00:00')->count(), 'Readings were written into the seeded hour.');
         $this->assertSame($aps->count(), TelemetryHourly::where('hour_bucket', '2026-09-16 09:00:00')->where('avg_latency_ms', 999)->count(), 'The seeded bucket was rewritten.');
         $this->assertSame($aps->count(), TelemetryHourly::where('hour_bucket', '2026-09-16 10:00:00')->count(), 'The gap after it was not filled.');
+    }
+
+    public function test_an_interrupted_feed_is_not_filled_in(): void
+    {
+        /*
+         * A simulated feed interruption means nobody is listening to that
+         * access point, so it reads as unknown. Filling its gap would invent
+         * readings for a device the collector deliberately cannot see. Only
+         * what the driver polls is filled, the same set live collection uses.
+         */
+        [$interrupted, $healthy] = $this->accessPointsLastHeardFrom(now()->subHours(3), 2)->all();
+        $interrupted->forceFill([
+            'simulation_scenario' => SimulationScenario::FeedInterruption,
+            'simulation_started_at' => now()->subHours(4),
+        ])->save();
+
+        $this->artisan('atlas:collect-telemetry');
+
+        $this->assertSame(1, TelemetryReading::where('access_point_id', $interrupted->id)->count(), 'The interrupted feed was filled in.');
+        $this->assertGreaterThan(30, TelemetryReading::where('access_point_id', $healthy->id)->count(), 'The healthy one was not filled.');
     }
 
     public function test_a_real_driver_never_fills_a_gap(): void
