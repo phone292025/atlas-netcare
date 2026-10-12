@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# How CodeRabbit should review Atlas NetCare. It reviews pull requests only,
+# so work pushed straight to main is never seen. Ask it something on a PR with
+# @coderabbitai, or re-run with "@coderabbitai full review".
+
+language: en-GB
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+
+  # Generated or vendored files: reviewing them is noise.
+  path_filters:
+    - "!docs/13-code-map.md"
+    - "!resources/icons/phosphor.php"
+    - "!public/build/**"
+    - "!composer.lock"
+    - "!package-lock.json"
+
+  path_instructions:
+    - path: "**/*.php"
+      instructions: |
+        Laravel 12 on PHP 8.2, pinned: never suggest Laravel 13, PHP 8.3+ syntax,
+        or `composer update`. Business rules belong in services under
+        app/Services, not controllers; controllers stay thin with Form Requests
+        and Policies. Every threshold, weight and interval comes from
+        config/atlas.php rather than a literal. Times are stored in UTC and shown
+        on the campus clock (CampusClock).
+    - path: "database/migrations/**"
+      instructions: |
+        A migration that is already on main must never be edited; changes go in
+        a new migration. Event columns are `dateTime`, never `timestamp`, because
+        MariaDB rewrites a `timestamp` on update.
+    - path: "tests/**"
+      instructions: |
+        Tests run on SQLite in memory and in CI on MariaDB 10.4. Flag fixed
+        calendar dates that will expire (use relative dates or travelTo), and
+        assertions that only check labels rather than the numbers behind them.
+    - path: "resources/views/**/*.blade.php"
+      instructions: |
+        Blade, Tailwind 3.4 and Alpine; no React or Livewire. Colours come from
+        the theme tokens so light and dark both work. Check the layout at phone
+        width as well as desktop.
+    - path: "README.md"
+      instructions: |
+        The README is handed in without docs/, AGENTS.md or CLAUDE.md, so it must
+        not link into them; it has to stand on its own.
+
+chat:
+  auto_reply: true
