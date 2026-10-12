@@ -231,6 +231,20 @@ class DemoDataSeederTest extends TestCase
         $this->assertGreaterThan(config('atlas.thresholds.latency_ms'), (float) (clone $lastDay)->min('avg_latency_ms'));
     }
 
+    public function test_a_fresh_install_is_scored_without_a_second_command(): void
+    {
+        /*
+         * The README's setup ends at `migrate --seed`. Scoring was left to the
+         * scheduler's 02:00 run, so a fresh clone showed every asset unscored
+         * and the maintenance ranking empty, which is the predictive module
+         * looking broken to the first person who opens it.
+         */
+        $this->seedEverything();
+
+        $this->assertSame(0, LabPc::query()->inService()->whereNull('risk_band')->count(), 'A lab PC was left unscored.');
+        $this->assertSame(0, AccessPoint::query()->whereNull('risk_band')->count(), 'An access point was left unscored.');
+    }
+
     public function test_it_produces_assets_in_every_risk_band(): void
     {
         /*

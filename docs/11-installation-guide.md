@@ -77,13 +77,7 @@ php artisan db:seed
 
 `db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the first administrator and the six campus locations. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, 24 access points, a fortnight of telemetry, 25 inspections and 43 tickets — about three seconds.
 
-Then score the assets, or the maintenance ranking will be empty:
-
-```bash
-php artisan atlas:recalculate-risk
-```
-
-You should see all four risk bands populated. If everything lands in Low, the assets seeded without their ages — reseed rather than adjusting the weights.
+The demo seeder scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated. If everything lands in Low, the assets seeded without their ages: reseed rather than adjusting the weights. After changing a weight, rescore with `php artisan atlas:recalculate-risk`.
 
 ---
 

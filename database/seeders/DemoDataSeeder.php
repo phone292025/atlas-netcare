@@ -20,6 +20,7 @@ use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Risk\RiskScoringService;
 use App\Services\Telemetry\TelemetryAggregator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -67,9 +68,18 @@ class DemoDataSeeder extends Seeder
         $this->inspections();
         $this->tickets();
 
+        /*
+         * SCORE IT HERE. Left to the scheduler's 02:00 run, a fresh install
+         * showed every asset unscored and an empty maintenance ranking, the
+         * predictive module looking broken to the first person who opened it.
+         * The same call as `atlas:recalculate-risk`, which stays the way to
+         * rescore after changing a weight.
+         */
+        $scored = app(RiskScoringService::class)->recalculateAll();
+
+        $this->command?->line("  Risk scored: {$scored['lab_pcs']} lab PCs and {$scored['access_points']} access points.");
         $this->command?->newLine();
-        $this->command?->info('  Demo data seeded. Now score it:');
-        $this->command?->line('    php artisan atlas:recalculate-risk');
+        $this->command?->info('  Demo data seeded.');
         $this->command?->newLine();
     }
 
