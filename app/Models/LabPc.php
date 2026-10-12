@@ -120,7 +120,7 @@ class LabPc extends Model
      */
     public function ageInYears(): ?float
     {
-        return $this->purchase_date?->floatDiffInYears(now());
+        return $this->purchase_date?->diffInYears(now());
     }
 
     /**
