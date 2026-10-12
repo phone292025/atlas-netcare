@@ -17,13 +17,12 @@ reviews:
     enabled: true
     drafts: false
 
-  # Generated or vendored files: reviewing them is noise.
+  # Generated files: reviewing them is noise. Lock files stay in, because
+  # a change there is a dependency change.
   path_filters:
     - "!docs/13-code-map.md"
     - "!resources/icons/phosphor.php"
     - "!public/build/**"
-    - "!composer.lock"
-    - "!package-lock.json"
 
   path_instructions:
     - path: "**/*.php"
@@ -49,6 +48,11 @@ reviews:
         Blade, Tailwind 3.4 and Alpine; no React or Livewire. Colours come from
         the theme tokens so light and dark both work. Check the layout at phone
         width as well as desktop.
+    - path: "composer.lock"
+      instructions: |
+        The project never runs `composer update`; dependencies are pinned so
+        every member installs the same versions. Any change here needs a stated
+        reason in the PR, and a Laravel or PHP version change is a blocker.
     - path: "README.md"
       instructions: |
         The README is handed in without docs/, AGENTS.md or CLAUDE.md, so it must
