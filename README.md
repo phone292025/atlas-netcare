@@ -22,52 +22,79 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 ## Status
 
-All seven modules, M1 to M7, are built on Laravel 12 and Breeze.
+Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
 The suite has 1,019 tests, and CI runs it on SQLite and MariaDB. On MariaDB all of them pass. On SQLite one test that needs MariaDB skips itself. A copy without the `docs` folder also skips the seven tests that check it.
 
 ## Getting started
 
-### Prerequisites
+### What to install
 
 | Tool | Version | Notes |
 |---|---|---|
-| XAMPP | PHP 8.2+ | Provides PHP and MySQL. Laravel 12 runs on XAMPP's PHP 8.2. Laravel 13 needs 8.3, so the project stays on 12. |
-| Composer | 2.x | [getcomposer.org/download](https://getcomposer.org/download/) — the Windows installer finds XAMPP automatically |
-| Node.js | 20+ | For Vite |
-| Git | any recent | |
+| XAMPP | PHP 8.2 or newer | Gives you PHP and the database. XAMPP labels the database MySQL, but it is MariaDB. The project stays on Laravel 12 because Laravel 13 needs PHP 8.3. |
+| Composer | 2.x | Get the Windows installer from [getcomposer.org/download](https://getcomposer.org/download/). Point it at `C:\xampp\php\php.exe` when it asks, and let it add PHP to your PATH. |
+| Node.js | 22 LTS, or 20.19 or newer | Vite 7 builds the front end and refuses older versions. |
+| Git | any recent | Only needed to clone. An unzipped copy of the project doesn't need it. |
 
 ### Setup
+
+Open a terminal, PowerShell or Git Bash, in the project folder. With access to the GitHub repository you can clone it instead:
 
 ```bash
 git clone https://github.com/phone292025/atlas-netcare.git CP-Project
 cd CP-Project
+```
 
+**1. Install the packages.**
+
+```bash
 composer install          # never composer update, see below
 npm install
-
-cp .env.example .env
-php artisan key:generate
+npm run build
 ```
 
 Use `composer install`, never `composer update`. `composer.lock` pins every package, so each teammate gets the same versions. `update` rewrites the lock with whatever is newest on your machine, and everyone else's install changes with it.
 
-Start **Apache and MySQL** from the XAMPP Control Panel, then create the database:
+**2. Create your settings file.**
 
 ```bash
-mysql -u root -e "CREATE DATABASE atlas_netcare CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+cp .env.example .env      # in cmd: copy .env.example .env
+php artisan key:generate
 ```
 
-Then migrate, seed and run:
+**3. Build the database.** Start **MySQL** in the XAMPP Control Panel. Apache isn't needed. Then run:
 
 ```bash
 php artisan migrate --seed
-npm run dev               # keep this running in its own terminal
-php artisan serve         # in a second terminal
-php artisan schedule:work # in a third terminal
 ```
 
-The app is at `http://127.0.0.1:8000`. It opens without the scheduler, but the Network Monitor then shows every access point as Unknown and no alarms reach the bell. [Keeping the monitor live](#keeping-the-monitor-live) explains what the scheduler does.
+The first time, it says the `atlas_netcare` database does not exist and asks whether to create it. Answer yes. Seeding then fills the system with demonstration data, risk scores included, in a few seconds.
+
+**4. Run it** in two terminals:
+
+```bash
+php artisan serve           # the app, at http://127.0.0.1:8000
+php artisan schedule:work   # keeps the Network Monitor live
+```
+
+The app opens without the scheduler, but the Network Monitor then shows every access point as Unknown and no alarms reach the bell. [Keeping the monitor live](#keeping-the-monitor-live) explains what the scheduler does.
+
+When you change the front end, run `npm run dev` in a third terminal. It rebuilds on every save. Run `npm run build` again when you finish.
+
+### If something goes wrong
+
+- **`php` is not recognized.** Close and reopen the terminal after installing Composer. If it still fails, add `C:\xampp\php` to your PATH.
+- **Composer says a PHP extension is missing.** Open `C:\xampp\php\php.ini`, delete the `;` at the start of that extension's `extension=` line, save, and run `composer install` again.
+- **`SQLSTATE[HY000] [2002]` during `migrate`.** MySQL isn't running. Start it in the XAMPP Control Panel and run the command again.
+
+### Running the tests
+
+```bash
+php artisan test
+```
+
+The tests use an in-memory SQLite database, so they need nothing running and never touch `atlas_netcare`.
 
 ### Signing in
 
