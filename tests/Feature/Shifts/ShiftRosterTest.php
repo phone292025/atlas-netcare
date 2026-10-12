@@ -139,6 +139,27 @@ class ShiftRosterTest extends TestCase
         $this->assertSame(1, Shift::count());
     }
 
+    public function test_a_refused_template_keeps_its_active_box_as_it_was_left(): void
+    {
+        // Unticked, then refused for a missing name: it came back ticked.
+        $page = $this->actingAs($this->userWith(UserRole::Admin))
+            ->from(route('admin.shift-templates.create'))
+            ->followingRedirects()
+            ->post(route('admin.shift-templates.store'), [
+                'name' => '',
+                'day_of_week' => 1,
+                'required_assistants' => 1,
+                'start_time' => '09:00',
+                'end_time' => '13:00',
+                'location_id' => Location::factory()->create()->id,
+                'is_active' => '0',
+            ])
+            ->assertOk()
+            ->getContent();
+
+        $this->assertDoesNotMatchRegularExpression('/<input type="checkbox" name="is_active"[^>]*\bchecked\b/', $page);
+    }
+
     public function test_inactive_templates_are_skipped(): void
     {
         $this->userWith(UserRole::Assistant);

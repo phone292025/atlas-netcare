@@ -28,7 +28,7 @@
 
     <label class="flex items-center gap-2 text-sm text-fg-muted">
         <input type="hidden" name="is_active" value="0">
-        <input type="checkbox" name="is_active" value="1" @checked($template?->is_active ?? true)
+        <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $template?->is_active ?? true))
                class="rounded border-line-strong text-brand-600 focus:ring-brand-500">
         Active, so this slot is included when a roster is generated
     </label>
