@@ -23,13 +23,6 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 border-t border-line px-5 py-3">
-            @if (session('status') === 'profile-updated')
-                <p x-data="{ show: true }" x-show="show" x-transition
-                   x-init="setTimeout(() => show = false, 2500)"
-                   class="flex items-center gap-1.5 text-sm text-emerald-700">
-                    <x-icon name="check" class="size-4" /> Saved
-                </p>
-            @endif
             <x-button type="submit">Save details</x-button>
         </div>
     </form>

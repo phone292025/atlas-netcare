@@ -42,6 +42,20 @@ class ProfileTest extends TestCase
         $this->assertNull($user->email_verified_at);
     }
 
+    public function test_saving_says_so_in_words(): void
+    {
+        // The message bar shows whatever the redirect flashes, and Breeze's
+        // status key reached it as the words "profile-updated".
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->followingRedirects()
+            ->patch('/profile', ['name' => 'Test User', 'email' => $user->email])
+            ->assertOk()
+            ->assertDontSee('profile-updated')
+            ->assertSee('Your details are saved.');
+    }
+
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();
