@@ -623,6 +623,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/AccessPointInventoryTest.php` | M2, access point inventory |
 | `Feature/Admin/ChecklistTemplateTest.php` | M3, checklist templates and the versioning rule (Q2) |
 | `Feature/Admin/LabPcInventoryTest.php` | M2, lab PC inventory |
+| `Feature/Admin/ListSortingTest.php` | Clicking a column header twice sorts the list the other way |
 | `Feature/Admin/LocationManagementTest.php` | M2, locations |
 | `Feature/Admin/UserManagementTest.php` | M1, account management |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |

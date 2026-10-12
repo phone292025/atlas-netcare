@@ -45,7 +45,7 @@ class LabPcController extends Controller
                 ->when($request->boolean('retired'),
                     fn ($q) => $q->withTrashed(),
                     fn ($q) => $q->inService())
-                ->orderBy($this->sortColumn($request), $request->string('direction') === 'desc' ? 'desc' : 'asc')
+                ->orderBy($this->sortColumn($request), $request->string('direction')->value() === 'desc' ? 'desc' : 'asc')
                 ->paginate(25)
                 ->withQueryString(),
             'locations' => $this->locationOptions(),

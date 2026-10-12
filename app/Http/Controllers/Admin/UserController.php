@@ -35,8 +35,8 @@ class UserController extends Controller
                     ->orWhere('tp_number', 'like', "%{$term}%")
             ))
             ->when($request->filled('role'), fn ($q) => $q->where('role', $request->string('role')))
-            ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->string('status') === 'active'))
-            ->orderBy($this->sortColumn($request), $request->string('direction') === 'desc' ? 'desc' : 'asc')
+            ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->string('status')->value() === 'active'))
+            ->orderBy($this->sortColumn($request), $request->string('direction')->value() === 'desc' ? 'desc' : 'asc')
             ->paginate(20)
             // Without this, paging away from page 1 drops the filters the user
             // just chose and the list appears to reset itself.

@@ -45,7 +45,7 @@ class AccessPointController extends Controller
                  * soft delete and nothing else.
                  */
                 ->when($request->boolean('removed'), fn ($q) => $q->withTrashed())
-                ->orderBy($this->sortColumn($request), $request->string('direction') === 'desc' ? 'desc' : 'asc')
+                ->orderBy($this->sortColumn($request), $request->string('direction')->value() === 'desc' ? 'desc' : 'asc')
                 ->paginate(25)
                 ->withQueryString(),
             'locations' => $this->locationOptions(),
