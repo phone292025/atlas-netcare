@@ -24,7 +24,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
 
 All seven modules, M1 to M7, are built on Laravel 12 and Breeze.
 
-The suite has 982 tests. On SQLite 981 pass and one MariaDB-only test is skipped. On MariaDB all 982 pass. CI runs both.
+The suite has 1,019 tests, and CI runs it on SQLite and MariaDB. On MariaDB all of them pass. On SQLite one test that needs MariaDB skips itself. A copy without the `docs` folder also skips the seven tests that check it.
 
 ## Getting started
 
