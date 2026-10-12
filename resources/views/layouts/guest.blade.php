@@ -39,7 +39,20 @@
         <p class="relative text-xs text-fg-subtle">Atlas NetCare, campus IT operations</p>
     </section>
 
-    <main class="flex flex-col px-5 py-8 sm:px-10">
+    <main class="relative isolate flex flex-col overflow-hidden px-5 py-8 sm:px-10 lg:overflow-visible">
+        {{-- On a phone the side panel is hidden, so the screen itself carries
+             the atmosphere: two soft brand glows and a faint grid behind the
+             form, the same language as the panel, in place of empty black. --}}
+        <div class="pointer-events-none absolute inset-0 -z-10 lg:hidden" aria-hidden="true">
+            <div class="absolute -left-40 -top-48 size-[30rem] rounded-full"
+                 style="background: radial-gradient(circle, rgb(var(--c-brand-500) / 0.34), transparent 62%);"></div>
+            <div class="absolute -bottom-32 -right-32 size-[26rem] rounded-full"
+                 style="background: radial-gradient(circle, rgb(var(--c-brand-500) / 0.26), transparent 62%);"></div>
+            <div class="absolute inset-0 opacity-60"
+                 style="background-image: radial-gradient(rgb(var(--line-strong)) 1px, transparent 1px); background-size: 22px 22px;
+                        mask-image: radial-gradient(ellipse 85% 45% at 30% 0%, black, transparent);"></div>
+        </div>
+
         <div class="lg:hidden">
             <a href="{{ route('login') }}" class="inline-flex rounded-md">
                 <x-brand-mark size="md" />
@@ -48,7 +61,7 @@
 
         <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
             @isset($heading)
-                <h1 class="text-2xl font-semibold tracking-tight text-fg">{{ $heading }}</h1>
+                <h1 class="text-[1.75rem] font-semibold leading-tight tracking-tight text-fg lg:text-2xl">{{ $heading }}</h1>
             @endisset
             @isset($intro)
                 <p class="mt-2 text-sm leading-relaxed text-fg-muted">{{ $intro }}</p>

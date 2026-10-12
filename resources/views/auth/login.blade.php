@@ -1,6 +1,7 @@
 <x-guest-layout>
-    <x-slot name="heading">Sign in</x-slot>
-    <x-slot name="intro">Use the account your IT office gave you.</x-slot>
+    <x-slot name="title">Sign in</x-slot>
+    <x-slot name="heading">Welcome back</x-slot>
+    <x-slot name="intro">Sign in with the account your IT office gave you.</x-slot>
 
     <x-auth-session-status class="mb-6" :status="session('status')" />
 
