@@ -89,6 +89,25 @@ class EveryScreenRendersTest extends TestCase
     }
 
     #[DataProvider('screens')]
+    public function test_the_screen_survives_a_hand_edited_query_string(string $route, string $role): void
+    {
+        /*
+         * `?status[]=x` arrives as an array, and every filter here takes one
+         * value. Ten screens answered it with a 500, "Array to string
+         * conversion", from the first place that printed or compared it.
+         */
+        $this->seed(ReferenceSeeder::class);
+
+        $filters = ['search', 'status', 'location', 'role', 'type', 'action', 'priority', 'assignee', 'band',
+            'from', 'to', 'access_point', 'sort', 'direction', 'week', 'mine', 'outstanding', 'breaching',
+            'unassigned', 'removed', 'retired', 'user', 'page', 'inspection', 'item', 'asset', 'asset_id'];
+
+        $this->actingAs($this->user($role))
+            ->get(route($route, array_fill_keys($filters, ['x'])))
+            ->assertOk();
+    }
+
+    #[DataProvider('screens')]
     public function test_the_screen_renders_with_no_reference_data_either(string $route, string $role): void
     {
         /*

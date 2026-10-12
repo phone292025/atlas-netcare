@@ -135,6 +135,7 @@ They answer different questions.
 | `EnsureAccountIsActive.php` | Signs out a deactivated account on its next request (FR-106) |
 | `EnsurePasswordIsChanged.php` | Stops a user who is still on an administrator-chosen password (Q6) |
 | `EnsureUserHasRole.php` | Area-level authorisation: may this role reach this part of the system at all? |
+| `IgnoreArrayQueryValues.php` | Drops array values from the query string |
 <!-- /code-map -->
 
 `EnsureUserHasRole` is applied per route group: may this role reach this area

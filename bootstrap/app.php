@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\IgnoreArrayQueryValues;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureAccountIsActive::class,
             EnsurePasswordIsChanged::class,
         ]);
+
+        // Every filter takes one value; `?status[]=x` crashed ten screens.
+        $middleware->append(IgnoreArrayQueryValues::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
