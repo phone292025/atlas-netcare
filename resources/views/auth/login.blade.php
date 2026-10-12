@@ -11,7 +11,7 @@
                       autofocus autocomplete="username" />
 
         <div>
-            <x-form.input name="password" label="Password" type="password" required
+            <x-form.input name="password" label="Password" type="password" required revealable
                           autocomplete="current-password" />
             {{-- FR-102. The proposal lists "recover password" for all three
                  roles, so this stays even though delivery depends on a mail

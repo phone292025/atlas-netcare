@@ -32,7 +32,7 @@
         <x-form.input name="email" label="Email" type="email" required autofocus
                       autocomplete="username" :value="$request->email" />
 
-        <x-form.input name="password" label="New password" type="password" required
+        <x-form.input name="password" label="New password" type="password" required revealable
                       autocomplete="new-password" />
 
         <x-form.input name="password_confirmation" label="Confirm new password"

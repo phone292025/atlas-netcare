@@ -55,6 +55,7 @@ const map = {
     edit: 'pencil-simple',
     envelope: 'envelope-simple',
     eye: 'eye',
+    'eye-slash': 'eye-slash',
     flask: 'flask',
     funnel: 'funnel-simple',
     gauge: 'gauge',
