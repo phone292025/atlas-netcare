@@ -263,8 +263,6 @@ Two habits came out of building this.
 
 ## What is not built
 
-**A demo dataset with anything in the top two risk bands.** Every seeded asset scores Low or Medium, because the demo data holds no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. A maintenance ranking with no Critical row does not show what the screen is for, so this is worth fixing before the demonstration.
-
 **Real SNMP telemetry.** The driver is a deliberate stub that throws with instructions.
 
 **Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only.
