@@ -205,17 +205,3 @@ The charts don't need it to start with. `migrate --seed` writes two weeks of hou
 > **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings into every hour it covers that has none and re-aggregates them, so a two-week backfill flattens those three trends. Use it only for access points with no history.
 
 Telemetry is simulated by default, with `ATLAS_TELEMETRY_DRIVER=simulated`. Real access points need that `.env` value changed and `SnmpTelemetrySource` implemented. Nothing else in the system changes.
-
-## Team
-
-| Member | TP Number | Module |
-|---|---|---|
-| Yar Zar Min *(Group Leader)* | TP086455 | *to be assigned* |
-| Swan Yee Htet | TP085967 | *to be assigned* |
-| Thint Myat Htet Myat Shwe | TP086389 | *to be assigned* |
-| Phone Myat Ko | TP086905 | *to be assigned* |
-| Nyan Lin Tun | TP086590 | *to be assigned* |
-| Sachin Nair A/L C. Suthan | TP087180 | *to be assigned* |
-| Kaung Khant Zin | TP086063 | *to be assigned* |
-
-When the group assigns modules, fill in the table above and the Workload Matrix.

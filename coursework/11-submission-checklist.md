@@ -57,14 +57,14 @@ The proposal is submitted, but the final report reuses it as a subset. **Fix the
 - [ ] Fix **"Gnatt charts"** → "Gantt charts" (twice, Workload Matrix)
 - [ ] Fix **"The Altas Members"** → "The Atlas Members" (Acknowledgement)
 - [ ] Fix **"pak times"** → "peak times"
-- [ ] Fix **"Shuthan"** → **"Suthan"** (three places)
+- [ ] Fix the misspelt member surname in the proposal (three places)
 - [ ] Fix **"i2.2 Methodology Justification"** — stray leading "i"
 - [ ] Rewrite conversational passages in formal third person — §1.3 and the Project Aim especially
 - [ ] Make objectives **measurable** — "reduce those frustrating delays" has no target
 - [ ] Rebuild the **Workload Matrix** as an activity × member grid; "References" is not a work item
 - [ ] Add a **Non-Functional Requirements** section using NFR-01 and NFR-02 from the Meeting 2 minutes
 - [ ] Rename **"Proposal Background"** → "Project Background"; split "Proposed Solution / Scope" into two subsections; rename "Atlas NetCare System" → "System Hierarchy Chart"
-- [ ] Note that **Kaung Khant Zin** appears in the Workload Matrix but is absent from Meeting 1 and 2 attendee lists
+- [ ] Note that one member appears in the Workload Matrix but is absent from the Meeting 1 and 2 attendee lists
 
 ---
 

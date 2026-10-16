@@ -6,7 +6,7 @@
 >
 > **The module brief gives a duration — 14 weeks — and no calendar dates at all.** Every date in this file was produced by anchoring week 1 to 26 August 2026, the day these docs were written. That anchor was an assumption, and it was never checked with anybody.
 >
-> Phone Myat Ko has since said the real deadlines are **next year (2027)**. If that is right, every date here is out by roughly a year, including the "15 September design freeze" that other documents have been treating as imminent.
+> The team has since said the real deadlines are **next year (2027)**. If that is right, every date here is out by roughly a year, including the "15 September design freeze" that other documents have been treating as imminent.
 >
 > **Do not plan against this file until the real dates are filled in.** Get them from the module brief or the supervisor, replace the table below, and delete this warning.
 >

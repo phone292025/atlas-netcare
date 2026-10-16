@@ -4,7 +4,7 @@
 **Group:** Atlas
 **Supervisor:** Mr Dhason Padmakumar
 **Week commencing:**
-**Submitted by:** Yar Zar Min (Group Leader)
+**Submitted by:** *(Group Leader)*
 **Date submitted:**
 
 > This is the template. Copy it to `week-NN.md` each week and fill it in **during** that week.
@@ -17,13 +17,13 @@ Every member writes their own entry. Be specific: "built the checklist item CRUD
 
 | Member | Work completed this week | Planned for next week |
 |---|---|---|
-| Yar Zar Min | | |
-| Swan Yee Htet | | |
-| Thint Myat Htet Myat Shwe | | |
-| Phone Myat Ko | | |
-| Nyan Lin Tun | | |
-| Sachin Nair A/L C. Suthan | | |
-| Kaung Khant Zin | | |
+| *Member 1 (Group Leader)* | | |
+| *Member 2* | | |
+| *Member 3* | | |
+| *Member 4* | | |
+| *Member 5* | | |
+| *Member 6* | | |
+| *Member 7* | | |
 
 ## Section 2 — Issues
 

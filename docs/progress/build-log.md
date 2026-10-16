@@ -46,7 +46,7 @@ One regression from the review itself, caught while adding the above: `CampusClo
 
 **Verified.** 958 passing and 1 skipped on SQLite, 959 on MariaDB, Pint clean; every new test was checked by breaking its fix.
 
-**Then the engineer role**, signed in as Yar Zar Min: the queue, an internal note, acknowledge (which assigns), start work, resolve refused without notes and accepted with them, close, and the reporter's view checked at each step (resolution notes shown, internal notes not). A critical ticket raised as Swan rang both engineers' bells, and the notification opened the engineer's ticket screen. The overdue alarm fired a minute after the deadline. The maintenance ranking's preventive ticket pre-fills correctly. Two more fixes:
+**Then the engineer role**, signed in as the demo engineer: the queue, an internal note, acknowledge (which assigns), start work, resolve refused without notes and accepted with them, close, and the reporter's view checked at each step (resolution notes shown, internal notes not). A critical ticket raised as Swan rang both engineers' bells, and the notification opened the engineer's ticket screen. The overdue alarm fired a minute after the deadline. The maintenance ranking's preventive ticket pre-fills correctly. Two more fixes:
 
 - **Reassigning a ticket told nobody.** The new assignee now gets a `ticket_assigned` alarm; taking one yourself does not.
 - **Every status change read "added an internal note"** in the timeline. They now read "updated the ticket".
@@ -155,7 +155,7 @@ Four things came out of using it that no test would have found:
 
 ## Calendar export — built 2026-08-29
 
-Decided with Phone Myat Ko and built the same day. See [../modules/M6-shifts-and-alarms.md](../modules/M6-shifts-and-alarms.md) for how it works.
+Decided with the team and built the same day. See [../modules/M6-shifts-and-alarms.md](../modules/M6-shifts-and-alarms.md) for how it works.
 
 **The problem.** M6's alarms only reach the notification bell inside the app. An assistant who is not looking at Atlas NetCare does not know their shift starts in 30 minutes, which is most of the point of having shift alarms at all.
 

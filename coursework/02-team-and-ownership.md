@@ -1,22 +1,12 @@
 # Team and Ownership
 
-> **Last updated:** 2026-08-30 · **Status:** ⚠️ **still nobody owns anything, and all seven modules are now built.** The 21 module diagrams and the three whole-system ones cannot start until this is filled in.
+> **Last updated:** 2026-10-16 · **Status:** ⚠️ **still nobody owns anything, and all seven modules are now built.** The 21 module diagrams and the three whole-system ones cannot start until this is filled in.
 
 ---
 
 ## Members
 
-| Member | TP Number | Role |
-|---|---|---|
-| Yar Zar Min | TP086455 | **Group Leader** — sole channel to the supervisor |
-| Swan Yee Htet | TP085967 | Developer |
-| Thint Myat Htet Myat Shwe | TP086389 | Developer |
-| Phone Myat Ko | TP086905 | Developer |
-| Nyan Lin Tun | TP086590 | Developer |
-| Sachin Nair A/L C. Suthan | TP087180 | Developer |
-| Kaung Khant Zin | TP086063 | Developer |
-
-> **Spelling note:** the surname is **Suthan**. The proposal spells it "Shuthan" in three places. Use "Suthan" consistently from here on — inconsistent naming is a marked consistency fault.
+Seven members: a group leader, who is the only channel to the supervisor, and six developers. Names and TP numbers are not kept in this repository, because it is public. They go on the report's cover sheet and in the Workload Matrix.
 
 ---
 
@@ -32,7 +22,7 @@ Seven members, seven modules, one owner each. Each person documents the module t
 
 ## Module assignment
 
-Fill in the Owner column at the next team meeting, then mirror it into `README.md` and the Workload Matrix. Live build status is in [progress/build-log.md](../docs/progress/build-log.md).
+Fill in the Owner column at the next team meeting, then mirror it into the Workload Matrix. Live build status is in [progress/build-log.md](../docs/progress/build-log.md).
 
 | ID | Module | Track | Owner | Code | Diagrams for the report |
 |---|---|---|---|---|---|
