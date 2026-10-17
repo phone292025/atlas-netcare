@@ -40,3 +40,7 @@ Standard Laravel MVC, organised as a modular monolith, with a thin service layer
 **Domain-driven design with bounded contexts.** Rejected: appropriate at a scale we are nowhere near, and the vocabulary alone would cost a week of team learning.
 
 **No service layer, logic in controllers.** Rejected: makes business rules untestable and produces 200-line controller actions that are impossible to review.
+
+## Notes
+
+**2026-10-17.** The first Decision bullet is stricter than the code. Decisions do go to a service. Simpler writes stay in the controller: the admin CRUD screens (users, locations, lab PCs, access points, shift templates) and a few small actions write the model after validation and the role check, and `index` actions build their own filtered query. Both follow `AGENTS.md` hard rule 1: logic moves to a service when a second caller needs it. The decision itself stands. See [03-architecture.md](../03-architecture.md#two-kinds-of-controller).

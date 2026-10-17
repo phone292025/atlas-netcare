@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-09-26 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-10-17 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -22,20 +22,50 @@ Routes            routes/web.php grouped by role prefix, including the
 Middleware        web group: EnsureAccountIsActive, EnsurePasswordIsChanged
   │               then auth → role:admin|engineer|assistant
   ▼
-Controller        HTTP only. Validate via Form Request, call one service
-  │               method, return a view or JSON. Decisions go to a service;
+Controller        HTTP only. Validate via Form Request, authorise,
+  │               hand any decision to a service, return a view or JSON.
+  │               Plain admin create/edit and filtered index lists use
+  │               the model directly. See "Two kinds of controller".
   ▼
-Service           ALL business logic lives here. This is what unit tests
+Service           The business rules live here. This is what unit tests
   │               point at.
   ▼
-Model             Eloquent. Relationships, enum casts, scopes, accessors.
-  │               No raw SQL anywhere.
+Model             Eloquent and the query builder. Relationships, enum
+  │               casts, scopes, accessors. Raw SQL is rare: see below.
   ▼
 MariaDB           One database, one schema. Real and demo data coexist,
                   distinguished by a column.
 ```
 
-Scheduled commands enter at the **Service** layer and skip the top three entirely. That is deliberate — it means a command and a controller share exactly the same business logic.
+### Two kinds of controller
+
+Decisions go to a service: ticket transitions and assignment, inspection outcomes, the roster and shift check-in, checklist versioning, telemetry and the Network monitor's controls, risk scoring and the reports. An assistant raising a ticket and the collector raising one for an offline access point both call `TicketService::open()`, so both get a reference number and an SLA due time the same way.
+
+Simpler writes stay in the controller, after the Form Request and the route's role check, plus a policy where one exists. The admin CRUD screens for users, locations, lab PCs, access points and shift templates write the model directly. So do a few smaller actions elsewhere: creating a checklist template before `ChecklistService` writes its items, adding a ticket comment, abandoning an unfinished inspection, and creating or revoking a calendar link. This is hard rule 1's test in `AGENTS.md`: logic becomes a service when a second caller needs it, and none of these has one. The same test lets every `index` action build its own filtered query, and lets two read-only engineer screens query directly: Maintenance priority lists the scores `RiskScoringService` already stored, and Traffic logs sums hourly buckets for its one chart.
+
+A few rules do sit in those controllers, each with one caller:
+
+- Deleting a location, a shift template or a checklist template is refused while something still depends on it.
+- Retiring a lab PC writes `status = retired` and the soft-delete stamp. Restoring it clears the stamp and sets the status to operational.
+- A new account is active and must change its password on first sign-in, and an administrator cannot change their own role (`UserPolicy`).
+
+They are the first to move into a service if a second caller appears.
+
+### Raw SQL
+
+Raw SQL is rare, and none of it takes request input. Most of it is aggregates in `selectRaw` (sums, averages, counts and maxima), mainly in `ReportingService` and `TelemetryAggregator`. The rest:
+
+- a `CASE` sort in `Ticket::scopeMostUrgentFirst()`, built from `TicketPriority` weights
+- timestamp bucket expressions (`SUBSTR`, `DATE_FORMAT`, `strftime`) in `NetworkMonitorService` and `TelemetryAggregator`, built from constants
+- an `information_schema` query in `atlas:check-schema` and a `REPLACE()` update in `atlas:renumber-tickets`, both run by hand. The update takes its table and column names from a class constant and binds the values.
+
+Every value in these is either bound with `?` or built from a constant or an enum.
+
+### Scheduled commands
+
+Six of the seven scheduled commands enter at the **Service** layer and skip the top three entirely. That is deliberate. A command and a controller then share exactly the same business logic: `atlas:collect-telemetry` and the Network monitor's Generate sample button both run `TelemetryCollector::tick()`.
+
+`atlas:prune-telemetry` is the exception. It deletes rows past retention through `TelemetryReading` and `TelemetryHourly` directly. Retention has no second caller, and the only rule in it, how long to keep each table, is read from `config/atlas.php`. `atlas:recalculate-risk` also reads `RiskAssessment` directly, but only to print its summary after `RiskScoringService` has done the scoring.
 
 ---
 
@@ -153,7 +183,7 @@ Keep the tree **shallow**. Deep nesting is where student projects lose people.
 
 ## The five hard rules
 
-1. **No business logic in controllers.** Anything that decides, computes or changes state belongs in a service: state machines, scoring, SLA arithmetic, report aggregation. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action. The test is whether a second caller would need the same answer. `ReportController` failed it at 309 lines and became `ReportingService` on 2026-09-04.
+1. **No business logic in controllers.** Anything that decides, computes or changes state belongs in a service: state machines, scoring, SLA arithmetic, report aggregation. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action. The test is whether a second caller would need the same answer. The same test lets a plain admin create or edit, where validation and the role or policy check are the whole rule, write the model from the controller. `ReportController` failed it at 309 lines and became `ReportingService` on 2026-09-04.
 
 2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or traverse a relationship that triggers a query. This is the single most common cause of N+1 problems in student projects, and it will be visible to anyone who opens the debug bar during your demo.
 
