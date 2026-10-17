@@ -35,9 +35,9 @@ app/Http/Requests/
 app/Policies/
   |     may this person do this to this record?
 app/Http/Controllers/
-  |     validate, call a service, return a view. Decides nothing itself
+  |     validate, hand any decision to a service, return a view
 app/Services/
-  |     every rule in the system lives here
+  |     the business rules live here
 app/Models/
   |     Eloquent. Relationships, enum casts, scopes
 MariaDB
@@ -50,7 +50,8 @@ person may do it (`TicketPolicy`), and whether the move is legal at all
 to somebody else" becomes possible.
 
 Scheduled commands enter at the service layer and skip the top three. A
-command and a browser request run the same rules.
+command and a browser request run the same rules. `atlas:prune-telemetry` is
+the one exception: it deletes through the models, since nothing else prunes.
 
 ---
 
