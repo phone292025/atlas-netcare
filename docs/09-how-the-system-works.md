@@ -104,7 +104,7 @@ Routes
 Middleware
    |     auth, then role. Nothing reaches a controller unverified
 Controller
-   |     validate, hand any decision to a service, return a view
+   |     validate, hand decisions to a service, return a view
 Service
    |     the business rules live here
 Model

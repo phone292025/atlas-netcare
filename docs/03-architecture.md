@@ -23,7 +23,7 @@ Middleware        web group: EnsureAccountIsActive, EnsurePasswordIsChanged
   │               then auth → role:admin|engineer|assistant
   ▼
 Controller        HTTP only. Validate via Form Request, authorise,
-  │               hand any decision to a service, return a view or JSON.
+  │               hand decisions to a service, return a view or JSON.
   │               Plain admin create/edit and filtered index lists use
   │               the model directly. See "Two kinds of controller".
   ▼
