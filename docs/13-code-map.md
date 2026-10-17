@@ -35,7 +35,7 @@ app/Http/Requests/
 app/Policies/
   |     may this person do this to this record?
 app/Http/Controllers/
-  |     validate, hand any decision to a service, return a view
+  |     validate, hand decisions to a service, return a view
 app/Services/
   |     the business rules live here
 app/Models/
@@ -80,9 +80,10 @@ with a 48 character token in the URL and is rate limited instead.
 
 ## app/Http/Controllers/
 
-A controller validates, calls a service, and renders. It decides nothing. A
-controller creeping past a couple of hundred lines is one that has started
-deciding things.
+A controller validates, hands decisions to a service, and renders. A plain
+admin create or edit writes the model itself, and a few one-caller rules sit
+in controllers; see the architecture document. A controller creeping past a
+couple of hundred lines is one that has started deciding things.
 
 <!-- code-map:app/Http/Controllers/ -->
 | File | What it does |
@@ -181,7 +182,8 @@ so a crafted POST cannot name an arbitrary class.
 
 ## app/Services/
 
-Every rule in the system. If code decides something, it belongs here.
+The business rules. If code decides something and a second caller would need
+the same answer, it belongs here.
 
 <!-- code-map:app/Services/ -->
 | File | What it does |
