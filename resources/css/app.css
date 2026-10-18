@@ -106,6 +106,13 @@
         --c-red-950: 69 10 10;
     }
 
+    /*
+     | Screen only. Paper is white, so a printout always takes the light
+     | palette above, whatever theme the person printing is using. Without the
+     | media query a report printed from dark mode came out as near-white text
+     | on white paper.
+     */
+    @media screen {
     :root[data-theme='dark'] {
         color-scheme: dark;
 
@@ -192,6 +199,7 @@
         --c-red-800: 254 202 202;
         --c-red-900: 254 226 226;
         --c-red-950: 254 242 242;
+    }
     }
 
     html {
@@ -373,4 +381,117 @@
     body { background: #fff; }
     section, table, canvas { break-inside: avoid; }
     .shadow-xs, .shadow-sm, .shadow-md { box-shadow: none !important; }
+}
+
+/*
+ | The Reports page as a printed document (FR-410), not a screenshot of the
+ | app. Scoped to `.report` so no other page changes when printed.
+ |
+ | The page margins carry their own footer. Defining margin content stops the
+ | browser printing its default date, title and URL there.
+ */
+@page report {
+    size: A4;
+    margin: 16mm 15mm 18mm;
+
+    /* Empty top boxes, so the browser's date and title do not print there. */
+    @top-left { content: ""; }
+    @top-right { content: ""; }
+
+    @bottom-left {
+        content: "Atlas NetCare operations report";
+        font: 8pt "Geist Variable", ui-sans-serif, sans-serif;
+        color: rgb(90 99 114);
+    }
+
+    @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font: 8pt "Geist Variable", ui-sans-serif, sans-serif;
+        color: rgb(90 99 114);
+    }
+}
+
+@media print {
+    /* On the body, not on .report: a named page on a nested element forces a
+       page break before it, which printed a blank first page. */
+    body:has(.report) { page: report; }
+
+    .report {
+        font-size: 9.5pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* A card is a screen device. On paper each figure is a titled section
+       separated by a rule, and allowed to run onto the next page. */
+    .report section {
+        break-inside: auto;
+        border: 0;
+        border-top: 1px solid rgb(var(--line-strong));
+        border-radius: 0;
+        background: none;
+        margin: 0 0 7mm;
+    }
+
+    .report section > header {
+        border: 0;
+        padding: 3mm 0 2mm;
+        break-after: avoid;
+    }
+
+    .report section > header h3 { font-size: 12pt; }
+    .report section > div { padding: 0; }
+
+    /* A chart and the table beside it stay together, and sit side by side. */
+    .report .report-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        gap: 6mm;
+        break-inside: avoid;
+    }
+
+    /* Chart.js sizes its canvas in screen pixels. The print column is
+       narrower, so scale the drawing to fit it rather than clip it. */
+    .report canvas {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .report figure > div { height: auto !important; }
+
+    /* Tables on paper: no rounded box, a hairline under each row. */
+    /* Kept whole: these tables are short, and a table longer than a page
+       still breaks, because the browser has no other choice. */
+    .report table { break-inside: avoid; font-size: 9pt; }
+    .report .overflow-hidden { overflow: visible; border: 0; border-radius: 0; }
+    .report thead { background: none; border-bottom: 1px solid rgb(var(--line-strong)); }
+    .report th:first-child, .report td:first-child { padding-left: 0; }
+    .report th:last-child, .report td:last-child { padding-right: 0; }
+    .report tr { break-inside: avoid; }
+    .report thead { display: table-header-group; }
+    .report td, .report th { padding-top: 1.6mm; padding-bottom: 1.6mm; }
+
+    /* The four headline figures: a row of numbers between hairlines, not four
+       empty boxes. */
+    .report .report-figures {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        margin: 0 0 8mm;
+        border-top: 1px solid rgb(var(--line-strong));
+        border-bottom: 1px solid rgb(var(--line-strong));
+        break-inside: avoid;
+    }
+
+    .report .report-figures > * {
+        border: 0;
+        border-left: 1px solid rgb(var(--line));
+        border-radius: 0;
+        background: none;
+        padding: 4mm 4mm 4mm 5mm;
+    }
+
+    .report .report-figures > :first-child { border-left: 0; padding-left: 0; }
+    .report .report-figures svg { display: none; }
 }

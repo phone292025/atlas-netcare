@@ -20,16 +20,47 @@
         $passed = collect($inspections)->sum('passed');
     @endphp
 
-    <x-page-header title="Reports"
+    {{-- .report scopes the print styles in resources/css/app.css. On paper
+         this page is a document with its own title block and page footer,
+         not the app screen printed as it looks. --}}
+    <div class="report">
+
+    <x-page-header class="print:hidden" title="Reports"
                    :subtitle="'How the campus is doing, from every module at once. Generated '.$generated->campus()->format('j M Y, H:i').'.'">
         <x-slot:actions>
             <x-button variant="secondary" icon="download" onclick="window.print()">Print or save as PDF</x-button>
         </x-slot:actions>
     </x-page-header>
 
+    {{-- Print only. The screen header above says the same thing with a
+         button beside it. --}}
+    <header class="mb-[8mm] hidden print:block">
+        <div class="h-[3px] bg-brand-600"></div>
+        <p class="mt-[5mm] text-[10pt] font-medium text-brand-700">Atlas NetCare</p>
+        <h1 class="mt-1 text-[24pt] font-semibold leading-tight tracking-tight text-fg">Operations report</h1>
+        <p class="mt-2 max-w-[150mm] text-fg-muted">
+            How the campus is doing, from every module at once: maintenance risk, tickets,
+            inspections and access point health.
+        </p>
+        <dl class="mt-[6mm] grid grid-cols-3 gap-6 text-[8.5pt]">
+            <div>
+                <dt class="text-fg-muted">Generated</dt>
+                <dd class="mt-0.5 font-medium text-fg">{{ $generated->campus()->format('j F Y, H:i') }} campus time</dd>
+            </div>
+            <div>
+                <dt class="text-fg-muted">Prepared by</dt>
+                <dd class="mt-0.5 font-medium text-fg">{{ auth()->user()->name }}</dd>
+            </div>
+            <div>
+                <dt class="text-fg-muted">Period</dt>
+                <dd class="mt-0.5 font-medium text-fg">All records to date. Access points: last 30 days.</dd>
+            </div>
+        </dl>
+    </header>
+
     {{-- The four numbers someone asks for first. Each one is drawn from the
          section below it, so the detail is one scroll away. --}}
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div class="report-figures mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <x-stat-tile label="Assets at high risk or worse" icon="wrench" :value="$atRisk" :unit="'of '.$scored.' scored'"
                      :tone="$atRisk > 0 ? 'urgent' : null" :delta="$atRisk > 0 ? 'Worth a preventive visit' : null" />
         <x-stat-tile label="Tickets raised" icon="ticket" :value="$ticketVolume['total']" />
@@ -54,7 +85,7 @@
                  row height the chart drew at the top and left a block of
                  empty card underneath it, which read as something failing to
                  load rather than as a short chart. --}}
-            <div class="grid gap-6 lg:grid-cols-2 lg:items-center">
+            <div class="report-pair grid gap-6 lg:grid-cols-2 lg:items-center">
                 <x-chart type="bar" :height="240"
                          label="Count of assets in each predictive risk band"
                          :data="[
@@ -164,7 +195,7 @@
                  row height the chart drew at the top and left a block of
                  empty card underneath it, which read as something failing to
                  load rather than as a short chart. --}}
-            <div class="grid gap-6 lg:grid-cols-2 lg:items-center">
+            <div class="report-pair grid gap-6 lg:grid-cols-2 lg:items-center">
                 <x-chart type="bar" :height="240"
                          label="Percentage of inspections passed, by location"
                          :data="[
@@ -229,4 +260,6 @@
             </p>
         @endif
     </x-card>
+
+    </div>
 </x-app-layout>

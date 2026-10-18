@@ -117,6 +117,51 @@ window.addEventListener('atlas:theme', () => {
 });
 
 /*
+ | Printing. Paper always takes the light palette (see app.css), but a chart is
+ | a canvas whose colours were read when it was drawn, so a chart drawn in dark
+ | mode printed light grey axes on white paper. Before printing, switch to the
+ | light palette and redraw at twice the resolution; afterwards, put back what
+ | the viewer had.
+ */
+let themeBeforePrint = null;
+
+const redrawCharts = (pixelRatio, sizeFor = () => []) => {
+    Object.values(Chart.instances).forEach((chart) => {
+        chart.options.devicePixelRatio = pixelRatio;
+        chart.resize(...sizeFor(chart));
+    });
+};
+
+/*
+ | The size a chart has on an A4 page, in CSS pixels: half the text width when
+ | it sits beside a table (.report-pair), the full width otherwise, at the
+ | height the page asked for. The print stylesheet then scales the canvas to
+ | its column, so the drawing keeps this shape instead of the screen's.
+ */
+const printSize = (chart) => {
+    const paired = chart.canvas.closest('.report-pair') !== null;
+    const height = parseInt(chart.canvas.parentElement?.style.height, 10) || 240;
+
+    return [paired ? 330 : 680, height];
+};
+
+window.addEventListener('beforeprint', () => {
+    themeBeforePrint = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = 'light';
+    window.dispatchEvent(new CustomEvent('atlas:theme'));
+    redrawCharts(Math.max(window.devicePixelRatio, 2), printSize);
+});
+
+window.addEventListener('afterprint', () => {
+    if (themeBeforePrint !== null) {
+        document.documentElement.dataset.theme = themeBeforePrint;
+        window.dispatchEvent(new CustomEvent('atlas:theme'));
+    }
+    themeBeforePrint = null;
+    redrawCharts(undefined);
+});
+
+/*
  | The command menu: Ctrl+K or / opens it, type to filter, arrows to move,
  | Enter to go. The server supplies the entries; this only filters them.
  */
