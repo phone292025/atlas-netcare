@@ -1,27 +1,25 @@
 # Modules
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-22
 
 Seven modules, each a slice of the system with its own spec.
 
 ## Module map
 
-| ID | Module | Track | Depends on | Sprint | Status |
-|---|---|---|---|---|---|
-| [M1](M1-identity-and-audit.md) | Identity, roles and audit log | A | — | 1 | ✅ built |
-| [M2](M2-locations-and-assets.md) | Locations and asset inventory | B | M1 | 1 | ✅ built |
-| [M3](M3-checklists-and-inspections.md) | Checklists and inspections | A | M1, M2 | 2 | ✅ built |
-| [M4](M4-ticketing.md) | Workspace ticketing | A | M1, M2, M3 | 3 | ✅ built |
-| [M5](M5-telemetry-and-dashboard.md) | Telemetry and AP dashboard | B | M2 | 2–3 | ✅ built |
-| [M6](M6-shifts-and-alarms.md) | Shifts, roster and alarms | A | M1 | 3 | ✅ built |
-| [M7](M7-predictive-and-reports.md) | Predictive risk and reports | B | M3, M4, M5 | 4 | ✅ built 2026-08-30 |
+| ID | Module | Depends on | Status |
+|---|---|---|---|
+| [M1](M1-identity-and-audit.md) | Identity, roles and audit log | none | Built |
+| [M2](M2-locations-and-assets.md) | Locations and asset inventory | M1 | Built |
+| [M3](M3-checklists-and-inspections.md) | Checklists and inspections | M1, M2 | Built |
+| [M4](M4-ticketing.md) | Workspace ticketing | M1, M2, M3 | Built |
+| [M5](M5-telemetry-and-dashboard.md) | Telemetry and AP dashboard | M2 | Built. Rebuilt in 2.0 Phase 1 |
+| [M6](M6-shifts-and-alarms.md) | Shifts, roster and alarms | M1 | Built |
+| [M7](M7-predictive-and-reports.md) | Predictive risk and reports | M3, M4, M5 | Built |
 
 ## Working in a module
 
-- Branch from `main` as `m4-ticketing/short-description`.
-- Do not edit another module's files without telling whoever is working on it.
-- Shared files — `config/atlas.php`, layouts, base components, `routes/web.php` — change by agreement, because a conflict there blocks everyone.
-- Update the module spec as you build.
+- Work on the branch [../roadmap.md](../roadmap.md) names, in small commits that each pass the checks.
+- Update the module spec in the same change as the code it describes.
 
 ## Definition of done
 

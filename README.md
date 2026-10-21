@@ -1,8 +1,6 @@
 # Atlas NetCare
 
-Campus network monitoring and IT operations portal — capstone project for **AAPP011-4-2**, Asia Pacific University of Technology & Innovation.
-
-**Group Atlas** · Intakes UCDF2411ICT(SE), UCDF2411ICT(ITR) · Supervisor: Mr Dhason Padmakumar
+Campus network monitoring and IT operations portal. It began as a university capstone project and is now being upgraded to 2.0, which watches a real network instead of a simulated one.
 
 ---
 
@@ -54,7 +52,7 @@ npm install
 npm run build
 ```
 
-Use `composer install`, never `composer update`. `composer.lock` pins every package, so each teammate gets the same versions. `update` rewrites the lock with whatever is newest on your machine, and everyone else's install changes with it.
+Use `composer install`, never `composer update`. `composer.lock` pins every package, so every install gets the same versions. `update` rewrites the lock with whatever is newest on your machine, and everyone else's install changes with it.
 
 **2. Create your settings file.**
 

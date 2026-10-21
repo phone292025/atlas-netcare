@@ -1,6 +1,6 @@
 # M7 — Predictive Risk and Reports
 
-**Track:** B · **Sprint:** 4 · **Depends on:** M3, M4, M5 · **Blocks:** nothing
+**Depends on:** M3, M4, M5 · **Blocks:** nothing
 
 > **Last updated:** 2026-09-26
 
@@ -64,7 +64,7 @@ Everything below. 29 tests, and the scoring ones pin their own weights rather th
 
 *Access points are scored on trends, lab PCs on history.* The two asset types leave different evidence, so `risk_weights` was restructured into one set each. A link that has always been slow is a known quantity somebody has decided to live with; a link that is getting slower is the prediction.
 
-**The trend is measured as the second half's mean minus the first half's**, not a least squares regression. One subtraction anybody on the team can check by hand, and over two weeks of hourly data it answers the same question. ADR-0007's whole argument is that every number has to survive being questioned.
+**The trend is measured as the second half's mean minus the first half's**, not a least squares regression. One subtraction anybody can check by hand, and over two weeks of hourly data it answers the same question. ADR-0007's whole argument is that every number has to survive being questioned.
 
 **`risk_assessments.calculated_at` is `dateTime`, not `timestamp`.** That column is the x-axis of the trend chart, and MariaDB would have quietly moved it to "now" on every update.
 

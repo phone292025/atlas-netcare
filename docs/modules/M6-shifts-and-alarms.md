@@ -1,6 +1,6 @@
 # M6 — Shifts, Roster and Alarms
 
-**Track:** A · **Sprint:** 3 · **Depends on:** M1 · **Blocks:** nothing
+**Depends on:** M1 · **Blocks:** nothing
 
 > **Last updated:** 2026-09-26
 
@@ -34,7 +34,7 @@ Admin: shift template index/create/edit · roster generator with week preview, p
 ## Key decisions
 
 - **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../02-open-questions.md).
-- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Publish a small, stable interface and tell the rest of the team.
+- **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Keep its interface small and stable.
 - **In-app delivery only**, with email through the `log` mailer in development. Mobile push is out of reach. See [Q5](../02-open-questions.md).
 - **Alarms are scheduled, not immediate.** A row with `trigger_at` in the future is normal; the dispatcher sends it when due. This is what makes inspection-round reminders possible.
 - **A missed shift is a status**, set by `atlas:mark-missed-shifts` within five minutes of a scheduled shift's end with no check-in. Until 2026-09-23 the Sunday generator set it, so Monday's no-show read "Scheduled" all week.

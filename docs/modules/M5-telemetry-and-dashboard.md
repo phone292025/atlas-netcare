@@ -1,10 +1,10 @@
 # M5 — Telemetry and AP Dashboard
 
-**Track:** B · **Sprint:** 2–3 · **Depends on:** M2 · **Blocks:** M7
+**Depends on:** M2 · **Blocks:** M7
 
 > **Last updated:** 2026-10-03
 
-> **The hardest module, and the project's headline feature.** Give it to whoever is strongest with data. It cannot slip.
+> **The headline feature, and the module 2.0 rebuilds.** Phase 1 of [../roadmap.md](../roadmap.md) replaces simulated pull with readings pushed by probe agents.
 
 ## Purpose
 

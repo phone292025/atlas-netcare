@@ -1,10 +1,8 @@
 # M2 — Locations and Asset Inventory
 
-**Track:** B · **Sprint:** 1 · **Depends on:** M1 · **Blocks:** M3, M5
+**Depends on:** M1 · **Blocks:** M3, M5
 
 > **Last updated:** 2026-09-26
-
-> The lightest module. Whoever owns it should expect to help M5 from around week 9.
 
 ## Purpose
 

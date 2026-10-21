@@ -189,9 +189,9 @@ Keep the tree **shallow**. Deep nesting is where student projects lose people.
 
 3. **No magic numbers.** Every threshold, weight, SLA hour and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead. When somebody asks "where did 120 ms come from?", the answer should be one file.
 
-4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every teammate's local database and produces the "it works on my machine" bug that costs a whole evening.
+4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every database that already ran it and produces the "it works on my machine" bug that costs a whole evening.
 
-5. **One module, one owner, one branch.** Check [modules/README.md](modules/README.md) before editing a file. Do not refactor another module's code without telling its owner.
+5. **Small commits on a branch, each one green.** Work happens on a branch, in commits that each pass the checks on their own. [roadmap.md](roadmap.md) names the branch in use.
 
 ---
 
@@ -265,7 +265,7 @@ return [
 ];
 ```
 
-`config/atlas.php` is a **shared file**. Changes to it are announced in the team channel, because a merge conflict here blocks everyone.
+`config/atlas.php` is a **shared file**. Every module reads it, so check who uses a value before changing it.
 
 ---
 
