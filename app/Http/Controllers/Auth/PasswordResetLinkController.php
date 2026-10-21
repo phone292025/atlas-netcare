@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,9 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Look the account up by its stored form. See User::normalizeEmail().
+        $request->merge(['email' => User::normalizeEmail($request->string('email')->toString())]);
+
         $request->validate([
             'email' => ['required', 'email'],
         ]);

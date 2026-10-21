@@ -81,15 +81,17 @@ class TelemetryAggregator
     /**
      * Truncate `recorded_at` to the hour, in whichever database is running.
      *
-     * MariaDB ships and SQLite runs the tests, and they have no shared
-     * date-truncation function — `DATE_FORMAT` is MySQL's, `strftime` is
-     * SQLite's. Getting this wrong passes review and fails the moment a test
-     * touches aggregation.
+     * The engines share no date-truncation function: `to_char` is
+     * PostgreSQL's, `strftime` SQLite's and `DATE_FORMAT` MySQL's. Each
+     * returns the same text, which the caller parses. Getting this wrong
+     * passes review and fails the moment a test touches aggregation.
      */
     private function bucketExpression(): string
     {
-        return DB::connection()->getDriverName() === 'sqlite'
-            ? "strftime('%Y-%m-%d %H:00:00', recorded_at)"
-            : "DATE_FORMAT(recorded_at, '%Y-%m-%d %H:00:00')";
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "to_char(recorded_at, 'YYYY-MM-DD HH24:00:00')",
+            'sqlite' => "strftime('%Y-%m-%d %H:00:00', recorded_at)",
+            default => "DATE_FORMAT(recorded_at, '%Y-%m-%d %H:00:00')",
+        };
     }
 }

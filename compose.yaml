@@ -1,0 +1,32 @@
+# Atlas NetCare as one Docker Compose stack (docs/decisions/ADR-0012).
+#
+#   docker compose up -d
+#
+# Phase 0 of docs/roadmap.md builds this up in steps. So far it runs the
+# database. The app, worker and scheduler join it in task 0.4.
+
+services:
+  db:
+    # PostgreSQL 16 with the TimescaleDB extension (ADR-0011).
+    image: timescale/timescaledb:2.31.0-pg16
+    restart: unless-stopped
+    environment:
+      # A local login for a database only this machine can reach. Change all
+      # three before the stack runs anywhere else.
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas
+    ports:
+      # Bound to localhost only, so nothing else on the network can reach it.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db-data:

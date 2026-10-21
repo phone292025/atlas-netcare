@@ -30,7 +30,7 @@ class LabPcController extends Controller
             'labPcs' => LabPc::query()
                 ->with('location')
                 ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                    fn ($q) => $q->where('asset_tag', 'like', "%{$term}%")->orWhere('hostname', 'like', "%{$term}%")
+                    fn ($q) => $q->whereLike('asset_tag', "%{$term}%")->orWhereLike('hostname', "%{$term}%")
                 ))
                 ->when($request->filled('location'), fn ($q) => $q->where('location_id', $request->integer('location')))
                 ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))

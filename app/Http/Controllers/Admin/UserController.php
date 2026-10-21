@@ -30,9 +30,9 @@ class UserController extends Controller
 
         $users = User::query()
             ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                fn ($q) => $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%")
-                    ->orWhere('tp_number', 'like', "%{$term}%")
+                fn ($q) => $q->whereLike('name', "%{$term}%")
+                    ->orWhereLike('email', "%{$term}%")
+                    ->orWhereLike('tp_number', "%{$term}%")
             ))
             ->when($request->filled('role'), fn ($q) => $q->where('role', $request->string('role')))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->string('status')->value() === 'active'))

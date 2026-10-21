@@ -635,6 +635,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/AuditObserverTest.php` | What the audit log leaves out (FR-509, NFR-06) |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |
 | `Feature/Auth/DeactivatedAccountTest.php` | FR-106 for a session that already exists |
+| `Feature/Auth/EmailCaseTest.php` | One email address is one account, whatever its case |
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them |
 | `Feature/Auth/PasswordResetDeliveryTest.php` | FR-102 delivery, which is the half that was actually broken |
 | `Feature/Auth/PasswordResetTest.php` | _no summary in the file_ |

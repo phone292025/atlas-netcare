@@ -51,6 +51,11 @@ class RenumberTickets extends Command
         'audit_logs' => ['description', 'changes', 'previous'],
     ];
 
+    /** The columns above stored as `json`, which PostgreSQL won't search with LIKE. */
+    private const JSON_COLUMNS = [
+        'audit_logs' => ['changes', 'previous'],
+    ];
+
     /**
      * References left alone because they cannot be found safely in free text.
      *
@@ -239,8 +244,10 @@ class RenumberTickets extends Command
     /**
      * Replace every quoted old reference with its new one.
      *
-     * Via SQL REPLACE(), which MariaDB and SQLite both have, so JSON columns
-     * are handled as the text they are.
+     * Via SQL REPLACE(), which every engine has. MariaDB and SQLite store JSON
+     * as text, so it is handled as the text it is. PostgreSQL stores a real
+     * `json` type with no LIKE or REPLACE, so there the column is compared and
+     * edited as text and cast back.
      *
      * BOUND PARAMETERS, not interpolation. The references are checked by
      * plan() before they reach here, so neither could carry a quote — but a
@@ -252,11 +259,17 @@ class RenumberTickets extends Command
      */
     private function rewriteReferences(array $renames): void
     {
+        $pgsql = DB::connection()->getDriverName() === 'pgsql';
+
         foreach ($renames as $old => $new) {
             foreach (self::TEXT_COLUMNS as $table => $columns) {
                 foreach ($columns as $column) {
+                    $json = $pgsql && in_array($column, self::JSON_COLUMNS[$table] ?? [], true);
+                    $text = $json ? "{$column}::text" : $column;
+                    $replaced = $json ? "REPLACE({$text}, ?, ?)::json" : "REPLACE({$column}, ?, ?)";
+
                     DB::update(
-                        "update {$table} set {$column} = REPLACE({$column}, ?, ?) where {$column} like ?",
+                        "update {$table} set {$column} = {$replaced} where {$text} like ?",
                         [$old, $new, '%'.$old.'%'],
                     );
                 }

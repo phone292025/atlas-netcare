@@ -32,6 +32,9 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Look the account up by its stored form. See User::normalizeEmail().
+        $request->merge(['email' => User::normalizeEmail($request->string('email')->toString())]);
+
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
