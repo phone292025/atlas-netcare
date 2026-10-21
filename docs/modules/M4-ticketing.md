@@ -1,6 +1,6 @@
 # M4 — Workspace Ticketing
 
-**Track:** A · **Sprint:** 3 · **Depends on:** M1, M2, M3 · **Blocks:** M7
+**Depends on:** M1, M2, M3 · **Blocks:** M7
 
 > **Last updated:** 2026-09-26
 

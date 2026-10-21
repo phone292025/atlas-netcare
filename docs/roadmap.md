@@ -38,7 +38,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | # | Task | Status |
 |---|---|---|
 | 0.1 | Record the plan: ADRs 0010 to 0014 and this roadmap | Done |
-| 0.2 | Remove what only the capstone needed: the `coursework/` folder, marks and rubric language, the module-ownership rule, notes about per-member diagrams. Requirements and design history stay | |
+| 0.2 | Remove what only the capstone needed: the `coursework/` folder, marks and rubric language, the module-ownership rule, notes about per-member diagrams. Requirements and design history stay | Done |
 | 0.3 | Run on PostgreSQL: rewrite the MariaDB-only SQL (hourly buckets, schema checks), store emails in lower case, make searches case-insensitive, and get the whole suite green on PostgreSQL | |
 | 0.4 | Docker stack: one multi-stage image and a Compose file with app, worker, scheduler and database, health checks, and migrations on start | |
 | 0.5 | Create the administrator with a command, and remove the published default password | |

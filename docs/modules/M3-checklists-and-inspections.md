@@ -1,6 +1,6 @@
 # M3 — Checklists and Inspections
 
-**Track:** A · **Sprint:** 2 · **Depends on:** M1, M2 · **Blocks:** M4, M7
+**Depends on:** M1, M2 · **Blocks:** M4, M7
 
 > **Last updated:** 2026-09-26
 

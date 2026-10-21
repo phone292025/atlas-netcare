@@ -1,6 +1,6 @@
 # M1 — Identity, Roles and Audit Log
 
-**Track:** A · **Sprint:** 1 · **Depends on:** nothing · **Blocks:** everything
+**Depends on:** nothing · **Blocks:** everything
 
 > **Last updated:** 2026-09-26
 

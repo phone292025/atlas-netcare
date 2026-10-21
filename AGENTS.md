@@ -6,29 +6,23 @@
 
 ## What this project is
 
-**Atlas NetCare** is a web-based campus network monitoring and IT operations portal, built as the final-year capstone project for **AAPP011-4-2 Capstone Project** at Asia Pacific University of Technology & Innovation (APU).
+**Atlas NetCare** is a campus network monitoring and IT operations portal. It started as a university capstone project and is now a solo project, being upgraded to 2.0.
 
-It serves three roles — Student IT Assistants, Network Engineers, and System Administrators — across four operational areas plus one analytics area:
+It serves three roles (Student IT Assistants, Network Engineers and System Administrators) across four operational areas plus one analytics area:
 
-1. Real-time Wi-Fi access point telemetry dashboard
+1. Wi-Fi access point telemetry and a live Network Monitor
 2. Digital lab-PC maintenance checklists
 3. Workspace incident ticketing
 4. Automated duty rosters and shift alarms
-5. Predictive maintenance risk scoring (the module that aligns the project to Case Study Category 4)
-
-This is **academic coursework assessed against a published rubric**. Documentation quality, diagram correctness, and consistency are directly marked — they are not overhead. See `coursework/01-brief-and-marking.md`.
+5. Predictive maintenance risk scoring
 
 ## Current status
 
 | | |
 |---|---|
-| **Phase** | The code is finished. What remains is the report. |
-| **Build stage** | **All seven modules built.** Every functional requirement has code and at least one test. See `docs/progress/build-log.md`, and read it before doing anything. |
-| **Code written** | Sprint 0 plus M1 to M7. Config, enums, role middleware, app shell, 23 components, schema, seeders, accounts and audit, asset inventory, inspections, ticketing, the telemetry pipeline with its live dashboard, shifts with alarms, calendar export, predictive risk scoring and five operational reports. The test count lives in `docs/progress/build-log.md`, plus `11-installation-guide.md` where it is a target to check an install against. Nowhere else — it was in five documents and three disagreed. |
-| **Diagrams** | Context Diagram, DFD 0, consolidated ERD and System Hierarchy are done, in `docs/12-system-diagrams.md`. **The 21 per-member diagrams are not**, and cannot start until modules have owners. |
-| **Last updated** | 2026-09-04 |
-| **Blocking** | **Nobody owns a module.** Every spec says unassigned, which blocks 21 individually assessed deliverables. That is now the largest thing standing between this project and its marks. See `coursework/02-team-and-ownership.md`. |
-| **Also open** | None of the eleven design questions are open. Q6 was decided by the project lead on 2026-09-04 and built. The other ten were built from their working assumptions **without the team agreeing them**, so confirm or change. See `docs/02-open-questions.md`. |
+| **Version** | 1.0 is complete: seven modules, every functional requirement with code and at least one test. The test count lives in `docs/progress/build-log.md` and `11-installation-guide.md`, nowhere else. |
+| **Now** | Building 2.0, which watches a real network instead of a simulated one. **Read `docs/roadmap.md` before starting work.** It lists the phases, the task in progress and the ADRs (0010 to 0014) behind them. |
+| **Last updated** | 2026-10-22 |
 
 ## Stack
 
@@ -60,7 +54,7 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 | Touch anything to do with mock/fake/seeded data | `docs/05-data-strategy.md` |
 | Build a screen or Blade component | `docs/06-ui-conventions.md`, then look at `/dev/gallery` — the component probably already exists |
 | Give something a status colour | `app/Support/Tone.php` — one method per surface, and nowhere else |
-| Work on one specific feature area | `docs/modules/` — find its owner and spec. Progress tracker: `docs/progress/build-log.md` |
+| Work on one specific feature area | `docs/modules/` for its spec. Progress tracker: `docs/progress/build-log.md` |
 | Understand *why* something is built this way | `docs/decisions/` |
 | Check whether a requirement exists | `docs/01-requirements.md` |
 | Know what is still undecided | `docs/02-open-questions.md` |
@@ -70,13 +64,13 @@ No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those,
 
 ## Hard rules
 
-These are not stylistic preferences. Breaking them creates work for six other people.
+These are not stylistic preferences. Each one is here because breaking it has already cost this project time.
 
 1. **No business logic in controllers.** Anything that decides, computes or changes state goes in `app/Services/`: state machines, scoring, SLA arithmetic, aggregation for a report. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action — roughly twenty `index` methods build a query from request filters, and moving those to services would buy nothing. The test is whether a second caller would need the same answer: if yes, it is a service. The same test lets a plain admin create or edit, where validation and the role or policy check are the whole rule, write the model from the controller. `ReportController` failed that test at 309 lines and became `ReportingService` on 2026-09-04.
 2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or a relationship that triggers a query.
 3. **No magic numbers.** Every threshold, weight, SLA hour, and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead.
-4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every teammate's local database.
-5. **One module, one owner, one branch.** Check `docs/modules/README.md` before editing a file. Do not refactor another module's code without telling its owner.
+4. **One migration per table, never edited after merge.** Schema changes go in a *new* migration. Editing a merged migration silently breaks every database that already ran it.
+5. **Small commits on a branch, each one green.** Work happens on a branch, in commits that each pass the checks below on their own. `docs/roadmap.md` names the branch in use.
 
 ## Naming conventions
 
@@ -159,8 +153,7 @@ Documentation that drifts is worse than none, because people trust it.
 - **A small call made in passing** → one line in `docs/progress/decision-log.md`.
 - **A schema change** → update `docs/04-database.md` in the *same* commit as the migration.
 - **A new requirement** → give it an ID in `docs/01-requirements.md`. Requirements without IDs cannot be tested or traced.
-- **An open question resolved** → update its status in `docs/02-open-questions.md`; do not delete it. The history is evidence for the report.
-- **Finishing a week** → fill in `docs/progress/week-NN.md`. This is worth 10% of the report mark.
+- **An open question resolved** → update its status in `docs/02-open-questions.md`; do not delete it. The history explains why the code is the way it is.
 
 When you change a doc, update the `Last updated` line at its top.
 

@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-09-26 · **Status:** schema changes need an ADR after the design freeze — see coursework/09-roadmap.md, the freeze date is not yet known
+> **Last updated:** 2026-10-22 · **Status:** describes the 1.0 schema on MariaDB. [ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md) moves it to PostgreSQL in Phase 0 of the [roadmap](roadmap.md)
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 

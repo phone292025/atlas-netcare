@@ -385,8 +385,8 @@ timestamps contradict each other.
 
 ## database/migrations/
 
-One per table, plus the alterations. **Never edited after merge.** Changing a migration that has already run breaks every teammate's
-database silently.
+One per table, plus the alterations. **Never edited after merge.** Changing a merged migration silently breaks every
+database that already ran it.
 
 <!-- code-map:database/migrations/ -->
 | File | What it does |
