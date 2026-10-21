@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-22
 
 An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and anyone on the team can explain any choice.
 
@@ -17,6 +17,11 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0007](ADR-0007-weighted-risk-not-ml.md) | Weighted-factor risk scoring, not machine learning | Accepted |
 | [0008](ADR-0008-laravel-12-pinned.md) | Pin to Laravel 12, not the latest release | Accepted |
 | [0009](ADR-0009-themed-design-system.md) | Rebuild the interface on themed tokens, Geist and Phosphor | Accepted |
+| [0010](ADR-0010-probe-agents-push-readings.md) | Probe agents push readings to an ingest API | Accepted |
+| [0011](ADR-0011-postgresql-timescaledb.md) | Move to PostgreSQL with TimescaleDB | Accepted |
+| [0012](ADR-0012-docker-compose-stack.md) | Run Atlas as one Docker Compose stack | Accepted |
+| [0013](ADR-0013-probe-agent-in-go.md) | Write the probe agent in Go | Accepted |
+| [0014](ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets, modules connected by events | Accepted |
 
 ## Rules
 

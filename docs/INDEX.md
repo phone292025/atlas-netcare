@@ -37,6 +37,7 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 | [11-installation-guide.md](11-installation-guide.md) | Installing and running from a clean clone, including what each failure looks like |
 | [12-system-diagrams.md](12-system-diagrams.md) | Context Diagram, DFD Level 0, consolidated ERD and System Hierarchy Chart, as Mermaid source |
 | [13-code-map.md](13-code-map.md) | Every file in the project and what it does. The index, when you know what you want but not where it lives |
+| [roadmap.md](roadmap.md) | The plan for Atlas 2.0: real network monitoring, PostgreSQL, Docker, incidents and on-call, in phases |
 | [glossary.md](glossary.md) | Terms that mean something specific here |
 
 ---
