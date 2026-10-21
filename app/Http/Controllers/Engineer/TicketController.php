@@ -35,8 +35,8 @@ class TicketController extends Controller
             'tickets' => Ticket::query()
                 ->with(['ticketable', 'location', 'reporter', 'assignee'])
                 ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                    fn ($q) => $q->where('ticket_number', 'like', "%{$term}%")
-                        ->orWhere('title', 'like', "%{$term}%")
+                    fn ($q) => $q->whereLike('ticket_number', "%{$term}%")
+                        ->orWhereLike('title', "%{$term}%")
                 ))
                 ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
                 ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))

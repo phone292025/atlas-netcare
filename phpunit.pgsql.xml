@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The same suite, against PostgreSQL with TimescaleDB, the database Atlas 2.0
+    runs on (docs/decisions/ADR-0011-postgresql-timescaledb.md).
+
+    phpunit.xml uses SQLite in memory, because it is fast and needs nothing
+    installed. SQLite has none of PostgreSQL's behaviours to get wrong: strict
+    types, case-sensitive comparison, its own date functions. A change that
+    touches migrations, raw SQL, dates or text comparison is not proven until
+    it passes here.
+
+        php artisan test -c phpunit.pgsql.xml
+
+    It needs a database called atlas_test, which is NOT the development
+    database. Every test truncates what it touches, and pointing this at the
+    real one would erase it. The Docker stack's database container creates it.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+
+        <!-- Pinned for the same reason as phpunit.xml: the suite must not
+             inherit a driver from .env and start pinging a real network. -->
+        <env name="ATLAS_TELEMETRY_DRIVER" value="simulated"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+
+        <!-- The only lines that differ from phpunit.xml. A local test
+             database with a throwaway login, not a secret. -->
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="atlas_test" force="true"/>
+        <env name="DB_USERNAME" value="atlas" force="true"/>
+        <env name="DB_PASSWORD" value="atlas" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="ATLAS_ADMIN_EMAIL" value="admin@atlas.test"/>
+        <env name="ATLAS_ADMIN_PASSWORD" value="testing-only-not-a-real-password"/>
+    </php>
+</phpunit>

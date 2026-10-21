@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -18,6 +19,17 @@ class UpdateUserRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('user'));
+    }
+
+    /**
+     * Check uniqueness against addresses in their stored form, so an address
+     * that differs only in case counts as taken. See User::normalizeEmail().
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('email')) {
+            $this->merge(['email' => User::normalizeEmail($this->string('email')->toString())]);
+        }
     }
 
     /** @return array<string, mixed> */

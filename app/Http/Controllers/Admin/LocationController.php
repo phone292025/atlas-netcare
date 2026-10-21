@@ -26,7 +26,7 @@ class LocationController extends Controller
             'locations' => Location::query()
                 ->withCount(['labPcs', 'accessPoints'])
                 ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                    fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('code', 'like', "%{$term}%")
+                    fn ($q) => $q->whereLike('name', "%{$term}%")->orWhereLike('code', "%{$term}%")
                 ))
                 ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
                 ->orderBy('code')

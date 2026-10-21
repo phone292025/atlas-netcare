@@ -9,6 +9,7 @@ use App\Support\CampusClock;
 use App\Support\Tone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * What the Network monitor shows: every access point's state right now, and
@@ -140,9 +141,10 @@ class NetworkMonitorService
      * Connected clients and throughput across these access points, in ten-minute
      * points over the last 24 hours.
      *
-     * Grouped in SQL by the first fifteen characters of the stored timestamp —
-     * `2026-09-19 14:3` — which is a ten-minute bucket in both SQLite and
-     * MariaDB without a vendor-specific date function. Averaged per access
+     * Grouped in SQL by the first fifteen characters of the timestamp as text
+     * — `2026-09-19 14:3` — which is a ten-minute bucket. SQLite and MariaDB
+     * can cut the stored value directly. PostgreSQL stores a real timestamp,
+     * so it formats it with `to_char` first. Averaged per access
      * point within a bucket, then summed across access points, so a bucket
      * that happens to hold eleven collection rounds does not count clients
      * eleven times. At most 144 rows per access point leave the database.
@@ -156,7 +158,9 @@ class NetworkMonitorService
             return [];
         }
 
-        $bucket = 'SUBSTR(recorded_at, 1, '.self::BUCKET_CHARS.')';
+        $bucket = DB::connection()->getDriverName() === 'pgsql'
+            ? "SUBSTR(to_char(recorded_at, 'YYYY-MM-DD HH24:MI'), 1, ".self::BUCKET_CHARS.')'
+            : 'SUBSTR(recorded_at, 1, '.self::BUCKET_CHARS.')';
 
         $rows = TelemetryReading::query()
             ->toBase()

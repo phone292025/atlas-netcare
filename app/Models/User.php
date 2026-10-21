@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 /**
  * A person who uses Atlas NetCare.
@@ -82,6 +84,27 @@ class User extends Authenticatable
 
             'role' => UserRole::class,
         ];
+    }
+
+    /**
+     * The one form an email address is stored and looked up in.
+     *
+     * Lower case, without surrounding spaces. MariaDB compared text without
+     * regard to case, so `Swan@APU.test` and `swan@apu.test` were one account
+     * there. PostgreSQL and SQLite compare case-sensitively, so the
+     * address is normalised on the way in instead: when it is saved here, and
+     * wherever a request looks an account up by email (sign-in, password
+     * reset, the admin user forms).
+     */
+    public static function normalizeEmail(?string $email): ?string
+    {
+        return $email === null ? null : Str::lower(trim($email));
+    }
+
+    /** @return Attribute<string|null, string|null> */
+    protected function email(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => self::normalizeEmail($value));
     }
 
     /**

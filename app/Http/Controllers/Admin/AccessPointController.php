@@ -29,9 +29,9 @@ class AccessPointController extends Controller
             'accessPoints' => AccessPoint::query()
                 ->with('location')
                 ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                    fn ($q) => $q->where('ap_code', 'like', "%{$term}%")
-                        ->orWhere('mac_address', 'like', "%{$term}%")
-                        ->orWhere('ip_address', 'like', "%{$term}%")
+                    fn ($q) => $q->whereLike('ap_code', "%{$term}%")
+                        ->orWhereLike('mac_address', "%{$term}%")
+                        ->orWhereLike('ip_address', "%{$term}%")
                 ))
                 ->when($request->filled('location'), fn ($q) => $q->where('location_id', $request->integer('location')))
                 ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))

@@ -19,6 +19,17 @@ class StoreUserRequest extends FormRequest
         return $this->user()->can('create', User::class);
     }
 
+    /**
+     * Check uniqueness against addresses in their stored form, so an address
+     * that differs only in case counts as taken. See User::normalizeEmail().
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('email')) {
+            $this->merge(['email' => User::normalizeEmail($this->string('email')->toString())]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
