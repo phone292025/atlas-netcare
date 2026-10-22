@@ -698,13 +698,10 @@ them disagreed. Quoting it here would have made this the fourth.
 <!-- /code-map -->
 
 Two configurations run the same suite. `phpunit.xml` uses SQLite in memory
-because it is fast and needs nothing installed. `phpunit.mariadb.xml` points
-at a separate `atlas_netcare_test` database, because the suite truncates every
-table it touches and aiming it at real data would erase it.
-
-That second configuration exists for one reason. `SchemaIntegrityTest` skips
-itself on SQLite, so the test guarding the worst bug this project has had
-never ran until CI started using MariaDB.
+because it is fast and needs nothing installed. `phpunit.pgsql.xml` runs it on
+PostgreSQL with TimescaleDB, the database Atlas runs on, in a separate
+`atlas_test` database, because each run starts by dropping every table in the
+database it uses.
 
 ---
 

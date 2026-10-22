@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,019 tests, and CI runs it on SQLite and MariaDB. On MariaDB all of them pass. On SQLite one test that needs MariaDB skips itself. A copy without the `docs` folder also skips the seven tests that check it.
+The suite has 1,033 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. A copy without the `docs` folder also skips the seven tests that check it.
 
 ## Getting started
 

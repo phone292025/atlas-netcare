@@ -1,19 +1,17 @@
 name: Tests
 
 # Runs the suite twice: once on SQLite, which is what a developer runs, and
-# once on MariaDB, which is what the system actually runs on.
+# once on PostgreSQL with TimescaleDB, which is what Atlas runs on
+# (docs/decisions/ADR-0011-postgresql-timescaledb.md).
 #
-# The second one is the point. Three defects have reached the live database
-# through a completely green suite, all of them things SQLite does not have to
-# get wrong: MySQL-only FIELD(), MySQL-only DATE_FORMAT, and MariaDB's implicit
-# DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP on the first timestamp
-# column in a table. SchemaIntegrityTest guards the last one and skips itself on
-# SQLite, so before this workflow existed it had never run at all.
+# The second run is the one that decides. SQLite forgives things the real
+# database does not. On MariaDB, the database Atlas used to run on, that gap
+# let three defects through a green suite: MySQL-only FIELD(), MySQL-only
+# DATE_FORMAT, and a timestamp column that rewrote itself on every update.
+# The first run on PostgreSQL found three more: date buckets written for
+# MariaDB, LIKE on json columns, and addresses that differed only in case.
 #
-# It earned its keep the first time it was run: two tests failed on MariaDB and
-# not on SQLite, and one of them was real (see tests/Feature/Telemetry).
-#
-# @see phpunit.mariadb.xml
+# @see phpunit.pgsql.xml
 # @see docs/07-testing.md
 
 on:
@@ -31,32 +29,37 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
-      # Both results wanted. Stopping the MariaDB run because SQLite failed
+      # Both results wanted. Stopping the PostgreSQL run because SQLite failed
       # hides exactly the comparison this workflow exists to make.
       fail-fast: false
       matrix:
         include:
           - database: SQLite
             config: phpunit.xml
-          - database: MariaDB
-            config: phpunit.mariadb.xml
+          - database: PostgreSQL
+            config: phpunit.pgsql.xml
 
     services:
-      mariadb:
-        # Pinned to the version in the lab: 10.4 is what XAMPP ships and what
-        # the project is developed against. Testing on 11.x would defeat the
-        # object.
-        image: mariadb:10.4
+      postgres:
+        # The image compose.yaml runs. The login and the database name are
+        # the ones phpunit.pgsql.xml expects, and the image installs
+        # TimescaleDB into POSTGRES_DB by itself.
+        image: timescale/timescaledb:2.31.0-pg16
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: atlas_netcare_test
+          POSTGRES_DB: atlas_test
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: atlas
+          TIMESCALEDB_TELEMETRY: "off"
         ports:
-          - 3306:3306
+          - 5432:5432
+        # Over TCP: on a new volume the image first runs its init scripts on a
+        # server that listens only on a socket, and pg_isready on the socket
+        # would call that ready.
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
-          --health-interval=10s
+          --health-cmd="pg_isready -h 127.0.0.1 -U atlas -d atlas_test"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=20
 
     steps:
       - uses: actions/checkout@v7
@@ -64,9 +67,10 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          # ADR-0008 pins Laravel 12; this is the PHP the lab machines run.
+          # ADR-0008 pins Laravel 12. 8.2 is the oldest PHP composer.json
+          # allows and the one XAMPP ships. The Docker image runs 8.3.
           php-version: '8.2'
-          extensions: mbstring, pdo, pdo_mysql, pdo_sqlite, bcmath, gd, zip
+          extensions: mbstring, pdo, pdo_pgsql, pdo_sqlite, bcmath, gd, zip
           coverage: none
 
       - name: Cache Composer packages
@@ -100,14 +104,21 @@ jobs:
           npm ci
           npm run build
 
+      - name: Check that the database has TimescaleDB
+        if: matrix.database == 'PostgreSQL'
+        # Prints the extension's version, and fails if there is none. Without
+        # this the run would pass on plain PostgreSQL, and the first sign
+        # would be a hypertable migration failing in phase 1.
+        run: >-
+          docker exec ${{ job.services.postgres.id }}
+          psql -U atlas -d atlas_test -tAc
+          "SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'"
+          | grep .
+
       - name: Run the suite
-        env:
-          DB_USERNAME: root
-          DB_PASSWORD: root
-        # Real environment variables win over phpunit.xml's <env> entries and
-        # over .env, which is how the same config file works here and on a
-        # developer's machine with different credentials.
-        run: php artisan test -c ${{ matrix.config }}
+        # --display-deprecations because warnings print above the summary,
+        # where a filtered log would hide them (AGENTS.md).
+        run: php artisan test -c ${{ matrix.config }} --display-deprecations
 
   style:
     name: Pint
