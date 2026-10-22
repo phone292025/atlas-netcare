@@ -23,9 +23,9 @@ FR-203, FR-204, FR-205, FR-406 · NFR-05
 | Models | `ChecklistTemplate`, `ChecklistItem`, `Inspection`, `InspectionResult` |
 | Enums | `ChecklistResult` (ok/issue/na), `InspectionOutcome` (pass/pass_with_issues/fail), `ChecklistCategory` (boot/display/peripheral/network) |
 | Controllers | `Admin\ChecklistTemplateController`, `Assistant\InspectionController` |
-| Services | `InspectionService` — start, save results, compute overall result, hand failures to M4, and the round: the machines in a room with how each stands today, and which one is next · `ChecklistService` — versioning and activation |
+| Services | `InspectionService` — start, save results, compute overall result, hand failures to M4, and the round: the machines in a room, or in every room, with how each stands today, and which one is next · `ChecklistService` — versioning and activation |
 | Policies | `InspectionPolicy` — an assistant edits only their own in-progress inspection |
-| Components | `<x-checklist-item>`, `<x-round-plan>` |
+| Components | `<x-checklist-item>`, `<x-round-plan>`, `<x-room-rounds>` |
 
 **Three names changed from the original plan, each for a reason:**
 
@@ -39,6 +39,8 @@ Assistant: start round (pick location) · PC list for that location with inspect
 Admin: checklist template index/create/edit · item management with drag-to-reorder
 
 **A round, since 2026-10-23.** The room screen draws the room as a plan, one desk per machine in asset-tag order: checked, checked with a fault, next, and to do, with the next machine one big button away. The checklist shows the same plan with the machine being checked, says "Machine 7 of 14", and folds each group to one line once it is answered with no issue. Its button saves and goes straight on to the next unchecked machine in the room, after this one and only then back to the start. A machine with an issue stops at its summary instead, because that is where its ticket is raised, and the summary then offers the next machine.
+
+The Inspections page lists every room with machines as a card: one mark per machine, red for a fault, green for checked and grey for to do, with "6 of 14 checked today, 1 fault" under it. A card opens that room's round. My shift shows the same cards, with the room of the assistant's shift marked.
 
 ## Key decisions
 

@@ -566,6 +566,7 @@ Blade files. Views receive data as props and never query.
 | `components/pagination.blade.php` |
 | `components/priority-pill.blade.php` |
 | `components/risk-gauge.blade.php` |
+| `components/room-rounds.blade.php` |
 | `components/round-plan.blade.php` |
 | `components/search-input.blade.php` |
 | `components/sidebar.blade.php` |
@@ -639,6 +640,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
 | `Feature/Assistant/InspectionRoundTest.php` | A round: one assistant working through every machine in a room |
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |
+| `Feature/Assistant/RoundsTodayTest.php` | How far today's rounds have got, room by room: on the rounds page, where |
 | `Feature/AuditObserverTest.php` | What the audit log leaves out (FR-509, NFR-06) |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |
 | `Feature/Auth/DeactivatedAccountTest.php` | FR-106 for a session that already exists |

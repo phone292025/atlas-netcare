@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Assistant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
+use App\Services\Maintenance\InspectionService;
 use App\Services\Shifts\ShiftService;
 use App\Support\CampusClock;
 use DomainException;
@@ -23,7 +24,10 @@ use Illuminate\Http\Request;
  */
 class ShiftController extends Controller
 {
-    public function __construct(private readonly ShiftService $shifts) {}
+    public function __construct(
+        private readonly ShiftService $shifts,
+        private readonly InspectionService $inspections,
+    ) {}
 
     /** Today, and what to do about it. */
     public function today(Request $request): View
@@ -33,6 +37,9 @@ class ShiftController extends Controller
 
         return view('assistant.shifts.today', [
             'shift' => $shift,
+            // How far today's rounds have got, room by room: the work of a
+            // shift, and worth knowing on a day without one.
+            'rooms' => $this->inspections->roundsToday(),
             // The handover left by whoever was in this location before.
             'handover' => $shift ? $this->previousHandover($shift) : null,
             // What comes AFTER the shift shown above, so today's does not

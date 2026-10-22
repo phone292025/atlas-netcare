@@ -41,38 +41,18 @@
 
         <section aria-labelledby="start-round">
             <div class="mb-3 flex items-baseline gap-2">
-                <h3 id="start-round" class="text-[15px] font-semibold text-fg">Start a round</h3>
-                <span class="text-sm text-fg-muted">Locations with machines in them</span>
+                <h3 id="start-round" class="text-[15px] font-semibold text-fg">Rounds today</h3>
+                <span class="text-sm text-fg-muted">Pick a room to start or carry on</span>
             </div>
 
-            @if ($locations->isEmpty())
+            @if ($rooms->isEmpty())
                 <x-card>
                     <x-empty-state title="No machines to inspect"
                                    message="Lab PCs are added by an administrator under the asset inventory."
                                    icon="desktop" />
                 </x-card>
             @else
-                <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    @foreach ($locations as $location)
-                        <li>
-                            <a href="{{ route('assistant.inspections.create', ['location' => $location->id]) }}"
-                               class="group flex h-full items-center gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs transition
-                                      hover:border-line-strong hover:shadow-sm">
-                                <span class="grid size-10 flex-none place-items-center rounded-lg bg-brand-50 text-brand-700">
-                                    <x-icon name="building" class="size-5" />
-                                </span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block font-mono text-sm font-medium text-fg">{{ $location->code }}</span>
-                                    <span class="block truncate text-xs text-fg-muted">{{ $location->name }}</span>
-                                </span>
-                                <span class="flex-none rounded-md bg-sunken px-2 py-1 text-xs font-medium tabular-nums text-fg-muted">
-                                    {{ $location->lab_pcs_count }} {{ $location->lab_pcs_count === 1 ? 'PC' : 'PCs' }}
-                                </span>
-                                <x-icon name="chevron-right" class="size-4 flex-none text-fg-subtle transition group-hover:translate-x-0.5" />
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
+                <x-room-rounds :rooms="$rooms" />
             @endif
         </section>
 

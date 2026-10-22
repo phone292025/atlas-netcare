@@ -50,20 +50,9 @@ class InspectionController extends Controller
                 ->latest('completed_at')
                 ->paginate(15),
 
-            /*
-             * whereHas, not having(). `withCount` adds a correlated subquery
-             * column, not an aggregate, so HAVING against its alias is invalid
-             * SQL without a GROUP BY — SQLite rejects it outright with
-             * "HAVING clause on a non-aggregate query".
-             *
-             * Counting and filtering both go through inService(), so the
-             * number on this screen matches the list on the next one.
-             */
-            'locations' => Location::query()
-                ->withCount(['labPcs' => fn ($q) => $q->inService()])
-                ->whereHas('labPcs', fn ($q) => $q->inService())
-                ->orderBy('code')
-                ->get(),
+            // Every room with machines in service, with how far its round
+            // has got today. The same machines the room screen lists.
+            'rooms' => $this->inspections->roundsToday(),
 
             'hasTemplate' => ChecklistTemplate::current() !== null,
         ]);

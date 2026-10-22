@@ -2,7 +2,7 @@
 
 **Depends on:** M1 · **Blocks:** nothing
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-23
 
 ## Purpose
 
@@ -30,6 +30,8 @@ FR-201, FR-202, FR-210, FR-211, FR-212, FR-407, FR-408, FR-506
 
 Assistant: my shift today (the assistant's home page) · my roster (week view) · check in / check out · handover notes form · notifications list
 Admin: shift template index/create/edit · roster generator with week preview, per-shift override and removal
+
+Under the shift, My shift shows today's inspection rounds room by room (M3's `<x-room-rounds>`), with the shift's room marked.
 
 ## Key decisions
 

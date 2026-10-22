@@ -201,6 +201,18 @@
                     </div>
                 </section>
             @endif
+
+            {{-- The work of a shift, and worth seeing on a day without one: how
+                 far each room's round has got, with this shift's room marked. --}}
+            @if ($rooms->isNotEmpty())
+                <section aria-labelledby="rounds-today">
+                    <div class="mb-3 flex items-baseline justify-between gap-2">
+                        <h3 id="rounds-today" class="text-[15px] font-semibold text-fg">Rounds today</h3>
+                        <a href="{{ route('assistant.inspections.index') }}" class="link text-sm">All rounds</a>
+                    </div>
+                    <x-room-rounds :rooms="$rooms" :highlight="$shift?->location_id" :columns="2" />
+                </section>
+            @endif
         </div>
 
         <div class="min-w-0 space-y-6">

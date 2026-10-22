@@ -13,7 +13,9 @@ use App\Models\Location;
 use App\Models\User;
 use App\Support\CampusClock;
 use DomainException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -154,10 +156,40 @@ class InspectionService
      */
     public function roundIn(Location $location): Collection
     {
+        return $this->withTodaysState($location->labPcs()->inService())->get();
+    }
+
+    /**
+     * Every room with machines in service, in code order, each carrying its
+     * round today as the `round` relation, shaped as roundIn() returns it.
+     * One query for the machines however many rooms there are.
+     *
+     * @return Collection<int, Location>
+     */
+    public function roundsToday(): Collection
+    {
+        $machines = $this->withTodaysState(LabPc::query()->inService())->get()->groupBy('location_id');
+
+        return Location::query()
+            ->whereIn('id', $machines->keys())
+            ->orderBy('code')
+            ->get()
+            ->each(fn (Location $room) => $room->setRelation('round', $machines->get($room->id)));
+    }
+
+    /**
+     * Today's count and latest outcome on each machine, in round order.
+     *
+     * @template TQuery of Builder<LabPc>|HasMany<LabPc, Location>
+     *
+     * @param  TQuery  $machines
+     * @return TQuery
+     */
+    private function withTodaysState(Builder|HasMany $machines): Builder|HasMany
+    {
         $today = CampusClock::todayInUtc();
 
-        return $location->labPcs()
-            ->inService()
+        return $machines
             ->withCount(['inspections as inspected_today_count' => fn ($q) => $q->whereBetween('completed_at', $today)])
             ->addSelect(['today_outcome' => Inspection::query()
                 ->select('overall_result')
@@ -165,8 +197,7 @@ class InspectionService
                 ->whereBetween('completed_at', $today)
                 ->latest('completed_at')
                 ->limit(1)])
-            ->orderBy('asset_tag')
-            ->get();
+            ->orderBy('asset_tag');
     }
 
     /**
