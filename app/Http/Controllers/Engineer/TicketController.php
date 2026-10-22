@@ -58,6 +58,18 @@ class TicketController extends Controller
                 ->orderBy('name')->get()->mapWithKeys(fn ($u) => [$u->id => $u->name])->all(),
             'breachCount' => Ticket::query()->breaching()->count(),
 
+            // Under the whole open queue only: the last five finished in the
+            // past week. A narrowed view is a search, and this would be noise.
+            'recentlyFinished' => $this->isWholeQueue($request)
+                ? Ticket::query()
+                    ->with(['ticketable', 'location', 'reporter', 'assignee'])
+                    ->whereIn('status', [TicketStatus::Resolved, TicketStatus::Closed])
+                    ->where('resolved_at', '>=', now()->subWeek())
+                    ->latest('resolved_at')
+                    ->limit(5)
+                    ->get()
+                : collect(),
+
             // The view tabs above the queue. One query per tab, a handful of
             // counts on an indexed table.
             'counts' => [
@@ -137,6 +149,13 @@ class TicketController extends Controller
                 ? "{$ticket->ticket_number} is now with {$ticket->assignee->name}."
                 : "{$ticket->ticket_number} is back in the queue.",
         );
+    }
+
+    /** The default view: every open ticket, first page, nothing narrowed. */
+    private function isWholeQueue(Request $request): bool
+    {
+        return collect(['status', 'search', 'mine', 'unassigned', 'breaching', 'priority', 'location', 'assignee', 'page'])
+            ->doesntContain(fn (string $key) => $request->filled($key));
     }
 
     /** Which policy ability guards each destination state. */

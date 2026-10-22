@@ -185,6 +185,22 @@ class Ticket extends Model
     }
 
     /**
+     * Where the ticket is, in words: "APU-1003 in Level 6 IT Lab 02" for a
+     * machine or an access point, and just the room, "Campus Cafeteria", for
+     * a fault about a place.
+     */
+    public function placeLabel(): string
+    {
+        $room = $this->location?->name;
+
+        if (! $this->ticketable) {
+            return $room ?? $this->subjectLabel();
+        }
+
+        return $room ? "{$this->subjectLabel()} in {$room}" : $this->subjectLabel();
+    }
+
+    /**
      * "TKT-2026-00417": the one place the reference format is written, shared
      * by TicketService and TicketFactory so the two cannot drift apart.
      *

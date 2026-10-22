@@ -568,6 +568,7 @@ Blade files. Views receive data as props and never query.
 | `components/risk-gauge.blade.php` |
 | `components/search-input.blade.php` |
 | `components/sidebar.blade.php` |
+| `components/sla-line.blade.php` |
 | `components/stat-tile.blade.php` |
 | `components/status-badge.blade.php` |
 | `components/tab-nav.blade.php` |
@@ -579,6 +580,9 @@ Blade files. Views receive data as props and never query.
 | `engineer/dashboard.blade.php` |
 | `engineer/risk/index.blade.php` |
 | `engineer/risk/show.blade.php` |
+| `engineer/tickets/_card.blade.php` |
+| `engineer/tickets/_cols.blade.php` |
+| `engineer/tickets/_row.blade.php` |
 | `engineer/tickets/index.blade.php` |
 | `engineer/tickets/show.blade.php` |
 | `engineer/traffic.blade.php` |
@@ -675,6 +679,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftReassignmentTest.php` | FR-408, overriding an individual shift assignment |
 | `Feature/Shifts/ShiftRemovalTest.php` | FR-408, taking shifts off the roster, one or a week at a time |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |
+| `Feature/SlaLineTest.php` | <x-sla-line>: a ticket's time against its target, drawn as a line |
 | `Feature/Telemetry/CollectionGapTest.php` | The first collection round after the scheduler has been off |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
@@ -687,6 +692,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Tickets/TicketAccessTest.php` | M4, who may see and do what, and whether the screens render |
 | `Feature/Tickets/TicketAssignmentTest.php` | FR-307's "assign": handing a ticket to an engineer, or back to the queue |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA |
+| `Feature/Tickets/TicketQueueTest.php` | The engineer's ticket queue: taking a ticket from the list, and seeing |
 | `TestCase.php` | Refuse to run against anything but a test database |
 | `Unit/ArchitectureTest.php` | The dependency rules of the modular monolith, checked against the source |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file |

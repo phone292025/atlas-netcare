@@ -2,7 +2,7 @@
 
 **Depends on:** M1, M2, M3 · **Blocks:** M7
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-22
 
 ## Purpose
 
@@ -25,12 +25,14 @@ FR-206, FR-207, FR-208, FR-306, FR-307, FR-308, FR-503, FR-507
 | Controllers | `Assistant\TicketController`, `Engineer\TicketController`, `TicketCommentController` |
 | Services | `TicketService` — open, assign, transition, compute SLA due time |
 | Policies | `TicketPolicy` — who may acknowledge, resolve, close, reopen |
-| Components | `<x-priority-pill>`, `<x-timeline>` |
+| Components | `<x-priority-pill>`, `<x-timeline>`, `<x-ticket-due>`, `<x-sla-line>` |
 
 ## Screens
 
 Assistant: my tickets · raise ticket · ticket detail
 Engineer: ticket queue with filters (status, priority, location, assignee) · ticket detail with timeline, comments and transition actions
+
+In the queue every ticket shows its time against its target as a line: the target, then what is left of it or how far past it the ticket went. A ticket nobody has carries a "Take it" button on its row. Under the whole open queue, "Finished this week" lists the last five tickets resolved in the past seven days.
 
 ## Key decisions
 

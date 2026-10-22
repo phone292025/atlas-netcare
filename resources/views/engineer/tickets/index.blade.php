@@ -95,44 +95,21 @@
     @else
         {{-- Desktop: a table, each row a way into the ticket. --}}
         <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-xs max-md:hidden">
-            <table class="min-w-full text-sm">
+            <table class="w-full table-fixed text-sm">
+                @include('engineer.tickets._cols')
                 <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                     <tr>
                         <th scope="col" class="h-10 px-4 font-medium">Ticket</th>
-                        <th scope="col" class="h-10 px-4 font-medium">Asset</th>
                         <th scope="col" class="h-10 px-4 font-medium">Priority</th>
                         <th scope="col" class="h-10 px-4 font-medium">Status</th>
-                        <th scope="col" class="h-10 px-4 font-medium">Assignee</th>
-                        <th scope="col" class="h-10 px-4 font-medium">Due</th>
-                        <th scope="col" class="h-10 w-10 px-4"><span class="sr-only">Open</span></th>
+                        <th scope="col" class="h-10 px-4 font-medium">Who has it</th>
+                        <th scope="col" class="h-10 px-4 font-medium">Against its target</th>
+                        <th scope="col" class="h-10 px-4"><span class="sr-only">Open</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line">
                     @foreach ($tickets as $ticket)
-                        @php $url = route('engineer.tickets.show', $ticket); @endphp
-                        <tr class="group cursor-pointer transition-colors hover:bg-sunken/70" onclick="window.location='{{ $url }}'">
-                            <td class="max-w-md px-4 py-3">
-                                <a href="{{ $url }}" class="block font-mono text-xs text-fg-muted group-hover:text-brand-700">{{ $ticket->ticket_number }}</a>
-                                <span class="mt-0.5 block truncate font-medium text-fg">{{ $ticket->title }}</span>
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-3">
-                                {{-- nowrap: an asset tag is one token, unreadable broken at its hyphen. --}}
-                                <span class="block font-mono text-xs text-fg">{{ $ticket->subjectLabel() }}</span>
-                                <span class="block text-xs text-fg-subtle">{{ $ticket->location?->code }}</span>
-                            </td>
-                            <td class="px-4 py-3"><x-priority-pill :priority="$ticket->priority" /></td>
-                            <td class="px-4 py-3"><x-status-badge :status="$ticket->status" /></td>
-                            <td class="px-4 py-3">
-                                <span class="flex items-center gap-2">
-                                    <x-avatar :name="$ticket->assignee?->name" />
-                                    <span class="truncate {{ $ticket->assignee ? 'text-fg' : 'text-fg-subtle' }}">{{ $ticket->assignee?->name ?? 'Nobody yet' }}</span>
-                                </span>
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-3 text-sm"><x-ticket-due :ticket="$ticket" /></td>
-                            <td class="px-4 py-3 text-right">
-                                <x-icon name="chevron-right" class="size-4 text-fg-subtle transition group-hover:translate-x-0.5 group-hover:text-fg" />
-                            </td>
-                        </tr>
+                        @include('engineer.tickets._row')
                     @endforeach
                 </tbody>
             </table>
@@ -141,26 +118,50 @@
         {{-- Phone: one card per ticket, the same facts. --}}
         <ul id="mobile-ticket-list" class="space-y-2 md:hidden">
             @foreach ($tickets as $ticket)
-                <li>
-                    <a href="{{ route('engineer.tickets.show', $ticket) }}"
-                       class="block rounded-xl border border-line bg-surface p-4 shadow-xs active:bg-sunken">
-                        <span class="flex items-center justify-between gap-2">
-                            <span class="font-mono text-xs text-fg-muted">{{ $ticket->ticket_number }}</span>
-                            <x-priority-pill :priority="$ticket->priority" />
-                        </span>
-                        <span class="mt-1 block font-medium text-fg">{{ $ticket->title }}</span>
-                        <span class="mt-1 block text-xs text-fg-muted">{{ $ticket->subjectLabel() }} &middot; {{ $ticket->location?->code }}</span>
-                        <span class="mt-3 flex items-center justify-between gap-2">
-                            <x-status-badge :status="$ticket->status" />
-                            <x-ticket-due :ticket="$ticket" class="text-xs" />
-                        </span>
-                    </a>
-                </li>
+                @include('engineer.tickets._card')
             @endforeach
         </ul>
 
         <div class="mt-4">
             <x-pagination :paginator="$tickets" />
         </div>
+    @endif
+
+    {{-- Only on the whole open queue: what got done lately, and whether it made
+         its target, without switching tabs. --}}
+    @if ($recentlyFinished->isNotEmpty())
+        <section class="mt-10" aria-labelledby="finished-heading">
+            <div class="mb-3 flex items-baseline justify-between gap-3">
+                <h2 id="finished-heading" class="text-base font-semibold text-fg">Finished this week</h2>
+                <a href="{{ $to(['status' => 'closed']) }}" class="link text-sm">All closed tickets</a>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-xs max-md:hidden">
+                <table class="w-full table-fixed text-sm">
+                    @include('engineer.tickets._cols')
+                    <thead class="sr-only">
+                        <tr>
+                            <th scope="col">Ticket</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Who had it</th>
+                            <th scope="col">Against its target</th>
+                            <th scope="col">Open</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        @foreach ($recentlyFinished as $ticket)
+                            @include('engineer.tickets._row')
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <ul class="space-y-2 md:hidden">
+                @foreach ($recentlyFinished as $ticket)
+                    @include('engineer.tickets._card')
+                @endforeach
+            </ul>
+        </section>
     @endif
 </x-app-layout>
