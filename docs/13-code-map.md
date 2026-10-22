@@ -566,6 +566,7 @@ Blade files. Views receive data as props and never query.
 | `components/pagination.blade.php` |
 | `components/priority-pill.blade.php` |
 | `components/risk-gauge.blade.php` |
+| `components/round-plan.blade.php` |
 | `components/search-input.blade.php` |
 | `components/sidebar.blade.php` |
 | `components/sla-line.blade.php` |
@@ -636,6 +637,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LocationManagementTest.php` | M2, locations |
 | `Feature/Admin/UserManagementTest.php` | M1, account management |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
+| `Feature/Assistant/InspectionRoundTest.php` | A round: one assistant working through every machine in a room |
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |
 | `Feature/AuditObserverTest.php` | What the audit log leaves out (FR-509, NFR-06) |
 | `Feature/Auth/AuthenticationTest.php` | _no summary in the file_ |

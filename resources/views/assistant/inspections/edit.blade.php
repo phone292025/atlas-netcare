@@ -29,7 +29,9 @@
         </a>
 
         <x-page-header :title="$inspection->labPc->asset_tag"
-                       :subtitle="$inspection->labPc->location?->label()">
+                       :subtitle="$position && $roomSize
+                           ? 'Machine '.$position.' of '.$roomSize.' in '.$inspection->labPc->location->name
+                           : $inspection->labPc->location?->label()">
             <x-slot:actions>
                 <x-badge>{{ $inspection->template->label() }}</x-badge>
             </x-slot:actions>
@@ -53,6 +55,11 @@
             </x-alert>
         @endif
 
+        {{-- Where this machine is in the room's round. --}}
+        @if ($round->count() > 1)
+            <x-round-plan :machines="$round" :current="$inspection->labPc" class="mb-6" />
+        @endif
+
         <form method="POST" action="{{ route('assistant.inspections.update', $inspection) }}"
               x-data="{
                   answered: 0,
@@ -70,13 +77,49 @@
                 @foreach ($sections as $categoryValue => $items)
                     @php($category = \App\Enums\ChecklistCategory::from($categoryValue))
 
-                    <section aria-labelledby="section-{{ $categoryValue }}">
+                    {{-- Each group counts its own answers. Once every item in it
+                         is answered with no issue, it folds to one line, so the
+                         next group comes up under the thumb. A group with an
+                         issue stays open, because its remark is still needed. --}}
+                    <section aria-labelledby="section-{{ $categoryValue }}"
+                             x-data="{
+                                 total: {{ $items->count() }},
+                                 answered: 0,
+                                 passed: 0,
+                                 issues: 0,
+                                 open: true,
+                                 get done() { return this.answered === this.total && this.issues === 0; },
+                                 get status() {
+                                     if (! this.done) return `${this.answered} of ${this.total} answered`;
+                                     return this.passed === this.total
+                                         ? `${this.total} of ${this.total} passed`
+                                         : `${this.passed} passed, ${this.total - this.passed} not applicable`;
+                                 },
+                                 recount() {
+                                     const checked = [...this.$el.querySelectorAll('input[type=radio]:checked')];
+                                     this.answered = checked.length;
+                                     this.passed = checked.filter((input) => input.value === '{{ \App\Enums\ChecklistResult::Ok->value }}').length;
+                                     this.issues = checked.filter((input) => input.value === '{{ \App\Enums\ChecklistResult::Issue->value }}').length;
+                                     if (this.done) this.open = false;
+                                 },
+                             }"
+                             x-init="recount()" @change="recount()">
                         <div class="mb-3 flex items-baseline justify-between gap-3 px-1">
-                            <h3 id="section-{{ $categoryValue }}" class="kicker">{{ $category->label() }}</h3>
-                            <span class="text-xs tabular-nums text-fg-subtle">{{ $items->count() }} {{ Str::plural('item', $items->count()) }}</span>
+                            <h3 id="section-{{ $categoryValue }}" class="text-base font-semibold text-fg">{{ $category->label() }}</h3>
+                            <span class="text-sm tabular-nums"
+                                  :class="done ? 'font-medium text-emerald-700' : 'text-fg-subtle'"
+                                  x-text="status">{{ $items->count() }} {{ Str::plural('item', $items->count()) }}</span>
                         </div>
 
-                        <div class="space-y-2.5">
+                        <div x-show="! open" x-cloak
+                             class="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+                            <span class="flex items-center gap-2 text-sm text-fg-muted">
+                                <x-icon name="check" class="size-4 text-emerald-600" /> No problems found
+                            </span>
+                            <button type="button" class="btn btn-ghost btn-sm" @click="open = true">Change</button>
+                        </div>
+
+                        <div x-show="open" class="space-y-2.5">
                             @foreach ($items as $item)
                                 {{-- ->get(), not [$item->id]. A Collection's array
                                      access throws on a missing key, so on a fresh
@@ -118,7 +161,14 @@
                          :style="`width: ${Math.round(answered / {{ max(1, $total) }} * 100)}%`"></div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <x-button type="submit" size="lg" class="flex-1">Submit inspection</x-button>
+                    {{-- With a machine still to check in this room, saving goes
+                         straight on to it. A machine with an issue stops at its
+                         summary first, where its ticket is raised. --}}
+                    @if ($next)
+                        <x-button type="submit" name="then" value="next" size="lg" class="flex-1">Save, then {{ $next->asset_tag }}</x-button>
+                    @else
+                        <x-button type="submit" size="lg" class="flex-1">Submit inspection</x-button>
+                    @endif
                     <x-button variant="ghost" size="lg" @click="$dispatch('open-modal', 'abandon-inspection')">Abandon</x-button>
                 </div>
             </div>

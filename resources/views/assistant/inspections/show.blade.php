@@ -132,6 +132,25 @@
             </x-card>
         @endif
 
+        {{-- The way on, for whoever did the round. Under the issues, so the
+             tickets are raised before the next machine starts. --}}
+        @if ($next)
+            <form method="POST" action="{{ route('assistant.inspections.store') }}"
+                  class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs">
+                @csrf
+                <input type="hidden" name="lab_pc_id" value="{{ $next->id }}">
+                <p class="text-sm text-fg-muted">
+                    {{ $issues->isNotEmpty() ? 'Once the tickets are raised, carry on with' : 'Next in the room:' }}
+                    <span class="font-mono font-medium text-fg">{{ $next->asset_tag }}</span>
+                </p>
+                <x-button type="submit" class="max-sm:w-full">Inspect {{ $next->asset_tag }}</x-button>
+            </form>
+        @elseif ($inspection->user_id === auth()->id() && $inspection->labPc?->location)
+            <p class="mb-6 flex items-center gap-2 text-sm font-medium text-emerald-700">
+                <x-icon name="check" class="size-4" /> Every machine in {{ $inspection->labPc->location->name }} is checked today.
+            </p>
+        @endif
+
         <x-card title="What was checked" flush>
             <ul class="divide-y divide-line">
                 @foreach ($inspection->results->sortBy(fn ($r) => $r->item?->sort_order) as $result)

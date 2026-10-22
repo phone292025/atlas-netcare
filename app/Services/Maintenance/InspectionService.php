@@ -9,8 +9,11 @@ use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\InspectionResult;
 use App\Models\LabPc;
+use App\Models\Location;
 use App\Models\User;
+use App\Support\CampusClock;
 use DomainException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -135,6 +138,59 @@ class InspectionService
 
             return $inspection;
         });
+    }
+
+    /**
+     * The machines in a room, in round order (by asset tag), each with how it
+     * stands today: `inspected_today_count`, and `today_outcome`, the value of
+     * the latest outcome today or null. A fault fixed and checked again reads
+     * as clean. Retired machines are left out.
+     *
+     * `completed_at` is a moment stored in UTC, so "today" is the campus day
+     * as UTC instants, not whereDate(): that compares the UTC date, which is
+     * the wrong eight hours.
+     *
+     * @return Collection<int, LabPc>
+     */
+    public function roundIn(Location $location): Collection
+    {
+        $today = CampusClock::todayInUtc();
+
+        return $location->labPcs()
+            ->inService()
+            ->withCount(['inspections as inspected_today_count' => fn ($q) => $q->whereBetween('completed_at', $today)])
+            ->addSelect(['today_outcome' => Inspection::query()
+                ->select('overall_result')
+                ->whereColumn('lab_pc_id', 'lab_pcs.id')
+                ->whereBetween('completed_at', $today)
+                ->latest('completed_at')
+                ->limit(1)])
+            ->orderBy('asset_tag')
+            ->get();
+    }
+
+    /**
+     * The machine a round in this room should check next: the first one in
+     * room order, by asset tag, that nobody has checked today. Given the
+     * machine just checked, it looks along the room from there and only then
+     * back round to the start, so a round moves on instead of jumping back.
+     * Null once every machine in the room is checked today.
+     */
+    public function nextToCheck(Location $location, ?LabPc $after = null): ?LabPc
+    {
+        $waiting = $location->labPcs()
+            ->inService()
+            ->whereDoesntHave('inspections', fn ($q) => $q->whereBetween('completed_at', CampusClock::todayInUtc()))
+            ->when($after, fn ($q) => $q->whereKeyNot($after->getKey()))
+            ->orderBy('asset_tag')
+            ->get();
+
+        if ($after === null) {
+            return $waiting->first();
+        }
+
+        return $waiting->first(fn (LabPc $machine) => strcmp($machine->asset_tag, $after->asset_tag) > 0)
+            ?? $waiting->first();
     }
 
     /**

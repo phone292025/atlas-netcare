@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Assistant;
 
+use App\Enums\InspectionOutcome;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Assistant\InspectionRequest;
 use App\Models\ChecklistTemplate;
@@ -9,7 +10,6 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Services\Maintenance\InspectionService;
-use App\Support\CampusClock;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -83,15 +83,8 @@ class InspectionController extends Controller
 
         return view('assistant.inspections.create', [
             'location' => $location,
-            'labPcs' => $location->labPcs()
-                ->inService()
-                // `completed_at` is a moment stored in UTC, so "today" is the
-                // campus day expressed as UTC instants, not whereDate(): that
-                // compares the UTC date, which is the wrong eight hours.
-                ->withCount(['inspections as inspected_today_count' => fn ($q) => $q
-                    ->whereBetween('completed_at', CampusClock::todayInUtc())])
-                ->orderBy('asset_tag')
-                ->get(),
+            'labPcs' => $this->inspections->roundIn($location),
+            'next' => $this->inspections->nextToCheck($location),
             'hasTemplate' => ChecklistTemplate::current() !== null,
         ]);
     }
@@ -132,8 +125,15 @@ class InspectionController extends Controller
             return redirect()->route('assistant.inspections.edit', $inspection);
         }
 
+        $inspection->load(['labPc.location', 'user', 'template', 'results.item', 'results.ticket']);
+        $room = $inspection->labPc?->location;
+
         return view('assistant.inspections.show', [
-            'inspection' => $inspection->load(['labPc.location', 'user', 'template', 'results.item', 'results.ticket']),
+            'inspection' => $inspection,
+            // Only for whoever did the round: the way on once its tickets are raised.
+            'next' => $room && $inspection->user_id === request()->user()->id
+                ? $this->inspections->nextToCheck($room, $inspection->labPc)
+                : null,
         ]);
     }
 
@@ -143,8 +143,17 @@ class InspectionController extends Controller
         $this->authorize('update', $inspection);
 
         $inspection->load(['labPc.location', 'template.items', 'results']);
+        $machine = $inspection->labPc;
+        $room = $machine->location;
+        $round = $room ? $this->inspections->roundIn($room) : collect();
+        $index = $round->search(fn ($inRoom) => $inRoom->is($machine));
 
         return view('assistant.inspections.edit', [
+            // The room's plan, and "Machine 7 of 14" in the order the round follows.
+            'round' => $round,
+            'position' => $index === false ? null : $index + 1,
+            'roomSize' => $round->count(),
+            'next' => $room ? $this->inspections->nextToCheck($room, $machine) : null,
             'inspection' => $inspection,
             // Grouped so the form has section headings in the order somebody
             // actually checks a machine. See ChecklistCategory::sortOrder().
@@ -174,9 +183,31 @@ class InspectionController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
+        $machine = $inspection->labPc;
+        $next = $request->input('then') === 'next' && $machine->location
+            ? $this->inspections->nextToCheck($machine->location, $machine)
+            : null;
+
+        /*
+         * A clean machine goes straight on to the next one in the room. One
+         * with an issue stops at its summary first, because that is where its
+         * ticket gets raised, and going straight on would bury it.
+         */
+        if ($next && $inspection->overall_result === InspectionOutcome::Pass) {
+            try {
+                $following = $this->inspections->start($next, $request->user());
+
+                return redirect()
+                    ->route('assistant.inspections.edit', $following)
+                    ->with('success', "{$machine->asset_tag} passed. Now {$next->asset_tag}.");
+            } catch (DomainException|RuntimeException) {
+                // The next machine cannot be started after all: say what was saved.
+            }
+        }
+
         return redirect()
             ->route('assistant.inspections.show', $inspection)
-            ->with('success', "{$inspection->labPc->asset_tag} inspected.");
+            ->with('success', "{$machine->asset_tag} inspected.");
     }
 
     /** Abandon a round that was started and not submitted. */
