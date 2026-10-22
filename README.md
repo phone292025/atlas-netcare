@@ -16,7 +16,7 @@ Atlas NetCare replaces the fragmented, manual workflows APU's IT assistants and 
 
 ## Stack
 
-Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · MySQL
+Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with TimescaleDB · Docker
 
 ## Status
 
@@ -26,65 +26,89 @@ The suite has 1,019 tests, and CI runs it on SQLite and MariaDB. On MariaDB all 
 
 ## Getting started
 
+Atlas runs as a Docker stack: the web app, a background worker, the scheduler and a PostgreSQL database, started together with one command.
+
 ### What to install
 
 | Tool | Version | Notes |
 |---|---|---|
-| XAMPP | PHP 8.2 or newer | Gives you PHP and the database. XAMPP labels the database MySQL, but it is MariaDB. The project stays on Laravel 12 because Laravel 13 needs PHP 8.3. |
-| Composer | 2.x | Get the Windows installer from [getcomposer.org/download](https://getcomposer.org/download/). Point it at `C:\xampp\php\php.exe` when it asks, and let it add PHP to your PATH. |
-| Node.js | 22 LTS, or 20.19 or newer | Vite 7 builds the front end and refuses older versions. |
-| Git | any recent | Only needed to clone. An unzipped copy of the project doesn't need it. |
+| Docker Desktop | any recent | On Windows it runs on WSL 2, which the installer sets up. Nothing else is needed to run Atlas |
+| Git | any recent | Only needed to clone. An unzipped copy of the project doesn't need it |
+
+To work on the code as well, see [Working on the code](#working-on-the-code) below.
 
 ### Setup
 
-Open a terminal, PowerShell or Git Bash, in the project folder. With access to the GitHub repository you can clone it instead:
+Open a terminal, PowerShell or Git Bash, and start Docker Desktop. Then clone the project:
 
 ```bash
 git clone https://github.com/phone292025/atlas-netcare.git CP-Project
 cd CP-Project
 ```
 
-**1. Install the packages.**
+**1. Create your settings file.**
+
+```bash
+cp .env.example .env      # in cmd: copy .env.example .env
+```
+
+**2. Start the stack.**
+
+```bash
+docker compose up -d --build
+```
+
+The first build takes a few minutes, because it downloads PHP, the PHP packages and the front-end tools. After that the app creates its key and builds the database on its own. It's ready when this shows `app` as `healthy`:
+
+```bash
+docker compose ps
+```
+
+**3. Load the demonstration data.** It takes a few seconds and includes two weeks of telemetry and the risk scores:
+
+```bash
+docker compose exec app php artisan db:seed
+```
+
+**4. Open [http://localhost:8000](http://localhost:8000).** The scheduler is already running inside the stack, so the Network Monitor stays live.
+
+### Day to day
+
+| To | Run |
+|---|---|
+| Stop everything, keeping the data | `docker compose stop` |
+| Start again | `docker compose up -d` |
+| Update after a `git pull` | `docker compose up -d --build` |
+| Follow the app's log | `docker compose logs -f app` |
+| Run an artisan command | `docker compose exec app php artisan <command>` |
+
+The database lives in a Docker volume, so it survives stopping and rebuilding. `docker compose down -v` deletes that volume and every row in it.
+
+### If something goes wrong
+
+- **`docker compose` can't connect.** Docker Desktop isn't running. Start it, wait until it says the engine is running, and try again.
+- **Port 8000 is already in use.** Add `ATLAS_PORT=8080` to `.env`, or any free port, and run `docker compose up -d` again.
+- **`bind source path does not exist` mentioning `.env`.** Step 1 was skipped. Copy `.env.example` to `.env` and start again.
+- **Docker Desktop closes on start with "The file cannot be accessed by the system".** It left socket files behind after a crash, and Windows won't delete them until it restarts. Restart Windows.
+
+### Working on the code
+
+To run the tests or change the front end, you also need PHP and Node on your machine:
+
+| Tool | Version | Notes |
+|---|---|---|
+| PHP | 8.2 or newer | With the `pdo_pgsql` extension. In XAMPP's `php.ini`, remove the `;` in front of `extension=pdo_pgsql` and `extension=pgsql` |
+| Composer | 2.x | [getcomposer.org/download](https://getcomposer.org/download/) |
+| Node.js | 22 LTS, or 20.19 or newer | Vite 7 builds the front end and refuses older versions |
 
 ```bash
 composer install          # never composer update, see below
 npm install
-npm run build
 ```
 
 Use `composer install`, never `composer update`. `composer.lock` pins every package, so every install gets the same versions. `update` rewrites the lock with whatever is newest on your machine, and everyone else's install changes with it.
 
-**2. Create your settings file.**
-
-```bash
-cp .env.example .env      # in cmd: copy .env.example .env
-php artisan key:generate
-```
-
-**3. Build the database.** Start **MySQL** in the XAMPP Control Panel. Apache isn't needed. Then run:
-
-```bash
-php artisan migrate --seed
-```
-
-The first time, it says the `atlas_netcare` database does not exist and asks whether to create it. Answer yes. Seeding then fills the system with demonstration data, risk scores included, in a few seconds.
-
-**4. Run it** in two terminals:
-
-```bash
-php artisan serve           # the app, at http://127.0.0.1:8000
-php artisan schedule:work   # keeps the Network Monitor live
-```
-
-The app opens without the scheduler, but the Network Monitor then shows every access point as Unknown and no alarms reach the bell. [Keeping the monitor live](#keeping-the-monitor-live) explains what the scheduler does.
-
-When you change the front end, run `npm run dev` in a third terminal. It rebuilds on every save. Run `npm run build` again when you finish.
-
-### If something goes wrong
-
-- **`php` is not recognized.** Close and reopen the terminal after installing Composer. If it still fails, add `C:\xampp\php` to your PATH.
-- **Composer says a PHP extension is missing.** Open `C:\xampp\php\php.ini`, delete the `;` at the start of that extension's `extension=` line, save, and run `composer install` again.
-- **`SQLSTATE[HY000] [2002]` during `migrate`.** MySQL isn't running. Start it in the XAMPP Control Panel and run the command again.
+The Docker image is built from the code in the folder, so after changing PHP or Blade files, `docker compose up -d --build` puts them into the running app. While working on the front end, `npm run dev` rebuilds the CSS and JavaScript on every save for an app served on your machine with `php artisan serve`, which uses the stack's database through `.env`.
 
 ### Running the tests
 
@@ -92,7 +116,14 @@ When you change the front end, run `npm run dev` in a third terminal. It rebuild
 php artisan test
 ```
 
-The tests use an in-memory SQLite database, so they need nothing running and never touch `atlas_netcare`.
+The tests use an in-memory SQLite database, so they need nothing running and never touch your data. To run them on PostgreSQL as well, the way the app really runs, start the database and point the suite at it:
+
+```bash
+docker compose up -d db
+php artisan test -c phpunit.pgsql.xml
+```
+
+That uses a separate `atlas_test` database, which the stack creates the first time it starts. Never run the tests inside the app container: it caches its settings, which point at the real database.
 
 ### Signing in
 
@@ -176,11 +207,7 @@ Leaving `MAIL_PASSWORD` empty is supported. The reset screen detects it and says
 
 ### Keeping the monitor live
 
-```bash
-php artisan schedule:work
-```
-
-Leave this running in its own terminal. It runs seven jobs on a timer:
+The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs seven jobs on a timer:
 
 | Job | When | What it does |
 |---|---|---|

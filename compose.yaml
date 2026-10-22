@@ -1,9 +1,43 @@
 # Atlas NetCare as one Docker Compose stack (docs/decisions/ADR-0012).
 #
-#   docker compose up -d
+#   cp .env.example .env            once, on a fresh clone
+#   docker compose up -d --build
 #
-# Phase 0 of docs/roadmap.md builds this up in steps. So far it runs the
-# database. The app, worker and scheduler join it in task 0.4.
+# Then open http://localhost:8000. Follow the logs with:
+#
+#   docker compose logs -f app
+#
+# Every service restarts itself after a crash. Everything here is set up for
+# one machine: before the stack runs anywhere else, change the database login
+# and turn APP_DEBUG off.
+
+# Shared by the three services that run Atlas itself: one image, three jobs.
+x-atlas: &atlas
+  build: .
+  image: atlas-netcare:local
+  restart: unless-stopped
+  environment:
+    # These win over the same names in .env, which may still describe an
+    # older XAMPP setup. Inside the stack the database is the `db` service.
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: "5432"
+    DB_DATABASE: atlas
+    DB_USERNAME: atlas
+    DB_PASSWORD: atlas
+    # To the container's output, so `docker compose logs` shows them.
+    LOG_CHANNEL: stderr
+    QUEUE_CONNECTION: database
+    APP_URL: http://localhost:${ATLAS_PORT:-8000}
+
+# The project's .env inside the container, in long form so that a missing .env
+# is an error, rather than Docker quietly creating a directory called .env.
+x-env-file: &env-file
+  type: bind
+  source: ./.env
+  target: /app/.env
+  bind:
+    create_host_path: false
 
 services:
   db:
@@ -11,13 +45,14 @@ services:
     image: timescale/timescaledb:2.31.0-pg16
     restart: unless-stopped
     environment:
-      # A local login for a database only this machine can reach. Change all
-      # three before the stack runs anywhere else.
+      # A local login for a database only this machine can reach.
       POSTGRES_DB: atlas
       POSTGRES_USER: atlas
       POSTGRES_PASSWORD: atlas
     ports:
       # Bound to localhost only, so nothing else on the network can reach it.
+      # It is published at all so the test suite, run on this machine, can
+      # use the atlas_test database (phpunit.pgsql.xml).
       - "127.0.0.1:5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -27,6 +62,58 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # The web app: migrates the schema on start, then serves on port 8000.
+  app:
+    <<: *atlas
+    ports:
+      - "127.0.0.1:${ATLAS_PORT:-8000}:80"
+    volumes:
+      # Writable, so the first start can add an app key to .env.
+      - *env-file
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # Laravel's /up route. There is no curl or wget in the image, so PHP
+      # makes the request.
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Background jobs. Waits for the app, so the schema and the key exist.
+  worker:
+    <<: *atlas
+    command: ["php", "artisan", "queue:work", "--tries=3", "--sleep=1"]
+    # The base image's own check asks the web server, which this service
+    # doesn't run, so it would always report unhealthy. Restarts on a crash
+    # still come from `restart: unless-stopped`.
+    healthcheck:
+      disable: true
+    volumes:
+      - <<: *env-file
+        read_only: true
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Scheduled commands: telemetry every minute, alarms, roster, risk.
+  scheduler:
+    <<: *atlas
+    command: ["php", "artisan", "schedule:work"]
+    # The base image's own check asks the web server, which this service
+    # doesn't run, so it would always report unhealthy. Restarts on a crash
+    # still come from `restart: unless-stopped`.
+    healthcheck:
+      disable: true
+    volumes:
+      - <<: *env-file
+        read_only: true
+    depends_on:
+      app:
+        condition: service_healthy
 
 volumes:
   db-data:
