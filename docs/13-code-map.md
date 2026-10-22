@@ -1,6 +1,6 @@
 # Code map
 
-> **Last updated:** 2026-09-23
+> **Last updated:** 2026-10-22
 
 Every file in the project and what it does. Written for somebody who has just
 cloned the repository and wants to know where anything lives before changing
@@ -361,6 +361,7 @@ and why each runs when it does.
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
 | `CollectTelemetry.php` | Take one reading from every access point and store it |
+| `CreateAdmin.php` | Create the first administrator, or let an administrator back in |
 | `DispatchAlarms.php` | Send every alarm that has come due |
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) |
 | `MailTest.php` | Prove that mail actually leaves this machine |
@@ -647,6 +648,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant |
 | `Feature/ComponentLibraryTest.php` | The shared component library. Every screen is built from these, so a fault |
+| `Feature/CreateAdminCommandTest.php` | `atlas:create-admin`, the only way the first administrator comes to exist |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it |
 | `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role |
 | `Feature/DevGalleryTest.php` | The component gallery is a development tool, not part of the system |
@@ -661,7 +663,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
 | `Feature/ProfileTest.php` | Atlas NetCare is an internal, privilege-based system. Users cannot delete |
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable |
-| `Feature/ReferenceSeederTest.php` | ReferenceSeeder is what every fresh install runs through |
+| `Feature/ReferenceSeederTest.php` | ReferenceSeeder, the data every fresh install gets from `db:seed` |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) |
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) |
 | `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it |

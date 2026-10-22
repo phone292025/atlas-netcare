@@ -64,14 +64,18 @@ class DemoDataSeederTest extends TestCase
         $this->assertSame(3, User::where('is_demo', true)->count());
     }
 
-    public function test_the_administrator_is_not_tagged_as_demo(): void
+    public function test_purging_the_demo_data_keeps_the_administrator(): void
     {
         // Purging demo data must never remove the only way back in.
+        $this->artisan('atlas:create-admin')->assertSuccessful();
         $this->seed(DatabaseSeeder::class);
+
+        $this->artisan('atlas:purge-demo-data', ['--force' => true])->assertSuccessful();
 
         $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
 
         $this->assertFalse($admin->is_demo);
+        $this->assertSame(0, User::where('is_demo', true)->count(), 'The purge left demo accounts behind.');
     }
 
     public function test_demo_accounts_are_not_forced_to_change_their_password(): void
@@ -120,15 +124,15 @@ class DemoDataSeederTest extends TestCase
     {
         /*
          * The deployable case. ATLAS_DEMO_MODE=false has to leave a system
-         * whose only account is the real administrator — shipping shared
-         * credentials into a deployment is the failure this split prevents.
+         * with no account at all until atlas:create-admin makes the real
+         * administrator. Shipping shared credentials into a deployment is the
+         * failure this split prevents.
          */
         config(['atlas.demo_mode' => false]);
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(1, User::count());
-        $this->assertSame(0, User::where('is_demo', true)->count());
+        $this->assertSame(0, User::count());
     }
 
     public function test_each_demo_account_can_actually_sign_in(): void

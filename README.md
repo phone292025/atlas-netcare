@@ -70,7 +70,13 @@ docker compose ps
 docker compose exec app php artisan db:seed
 ```
 
-**4. Open [http://localhost:8000](http://localhost:8000).** The scheduler is already running inside the stack, so the Network Monitor stays live.
+**4. Create your administrator.** It prints a one-time password, which you replace at the first sign-in. [Signing in](#signing-in) explains why there is no default one.
+
+```bash
+docker compose exec app php artisan atlas:create-admin
+```
+
+**5. Open [http://localhost:8000](http://localhost:8000) and sign in.** The scheduler is already running inside the stack, so the Network Monitor stays live.
 
 ### Day to day
 
@@ -127,20 +133,17 @@ That uses a separate `atlas_test` database, which the stack creates the first ti
 
 ### Signing in
 
-Atlas NetCare has **no self-registration** — an administrator creates every account. `php artisan migrate --seed` creates the first one from your `.env`:
+Atlas NetCare has **no self-registration**: an administrator creates every account. Create the first administrator with:
 
-| | |
-|---|---|
-| Email | `admin@atlas.local` |
-| Password | `AtlasAdmin!2026` |
+```bash
+docker compose exec app php artisan atlas:create-admin
+```
 
-That is the starting password a fresh clone gets from `.env.example` (`ATLAS_ADMIN_PASSWORD`). **It only works once:** the account is flagged `must_change_password`, so the first sign-in lands on the profile screen and every other page redirects back there until you choose your own.
+The account's address is `admin@atlas.local`, from `ATLAS_ADMIN_EMAIL` in `.env`, unless you give another with `--email=you@example.com`. The command prints a random password **once, in your terminal, and nowhere else**. No password ships with the project, because a password in the repository would be public.
 
-> **The administrator does not share the demo password.** The administrator starts on `AtlasAdmin!2026`; the demo accounts below use `AtlasDemo!2026`. Typing one at the other's login gives "These credentials do not match our records" with nothing to explain why.
+That password works for one sign-in. The account is flagged to change it, so the first sign-in lands on the profile screen, and every other page sends you back there until you choose your own.
 
-> **This password is public too: it is printed right here.** Before the app is reachable from anywhere but your own machine, change `ATLAS_ADMIN_PASSWORD` in `.env` before seeding, or sign in and change it straight away.
-
-Re-running `migrate --seed` after that is safe: since 2026-09-04 the seeder leaves an existing administrator's password and flag alone. It used to overwrite both on every run, which silently undid the password you had just chosen. Role, activation and the soft delete **are** still restored, so re-seeding remains the way back in if you lock yourself out. To reset a forgotten administrator password, use the reset link rather than a seeder.
+If you lock yourself out, for example by deactivating or demoting the last administrator, run the same command with `--restore`. It makes that account an active administrator again and leaves its password alone. For a forgotten password, use "Forgot password" on the sign-in page.
 
 Every other real account is created from the admin's user-management screen.
 
@@ -225,7 +228,7 @@ Without the scheduler nothing looks broken at first. Five minutes after the last
 
 Turning it back on repairs the charts by itself. Its first round sees the silence and fills it with simulated readings, up to the last 24 hours, so the Network Monitor comes back to a full day instead of a single point.
 
-The charts don't need it to start with. `migrate --seed` writes two weeks of hourly history, with the last day as readings, so the Network Monitor opens on a full day. Three access points' latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
+The charts don't need it to start with. `db:seed` writes two weeks of hourly history, with the last day as readings, so the Network Monitor opens on a full day. Three access points' latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
 
 > **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings into every hour it covers that has none and re-aggregates them, so a two-week backfill flattens those three trends. Use it only for access points with no history.
 

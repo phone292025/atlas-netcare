@@ -3,7 +3,7 @@
 # Data Strategy
  — Mock, Real, or Both
 
-> **Last updated:** 2026-09-26 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
+> **Last updated:** 2026-10-22 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
 >
 > **Read this before writing any seeder, factory, or anything that produces data.**
 
@@ -87,7 +87,7 @@ That last point matters more than it sounds. If latency is random noise uncorrel
 
 | Seeder | Contains | Runs |
 |---|---|---|
-| `ReferenceSeeder` | The one admin account, campus locations, checklist templates and items, shift templates. The minimum a genuine deployment needs on day one. | **Always** |
+| `ReferenceSeeder` | Campus locations, checklist templates and items, shift templates. No account: `atlas:create-admin` makes the first administrator. The minimum a genuine deployment needs on day one. | **Always** |
 | `DemoDataSeeder` | ~40 access points, ~250 lab PCs, 90 days of telemetry, ~300 tickets across every state, inspection history, sample users. All tagged `is_demo = true`. | **Only when `ATLAS_DEMO_MODE=true`** |
 
 ```php

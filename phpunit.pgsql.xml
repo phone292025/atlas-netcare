@@ -61,6 +61,5 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="ATLAS_ADMIN_EMAIL" value="admin@atlas.test"/>
-        <env name="ATLAS_ADMIN_PASSWORD" value="testing-only-not-a-real-password"/>
     </php>
 </phpunit>
