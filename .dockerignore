@@ -6,6 +6,9 @@
 .env.*
 !.env.example
 
+# Database backups, which hold every account's email and password hash.
+backups
+
 # Rebuilt inside the image from the lock files.
 vendor
 node_modules

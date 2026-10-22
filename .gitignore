@@ -31,6 +31,10 @@ yarn-error.log
 Thumbs.db
 desktop.ini
 
+# Database backups (docker/postgres/bin/backup.sh). They hold every account's
+# email address and password hash.
+/backups/
+
 # Local tooling
 /.phpactor.json
 /.claude/launch.json

@@ -90,6 +90,31 @@ docker compose exec app php artisan atlas:create-admin
 
 The database lives in a Docker volume, so it survives stopping and rebuilding. `docker compose down -v` deletes that volume and every row in it.
 
+### Backups
+
+```bash
+docker compose exec db sh atlas/backup.sh
+```
+
+This writes `backups/atlas-<date>-<time>Z.dump`, and Atlas keeps running meanwhile. A backup holds every account's email address and password hash, so keep the `backups` folder private. Git ignores it. pg_dump warns about circular foreign keys on every backup. They are in TimescaleDB's own catalog, and the warning matters only to data-only dumps.
+
+A backup is worth something only if it restores. To check one, restore it into a scratch database, which is compared with the file and then dropped:
+
+```bash
+docker compose exec db sh atlas/restore.sh backups/atlas-20261022-143529Z.dump --check
+```
+
+To bring a backup back, restore it into a new database, then swap it in while Atlas is stopped. The database it replaces is kept as `atlas_before_<time>` until you drop it.
+
+```bash
+docker compose exec db sh atlas/restore.sh backups/atlas-20261022-143529Z.dump atlas_restored
+docker compose stop app worker scheduler
+docker compose exec db sh atlas/use-restored.sh atlas_restored
+docker compose start app worker scheduler
+```
+
+CI runs all of this on every pull request: it backs up a seeded database, restores it, compares every table, and serves the app from the restored copy.
+
 ### If something goes wrong
 
 - **`docker compose` can't connect.** Docker Desktop isn't running. Start it, wait until it says the engine is running, and try again.
