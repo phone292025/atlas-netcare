@@ -31,10 +31,16 @@
 
     {{-- Sidebar. The translate classes are scoped to max-lg on purpose: without
          the variant, -translate-x-full and lg:translate-x-0 both set the same
-         variable and the negative one wins, hiding the sidebar on desktop. --}}
+         variable and the negative one wins, hiding the sidebar on desktop.
+
+         Closed is in the static class list, so a phone draws the page with the
+         drawer already off screen. When only Alpine applied it, the drawer
+         rendered open and slid shut on every page load. Open is the bound
+         class, marked important so it beats the static one whatever order
+         Tailwind writes them in. --}}
     <aside class="fixed inset-y-0 left-0 z-drawer flex w-[260px] print:hidden flex-col border-r border-line bg-surface
-                  max-lg:shadow-lg max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
-           :class="navOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'"
+                  max-lg:-translate-x-full max-lg:shadow-lg max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
+           :class="navOpen && 'max-lg:!translate-x-0'"
            aria-label="Sidebar">
 
         <div class="flex h-14 flex-none items-center gap-2 px-4">

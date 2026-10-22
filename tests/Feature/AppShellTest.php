@@ -169,21 +169,28 @@ class AppShellTest extends TestCase
 
     public function test_the_sidebar_transform_is_scoped_below_the_desktop_breakpoint(): void
     {
-        // Regression guard for a layout bug that 120 passing tests missed:
-        // written as plain `-translate-x-full` with `lg:translate-x-0`, both
+        // Regression guard for two layout bugs the suite missed.
+        //
+        // Written as plain `-translate-x-full` with `lg:translate-x-0`, both
         // utilities set --tw-translate-x and the negative one won the cascade,
         // so the sidebar sat off-screen on every desktop screen with a 256px
         // empty gutter beside it.
         //
+        // With "closed" applied only by Alpine, a phone drew the drawer open
+        // and slid it shut on every page load. Closed belongs in the static
+        // class list, and Alpine only adds "open", marked important to win.
+        //
         // A rendered-HTML test cannot evaluate CSS, so this pins the class
-        // names instead. If someone "simplifies" the variant away, this fails.
+        // names instead. If someone "simplifies" either away, this fails.
         $html = $this->actingAs($this->userWithRole(UserRole::Admin))
             ->get('/profile')
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('max-lg:-translate-x-full', $html);
-        $this->assertStringContainsString('max-lg:translate-x-0', $html);
+        preg_match('/<aside class="([^"]*)"[^>]*aria-label="Sidebar"/', $html, $sidebar);
+
+        $this->assertStringContainsString('max-lg:-translate-x-full', $sidebar[1] ?? '', 'Closed is not in the static class list, so the drawer flashes open on every page load.');
+        $this->assertStringContainsString("'max-lg:!translate-x-0'", $html);
         $this->assertStringNotContainsString('lg:translate-x-0"', $html, 'An unscoped lg:translate-x-0 re-creates the cascade conflict.');
     }
 
