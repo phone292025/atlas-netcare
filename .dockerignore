@@ -1,0 +1,36 @@
+# What stays out of the Docker image (Dockerfile, ADR-0012).
+
+# Secrets and machine-specific settings. The running containers get .env
+# through a mount in compose.yaml, never baked into the image.
+.env
+.env.*
+!.env.example
+
+# Rebuilt inside the image from the lock files.
+vendor
+node_modules
+public/build
+public/hot
+
+# Anything generated on this machine.
+bootstrap/cache/*.php
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/*
+*.log
+.phpunit.result.cache
+.phpunit.cache
+
+# Not needed to run Atlas. The tests stay out on purpose: the image caches its
+# config, and a test run against cached config would hit the real database.
+tests
+phpunit*.xml
+docs
+docker/postgres
+.git
+.github
+.idea
+.vscode
+.claude
