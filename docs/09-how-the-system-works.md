@@ -251,7 +251,9 @@ The current count is in [progress/build-log.md](progress/build-log.md), which is
 
 The suite runs twice. Locally it uses SQLite in memory, which is fast and has caused three bugs: SQLite and MariaDB disagree about `FIELD()`, about date truncation, and about whether the first timestamp column in a table quietly rewrites itself on every update. That last one was destroying the SLA baseline on every ticket transition, and a fully green suite never noticed.
 
-Since 2026-09-04, CI also runs the whole suite against MariaDB 10.4 on every push, using `phpunit.mariadb.xml`. That closes the gap the three bugs came through, and it found a fourth on its first run: a telemetry test that claimed to prove latency rises with congestion was actually comparing two access points' ID-derived personalities, and passed on SQLite only because in-memory SQLite hands out the same two IDs every time.
+From 2026-09-04, CI also ran the whole suite against MariaDB 10.4 on every push, using `phpunit.mariadb.xml`. That closed the gap the three bugs came through, and it found a fourth on its first run: a telemetry test that claimed to prove latency rises with congestion was actually comparing two access points' ID-derived personalities, and passed on SQLite only because in-memory SQLite hands out the same two IDs every time.
+
+Since 2026-10-22 that second run is PostgreSQL with TimescaleDB, the database Atlas runs on now, using `phpunit.pgsql.xml`. Its first run found three more defects: date buckets written for MariaDB, `LIKE` on `json` columns, and email addresses that differed only in case.
 
 That is what `atlas:check-schema` exists for. Since 2026-08-30 it also checks the DATA: seven invariants looking for timelines that cannot have happened, because fixing the cause of a corruption does nothing about the rows it already damaged. One ticket was carrying a `closed_at` eight hours before its own `opened_at`, and a green suite, a clean schema audit and a plausible-looking screen all missed it.
 
