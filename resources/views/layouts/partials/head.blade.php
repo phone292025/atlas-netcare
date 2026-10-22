@@ -16,7 +16,7 @@
 @endunless
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 
 <title>{{ isset($title) ? $title.' · ' : '' }}{{ config('app.name') }}</title>
 
