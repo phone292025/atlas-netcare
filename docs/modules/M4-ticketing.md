@@ -2,7 +2,7 @@
 
 **Depends on:** M1, M2, M3 · **Blocks:** M7
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-10-23
 
 ## Purpose
 
@@ -23,7 +23,7 @@ FR-206, FR-207, FR-208, FR-306, FR-307, FR-308, FR-503, FR-507
 | Models | `Ticket`, `TicketComment` |
 | Enums | `TicketStatus`, `TicketPriority`, `TicketCategory` |
 | Controllers | `Assistant\TicketController`, `Engineer\TicketController`, `TicketCommentController` |
-| Services | `TicketService` — open, assign, transition, compute SLA due time |
+| Services | `TicketService` — open, assign, transition, compute SLA due time, and the unfinished tickets on each machine |
 | Policies | `TicketPolicy` — who may acknowledge, resolve, close, reopen |
 | Components | `<x-priority-pill>`, `<x-timeline>`, `<x-ticket-due>`, `<x-sla-line>` |
 
@@ -33,6 +33,8 @@ Assistant: my tickets · raise ticket · ticket detail
 Engineer: ticket queue with filters (status, priority, location, assignee) · ticket detail with timeline, comments and transition actions
 
 In the queue every ticket shows its time against its target as a line: the target, then what is left of it or how far past it the ticket went. A ticket nobody has carries a "Take it" button on its row. Under the whole open queue, "Finished this week" lists the last five tickets resolved in the past seven days.
+
+On the raise form the room comes first, then the machine. Under the two selects the room is drawn as a plan, one desk per machine, and tapping a desk picks it. Picking a machine sets its room, and choosing another room clears a machine that is not in it. A machine that already has an unfinished ticket carries a red dot, and picking it brings up a warning with that ticket's number, its age and whether an engineer has it. The warning does not block the form, because a second fault on the same machine is a ticket of its own. Only somebody allowed to open that ticket sees its title and a link to it, so an assistant learns that a machine has a ticket somebody else reported, but not what it says.
 
 ## Key decisions
 

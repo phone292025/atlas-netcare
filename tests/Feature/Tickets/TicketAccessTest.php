@@ -525,6 +525,33 @@ class TicketAccessTest extends TestCase
         $page->assertSee('GRP-LIB-01');
     }
 
+    public function test_the_form_marks_a_machine_that_already_has_an_open_ticket(): void
+    {
+        // Somebody else's ticket: the assistant learns that the machine has
+        // one, and its number, but not what it says. A finished ticket is no
+        // reason to hold back a new one.
+        $pc = LabPc::factory()->create();
+        $open = Ticket::factory()->create(['ticketable_id' => $pc->id, 'title' => 'Fan grinding loudly']);
+        $done = Ticket::factory()->status(TicketStatus::Resolved)->create(['ticketable_id' => $pc->id]);
+
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->get(route('assistant.tickets.create'))
+            ->assertOk()
+            ->assertSee($open->ticket_number)
+            ->assertDontSee($done->ticket_number)
+            ->assertDontSee('Fan grinding loudly');
+    }
+
+    public function test_the_reporter_and_staff_see_what_the_open_ticket_says(): void
+    {
+        $pc = LabPc::factory()->create();
+        $reporter = $this->userWith(UserRole::Assistant);
+        Ticket::factory()->create(['ticketable_id' => $pc->id, 'reported_by' => $reporter->id, 'title' => 'Fan grinding loudly']);
+
+        $this->actingAs($reporter)->get(route('assistant.tickets.create'))->assertSee('Fan grinding loudly');
+        $this->actingAs($this->userWith(UserRole::Engineer))->get(route('assistant.tickets.create'))->assertSee('Fan grinding loudly');
+    }
+
     public function test_the_assistant_list_is_cards_on_a_phone_and_a_table_on_a_desk(): void
     {
         // Both are in the markup; CSS decides which shows at which width —

@@ -6,6 +6,7 @@ use App\Enums\AlarmType;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
+use App\Models\LabPc;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\Shifts\AlarmService;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -328,6 +330,25 @@ class TicketService
             ->where('ticketable_type', $subject->getMorphClass())
             ->where('ticketable_id', $subject->getKey())
             ->exists();
+    }
+
+    /**
+     * The unfinished tickets on each of these lab PCs, oldest first, keyed by
+     * machine id. The raise form warns with it before a second ticket goes in
+     * for a fault somebody already reported.
+     *
+     * @param  array<int, int>  $labPcIds
+     * @return Collection<int, Collection<int, Ticket>>
+     */
+    public function outstandingOnMachines(array $labPcIds): Collection
+    {
+        return Ticket::query()
+            ->outstanding()
+            ->where('ticketable_type', (new LabPc)->getMorphClass())
+            ->whereIn('ticketable_id', $labPcIds)
+            ->oldest('opened_at')
+            ->get()
+            ->groupBy('ticketable_id');
     }
 
     /**

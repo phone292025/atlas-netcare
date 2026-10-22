@@ -14,9 +14,11 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\RiskAssessment;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Services\Tickets\TicketService;
 use DomainException;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -83,6 +85,8 @@ class TicketController extends Controller
                 ->with('warning', "That fault was already raised as {$existing->ticket_number}.");
         }
 
+        $machines = LabPc::query()->inService()->with('location')->orderBy('asset_tag')->get();
+
         return view('assistant.tickets.create', [
             'categories' => TicketCategory::options(),
             'priorities' => TicketPriority::options(),
@@ -90,13 +94,52 @@ class TicketController extends Controller
             // Grouped by location, so a 250-machine estate is a short list
             // under the room you are standing in rather than one long select.
             // <x-form.select> renders a nested map as <optgroup>s.
-            'labPcs' => LabPc::query()->inService()->with('location')->orderBy('asset_tag')->get()
+            'labPcs' => $machines
                 ->groupBy(fn (LabPc $pc) => $pc->location?->label() ?? 'No location')
                 ->sortKeys()
                 ->map(fn ($group) => $group->mapWithKeys(fn (LabPc $pc) => [$pc->id => $pc->asset_tag])->all())
                 ->all(),
+            'machines' => $this->machinePlan($machines, $request->user()),
             'prefill' => $prefill,
         ]);
+    }
+
+    /**
+     * The same machines for the room plan under the selects, in round order,
+     * each with its room and the ticket already open on it, if there is one.
+     *
+     * A ticket's title and link show only to somebody allowed to open it. An
+     * assistant sees the tickets they reported: a fault on the same machine
+     * that somebody else reported is worth knowing about, not worth reading.
+     *
+     * @param  EloquentCollection<int, LabPc>  $machines
+     * @return array<int, array<string, mixed>>
+     */
+    private function machinePlan(EloquentCollection $machines, User $viewer): array
+    {
+        $open = $this->tickets->outstandingOnMachines($machines->modelKeys());
+
+        return $machines->map(function (LabPc $pc) use ($open, $viewer) {
+            $tickets = $open->get($pc->id);
+            $first = $tickets?->first();
+            $readable = $first !== null && $viewer->can('view', $first);
+
+            return [
+                'id' => (string) $pc->id,
+                'tag' => $pc->asset_tag,
+                'room' => (string) $pc->location_id,
+                'open' => $first === null ? null : [
+                    'count' => $tickets->count(),
+                    'number' => $first->ticket_number,
+                    'age' => $first->opened_at->diffForHumans(),
+                    'taken' => $first->assigned_to !== null,
+                    'title' => $readable ? $first->title : null,
+                    'url' => $readable
+                        ? route($viewer->isAssistant() ? 'assistant.tickets.show' : 'engineer.tickets.show', $first)
+                        : null,
+                ],
+            ];
+        })->values()->all();
     }
 
     public function store(StoreTicketRequest $request): RedirectResponse

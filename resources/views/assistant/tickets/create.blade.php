@@ -131,15 +131,67 @@
                         <input type="hidden" name="ticketable_type" value="{{ $prefill['ticketable_type'] }}">
                         <input type="hidden" name="ticketable_id" value="{{ $prefill['ticketable_id'] }}">
                     @else
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <x-form.select name="ticketable_id" label="Which machine?" :options="$labPcs"
-                                           :selected="$prefill['ticketable_id'] ?? null"
-                                           blank="Not about one machine"
-                                           help="Leave blank for a fault affecting a whole room." />
+                        {{-- The room first, then the machine in it. The selects
+                             work without JavaScript and with a screen reader.
+                             The plan under them is a quicker way to pick with a
+                             finger, and it marks the machines that already have
+                             a ticket open. Picking a machine sets its room, and
+                             moving to another room clears a machine that is not
+                             in it, so the two never disagree. --}}
+                        <div x-data="machinePicker(@js($machines), @js($locations),
+                                                   @js((string) old('ticketable_id', $prefill['ticketable_id'] ?? '')),
+                                                   @js((string) old('location_id', $prefill['location_id'] ?? '')))"
+                             class="space-y-4">
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <x-form.select name="location_id" label="Where?" :options="$locations"
+                                               :selected="$prefill['location_id'] ?? null"
+                                               blank="Not sure" x-model="room" />
 
-                            <x-form.select name="location_id" label="Where?" :options="$locations"
-                                           :selected="$prefill['location_id'] ?? null"
-                                           blank="Not sure" />
+                                <x-form.select name="ticketable_id" label="Which machine?" :options="$labPcs"
+                                               :selected="$prefill['ticketable_id'] ?? null"
+                                               blank="Not about one machine"
+                                               help="Leave blank for a fault affecting a whole room."
+                                               x-model="machine" />
+                            </div>
+
+                            <div x-show="desks.length > 0" x-cloak aria-hidden="true"
+                                 class="rounded-lg border border-line-strong px-3 pb-2 pt-3">
+                                <p class="mb-3 text-xs text-fg-muted">Or tap it in <span x-text="roomName"></span>.</p>
+                                <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                                    <template x-for="desk in desks" :key="desk.id">
+                                        <button type="button" tabindex="-1" @click="pick(desk.id)"
+                                                :title="desk.open ? desk.tag + ', open ticket ' + desk.open.number : desk.tag"
+                                                class="relative flex h-12 flex-col items-center gap-1.5 rounded-md pt-1.5 transition"
+                                                :class="machine === desk.id ? 'border-2 border-brand-500 bg-brand-50' : 'border border-line-strong hover:bg-sunken'">
+                                            <span class="h-0.5 w-1/2 rounded-full" :class="machine === desk.id ? 'bg-brand-500' : 'bg-line-strong'"></span>
+                                            <span class="font-mono text-[11px]" :class="machine === desk.id ? 'font-semibold text-brand-700' : 'text-fg-muted'" x-text="desk.tag"></span>
+                                            <span x-show="desk.open" class="absolute -right-1 -top-1 size-2.5 rounded-full bg-red-500 ring-2 ring-surface"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-2 text-xs text-fg-muted">
+                                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-3.5 rounded-sm border-2 border-brand-500"></span>This machine</span>
+                                    <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full bg-red-500"></span>Has an open ticket</span>
+                                </div>
+                            </div>
+
+                            {{-- A warning, not a block: a second fault on the same
+                                 machine is still a ticket of its own. --}}
+                            <template x-if="chosen?.open">
+                                <x-alert type="warning">
+                                    <p class="font-semibold" x-text="chosen.open.count > 1
+                                        ? `${chosen.tag} already has ${chosen.open.count} open tickets`
+                                        : `${chosen.tag} already has an open ticket`"></p>
+                                    <p>
+                                        <a x-show="chosen.open.url" :href="chosen.open.url" class="font-mono font-medium underline underline-offset-2" x-text="chosen.open.number"></a><span x-show="! chosen.open.url" class="font-mono font-medium" x-text="chosen.open.number"></span><span x-show="chosen.open.title" x-text="' · ' + chosen.open.title"></span>,
+                                        raised <span x-text="chosen.open.age"></span>.
+                                        <span x-text="chosen.open.taken ? 'An engineer is on it.' : 'Nobody has picked it up yet.'"></span>
+                                    </p>
+                                    <p class="mt-1" x-text="chosen.open.url
+                                        ? 'If this is the same fault, add to that ticket instead of raising another.'
+                                        : 'If this is the same fault, it does not need a second ticket.'"></p>
+                                </x-alert>
+                            </template>
                         </div>
 
                         {{-- The morph type is fixed here rather than chosen. An
@@ -159,4 +211,50 @@
             </x-card>
         </form>
     </div>
+
+    @push('scripts')
+        <script>
+            function machinePicker(machines, rooms, machine, room) {
+                const byId = Object.fromEntries(machines.map((m) => [m.id, m]));
+
+                return {
+                    machine,
+                    room,
+
+                    init() {
+                        // A machine that arrives filled in, from an inspection
+                        // or a failed submit, decides the room.
+                        this.follow();
+                        this.$watch('machine', () => this.follow());
+                        this.$watch('room', (value) => {
+                            if (this.machine && byId[this.machine]?.room !== value) this.machine = '';
+                        });
+                    },
+
+                    follow() {
+                        const chosen = byId[this.machine];
+                        if (chosen?.room && chosen.room !== this.room) this.room = chosen.room;
+                    },
+
+                    get chosen() {
+                        return byId[this.machine] ?? null;
+                    },
+
+                    get desks() {
+                        return this.room ? machines.filter((m) => m.room === this.room) : [];
+                    },
+
+                    get roomName() {
+                        return rooms[this.room] ?? '';
+                    },
+
+                    // Tapping the chosen desk again goes back to "not about
+                    // one machine".
+                    pick(id) {
+                        this.machine = this.machine === id ? '' : id;
+                    },
+                };
+            }
+        </script>
+    @endpush
 </x-app-layout>
