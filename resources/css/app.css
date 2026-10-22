@@ -113,32 +113,39 @@
      | on white paper.
      */
     @media screen {
+    /*
+     | Dark is true black. The page and the panels on it are both #000, told
+     | apart by their borders. Only what floats above the page (menus, modals)
+     | and what reacts to the pointer (hover, insets) is lifted off black. The
+     | greys are neutral, with no blue in them, and the faintest text keeps
+     | 4.7:1 against black.
+     */
     :root[data-theme='dark'] {
         color-scheme: dark;
 
-        --canvas: 11 14 19;
-        --surface: 18 22 29;
-        --raised: 24 29 38;
-        --sunken: 14 17 23;
-        --line: 37 43 54;
-        --line-strong: 52 60 73;
-        --fg: 232 235 240;
-        --fg-muted: 154 163 177;
-        --fg-subtle: 107 116 131;
+        --canvas: 0 0 0;
+        --surface: 0 0 0;
+        --raised: 12 12 12;
+        --sunken: 22 22 22;
+        --line: 38 38 38;
+        --line-strong: 56 56 56;
+        --fg: 237 237 237;
+        --fg-muted: 161 161 161;
+        --fg-subtle: 122 122 122;
         --accent-fg: 255 255 255;
         --shadow: 0 0 0;
 
-        --c-slate-50: 14 17 23;
-        --c-slate-100: 28 33 42;
-        --c-slate-200: 37 43 54;
-        --c-slate-300: 52 60 73;
-        --c-slate-400: 107 116 131;
-        --c-slate-500: 138 147 162;
-        --c-slate-600: 170 178 191;
-        --c-slate-700: 198 204 214;
-        --c-slate-800: 220 224 231;
-        --c-slate-900: 234 237 242;
-        --c-slate-950: 246 247 250;
+        --c-slate-50: 12 12 12;
+        --c-slate-100: 26 26 26;
+        --c-slate-200: 38 38 38;
+        --c-slate-300: 56 56 56;
+        --c-slate-400: 122 122 122;
+        --c-slate-500: 150 150 150;
+        --c-slate-600: 176 176 176;
+        --c-slate-700: 204 204 204;
+        --c-slate-800: 226 226 226;
+        --c-slate-900: 237 237 237;
+        --c-slate-950: 250 250 250;
 
         --c-brand-50: 23 31 56;
         --c-brand-100: 28 40 74;
