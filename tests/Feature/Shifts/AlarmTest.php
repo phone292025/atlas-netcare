@@ -8,6 +8,7 @@ use App\Enums\TicketPriority;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Alarm;
+use App\Models\Location;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
@@ -338,6 +339,19 @@ class AlarmTest extends TestCase
             ->get(route('assistant.shifts.today'))
             ->assertOk()
             ->assertSee('Nothing rostered today');
+    }
+
+    public function test_with_no_shift_today_the_home_screen_names_the_next_one(): void
+    {
+        $assistant = $this->userWith(UserRole::Assistant);
+        $lab = Location::factory()->create(['name' => 'Level 6 IT Lab 01']);
+        Shift::factory()->upcoming()->create(['user_id' => $assistant->id, 'location_id' => $lab->id]);
+
+        $this->actingAs($assistant)
+            ->get(route('assistant.shifts.today'))
+            ->assertOk()
+            ->assertSee('Nothing rostered today')
+            ->assertSeeInOrder(['Your next shift', 'Level 6 IT Lab 01']);
     }
 
     public function test_the_assistant_home_screen_renders_with_a_shift(): void

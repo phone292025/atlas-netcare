@@ -46,11 +46,24 @@
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="min-w-0 space-y-6">
             @if (! $shift)
-                <x-card>
-                    <x-empty-state title="Nothing rostered today"
-                                   message="You have no shift scheduled for today. Your next ones are under Coming up."
-                                   icon="calendar" />
-                </x-card>
+                {{-- Most days for most assistants, so one line that says what
+                     comes next, not a box the size of a shift. --}}
+                @php($nextShift = $upcoming->first())
+                <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs">
+                    <p class="flex min-w-0 items-start gap-3 text-sm text-fg-muted">
+                        <x-icon name="calendar" class="mt-0.5 size-5 flex-none text-fg-subtle" />
+                        <span>
+                            <span class="font-medium text-fg">Nothing rostered today.</span>
+                            @if ($nextShift)
+                                Your next shift is {{ $nextShift->shift_date->format('l j F') }},
+                                {{ substr($nextShift->start_time, 0, 5) }} in {{ $nextShift->location?->name ?? 'a room not set yet' }}.
+                            @else
+                                Nothing is on your roster yet.
+                            @endif
+                        </span>
+                    </p>
+                    <x-button variant="secondary" size="sm" :href="route('assistant.shifts.index')">My week</x-button>
+                </section>
             @else
                 {{-- Today's shift. The one thing on this screen that needs doing
                      is on it, as the biggest button. --}}
@@ -222,9 +235,9 @@
                 </x-slot:header>
 
                 @if ($upcoming->isEmpty())
-                    <x-empty-state title="Nothing scheduled"
-                                   message="Shifts are generated from the weekly roster by an administrator."
-                                   icon="calendar" />
+                    <p class="px-5 py-4 text-sm text-fg-muted">
+                        Nothing scheduled. An administrator generates shifts from the weekly roster.
+                    </p>
                 @else
                     <ul class="divide-y divide-line">
                         @foreach ($upcoming as $next)
