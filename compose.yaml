@@ -44,6 +44,11 @@ services:
     # PostgreSQL 16 with the TimescaleDB extension (ADR-0011).
     image: timescale/timescaledb:2.31.0-pg16
     restart: unless-stopped
+    # TimescaleDB sends usage reports to Timescale unless told not to. The
+    # image's TIMESCALEDB_TELEMETRY setting works through an init script,
+    # which the mount below replaces and which only runs on a new volume, so
+    # the setting goes on the command line instead.
+    command: ["postgres", "-c", "timescaledb.telemetry_level=off"]
     environment:
       # A local login for a database only this machine can reach.
       POSTGRES_DB: atlas
