@@ -120,6 +120,59 @@ jobs:
         # where a filtered log would hide them (AGENTS.md).
         run: php artisan test -c ${{ matrix.config }} --display-deprecations
 
+  stack:
+    name: Docker stack
+    # Builds the image and starts the whole stack from a fresh clone, the way
+    # the README does, so a broken Dockerfile, compose.yaml or start script
+    # fails here and not on somebody's machine (ADR-0012).
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create .env from the example
+        # compose.yaml mounts .env and refuses to start without one.
+        run: cp .env.example .env
+
+      - name: Build the image and start the stack
+        # --wait returns once the database and the app pass their health
+        # checks, and fails if they haven't within five minutes.
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Check the web app
+        # The health route, and a page that renders only with the CSS and
+        # JavaScript built inside the image.
+        run: |
+          curl -fsS http://127.0.0.1:8000/up > /dev/null
+          curl -fsS http://127.0.0.1:8000/login | grep -q '/build/assets/app-'
+
+      - name: Check that the image carries no tests
+        # The container caches its config, and a test run against cached
+        # config would wipe the real database (Dockerfile).
+        run: docker compose exec -T app sh -c 'test ! -e tests && test ! -e phpunit.xml && test ! -e vendor/bin/phpunit'
+
+      - name: Seed demo data and create the administrator
+        # grep keeps the one-time password out of the log, which anybody can
+        # read on a public repository.
+        run: |
+          docker compose exec -T app php artisan db:seed --force
+          docker compose exec -T app php artisan atlas:create-admin | grep 'Administrator created'
+
+      - name: Check that nothing restarted
+        # Every service restarts itself after a crash, which would hide the
+        # crash from the steps above. Each container must still be on its
+        # first run.
+        run: |
+          for service in db app worker scheduler; do
+            restarts=$(docker inspect -f '{{.RestartCount}}' "$(docker compose ps -q "$service")")
+            echo "$service: $restarts restarts"
+            test "$restarts" = 0
+          done
+
+      - name: Show the logs
+        if: failure()
+        run: docker compose logs --no-color
+
   style:
     name: Pint
     runs-on: ubuntu-24.04
