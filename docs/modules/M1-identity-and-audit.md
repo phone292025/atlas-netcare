@@ -2,7 +2,7 @@
 
 **Depends on:** nothing · **Blocks:** everything
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-22
 
 > This module must be first and must be solid. Every other module has foreign keys into `users`.
 
@@ -30,7 +30,7 @@ NFR-03, NFR-04, NFR-06
 | Services | — (thin enough for the controller plus an observer) |
 | Observer | `AuditObserver`, registered for every auditable model |
 | Policies | `UserPolicy` |
-| Commands | — |
+| Commands | `atlas:create-admin`: the first administrator, with a one-time random password, or `--restore` to bring an existing account back as an active administrator |
 
 ## Screens
 

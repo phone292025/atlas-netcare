@@ -5,7 +5,6 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\DemoDataSeeder;
-use Database\Seeders\ReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -199,11 +198,11 @@ class ForcedPasswordChangeTest extends TestCase
     | it is meant to be. These are the writes the middleware acts on.
     */
 
-    public function test_the_seeded_administrator_is_flagged(): void
+    public function test_the_first_administrator_is_flagged(): void
     {
-        // 11-installation-guide.md tells a reader the administrator "asks for a
-        // new one immediately". This is the assertion that makes that true.
-        $this->seed(ReferenceSeeder::class);
+        // atlas:create-admin prints a one-time password and says Atlas asks
+        // for a new one at the first sign-in. This makes that true.
+        $this->artisan('atlas:create-admin')->assertSuccessful();
 
         $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
 

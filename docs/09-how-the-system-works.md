@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-09-26 · **Covers:** all seven modules, built and tested.
+> **Last updated:** 2026-10-22 · **Covers:** all seven modules, built and tested.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -22,7 +22,7 @@ Nobody sees a menu item they cannot use. The sidebar is built from one config fi
 
 There is no sign-up page. Laravel ships with one and it has been deleted, with a test asserting it never comes back. Administrators create every account.
 
-That leaves the obvious problem of who creates the first administrator. `ReferenceSeeder` does, reading the email and password from `.env`, and flags the account to change its password on first use. A default password committed to the repository would be a credential shared with seven people.
+That leaves the obvious problem of who creates the first administrator. `php artisan atlas:create-admin` does. It generates a random password, shows it once in the terminal, and flags the account to change it at the first sign-in. Nothing in the repository holds an admin password, because anything there is public.
 
 After sign-in, `DashboardRedirect` sends each role somewhere different. Assistants land on their shift screen, engineers on the AP dashboard, administrators on user management. Visiting `/` when signed out sends you to the login form. There is no public landing page at all, because a campus network tool has no public.
 

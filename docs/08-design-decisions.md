@@ -1,6 +1,6 @@
 # What the proposal did not say
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-22
 >
 > Every decision here was made while building, because the code needed an answer and the proposal did not have one. None of them were agreed by the team.
 
@@ -273,7 +273,7 @@ The team has said it is willing to add email. **As of 2026-08-29 nothing stands 
 
 This is a staff tool for a campus network. A public sign-up form on it would be a hole.
 
-**This creates a chicken-and-egg problem**, solved by seeding the first administrator from `.env`. That account is flagged to change its password on first sign-in.
+**This creates a chicken-and-egg problem**, solved by seeding the first administrator from `.env`. That account is flagged to change its password on first sign-in. *Since 2026-10-22 the seeder creates no account. `php artisan atlas:create-admin` creates the first administrator with a one-time random password.*
 
 ### An administrator cannot lock themselves out
 

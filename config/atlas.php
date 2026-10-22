@@ -68,20 +68,19 @@ return [
     | First administrator
     |--------------------------------------------------------------------------
     |
-    | There is no self-registration (FR-105), so ReferenceSeeder creates the
-    | first administrator, flagged must_change_password.
+    | There is no self-registration (FR-105). `php artisan atlas:create-admin`
+    | creates the first administrator with a random password, shown once, and
+    | flags it must_change_password. These are the defaults it uses for the
+    | address and the name when none is given on the command line.
     |
-    | The password has no fallback here. .env.example supplies a documented
-    | starting password, which the first sign-in forces the administrator to
-    | replace. If .env leaves it empty, ReferenceSeeder refuses to create the
-    | account and says so, rather than inventing one.
+    | There is deliberately no password setting. A password in configuration
+    | ends up in .env.example and the README, where anybody can read it.
     |
     */
 
     'first_admin' => [
         'name' => env('ATLAS_ADMIN_NAME', 'System Administrator'),
         'email' => env('ATLAS_ADMIN_EMAIL', 'admin@atlas.local'),
-        'password' => env('ATLAS_ADMIN_PASSWORD'),
     ],
 
     /*

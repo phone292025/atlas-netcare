@@ -41,7 +41,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 0.2 | Remove what only the capstone needed: the `coursework/` folder, marks and rubric language, the module-ownership rule, notes about per-member diagrams. Requirements and design history stay | Done |
 | 0.3 | Run on PostgreSQL: rewrite the MariaDB-only SQL (hourly buckets, schema checks), store emails in lower case, make searches case-insensitive, and get the whole suite green on PostgreSQL | Done |
 | 0.4 | Docker stack: one multi-stage image and a Compose file with app, worker, scheduler and database, health checks, and migrations on start | Done |
-| 0.5 | Create the administrator with a command, and remove the published default password | |
+| 0.5 | Create the administrator with a command, and remove the published default password | Done |
 | 0.6 | CI: the suite on PostgreSQL with TimescaleDB, an image build, an architecture test for module boundaries, and a backup that is restored into a fresh database | |
 | 0.7 | Browser tests for five core flows, run against the stack: sign in as each role, raise and resolve a ticket, submit an inspection, open the Network Monitor, print the report | |
 | 0.8 | Docs: README and installation guide for Docker, the stack in `AGENTS.md`, the engine notes in `04-database.md` | |

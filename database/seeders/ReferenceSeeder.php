@@ -9,7 +9,6 @@ use App\Models\ShiftTemplate;
 use App\Models\User;
 use App\Services\Maintenance\ChecklistService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 /**
  * The minimum a real deployment needs on day one.
@@ -45,73 +44,23 @@ class ReferenceSeeder extends Seeder
     }
 
     /**
-     * Solves the chicken-and-egg problem every system without self-signup has:
-     * administrators create all accounts (FR-105), so somebody has to create
-     * the first administrator.
+     * Point at the command that creates the first administrator, when no
+     * administrator is active.
      *
-     * Keyed on email, so re-running the seeder on an existing database is safe
-     * and does not fail on the unique index. Re-running also does NOT touch the
-     * password or the change-password flag — see the note inside.
+     * This seeder used to create that account itself, from a starting password
+     * published in .env.example. Anyone who read it could sign in first on a
+     * copy someone else could reach, and the forced password change then let
+     * them lock the owner out. `atlas:create-admin` generates the password and
+     * shows it once instead. This seeder no longer creates or changes any
+     * account.
      */
     private function firstAdministrator(): void
     {
-        /*
-         * Refuse rather than invent a password.
-         *
-         * .env.example ships a documented starting password, and the account
-         * is forced to replace it at first sign-in. Somebody who empties it
-         * has decided not to use that one, so creating the account anyway
-         * with something else would surprise them.
-         */
-        if (blank(config('atlas.first_admin.password'))) {
-            $this->command?->error('  ATLAS_ADMIN_PASSWORD is not set. The administrator was NOT created.');
-            $this->command?->line('  Set it in .env, then run this seeder again.');
-
+        if (User::query()->role(UserRole::Admin)->active()->exists()) {
             return;
         }
 
-        $email = config('atlas.first_admin.email');
-
-        $admin = User::withTrashed()->firstWhere('email', $email);
-
-        /*
-         * AN EXISTING ADMINISTRATOR KEEPS ITS PASSWORD. `db:seed` is routine,
-         * and overwriting the password on every run silently undid the one the
-         * administrator chose. Role, activation and the soft delete ARE
-         * restored, because those are how you get back in after locking
-         * yourself out. To reset a password, use the reset link.
-         */
-        if ($admin) {
-            $admin->forceFill([
-                'role' => UserRole::Admin,
-                'is_active' => true,
-                'is_demo' => false,
-                'deleted_at' => null,
-            ])->save();
-
-            $this->command?->warn("  Administrator: {$email} (already exists, password left alone)");
-
-            return;
-        }
-
-        $admin = User::create([
-            'name' => config('atlas.first_admin.name'),
-            'email' => $email,
-            'password' => Hash::make(config('atlas.first_admin.password')),
-        ]);
-
-        // Not mass assignable on purpose — privilege is never set from input.
-        // See the $fillable docblock on App\Models\User.
-        $admin->forceFill([
-            'role' => UserRole::Admin,
-            'is_active' => true,
-            'is_demo' => false,
-            'must_change_password' => true,
-            'email_verified_at' => now(),
-        ])->save();
-
-        $this->command?->warn("  Administrator created: {$email}");
-        $this->command?->warn('  It will ask for a new password at first sign-in.');
+        $this->command?->warn('  No active administrator. Create one with: php artisan atlas:create-admin');
     }
 
     /**

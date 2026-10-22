@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-10-03
+> **Last updated:** 2026-10-22
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 
@@ -47,12 +47,11 @@ Then open `.env` and check these. Every one already has a working value for a ma
 | `DB_USERNAME` | `root` — XAMPP's default |
 | `DB_PASSWORD` | Empty on a default XAMPP install |
 | `ATLAS_ADMIN_EMAIL` | The first administrator's address |
-| `ATLAS_ADMIN_PASSWORD` | `AtlasAdmin!2026` to start with. Replaced at first sign-in |
 | `ATLAS_DEMO_PASSWORD` | One shared password for the demonstration accounts |
 
 `DB_CONNECTION` is already `mariadb`, not `mysql`. XAMPP ships MariaDB and Laravel 12 has a dedicated driver for it; the distinction matters because MariaDB implements `JSON` as `LONGTEXT` with a check constraint rather than as a native type.
 
-**The administrator starts on a public password, `AtlasAdmin!2026`,** so a fresh clone can sign in without editing anything. It works once: the first sign-in forces a new one. If the app will be reachable from other machines, set your own in `.env` before seeding. Emptying it makes the seeder refuse to create the administrator.
+**There is no administrator password in `.env`.** After seeding, `php artisan atlas:create-admin` creates the administrator and prints a random password once. It works for one sign-in, which then makes you choose your own. A password in the repository would be public, so none ships.
 
 ---
 
@@ -75,7 +74,7 @@ php artisan migrate
 php artisan db:seed
 ```
 
-`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the first administrator and the six campus locations. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, 24 access points, a fortnight of telemetry, 25 inspections and 43 tickets — about three seconds.
+`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the six campus locations, the checklist and the shift patterns. It creates no account: run `php artisan atlas:create-admin` for the first administrator. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, 24 access points, a fortnight of telemetry, 25 inspections and 43 tickets — about three seconds.
 
 The demo seeder scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated. If everything lands in Low, the assets seeded without their ages: reseed rather than adjusting the weights. After changing a weight, rescore with `php artisan atlas:recalculate-risk`.
 
@@ -106,16 +105,16 @@ Then browse to `http://<your-machine-ip>:8000`. `ipconfig` gives the IP. Windows
 
 ## 6. Sign in
 
-Every account's password comes straight from `.env.example`, so a fresh clone can open every role's screens without editing anything.
+The demo accounts' password comes from `.env.example`, so a fresh clone can open every role's screens without editing anything. The administrator's comes from `atlas:create-admin`.
 
 | Role | Email | Password |
 |---|---|---|
-| Administrator | `admin@atlas.local` | `AtlasAdmin!2026`, then your own |
+| Administrator | `admin@atlas.local` | Printed once by `atlas:create-admin`, then your own |
 | Network Engineer | `engineer@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
 
-Re-running `db:seed` later will **not** reset the administrator's password back to what `.env` says. It used to, on every run.
+Re-running `db:seed` never creates or changes the administrator. If you lock yourself out, `php artisan atlas:create-admin --restore` makes the account an active administrator again, keeping its password.
 
 **These addresses are login identifiers, not mailboxes.** Nothing is ever sent to them, so signing in needs no mail account. Section 8 covers pointing them at a real mailbox if you want the password reset to deliver.
 
@@ -213,7 +212,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 **`Please provide a valid cache path`** — the storage directories are missing after a fresh clone. `php artisan optimize:clear`, and make sure `storage/framework/{cache,sessions,views}` exist.
 
-**The administrator was not created**: `ATLAS_ADMIN_PASSWORD` is empty in `.env`. Put `AtlasAdmin!2026` or your own there and seed again.
+**There is no administrator**: seeding doesn't create one. Run `php artisan atlas:create-admin`.
 
 **Every asset scores Low** — the risk model has not run, or the assets seeded without ages. `php artisan atlas:recalculate-risk`.
 
