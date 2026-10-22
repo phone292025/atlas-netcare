@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-10-17 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-10-22 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -181,6 +181,36 @@ Keep the tree **shallow**. Deep nesting is where student projects lose people.
 
 ---
 
+## Dependency rules
+
+Dependencies point inward, towards the business rules. Each part of `app/` may use the parts listed for it, and never the code that delivers it:
+
+| Part | May use |
+|---|---|
+| `Enums`, `Support` | Nothing else in `app/` |
+| `Models` | Enums and Support |
+| `Observers`, `Policies` | Models, Enums and Support |
+| `Services` | Models, Enums and Support, and another service module only along an edge below |
+| `Http`, `Console`, `View`, `Providers` | Anything above |
+
+Nothing in `app/` uses a controller or a command. They are entry points, and logic that two of them need goes into a service they both call.
+
+Business code, meaning the services, models, enums and support classes, never reads the request, the session or the signed-in user. The scheduler and the queue worker have none of them, and neither will the agents' ingest API in Phase 1, so a service that asked `auth()` for the user would get `null` there. The caller passes the user in.
+
+The service modules use each other along three edges, which form no cycle:
+
+| From | To | Why |
+|---|---|---|
+| Telemetry | Tickets | `TelemetryCollector` opens a ticket for an access point that goes offline |
+| Telemetry | Shifts | `TelemetryCollector` alarms the engineers when an access point goes offline or degrades |
+| Tickets | Shifts | `TicketService` alarms engineers about a new critical ticket, a ticket assigned to them and a missed SLA |
+
+Maintenance, Reports, Risk and Shifts use no other module. Every module shares the models, so these rules cover the services only. Phase 2.1 of the [roadmap](roadmap.md) replaces the two Telemetry edges with domain events ([ADR-0014](decisions/ADR-0014-incidents-and-domain-events.md)).
+
+`tests/Unit/ArchitectureTest.php` checks all of this on every test run. A new edge between modules fails it until the edge is added to the test's list with its reason, and a listed edge that the code no longer uses fails it until it is deleted.
+
+---
+
 ## The five hard rules
 
 1. **No business logic in controllers.** Anything that decides, computes or changes state belongs in a service: state machines, scoring, SLA arithmetic, report aggregation. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action. The test is whether a second caller would need the same answer. The same test lets a plain admin create or edit, where validation and the role or policy check are the whole rule, write the model from the controller. `ReportController` failed it at 309 lines and became `ReportingService` on 2026-09-04.
@@ -293,6 +323,7 @@ Times are on the campus clock. Locally, one Windows Task Scheduler entry running
 |---|---|---|
 | **Unit** | Pure logic: `RiskScoringService`, the enums, `Tone`, the config's invariants | `tests/Unit/` |
 | **Feature** | Every service against a real database, and every screen through HTTP: a happy path, an empty state and an authorisation failure | `tests/Feature/{Module}/` |
+| **Structure** | The [dependency rules](#dependency-rules), read from the imports in `app/` | `tests/Unit/ArchitectureTest.php` |
 | **Manual / UAT** | 4 documented sessions | [07-testing.md](07-testing.md) |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of test fixtures.

@@ -688,6 +688,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Tickets/TicketAssignmentTest.php` | FR-307's "assign": handing a ticket to an engineer, or back to the queue |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA |
 | `TestCase.php` | Refuse to run against anything but a test database |
+| `Unit/ArchitectureTest.php` | The dependency rules of the modular monolith, checked against the source |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file |
 | `Unit/Enums/EnumContractTest.php` | Contract tests every enum in the system must satisfy |
 | `Unit/Enums/RiskBandTest.php` | RiskBand::fromScore() decides what a maintenance priority screen shows and |
