@@ -2,7 +2,7 @@
 
 **Depends on:** M2 · **Blocks:** M7
 
-> **Last updated:** 2026-10-03
+> **Last updated:** 2026-10-23
 
 > **The headline feature, and the module 2.0 rebuilds.** Phase 1 of [../roadmap.md](../roadmap.md) replaces simulated pull with readings pushed by probe agents.
 
@@ -37,6 +37,8 @@ FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-312, FR-313, FR-314, FR-501, 
 Engineer: dashboard (their tickets, what is waiting, and a live AP health panel) · access point list (tiles + table, polling, worst first) · Network monitor with simulation controls · AP detail with 24h chart · traffic and congestion logs with date range
 Administrator: Network monitor with simulation controls
 Assistant: AP status, read-only · Network monitor, read-only
+
+An access point turns Degraded only after `consecutive_breach` readings in a row over the limits, so its latest reading can already be over them while it still says Online. The dashboard payload carries `over_threshold` and `breach` for that reading: `slow` for latency or packet loss, `busy` for clients over the saturation limit. The screens then say "Slow now" or "Busy now" in amber instead of a green Online next to a red figure, and count it as a problem. On the engineer's dashboard the access point panel says how many are healthy and draws every access point as a square under its room, green, amber for slow or busy, red for down, grey for maintenance, with a list of the ones that need attention and the figure behind each. The ticket lists beside it carry the same target line as the queue.
 
 ## Key decisions
 

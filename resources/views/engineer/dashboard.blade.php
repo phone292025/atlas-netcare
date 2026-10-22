@@ -45,7 +45,9 @@
                      :tone="$counts['resolvedThisWeek'] > 0 ? 'healthy' : null" />
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+    {{-- Side by side only from xl. Below it, next to the sidebar, the ticket
+         column was too narrow for a title. --}}
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div class="min-w-0 space-y-6">
             <x-card title="Your queue" subtitle="Most urgent first, then whatever is due soonest." flush>
                 <x-slot:header>
@@ -70,16 +72,18 @@
                                 <a href="{{ route('engineer.tickets.show', $ticket) }}"
                                    class="group flex items-center gap-4 px-5 py-3.5 transition hover:bg-sunken/60">
                                     <x-priority-pill :priority="$ticket->priority" class="w-20 flex-none" />
+                                    {{-- The target line goes under the text, not in a
+                                         column of its own, so the title keeps the width. --}}
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate text-sm font-medium text-fg">{{ $ticket->title }}</span>
                                         <span class="block truncate text-xs text-fg-muted">
                                             <span class="font-mono">{{ $ticket->ticket_number }}</span>
                                             · {{ $ticket->subjectLabel() }}{{ $ticket->location && $ticket->location->code !== $ticket->subjectLabel() ? ' · '.$ticket->location->code : '' }}
                                         </span>
+                                        <x-sla-line :ticket="$ticket" class="mt-2" />
                                     </span>
-                                    <span class="hidden flex-none text-right text-xs sm:block">
+                                    <span class="hidden flex-none sm:block">
                                         <x-status-badge :status="$ticket->status" />
-                                        <x-ticket-due :ticket="$ticket" class="mt-1 block" />
                                     </span>
                                     <x-icon name="chevron-right" class="size-4 flex-none text-fg-subtle transition group-hover:translate-x-0.5" />
                                 </a>
@@ -102,13 +106,16 @@
                         @foreach ($waiting as $ticket)
                             <li class="flex items-center gap-4 px-5 py-3.5">
                                 <x-priority-pill :priority="$ticket->priority" class="w-20 flex-none" />
-                                <a href="{{ route('engineer.tickets.show', $ticket) }}" class="group min-w-0 flex-1">
-                                    <span class="block truncate text-sm font-medium text-fg group-hover:text-brand-700">{{ $ticket->title }}</span>
-                                    <span class="block truncate text-xs text-fg-muted">
-                                        <span class="font-mono">{{ $ticket->ticket_number }}</span>
-                                        · {{ $ticket->subjectLabel() }} · <x-ticket-due :ticket="$ticket" />
-                                    </span>
-                                </a>
+                                <span class="min-w-0 flex-1">
+                                    <a href="{{ route('engineer.tickets.show', $ticket) }}" class="group block">
+                                        <span class="block truncate text-sm font-medium text-fg group-hover:text-brand-700">{{ $ticket->title }}</span>
+                                        <span class="block truncate text-xs text-fg-muted">
+                                            <span class="font-mono">{{ $ticket->ticket_number }}</span>
+                                            · {{ $ticket->subjectLabel() }}
+                                        </span>
+                                    </a>
+                                    <x-sla-line :ticket="$ticket" class="mt-2" />
+                                </span>
                                 {{-- One tap to take it, rather than open, find the
                                      assignee box, pick yourself and save. --}}
                                 <form method="POST" action="{{ route('tickets.assign', $ticket) }}" class="flex-none">
@@ -134,27 +141,52 @@
                         </span>
                     </x-slot:header>
 
+                    @php
+                        $healthyNow = collect($data['access_points'])
+                            ->filter(fn ($ap) => $ap['status'] === 'online' && ! $ap['over_threshold'])->count();
+                    @endphp
                     <div class="px-5 pt-4">
                         <div class="flex items-baseline gap-1.5">
-                            <span class="text-[28px] font-semibold leading-none tracking-tight tabular-nums text-fg" x-text="data.counts.online">{{ $data['counts']['online'] }}</span>
-                            <span class="text-sm text-fg-muted">of <span x-text="data.counts.total">{{ $data['counts']['total'] }}</span> online</span>
+                            <span class="text-[28px] font-semibold leading-none tracking-tight tabular-nums text-fg" x-text="count('ok')">{{ $healthyNow }}</span>
+                            <span class="text-sm text-fg-muted">of <span x-text="data.counts.total">{{ $data['counts']['total'] }}</span> healthy</span>
                         </div>
 
-                        {{-- The whole estate as one bar: green is fine, the rest is work. --}}
-                        <div class="mt-4 flex h-2 overflow-hidden rounded-full bg-sunken" aria-hidden="true">
-                            <span class="h-full bg-emerald-500 transition-[width] duration-500" :style="`width: ${share('online')}%`"></span>
-                            <span class="h-full bg-amber-500 transition-[width] duration-500" :style="`width: ${share('degraded')}%`"></span>
-                            <span class="h-full bg-red-500 transition-[width] duration-500" :style="`width: ${share('offline')}%`"></span>
-                            <span class="h-full bg-slate-400 transition-[width] duration-500" :style="`width: ${share('maintenance')}%`"></span>
-                        </div>
-                        <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                            @foreach (['online' => ['Online', 'bg-emerald-500'], 'degraded' => ['Degraded', 'bg-amber-500'], 'offline' => ['Offline', 'bg-red-500'], 'maintenance' => ['Maintenance', 'bg-slate-400']] as $key => [$label, $swatch])
-                                <div class="flex items-center justify-between gap-2">
-                                    <dt class="flex items-center gap-1.5 text-fg-muted"><span class="size-2 rounded-sm {{ $swatch }}"></span>{{ $label }}</dt>
-                                    <dd class="tabular-nums text-fg" x-text="data.counts.{{ $key }}">{{ $data['counts'][$key] }}</dd>
-                                </div>
-                            @endforeach
-                        </dl>
+                        {{-- Every access point where it is: one square each, room
+                             by room, so trouble shows up in its place. Amber is
+                             degraded, or a latest reading over the limits (slow, or
+                             nearly full) that the status has not caught up with. --}}
+                        <ul class="mt-4 space-y-2.5">
+                            <template x-for="room in rooms" :key="room.code">
+                                <li class="flex items-center justify-between gap-3">
+                                    <span class="min-w-0 truncate text-sm text-fg-muted" x-text="room.name"></span>
+                                    <span class="flex flex-none gap-1.5">
+                                        <template x-for="ap in room.aps" :key="ap.id">
+                                            <a :href="'{{ url('engineer/aps') }}/' + ap.id" :title="ap.code + ': ' + label(ap)"
+                                               class="block size-4 rounded transition hover:scale-110"
+                                               :class="{
+                                                   'bg-emerald-500': health(ap) === 'ok',
+                                                   'bg-amber-500': health(ap) === 'slow',
+                                                   'bg-red-500': health(ap) === 'down',
+                                                   'bg-slate-400': health(ap) === 'maintenance',
+                                               }">
+                                                <span class="sr-only" x-text="ap.code + ': ' + label(ap)"></span>
+                                            </a>
+                                        </template>
+                                    </span>
+                                </li>
+                            </template>
+                        </ul>
+
+                        {{-- Every state always listed, at zero too: "0 down" is
+                             news, and a legend that loses entries is harder to
+                             read. Two by two, so it never wraps one entry onto a
+                             line of its own. --}}
+                        <p class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-muted">
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-emerald-500"></span><span x-text="count('ok')"></span> healthy</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-amber-500"></span><span x-text="count('slow')"></span> slow or busy</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-red-500"></span><span x-text="count('down')"></span> down</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-slate-400"></span><span x-text="count('maintenance')"></span> maintenance</span>
+                        </p>
                     </div>
 
                     <div class="mt-4 border-t border-line">
@@ -170,13 +202,13 @@
                                 <li>
                                     <a :href="'{{ url('engineer/aps') }}/' + ap.id"
                                        class="flex items-center gap-3 px-5 py-2 transition hover:bg-sunken/60">
-                                        <span class="size-2 flex-none rounded-full" :class="tone(ap.tone).dot"></span>
+                                        <span class="size-2 flex-none rounded-full" :class="tone(toneOf(ap)).dot"></span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block font-mono text-sm text-fg" x-text="ap.code"></span>
-                                            <span class="block truncate text-xs text-fg-subtle" x-text="ap.location ?? 'No location'"></span>
+                                            <span class="block truncate text-xs text-fg-subtle" x-text="reading(ap)"></span>
                                         </span>
                                         <span class="inline-flex h-6 flex-none items-center rounded-md px-2 text-xs font-medium ring-1 ring-inset"
-                                              :class="tone(ap.tone).badge" x-text="ap.status_label"></span>
+                                              :class="tone(toneOf(ap)).badge" x-text="label(ap)"></span>
                                     </a>
                                 </li>
                             </template>
@@ -196,19 +228,56 @@
     @push('scripts')
         <script>
             function apSummary(initial, intervalSeconds, tones) {
-                const rank = { urgent: 0, attention: 1 };
+                const rank = { down: 0, slow: 1 };
 
                 return {
                     data: initial,
 
-                    get problems() {
-                        return this.data.access_points
-                            .filter((ap) => ap.tone === 'urgent' || ap.tone === 'attention')
-                            .sort((a, b) => rank[a.tone] - rank[b.tone] || a.code.localeCompare(b.code));
+                    // ok, slow, down or maintenance. Slow is degraded, or a
+                    // latest reading over the limits before the status, which
+                    // waits for several in a row, has turned Degraded.
+                    health(ap) {
+                        if (ap.status === 'offline') return 'down';
+                        if (ap.status === 'maintenance') return 'maintenance';
+                        if (ap.status === 'degraded' || ap.over_threshold) return 'slow';
+                        return 'ok';
                     },
 
-                    share(key) {
-                        return this.data.counts.total ? (this.data.counts[key] / this.data.counts.total) * 100 : 0;
+                    // "Slow now" for latency or loss, "Busy now" for nearly full.
+                    label(ap) {
+                        if (ap.status !== 'online' || ! ap.over_threshold) return ap.status_label;
+                        return ap.breach === 'busy' ? 'Busy now' : 'Slow now';
+                    },
+
+                    toneOf(ap) {
+                        return ap.status === 'online' && ap.over_threshold ? 'attention' : ap.tone;
+                    },
+
+                    // The figure behind the label, so the line says why.
+                    reading(ap) {
+                        const room = ap.location_name ?? ap.location ?? 'No location';
+                        if (ap.breach === 'busy') return `${room}, ${ap.clients} of ${ap.capacity} connected`;
+                        if (ap.latency_ms === null) return room;
+                        return `${room}, ${ap.latency_ms} ms, ${ap.packet_loss_pct}% loss`;
+                    },
+
+                    count(state) {
+                        return this.data.access_points.filter((ap) => this.health(ap) === state).length;
+                    },
+
+                    get rooms() {
+                        const byRoom = {};
+                        for (const ap of this.data.access_points) {
+                            const code = ap.location ?? '';
+                            (byRoom[code] ??= { code, name: ap.location_name ?? 'No location', aps: [] }).aps.push(ap);
+                        }
+                        return Object.values(byRoom).sort((a, b) => a.code.localeCompare(b.code));
+                    },
+
+                    get problems() {
+                        return this.data.access_points
+                            .filter((ap) => this.health(ap) in rank)
+                            .sort((a, b) => rank[this.health(a)] - rank[this.health(b)] || a.code.localeCompare(b.code));
                     },
 
                     tone(name) {

@@ -120,7 +120,7 @@
                             <tr class="group cursor-pointer transition-colors hover:bg-sunken/70" @click="window.location = url(ap)">
                                 <td class="whitespace-nowrap px-5 py-3">
                                     <span class="flex items-center gap-3">
-                                        <span class="size-2 flex-none rounded-full" :class="tone(ap.tone).dot"></span>
+                                        <span class="size-2 flex-none rounded-full" :class="tone(toneOf(ap)).dot"></span>
                                         <span>
                                             <a :href="url(ap)" class="block font-mono text-sm font-medium text-fg group-hover:text-brand-700" x-text="ap.code"></a>
                                             <span class="block text-xs text-fg-subtle" x-text="ap.location ?? 'No location'"></span>
@@ -129,7 +129,7 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex h-6 items-center rounded-md px-2 text-xs font-medium ring-1 ring-inset"
-                                          :class="tone(ap.tone).badge" x-text="ap.status_label"></span>
+                                          :class="tone(toneOf(ap)).badge" x-text="label(ap)"></span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="flex w-32 items-center gap-2">
@@ -174,18 +174,39 @@
                     problemsOnly: false,
                     query: '',
 
+                    /*
+                     * The status turns Degraded only after several readings in
+                     * a row over the limits. Until then an Online access point
+                     * whose latest reading is over them reads "Slow now" or
+                     * "Busy now", so its red figure never sits next to a green
+                     * badge, and it counts as a problem.
+                     */
+                    toneOf(ap) {
+                        return ap.status === 'online' && ap.over_threshold ? 'attention' : ap.tone;
+                    },
+
+                    // "Slow now" for latency or loss, "Busy now" for nearly full.
+                    label(ap) {
+                        if (ap.status !== 'online' || ! ap.over_threshold) return ap.status_label;
+                        return ap.breach === 'busy' ? 'Busy now' : 'Slow now';
+                    },
+
+                    isProblem(ap) {
+                        return ['urgent', 'attention'].includes(this.toneOf(ap));
+                    },
+
                     get problems() {
-                        return this.data.access_points.filter((ap) => ap.tone === 'urgent' || ap.tone === 'attention').length;
+                        return this.data.access_points.filter((ap) => this.isProblem(ap)).length;
                     },
 
                     get rows() {
                         const q = this.query.trim().toLowerCase();
 
                         return this.data.access_points
-                            .filter((ap) => ! this.problemsOnly || ap.tone === 'urgent' || ap.tone === 'attention')
+                            .filter((ap) => ! this.problemsOnly || this.isProblem(ap))
                             .filter((ap) => q === '' || `${ap.code} ${ap.location ?? ''}`.toLowerCase().includes(q))
                             .slice()
-                            .sort((a, b) => (rank[a.tone] ?? 9) - (rank[b.tone] ?? 9) || a.code.localeCompare(b.code));
+                            .sort((a, b) => (rank[this.toneOf(a)] ?? 9) - (rank[this.toneOf(b)] ?? 9) || a.code.localeCompare(b.code));
                     },
 
                     tone(name) {

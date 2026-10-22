@@ -184,19 +184,26 @@ class TelemetryService
      */
     private function overThresholds(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): bool
     {
+        return $this->breachReason($ap, $latencyMs, $lossPct, $clients) !== null;
+    }
+
+    /**
+     * Why a reading is over the limits, if it is: "slow" for latency or packet
+     * loss, "busy" for an access point nearly at capacity. Both count towards
+     * Degraded, but they are different faults, and a screen calling a full
+     * access point slow sends somebody after the wrong one.
+     */
+    private function breachReason(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): ?string
+    {
         $thresholds = config('atlas.thresholds');
 
-        if ($latencyMs !== null && $latencyMs > $thresholds['latency_ms']) {
-            return true;
-        }
-
-        if ($lossPct > $thresholds['packet_loss_pct']) {
-            return true;
+        if (($latencyMs !== null && $latencyMs > $thresholds['latency_ms']) || $lossPct > $thresholds['packet_loss_pct']) {
+            return 'slow';
         }
 
         $saturation = $ap->saturation($clients);
 
-        return $saturation !== null && $saturation > $thresholds['client_saturation'];
+        return $saturation !== null && $saturation > $thresholds['client_saturation'] ? 'busy' : null;
     }
 
     /**
@@ -240,11 +247,20 @@ class TelemetryService
             'clients_now' => (int) $latest->sum('client_count'),
             'access_points' => $accessPoints->map(function (AccessPoint $ap) use ($latest) {
                 $reading = $latest->get($ap->id);
+                $breach = $reading === null ? null : $this->breachReason(
+                    $ap, $reading->latency_ms, (float) $reading->packet_loss_pct, $reading->client_count,
+                );
 
                 return [
                     'id' => $ap->id,
                     'code' => $ap->ap_code,
                     'location' => $ap->location?->code,
+                    'location_name' => $ap->location?->name,
+                    // The latest reading over the limits, and why ("slow" or
+                    // "busy"), whatever the status says yet: it turns Degraded
+                    // only after several in a row.
+                    'over_threshold' => $breach !== null,
+                    'breach' => $breach,
                     'status' => $ap->status->value,
                     'status_label' => $ap->status->label(),
                     'tone' => $ap->status->tone(),

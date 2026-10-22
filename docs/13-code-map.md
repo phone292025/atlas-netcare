@@ -685,6 +685,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |
 | `Feature/SlaLineTest.php` | <x-sla-line>: a ticket's time against its target, drawn as a line |
 | `Feature/Telemetry/CollectionGapTest.php` | The first collection round after the scheduler has been off |
+| `Feature/Telemetry/DashboardHealthTest.php` | The engineer's dashboard: access points by room, and a reading over the |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
