@@ -387,7 +387,7 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
 
-`status` here is a plain string and must **not** be cast to `ApStatus`. A reading records a MEASURED state — online, degraded or offline only. `ApStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
+`status` here is a plain string and must **not** be cast to `NetworkStatus`. A reading records a MEASURED state — online, degraded or offline only. `NetworkStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
 
 ### `access_points.simulation_scenario`
 

@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ApStatus;
 use App\Enums\ChecklistResult;
 use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
+use App\Enums\NetworkStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
@@ -398,7 +398,7 @@ class DemoDataSeeder extends Seeder
                 'packet_loss_pct' => 100,
                 'channel_util_pct' => 0,
                 'throughput_mbps' => 0,
-                'status' => ApStatus::Offline->value,
+                'status' => NetworkStatus::Offline->value,
             ];
         }
 
@@ -416,7 +416,7 @@ class DemoDataSeeder extends Seeder
             'packet_loss_pct' => round($loss, 2),
             'channel_util_pct' => round(20 + $busy * 55, 2),
             'throughput_mbps' => round($clients * 1.9 * max(0.25, 1 - ($saturation ** 2) * 0.55), 2),
-            'status' => ApStatus::Online->value,
+            'status' => NetworkStatus::Online->value,
         ];
     }
 

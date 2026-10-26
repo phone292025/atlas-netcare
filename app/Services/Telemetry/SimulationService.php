@@ -2,7 +2,7 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
 use DomainException;
@@ -52,7 +52,7 @@ class SimulationService
     /**
      * One collection round, now, instead of waiting for the scheduler.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
      */
     public function sample(): Collection
     {
@@ -75,7 +75,7 @@ class SimulationService
     {
         $this->ensureAvailable();
 
-        if ($target?->status === ApStatus::Maintenance) {
+        if ($target?->status === NetworkStatus::Maintenance) {
             throw new DomainException(
                 "{$target->ap_code} is under maintenance, so the collector does not poll it. "
                 .'Take it out of maintenance first.'

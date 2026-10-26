@@ -2,7 +2,7 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
@@ -118,7 +118,7 @@ class TelemetryBackfill
                     continue;
                 }
 
-                $status = $reading->unreachable ? ApStatus::Offline : ApStatus::Online;
+                $status = $reading->unreachable ? NetworkStatus::Offline : NetworkStatus::Online;
                 $rows[] = $reading->toRow($status->value);
             }
 

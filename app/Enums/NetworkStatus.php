@@ -7,14 +7,15 @@ use App\Enums\Contracts\HasLabel;
 use App\Enums\Contracts\HasTone;
 
 /**
- * Operational state of a Wi-Fi access point.
+ * Operational state of a network device: an access point, a switch, a router.
+ * Lab PCs have their own, DeviceStatus.
  *
  * Derived from telemetry by TelemetryService, not set by hand — except
  * Maintenance, which an engineer sets to suppress alarms during planned work.
  *
  * @see docs/02-open-questions.md Q1 for the thresholds
  */
-enum ApStatus: string implements HasLabel, HasTone
+enum NetworkStatus: string implements HasLabel, HasTone
 {
     use HasValues;
 

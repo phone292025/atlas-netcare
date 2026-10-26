@@ -86,7 +86,7 @@ An access point turns Degraded only after `consecutive_breach` readings in a row
 
 **Classification needs history, so it lives in the service.** A driver reports numbers; deciding they amount to "degraded" needs the previous readings and the thresholds. `consecutive_breach` means one noisy sample cannot flip a colour or auto-raise a ticket, and an access point with too little history stays Online — a false Degraded on a newly added AP trains people to ignore the dashboard.
 
-`ApStatus::Maintenance` survives classification untouched. It is an administrative decision, not a measurement; overwriting it would make the suppression last exactly until the next poll.
+`NetworkStatus::Maintenance` survives classification untouched. It is an administrative decision, not a measurement; overwriting it would make the suppression last exactly until the next poll.
 
 **Two guards stop the auto-ticket flooding.** The ticket is raised on the **transition** into offline, not on every offline reading, and `TicketService::hasOutstandingFor()` catches the rest. Without both, a six-hour outage files 360 tickets.
 

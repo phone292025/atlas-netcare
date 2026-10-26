@@ -21,7 +21,7 @@ FR-403, FR-404, FR-405 · NFR-08
 | Kind | Items |
 |---|---|
 | Models | `Location`, `LabPc`, `AccessPoint` |
-| Enums | `DeviceStatus`, `ApStatus` |
+| Enums | `DeviceStatus`, `NetworkStatus` |
 | Controllers | `Admin\LocationController`, `Admin\LabPcController`, `Admin\AccessPointController` |
 | Services | — (standard CRUD) |
 | Policies | admin-only, enforced by middleware |
@@ -53,7 +53,7 @@ The lab PC and AP **show** pages are important — they are where M5, M4 and M7 
 
 **Retirement writes two columns, always together.** `LabPcController::destroy()` sets `status = retired` *and* soft-deletes; `restore()` reverses both. `retired` is absent from the form dropdown and rejected by `LabPcRequest` — it is the Retire button's business, not a value you choose. Write one without the other and the machine is retired in a report and operational on screen.
 
-An access point has no equivalent: `ApStatus::Maintenance` means "temporarily off", not "gone", so AP removal is the soft delete alone.
+An access point has no equivalent: `NetworkStatus::Maintenance` means "temporarily off", not "gone", so AP removal is the soft delete alone.
 
 **`->withTrashed(['show'])` on both resource routes is load-bearing.** It is what makes "keeps its history reachable" true — without it the model binding 404s the moment a machine is retired, on exactly the records the retirement was meant to preserve. There is a test pinning this.
 

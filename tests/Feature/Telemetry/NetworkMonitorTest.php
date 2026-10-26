@@ -3,7 +3,7 @@
 namespace Tests\Feature\Telemetry;
 
 use App\Enums\AlarmType;
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\SimulationScenario;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
@@ -181,8 +181,8 @@ class NetworkMonitorTest extends TestCase
         $fresh = AccessPoint::factory()->create(['ap_code' => 'AP-FRESH']);
         $old = AccessPoint::factory()->create(['ap_code' => 'AP-OLD']);
         $never = AccessPoint::factory()->create(['ap_code' => 'AP-NEVER']);
-        $offline = AccessPoint::factory()->create(['ap_code' => 'AP-DOWN', 'status' => ApStatus::Offline]);
-        $held = AccessPoint::factory()->create(['ap_code' => 'AP-HELD', 'status' => ApStatus::Maintenance]);
+        $offline = AccessPoint::factory()->create(['ap_code' => 'AP-DOWN', 'status' => NetworkStatus::Offline]);
+        $held = AccessPoint::factory()->create(['ap_code' => 'AP-HELD', 'status' => NetworkStatus::Maintenance]);
 
         TelemetryReading::factory()->create(['access_point_id' => $fresh->id, 'recorded_at' => now()->subMinute(), 'client_count' => 12]);
         TelemetryReading::factory()->create(['access_point_id' => $old->id, 'recorded_at' => now()->subHours(2), 'client_count' => 30]);
@@ -203,14 +203,14 @@ class NetworkMonitorTest extends TestCase
         $this->assertSame('maintenance', $rows['AP-HELD']['state']);
 
         // Nothing is written: stale is a display state only.
-        $this->assertSame(ApStatus::Online, $old->fresh()->status);
+        $this->assertSame(NetworkStatus::Online, $old->fresh()->status);
     }
 
     public function test_the_counts_add_up_to_the_estate(): void
     {
         AccessPoint::factory()->count(2)->create();
-        AccessPoint::factory()->create(['status' => ApStatus::Offline]);
-        AccessPoint::factory()->create(['status' => ApStatus::Maintenance]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Offline]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Maintenance]);
 
         $counts = app(NetworkMonitorService::class)->snapshot()['counts'];
 
@@ -303,7 +303,7 @@ class NetworkMonitorTest extends TestCase
     public function test_a_sample_takes_one_reading_from_every_polled_access_point(): void
     {
         AccessPoint::factory()->count(3)->create();
-        AccessPoint::factory()->create(['status' => ApStatus::Maintenance]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Maintenance]);
 
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->from(route('engineer.monitor.index'))
@@ -352,7 +352,7 @@ class NetworkMonitorTest extends TestCase
         $ap->refresh();
         $this->assertSame(SimulationScenario::Outage, $ap->simulation_scenario);
         $this->assertNotNull($ap->simulation_started_at);
-        $this->assertSame(ApStatus::Offline, $ap->status, 'The scenario takes a round at once, so the outage shows immediately.');
+        $this->assertSame(NetworkStatus::Offline, $ap->status, 'The scenario takes a round at once, so the outage shows immediately.');
 
         $this->assertSame(1, Ticket::query()->where('ticketable_id', $ap->id)->count());
         $this->assertTrue(Alarm::query()->where('type', AlarmType::ApOffline)->exists());
@@ -372,7 +372,7 @@ class NetworkMonitorTest extends TestCase
         $this->assertGreaterThan(config('atlas.thresholds.latency_ms'), $first->latency_ms);
 
         // One breaching reading is not enough — the consecutive rule still holds.
-        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
 
         $needed = (int) config('atlas.thresholds.consecutive_breach');
 
@@ -381,7 +381,7 @@ class NetworkMonitorTest extends TestCase
             $this->actingAs($engineer)->post(route('monitor.sample'));
         }
 
-        $this->assertSame(ApStatus::Degraded, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Degraded, $ap->fresh()->status);
     }
 
     public function test_a_feed_interruption_is_unknown_and_never_an_inferred_outage(): void
@@ -395,7 +395,7 @@ class NetworkMonitorTest extends TestCase
         // Silent for half an hour, well past the offline window — but nobody
         // was listening, so the silence sweep must leave it alone.
         $this->assertSame(0, TelemetryReading::query()->where('access_point_id', $ap->id)->count());
-        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
         $this->assertSame(0, Ticket::count());
 
         $row = collect(app(NetworkMonitorService::class)->snapshot()['access_points'])->firstWhere('id', $ap->id);
@@ -430,7 +430,7 @@ class NetworkMonitorTest extends TestCase
     public function test_a_scenario_for_all_applies_to_every_polled_access_point(): void
     {
         AccessPoint::factory()->count(3)->create();
-        $held = AccessPoint::factory()->create(['status' => ApStatus::Maintenance]);
+        $held = AccessPoint::factory()->create(['status' => NetworkStatus::Maintenance]);
 
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->post(route('monitor.simulate'), ['scenario' => 'congestion']);
@@ -441,7 +441,7 @@ class NetworkMonitorTest extends TestCase
 
     public function test_an_access_point_under_maintenance_cannot_be_targeted(): void
     {
-        $held = AccessPoint::factory()->create(['status' => ApStatus::Maintenance]);
+        $held = AccessPoint::factory()->create(['status' => NetworkStatus::Maintenance]);
 
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->post(route('monitor.simulate'), ['scenario' => 'outage', 'access_point_id' => $held->id])

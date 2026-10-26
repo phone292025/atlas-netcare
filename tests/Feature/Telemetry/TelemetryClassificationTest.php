@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use App\Services\Telemetry\ReadingData;
@@ -63,7 +63,7 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 50]);
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $this->service()->classify($ap, $this->reading($ap))
         );
     }
@@ -75,7 +75,7 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->create();
 
         $this->assertSame(
-            ApStatus::Offline,
+            NetworkStatus::Offline,
             $this->service()->classify($ap, $this->reading($ap, ['unreachable' => true]))
         );
     }
@@ -97,7 +97,7 @@ class TelemetryClassificationTest extends TestCase
             $ap = AccessPoint::factory()->create(['client_capacity' => 50, 'last_seen_at' => $lastSeen]);
 
             $this->assertSame(
-                ApStatus::Online,
+                NetworkStatus::Online,
                 $this->service()->classify($ap, $this->reading($ap)),
                 'A reachable reading must not be overruled by a stale last_seen_at.'
             );
@@ -112,7 +112,7 @@ class TelemetryClassificationTest extends TestCase
         ]);
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $this->service()->classify($ap, $this->reading($ap))
         );
     }
@@ -129,7 +129,7 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 50]);
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $this->service()->classify($ap, $this->reading($ap, ['latencyMs' => 400]))
         );
     }
@@ -142,7 +142,7 @@ class TelemetryClassificationTest extends TestCase
         $this->priorBreaches($ap, 2);
 
         $this->assertSame(
-            ApStatus::Degraded,
+            NetworkStatus::Degraded,
             $this->service()->classify($ap, $this->reading($ap, ['latencyMs' => 400]))
         );
     }
@@ -163,7 +163,7 @@ class TelemetryClassificationTest extends TestCase
         ]);
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $this->service()->classify($ap, $this->reading($ap, ['latencyMs' => 400]))
         );
     }
@@ -174,7 +174,7 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 50]);
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $this->service()->classify($ap, $this->reading($ap, ['latencyMs' => 400]))
         );
     }
@@ -193,7 +193,7 @@ class TelemetryClassificationTest extends TestCase
         }
 
         $this->assertSame(
-            ApStatus::Degraded,
+            NetworkStatus::Degraded,
             $this->service()->classify($ap, $this->reading($ap, ['packetLossPct' => 22.5]))
         );
     }
@@ -212,7 +212,7 @@ class TelemetryClassificationTest extends TestCase
         }
 
         $this->assertSame(
-            ApStatus::Degraded,
+            NetworkStatus::Degraded,
             $this->service()->classify($ap, $this->reading($ap, ['clientCount' => 48]))
         );
     }
@@ -230,7 +230,7 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->maintenance()->create();
 
         $this->assertSame(
-            ApStatus::Maintenance,
+            NetworkStatus::Maintenance,
             $this->service()->classify($ap, $this->reading($ap, ['unreachable' => true]))
         );
     }
@@ -250,22 +250,22 @@ class TelemetryClassificationTest extends TestCase
         // A real SNMP driver omits a device it cannot enumerate, so no reading
         // arrives to be classified. Without the sweep it kept its last status
         // forever and the dashboard went on calling it online.
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $ap->forceFill(['last_seen_at' => now()->subHours(3)])->save();
 
         $this->assertCount(1, $this->service()->markStaleOffline());
-        $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
     }
 
     public function test_an_access_point_never_heard_from_is_left_alone(): void
     {
         // Newly added kit the collector has not reached yet, not a device that
         // has gone away.
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $ap->forceFill(['last_seen_at' => null])->save();
 
         $this->assertCount(0, $this->service()->markStaleOffline());
-        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
     }
 
     public function test_an_access_point_under_maintenance_is_not_marked_offline(): void
@@ -276,6 +276,6 @@ class TelemetryClassificationTest extends TestCase
 
         $this->service()->markStaleOffline();
 
-        $this->assertSame(ApStatus::Maintenance, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Maintenance, $ap->fresh()->status);
     }
 }

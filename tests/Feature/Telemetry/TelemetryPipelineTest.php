@@ -3,7 +3,7 @@
 namespace Tests\Feature\Telemetry;
 
 use App\Enums\AlarmType;
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Alarm;
@@ -179,25 +179,25 @@ class TelemetryPipelineTest extends TestCase
 
         $unpolled = AccessPoint::factory()->create([
             'is_demo' => true,
-            'status' => ApStatus::Online,
+            'status' => NetworkStatus::Online,
             'last_seen_at' => now()->subWeek(),
         ]);
 
         $polled = AccessPoint::factory()->create([
             'is_demo' => false,
-            'status' => ApStatus::Online,
+            'status' => NetworkStatus::Online,
             'last_seen_at' => now()->subWeek(),
         ]);
 
         $transitions = app(TelemetryService::class)->markStaleOffline();
 
         $this->assertSame(
-            ApStatus::Online,
+            NetworkStatus::Online,
             $unpolled->fresh()->status,
             'An access point nothing polls was marked offline for staying quiet.',
         );
 
-        $this->assertSame(ApStatus::Offline, $polled->fresh()->status);
+        $this->assertSame(NetworkStatus::Offline, $polled->fresh()->status);
         $this->assertCount(1, $transitions);
     }
 
@@ -419,11 +419,11 @@ class TelemetryPipelineTest extends TestCase
          * is still open. Without them a six-hour outage files 360 tickets.
          */
         $this->userWith(UserRole::Admin);
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $this->driverWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
-        $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
         $this->assertSame(1, Ticket::count());
 
         // Still offline on the next round, and still one ticket.
@@ -436,12 +436,12 @@ class TelemetryPipelineTest extends TestCase
         // FR-305: anomalies, not only outages. One alert on the transition,
         // and no ticket: congestion is a warning, not a fault report.
         $this->userWith(UserRole::Engineer);
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $this->driverWhereEverythingIsSlow();
 
         $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') + 1);
 
-        $this->assertSame(ApStatus::Degraded, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Degraded, $ap->fresh()->status);
         $this->assertSame(1, Alarm::where('type', AlarmType::ApDegraded)->count());
         $this->assertSame(0, Ticket::count());
     }
@@ -452,7 +452,7 @@ class TelemetryPipelineTest extends TestCase
         // Online on one good reading, and Degraded again minutes later. One
         // alert per flap sent each engineer nineteen in five minutes.
         $this->userWith(UserRole::Engineer);
-        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $breaches = (int) config('atlas.thresholds.consecutive_breach');
         $degradedAlerts = fn () => Alarm::where('type', AlarmType::ApDegraded)->count();
 
@@ -477,16 +477,16 @@ class TelemetryPipelineTest extends TestCase
         // The unreachable readings count as 100% packet loss, so an access
         // point coming back passes through Degraded. That is recovery.
         $this->userWith(UserRole::Engineer);
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
 
         $this->driverWhereNothingAnswers();
         $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') - 1);
-        $this->assertSame(ApStatus::Offline, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
 
         $this->driverWhereEverythingIsSlow();
         $this->collectRounds(1);
 
-        $this->assertSame(ApStatus::Degraded, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Degraded, $ap->fresh()->status);
         $this->assertSame(0, Alarm::where('type', AlarmType::ApDegraded)->count());
     }
 
@@ -495,7 +495,7 @@ class TelemetryPipelineTest extends TestCase
         // reported_by is not nullable, and the reading itself must still be
         // stored — losing telemetry because nobody can own a ticket would be
         // the wrong trade.
-        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
         $this->driverWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
@@ -520,7 +520,7 @@ class TelemetryPipelineTest extends TestCase
          */
         $this->userWith(UserRole::Admin);
         AccessPoint::factory()->count(6)->create([
-            'status' => ApStatus::Online->value,
+            'status' => NetworkStatus::Online->value,
             'last_seen_at' => now()->subDays(2),
         ]);
 
@@ -535,7 +535,7 @@ class TelemetryPipelineTest extends TestCase
             }
 
             $answered++;
-            $this->assertSame(ApStatus::Online, $ap->status, "{$ap->ap_code} answered but was marked offline.");
+            $this->assertSame(NetworkStatus::Online, $ap->status, "{$ap->ap_code} answered but was marked offline.");
             $this->assertSame(0, Ticket::where('ticketable_id', $ap->id)->count(), "{$ap->ap_code} answered but got a ticket.");
         }
 
@@ -552,8 +552,8 @@ class TelemetryPipelineTest extends TestCase
          * demonstration data; one a person raised is not, whatever the asset.
          */
         $this->userWith(UserRole::Admin);
-        $demo = AccessPoint::factory()->create(['status' => ApStatus::Online->value, 'ap_code' => 'AP-DEMO']);
-        $real = AccessPoint::factory()->create(['status' => ApStatus::Online->value, 'ap_code' => 'AP-REAL']);
+        $demo = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'ap_code' => 'AP-DEMO']);
+        $real = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'ap_code' => 'AP-REAL']);
         // Set explicitly on both: is_demo is not fillable, and the factory's
         // default is deliberately not what this test is about.
         $demo->forceFill(['is_demo' => true])->save();
@@ -837,7 +837,7 @@ class TelemetryPipelineTest extends TestCase
          * the disagreement is visible in.
          */
         $aps = AccessPoint::factory()->count(3)->create([
-            'status' => ApStatus::Offline,
+            'status' => NetworkStatus::Offline,
             'last_seen_at' => null,
         ]);
 
@@ -898,7 +898,7 @@ class TelemetryPipelineTest extends TestCase
          */
         $this->travelTo(now()->startOfHour()->addMinutes(30));
 
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Offline]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Offline]);
 
         // The collector's reading, newer than anything the backfill will
         // write: an outage, a minute ago.
@@ -919,7 +919,7 @@ class TelemetryPipelineTest extends TestCase
         Artisan::call('atlas:backfill-telemetry', ['--days' => 1, '--minutes' => 60]);
 
         $this->assertSame(
-            ApStatus::Offline,
+            NetworkStatus::Offline,
             $ap->fresh()->status,
             'The backfill overruled a newer live reading and hid an outage.',
         );
@@ -955,7 +955,7 @@ class TelemetryPipelineTest extends TestCase
         // scopeCollectable() excludes it, so it gets no readings — and its own
         // columns must be left exactly as an administrator set them.
         $ap = AccessPoint::factory()->create([
-            'status' => ApStatus::Maintenance,
+            'status' => NetworkStatus::Maintenance,
             'last_seen_at' => null,
         ]);
 
@@ -965,7 +965,7 @@ class TelemetryPipelineTest extends TestCase
 
         $ap->refresh();
 
-        $this->assertSame(ApStatus::Maintenance, $ap->status);
+        $this->assertSame(NetworkStatus::Maintenance, $ap->status);
         $this->assertNull($ap->last_seen_at);
         $this->assertSame(0, TelemetryReading::where('access_point_id', $ap->id)->count());
     }

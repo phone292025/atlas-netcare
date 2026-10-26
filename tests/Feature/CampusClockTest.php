@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AlarmType;
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\ShiftStatus;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
@@ -335,7 +335,7 @@ class CampusClockTest extends TestCase
         $this->userWith(UserRole::Admin);
 
         $ap = AccessPoint::factory()->create([
-            'status' => ApStatus::Online,
+            'status' => NetworkStatus::Online,
             'last_seen_at' => Carbon::parse('2026-09-19 04:00', 'UTC'),
         ]);
 

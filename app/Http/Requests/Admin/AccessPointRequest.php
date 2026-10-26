@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +35,7 @@ class AccessPointRequest extends FormRequest
             'ip_address' => ['nullable', 'ip'],
             'client_capacity' => ['required', 'integer', 'min:1', 'max:2000'],
             'installed_at' => ['nullable', 'date', 'before_or_equal:today'],
-            'status' => ['required', Rule::enum(ApStatus::class)],
+            'status' => ['required', Rule::enum(NetworkStatus::class)],
         ];
     }
 

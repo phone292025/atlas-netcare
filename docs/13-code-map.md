@@ -263,7 +263,6 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | File | What it does |
 |---|---|
 | `AlarmType.php` | Why an alarm was raised |
-| `ApStatus.php` | Operational state of a Wi-Fi access point |
 | `ChecklistCategory.php` | What part of a machine a checklist item is about |
 | `ChecklistResult.php` | The answer to one checklist item during an inspection |
 | `Concerns/HasValues.php` | Shared helpers for every backed enum in the system |
@@ -271,6 +270,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `Contracts/HasTone.php` | A status that carries semantic colour |
 | `DeviceStatus.php` | Operational state of a lab PC |
 | `InspectionOutcome.php` | The overall outcome of one inspection |
+| `NetworkStatus.php` | Operational state of a network device: an access point, a switch, a router |
 | `RiskBand.php` | The band a predictive risk score falls into |
 | `ShiftStatus.php` | Where a rostered shift has got to |
 | `SimulationScenario.php` | A condition forced onto an access point by the simulated telemetry driver |

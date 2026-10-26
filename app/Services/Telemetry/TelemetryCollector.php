@@ -3,7 +3,7 @@
 namespace App\Services\Telemetry;
 
 use App\Enums\AlarmType;
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\UserRole;
@@ -39,7 +39,7 @@ class TelemetryCollector
      * level (`info` or `warn`) and a message; the command prints them.
      *
      * @param  (Closure(string, string): void)|null  $report
-     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
      */
     public function tick(?Closure $report = null): Collection
     {
@@ -65,7 +65,7 @@ class TelemetryCollector
         foreach ($transitions as $change) {
             $ap = $change['access_point'];
             $line = "{$ap->ap_code}: {$change['from']->label()} → {$change['to']->label()}";
-            $report($change['to'] === ApStatus::Online ? 'info' : 'warn', $line);
+            $report($change['to'] === NetworkStatus::Online ? 'info' : 'warn', $line);
 
             /*
              * Engineers are alerted on the transition only, never on every
@@ -77,10 +77,10 @@ class TelemetryCollector
              * anomaly. And at most once per cooldown per access point: at peak
              * one hovering near a threshold flaps every few minutes.
              */
-            if ($change['to'] === ApStatus::Offline) {
+            if ($change['to'] === NetworkStatus::Offline) {
                 $this->raiseOfflineTicket($ap, $report);
                 $this->alertEngineers(AlarmType::ApOffline, $ap, "{$ap->ap_code} is not responding", $ap->location?->label());
-            } elseif ($change['to'] === ApStatus::Degraded && $change['from'] === ApStatus::Online
+            } elseif ($change['to'] === NetworkStatus::Degraded && $change['from'] === NetworkStatus::Online
                 && ! $this->alarms->raisedRecently(AlarmType::ApDegraded, $ap, (int) config('atlas.thresholds.degraded_alert_cooldown_min'))) {
                 $why = 'Latency, packet loss or load has been over its threshold for '
                     .config('atlas.thresholds.consecutive_breach').' readings in a row.';

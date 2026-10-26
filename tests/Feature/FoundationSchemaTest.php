@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ApStatus;
 use App\Enums\DeviceStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use App\Models\Location;
@@ -69,7 +69,7 @@ class FoundationSchemaTest extends TestCase
         $ap = AccessPoint::factory()->create();
 
         $this->assertInstanceOf(DeviceStatus::class, $pc->fresh()->status);
-        $this->assertInstanceOf(ApStatus::class, $ap->fresh()->status);
+        $this->assertInstanceOf(NetworkStatus::class, $ap->fresh()->status);
     }
 
     public function test_system_written_columns_are_not_mass_assignable(): void

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AccessPointRequest;
 use App\Models\AccessPoint;
@@ -39,7 +39,7 @@ class AccessPointController extends Controller
                  * Decommissioned access points are hidden but never gone —
                  * their telemetry history has to stay readable (NFR-06).
                  *
-                 * Unlike a lab PC there is no matching status case: ApStatus
+                 * Unlike a lab PC there is no matching status case: NetworkStatus
                  * describes what the radio is doing, and Maintenance means
                  * "temporarily off", not "gone". So for an AP, removal is the
                  * soft delete and nothing else.
@@ -49,7 +49,7 @@ class AccessPointController extends Controller
                 ->paginate(25)
                 ->withQueryString(),
             'locations' => $this->locationOptions(),
-            'statuses' => ApStatus::options(),
+            'statuses' => NetworkStatus::options(),
         ]);
     }
 
@@ -57,7 +57,7 @@ class AccessPointController extends Controller
     {
         return view('admin.access-points.create', [
             'locations' => $this->locationOptions(),
-            'statuses' => ApStatus::options(),
+            'statuses' => NetworkStatus::options(),
         ]);
     }
 
@@ -86,7 +86,7 @@ class AccessPointController extends Controller
         return view('admin.access-points.edit', [
             'accessPoint' => $accessPoint,
             'locations' => $this->locationOptions(),
-            'statuses' => ApStatus::options(),
+            'statuses' => NetworkStatus::options(),
         ]);
     }
 

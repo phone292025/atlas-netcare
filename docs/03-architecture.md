@@ -97,7 +97,7 @@ app/
 │   ├── TicketPriority.php
 │   ├── TicketCategory.php
 │   ├── DeviceStatus.php
-│   ├── ApStatus.php
+│   ├── NetworkStatus.php
 │   ├── ChecklistResult.php
 │   ├── ChecklistCategory.php
 │   ├── InspectionOutcome.php

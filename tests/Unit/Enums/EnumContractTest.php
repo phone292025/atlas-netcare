@@ -71,7 +71,7 @@ class EnumContractTest extends TestCase
         // section headings the inspection form groups by.
         $documented = [
             'UserRole', 'TicketStatus', 'TicketPriority', 'TicketCategory',
-            'DeviceStatus', 'ApStatus', 'ChecklistResult', 'ChecklistCategory',
+            'DeviceStatus', 'NetworkStatus', 'ChecklistResult', 'ChecklistCategory',
             'InspectionOutcome', 'ShiftStatus', 'AlarmType', 'RiskBand',
             'SimulationScenario',
         ];

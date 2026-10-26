@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\RiskBand;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
@@ -61,7 +61,7 @@ class AuditObserverTest extends TestCase
 
     public function test_collection_rounds_that_change_no_status_write_no_audit_rows(): void
     {
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online]);
         $telemetry = app(TelemetryService::class);
 
         foreach (range(1, 3) as $round) {
@@ -79,19 +79,19 @@ class AuditObserverTest extends TestCase
         // near a threshold flaps every few minutes: auditing each flap wrote
         // hundreds of rows an hour, credited to whoever pressed "Generate
         // sample".
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Offline]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Offline]);
 
         app(TelemetryService::class)->store(collect([$this->healthyReading($ap)]));
 
-        $this->assertSame(ApStatus::Online, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
         $this->assertSame(0, $this->updates());
     }
 
     public function test_a_status_an_administrator_sets_is_audited(): void
     {
-        $ap = AccessPoint::factory()->create(['status' => ApStatus::Online]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online]);
 
-        $ap->update(['status' => ApStatus::Maintenance]);
+        $ap->update(['status' => NetworkStatus::Maintenance]);
 
         $row = AuditLog::forSubject($ap)->where('action', 'updated')->sole();
 

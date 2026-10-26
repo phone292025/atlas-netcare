@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use App\Services\Telemetry\TelemetryBackfill;
@@ -128,7 +128,7 @@ class BackfillTelemetry extends Command
                 ->value('recorded_at');
 
             $ap->forceFill(array_filter([
-                'status' => ApStatus::from($newest->status),
+                'status' => NetworkStatus::from($newest->status),
                 'last_seen_at' => $lastAnswered,
             ], fn ($value) => $value !== null))->save();
 

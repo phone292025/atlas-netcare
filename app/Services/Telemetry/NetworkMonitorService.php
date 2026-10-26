@@ -2,7 +2,7 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use App\Support\CampusClock;
@@ -128,7 +128,7 @@ class NetworkMonitorService
 
     private function state(AccessPoint $ap, ?TelemetryReading $reading): string
     {
-        if (in_array($ap->status, [ApStatus::Maintenance, ApStatus::Offline], true)) {
+        if (in_array($ap->status, [NetworkStatus::Maintenance, NetworkStatus::Offline], true)) {
             return $ap->status->value;
         }
 

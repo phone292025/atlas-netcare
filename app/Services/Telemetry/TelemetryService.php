@@ -2,7 +2,7 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use Illuminate\Support\Collection;
@@ -29,7 +29,7 @@ class TelemetryService
      * a transition rather than to every reading: one ticket for an outage, not
      * one a minute for six hours.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
      */
     public function collectAndStore(): Collection
     {
@@ -46,7 +46,7 @@ class TelemetryService
      * Persist readings and update each access point's current state.
      *
      * @param  Collection<int, ReadingData>  $readings
-     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
      */
     public function store(Collection $readings): Collection
     {
@@ -115,10 +115,10 @@ class TelemetryService
      * Maintenance is kept regardless: it is an administrator's decision, not
      * a measurement.
      */
-    public function classify(AccessPoint $ap, ReadingData $reading): ApStatus
+    public function classify(AccessPoint $ap, ReadingData $reading): NetworkStatus
     {
-        if ($ap->status === ApStatus::Maintenance) {
-            return ApStatus::Maintenance;
+        if ($ap->status === NetworkStatus::Maintenance) {
+            return NetworkStatus::Maintenance;
         }
 
         /*
@@ -127,11 +127,11 @@ class TelemetryService
          * first round after any pause in collection.
          */
         if ($reading->unreachable) {
-            return ApStatus::Offline;
+            return NetworkStatus::Offline;
         }
 
         if (! $this->breachesThreshold($ap, $reading)) {
-            return ApStatus::Online;
+            return NetworkStatus::Online;
         }
 
         $required = (int) config('atlas.thresholds.consecutive_breach');
@@ -146,14 +146,14 @@ class TelemetryService
         if ($previous->count() < $required - 1) {
             // Not enough history yet. A false Degraded on new kit trains
             // people to ignore the dashboard.
-            return ApStatus::Online;
+            return NetworkStatus::Online;
         }
 
         $allBreaching = $previous->every(
             fn (TelemetryReading $r) => $this->rowBreaches($ap, $r)
         );
 
-        return $allBreaching ? ApStatus::Degraded : ApStatus::Online;
+        return $allBreaching ? NetworkStatus::Degraded : NetworkStatus::Online;
     }
 
     /** Whether a fresh reading is over any threshold. */
@@ -239,10 +239,10 @@ class TelemetryService
             'stale' => $stale,
             'counts' => [
                 'total' => $accessPoints->count(),
-                'online' => $accessPoints->where('status', ApStatus::Online)->count(),
-                'degraded' => $accessPoints->where('status', ApStatus::Degraded)->count(),
-                'offline' => $accessPoints->where('status', ApStatus::Offline)->count(),
-                'maintenance' => $accessPoints->where('status', ApStatus::Maintenance)->count(),
+                'online' => $accessPoints->where('status', NetworkStatus::Online)->count(),
+                'degraded' => $accessPoints->where('status', NetworkStatus::Degraded)->count(),
+                'offline' => $accessPoints->where('status', NetworkStatus::Offline)->count(),
+                'maintenance' => $accessPoints->where('status', NetworkStatus::Maintenance)->count(),
             ],
             'clients_now' => (int) $latest->sum('client_count'),
             'access_points' => $accessPoints->map(function (AccessPoint $ap) use ($latest) {
@@ -308,7 +308,7 @@ class TelemetryService
      * silence is judged. Returns transitions in the same shape as store(), so
      * the caller raises the same ticket and alert.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: ApStatus, to: ApStatus}>
+     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
      */
     public function markStaleOffline(): Collection
     {
@@ -321,7 +321,7 @@ class TelemetryService
          * pollable() too, because being quiet is what maintenance means.
          */
         $stale = $this->source->pollable()
-            ->where('status', '!=', ApStatus::Offline->value)
+            ->where('status', '!=', NetworkStatus::Offline->value)
             ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
             ->get();
 
@@ -337,9 +337,9 @@ class TelemetryService
             $from = $ap->status;
 
             // Quietly, as in store(). The ticket and the alert are the record.
-            $ap->forceFill(['status' => ApStatus::Offline])->saveQuietly();
+            $ap->forceFill(['status' => NetworkStatus::Offline])->saveQuietly();
 
-            $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => ApStatus::Offline]);
+            $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => NetworkStatus::Offline]);
         }
 
         return $transitions;

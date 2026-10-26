@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -25,7 +25,7 @@ class TelemetryReadingFactory extends Factory
             'packet_loss_pct' => 0,
             'channel_util_pct' => $this->faker->numberBetween(5, 40),
             'throughput_mbps' => $this->faker->numberBetween(1, 80),
-            'status' => ApStatus::Online->value,
+            'status' => NetworkStatus::Online->value,
             'source' => 'simulated',
         ];
     }
@@ -45,7 +45,7 @@ class TelemetryReadingFactory extends Factory
     public function offline(): static
     {
         return $this->state([
-            'status' => ApStatus::Offline->value,
+            'status' => NetworkStatus::Offline->value,
             'latency_ms' => null,
             'client_count' => 0,
             'packet_loss_pct' => 100,

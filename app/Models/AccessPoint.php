@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\RiskBand;
 use App\Enums\SimulationScenario;
 use Database\Factories\AccessPointFactory;
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * `maintenance` — an engineer sets that to suppress alarms during planned
  * work. It is a wider set than telemetry_readings.status, which records a
  * MEASURED state and only ever holds online / degraded / offline. M5 must not
- * cast that column to ApStatus.
+ * cast that column to NetworkStatus.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
  * @see docs/progress/decision-log.md — 2026-08-27
@@ -67,7 +67,7 @@ class AccessPoint extends Model
     protected function casts(): array
     {
         return [
-            'status' => ApStatus::class,
+            'status' => NetworkStatus::class,
             'simulation_scenario' => SimulationScenario::class,
             'simulation_started_at' => 'datetime',
             'risk_band' => RiskBand::class,
@@ -96,7 +96,7 @@ class AccessPoint extends Model
      */
     public function scopeCollectable(Builder $query): void
     {
-        $query->where('status', '!=', ApStatus::Maintenance);
+        $query->where('status', '!=', NetworkStatus::Maintenance);
     }
 
     /** @param  Builder<AccessPoint>  $query */

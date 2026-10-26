@@ -2,7 +2,7 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use Carbon\CarbonInterface;
@@ -29,12 +29,12 @@ class TelemetryAggregator
             ->selectRaw($this->bucketExpression().' as bucket')
             ->selectRaw('access_point_id')
             ->selectRaw('source')
-            ->selectRaw('AVG(CASE WHEN status != ? THEN latency_ms END) as avg_latency', [ApStatus::Offline->value])
+            ->selectRaw('AVG(CASE WHEN status != ? THEN latency_ms END) as avg_latency', [NetworkStatus::Offline->value])
             ->selectRaw('MAX(client_count) as peak_clients')
             ->selectRaw('AVG(packet_loss_pct) as avg_loss')
             ->selectRaw('AVG(channel_util_pct) as avg_util')
             ->selectRaw('COUNT(*) as reading_count')
-            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as offline_count', [ApStatus::Offline->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as offline_count', [NetworkStatus::Offline->value])
             ->where('recorded_at', '>=', Carbon::instance($from)->startOfHour())
             ->groupBy('bucket', 'access_point_id', 'source')
             ->get();

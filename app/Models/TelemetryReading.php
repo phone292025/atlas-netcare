@@ -15,8 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * this is the one table where two extra datetimes per row is a real cost —
  * roughly 1.7 million rows a month.
  *
- * `status` is a plain string, NOT cast to ApStatus. A reading records a
- * MEASURED state and only ever holds online / degraded / offline; ApStatus is
+ * `status` is a plain string, NOT cast to NetworkStatus. A reading records a
+ * MEASURED state and only ever holds online / degraded / offline; NetworkStatus is
  * wider because it also carries `maintenance`, which is an administrative
  * decision about the access point rather than something anyone measured.
  * Casting here would let a reading claim a device is under maintenance.

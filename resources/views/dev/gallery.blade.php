@@ -57,7 +57,7 @@
 
                 <dl class="space-y-3 text-sm">
                     @foreach ([
-                        'Access point' => \App\Enums\ApStatus::cases(),
+                        'Access point' => \App\Enums\NetworkStatus::cases(),
                         'Lab PC' => \App\Enums\DeviceStatus::cases(),
                         'Ticket status' => \App\Enums\TicketStatus::cases(),
                         'Inspection' => \App\Enums\InspectionOutcome::cases(),
@@ -128,7 +128,7 @@
                     <span class="text-xs text-slate-500">Filter controls belong here.</span>
                 </x-slot:filters>
 
-                @foreach ([['AP-L6-01', \App\Enums\ApStatus::Online, 24], ['AP-L6-02', \App\Enums\ApStatus::Degraded, 187], ['AP-CAF-01', \App\Enums\ApStatus::Offline, 0]] as [$code, $status, $latency])
+                @foreach ([['AP-L6-01', \App\Enums\NetworkStatus::Online, 24], ['AP-L6-02', \App\Enums\NetworkStatus::Degraded, 187], ['AP-CAF-01', \App\Enums\NetworkStatus::Offline, 0]] as [$code, $status, $latency])
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium">{{ $code }}</td>
                         <td class="px-4 py-3"><x-status-badge :status="$status" /></td>

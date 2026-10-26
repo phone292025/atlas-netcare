@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -27,7 +27,7 @@ class AccessPointFactory extends Factory
             'ip_address' => $this->faker->localIpv4(),
             'client_capacity' => $this->faker->randomElement([30, 50, 80]),
             'installed_at' => $this->faker->dateTimeBetween('-5 years', '-1 month'),
-            'status' => ApStatus::Online->value,
+            'status' => NetworkStatus::Online->value,
         ];
     }
 
@@ -39,6 +39,6 @@ class AccessPointFactory extends Factory
 
     public function maintenance(): static
     {
-        return $this->state(['status' => ApStatus::Maintenance->value]);
+        return $this->state(['status' => NetworkStatus::Maintenance->value]);
     }
 }

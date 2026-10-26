@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Location;
@@ -51,7 +51,7 @@ class AccessPointInventoryTest extends TestCase
             'ip_address' => '10.20.6.31',
             'client_capacity' => 50,
             'installed_at' => '2024-03-01',
-            'status' => ApStatus::Online->value,
+            'status' => NetworkStatus::Online->value,
         ], $overrides);
     }
 
@@ -157,11 +157,11 @@ class AccessPointInventoryTest extends TestCase
                 'ap_code' => $ap->ap_code,
                 'location_id' => $ap->location_id,
                 'mac_address' => $ap->mac_address,
-                'status' => ApStatus::Maintenance->value,
+                'status' => NetworkStatus::Maintenance->value,
             ]))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(ApStatus::Maintenance, $ap->fresh()->status);
+        $this->assertSame(NetworkStatus::Maintenance, $ap->fresh()->status);
     }
 
     public function test_the_form_cannot_write_the_last_seen_timestamp(): void

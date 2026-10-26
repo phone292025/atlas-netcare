@@ -3,7 +3,7 @@
 namespace Tests\Feature\Shifts;
 
 use App\Enums\AlarmType;
-use App\Enums\ApStatus;
+use App\Enums\NetworkStatus;
 use App\Enums\TicketPriority;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
@@ -201,7 +201,7 @@ class AlarmTest extends TestCase
         $this->userWith(UserRole::Admin);
         $engineer = $this->userWith(UserRole::Engineer);
 
-        AccessPoint::factory()->create(['status' => ApStatus::Online->value]);
+        AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
 
         // A driver whose access point does not answer. Until 2026-09-04 this
         // test forced "offline" with a stale last_seen_at instead, which only
