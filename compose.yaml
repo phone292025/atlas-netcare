@@ -85,7 +85,9 @@ services:
   app:
     <<: *atlas
     ports:
-      - "127.0.0.1:${ATLAS_PORT:-8000}:80"
+      # This machine only, unless ATLAS_BIND=0.0.0.0 opens it to the network,
+      # for a phone on the same Wi-Fi (docs/11-installation-guide.md).
+      - "${ATLAS_BIND:-127.0.0.1}:${ATLAS_PORT:-8000}:80"
     volumes:
       # Writable, so the first start can add an app key to .env.
       - *env-file
