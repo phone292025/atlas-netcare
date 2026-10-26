@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-10-22 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-10-27 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -33,7 +33,7 @@ Service           The business rules live here. This is what unit tests
 Model             Eloquent and the query builder. Relationships, enum
   │               casts, scopes, accessors. Raw SQL is rare: see below.
   ▼
-MariaDB           One database, one schema. Real and demo data coexist,
+PostgreSQL        One database, one schema. Real and demo data coexist,
                   distinguished by a column.
 ```
 

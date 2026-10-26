@@ -1,6 +1,6 @@
 # Code map
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-10-27
 
 Every file in the project and what it does. Written for somebody who has just
 cloned the repository and wants to know where anything lives before changing
@@ -40,7 +40,7 @@ app/Services/
   |     the business rules live here
 app/Models/
   |     Eloquent. Relationships, enum casts, scopes
-MariaDB
+PostgreSQL
 ```
 
 Three separate questions get three separate files. Moving a ticket asks
@@ -713,6 +713,10 @@ because it is fast and needs nothing installed. `phpunit.pgsql.xml` runs it on
 PostgreSQL with TimescaleDB, the database Atlas runs on, in a separate
 `atlas_test` database, because each run starts by dropping every table in the
 database it uses.
+
+The browser tests in `tests/Browser/` are JavaScript, which the table above
+leaves out. Playwright runs them against a Docker stack of their own:
+`npm run test:browser`. [07-testing.md](07-testing.md) lists what each covers.
 
 ---
 

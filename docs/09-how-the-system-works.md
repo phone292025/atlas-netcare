@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-10-22 · **Covers:** all seven modules, built and tested.
+> **Last updated:** 2026-10-27 · **Covers:** all seven modules, built and tested.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -109,7 +109,7 @@ Service
    |     the business rules live here
 Model
    |     Eloquent. Relationships, enum casts, scopes
-MariaDB
+PostgreSQL
 ```
 
 Scheduled commands enter at the service layer and skip the top three entirely. That is deliberate. A command and a browser request run the same logic. The one exception is `atlas:prune-telemetry`, which deletes old readings through the models because nothing else needs that logic.

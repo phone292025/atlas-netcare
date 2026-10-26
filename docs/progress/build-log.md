@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-10-03
+> **Last updated:** 2026-10-27
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -10,15 +10,15 @@
 
 | | |
 |---|---|
-| **Phase** | The code is finished. |
-| **Last session** | 2026-09-23 (review, then live testing in the browser) |
+| **Phase** | 2.0, Phase 0 done: the same features as 1.0 on PostgreSQL with TimescaleDB, in Docker. Phase 1 next. See `docs/roadmap.md` |
+| **Last session** | 2026-10-27 (the CI stack job fixed, browser tests, the docs moved to Docker and PostgreSQL) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **1,018 passing (1 skipped)** on SQLite; **1,019 passing, none skipped** on MariaDB. Zero deprecations. The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. **Nowhere else** — it was in five documents and three disagreed. |
-| **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `php artisan atlas:mail-test` before any demonstration. |
-| **Environment** | Laravel 12.68.0 + Breeze · MariaDB 10.4.32 via the `mariadb` driver · schema migrated and seeded |
-| **Next action** | All seven modules are built, the four whole-system diagrams are drawn (`docs/12-system-diagrams.md`), and the code items that were outstanding on 2026-08-30 are done. Four UAT sessions still need real participants. |
-| **CI** | GitHub Actions runs the suite on SQLite **and** MariaDB 10.4, plus Pint, on every push. `.github/workflows/tests.yml`. |
-| **To see live data** | `php artisan schedule:work`. Seeding fills the charts, and the scheduler's first round after a gap fills the silence. Without it the dashboard goes stale. |
+| **Tests** | **1,064 passing (1 skipped)** on SQLite, and the same on PostgreSQL with TimescaleDB. Zero deprecations. The skip is `SchemaIntegrityTest`, which checks a MariaDB trap. **9 browser tests** pass against the Docker stack (`npm run test:browser`). The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. The README quotes it too, because the README has to stand on its own |
+| **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `docker compose exec app php artisan atlas:mail-test` before any demonstration. |
+| **Environment** | Laravel 12.70.1 + Breeze · PostgreSQL 16 + TimescaleDB 2.31 · one Docker Compose stack: `app`, `worker`, `scheduler`, `db` |
+| **Next action** | Phase 1 of `docs/roadmap.md`, real telemetry: devices beyond access points, agents and the ingest API. |
+| **CI** | GitHub Actions runs the suite on SQLite **and** PostgreSQL with TimescaleDB, Pint, a job that builds the image and starts the stack, and the browser tests. `.github/workflows/tests.yml`. |
+| **To see live data** | The stack's `scheduler` service collects every minute. Seeding fills the charts, and the scheduler's first round after a gap fills the silence. |
 
 ---
 

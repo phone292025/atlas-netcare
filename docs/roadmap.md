@@ -1,6 +1,6 @@
 # Roadmap to Atlas 2.0
 
-> **Last updated:** 2026-10-27 · **Current phase:** 0
+> **Last updated:** 2026-10-27 · **Current phase:** 1
 
 Atlas 1.0 was a capstone project, and its network was simulated. 2.0 watches a real one. Small probe agents on the network measure devices and push readings to Atlas. Atlas turns failures into incidents, alerts whoever the roster says is on shift, and shows it all live. Everything can be tried on a home network first.
 
@@ -45,7 +45,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 0.5 | Create the administrator with a command, and remove the published default password | Done |
 | 0.6 | CI: the suite on PostgreSQL with TimescaleDB, an image build, an architecture test for module boundaries, and a backup that is restored into a fresh database | Done |
 | 0.7 | Browser tests for five core flows, run against the stack: sign in as each role, raise and resolve a ticket, submit an inspection, open the Network Monitor, print the report | Done (ADR-0015) |
-| 0.8 | Docs: README and installation guide for Docker, the stack in `AGENTS.md`, the engine notes in `04-database.md` | |
+| 0.8 | Docs: README and installation guide for Docker, the stack in `AGENTS.md`, the engine notes in `04-database.md` | Done |
 
 ## Phase 1: real telemetry
 

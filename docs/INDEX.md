@@ -1,6 +1,6 @@
 # Documentation index
 
-> **Last updated:** 2026-09-26 · **All seven modules are built.**
+> **Last updated:** 2026-10-27 · **All seven modules are built.**
 
 This folder documents the system. Conversation history and memory do not survive, so anything that matters beyond today belongs here.
 
@@ -28,7 +28,7 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 | [01-requirements.md](01-requirements.md) | Functional and non-functional requirements. The status column records how each was agreed; a section at the top records what is actually built |
 | [02-open-questions.md](02-open-questions.md) | Eleven things the proposal left undefined. Ten are settled, and each records what was decided and why |
 | [03-architecture.md](03-architecture.md) | Layers, request lifecycle, service boundaries, scheduled commands |
-| [04-database.md](04-database.md) | Schema, indexes, soft deletes, and the MariaDB traps that have already cost this project |
+| [04-database.md](04-database.md) | Schema, indexes, soft deletes, what differs on PostgreSQL, and the MariaDB traps that shaped the schema |
 | [05-data-strategy.md](05-data-strategy.md) | How demonstration data is tagged and removed, and how simulated telemetry is marked |
 | [06-ui-conventions.md](06-ui-conventions.md) | The component vocabulary. Read before adding a screen, or you will invent a fourth button style |
 | [07-testing.md](07-testing.md) | Test strategy, plus four habits learned by shipping defects through a green suite |

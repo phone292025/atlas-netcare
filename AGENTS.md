@@ -30,14 +30,17 @@ Pinned versions, verified in the installed lock file. Do not upgrade any of thes
 
 | | Version | Notes |
 |---|---|---|
-| **Laravel** | 12.68.0 | Pinned. Laravel 13 needs PHP ^8.3; this project runs on PHP 8.2.12. See ADR-0008. |
-| **PHP** | 8.2.12 | XAMPP |
+| **Laravel** | 12.70.1 | Pinned to 12 (ADR-0008). Laravel 13 needs PHP 8.3, and the suite still runs on PHP 8.2. |
+| **PHP** | 8.3 in the image, 8.2.12 on the host | The image runs FrankenPHP 1.13.2 on PHP 8.3. The test suite runs on XAMPP's PHP 8.2 and on 8.2 in CI, so code must run on 8.2. |
 | **Breeze** | 2.4.2 | Blade stack. Registration deliberately removed. |
-| **Blade** | — | Server-side templating. All 23 shared components live in `resources/views/components/` — see them at `/dev/gallery`. |
+| **Blade** | — | Server-side templating. All 31 shared components live in `resources/views/components/` — see them at `/dev/gallery`. |
 | **Tailwind CSS** | 3.4.19 | Configured in `tailwind.config.js`, **not** the CSS-based v4 config |
 | **Alpine.js** | 3.16 | Dropdowns, modals, the mobile drawer, the poll timer. No plugins installed. |
 | **Chart.js** | via `window.Chart` | Wired in `resources/js/app.js` with shared defaults |
-| **Database** | MariaDB 10.4.32 | `DB_CONNECTION=mariadb` (Laravel 12 has a dedicated driver). Matters for M7: MariaDB implements `JSON` as `LONGTEXT`. |
+| **Database** | PostgreSQL 16 + TimescaleDB 2.31.0 | `DB_CONNECTION=pgsql`, the `db` service in `compose.yaml` (ADR-0011). What differs from MariaDB, which Atlas ran on until 2026-10-22, is in `docs/04-database.md`. |
+| **Runtime** | Docker Compose | `app`, `worker` and `scheduler` from one image, plus `db` (ADR-0012). The app container caches its config, so **never run the tests inside it**: they would wipe the real database. |
+| **Node** | 24 | Builds the front end, and runs the browser tests. |
+| **Playwright** | 1.64.1 | Browser tests only, in `tests/Browser/` (ADR-0015). |
 
 No React, no Vue, no Livewire, no Inertia. If a task seems to need one of those, it does not — raise it as an open question instead.
 
@@ -95,9 +98,9 @@ These are not stylistic preferences. Each one is here because breaking it has al
 - **Never add a repository interface** for an Eloquent model. Eloquent is already the data-access layer. See ADR-0001.
 - **Never hardcode arrays of fake data** in a controller, service, or Blade file. Seeders and factories only. See `docs/05-data-strategy.md`.
 - **Never write a `match` on a tone outside `app/Support/Tone.php`.** One file owns tone to Tailwind classes, one method per surface. A second mapping is how `urgent` becomes two different reds.
-- **Never use MySQL's `ENUM` column type.** Use a `string` column cast to a PHP backed enum. See ADR-0004.
+- **Never use an enum column** (`$table->enum()`). Use a `string` column cast to a PHP backed enum. See ADR-0004.
 - **Never use `float` for a number a user reads.** Use `decimal`.
-- **Never use `timestamp` for a column recording when something happened.** Use `dateTime`. MariaDB gives the *first* `timestamp` column in a table an implicit `ON UPDATE CURRENT_TIMESTAMP`, so it is silently rewritten by any UPDATE that does not name it — this destroyed `tickets.opened_at`, and with it the SLA baseline, on every status transition. `created_at` / `updated_at` are the exception: being touched automatically is their job. Run `php artisan atlas:check-schema` after any migration.
+- **Never use `timestamp` for a column recording when something happened.** Use `dateTime`. MariaDB, which Atlas ran on until 2026-10-22, gave the *first* `timestamp` column in a table an implicit `ON UPDATE CURRENT_TIMESTAMP`, so it was silently rewritten by any UPDATE that did not name it — this destroyed `tickets.opened_at`, and with it the SLA baseline, on every status transition. `created_at` / `updated_at` are the exception: being touched automatically is their job. Run `php artisan atlas:check-schema` after any migration.
 - **Never add a global Eloquent scope** that hides demo rows. It will silently hide data during a demo.
 - **Never install a package** without an ADR justifying it.
 - **Never write `register` routes or self-signup.** Accounts are created by administrators only.

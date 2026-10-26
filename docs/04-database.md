@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-10-22 · **Status:** describes the 1.0 schema on MariaDB. [ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md) moves it to PostgreSQL in Phase 0 of the [roadmap](roadmap.md)
+> **Last updated:** 2026-10-27 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -17,12 +17,12 @@ Apply these everywhere. They are not negotiable per-module.
 | Primary key | `$table->id()` — unsigned `bigint`, auto-increment | Laravel default; every relationship helper assumes it |
 | Foreign key | `foreignId('x_id')->constrained()` with an explicit delete rule | Integrity enforced by the database, not application hope |
 | Delete rule | `restrictOnDelete()` for reference data (locations, users); `cascadeOnDelete()` for owned children (inspection_results, ticket_comments) | You can never orphan an inspection by deleting a lab |
-| Enumerations | MySQL `string` column + PHP backed enum + `$casts` | Adding a status later is a code change, not a risky `ALTER TABLE`. [ADR-0004](decisions/ADR-0004-string-columns-not-mysql-enum.md) |
+| Enumerations | `string` column + PHP backed enum + `$casts` | Adding a status later is a code change, not a risky `ALTER TABLE`. [ADR-0004](decisions/ADR-0004-string-columns-not-mysql-enum.md) |
 | Percentages | `decimal(5,2)` | Exact. Never `float` for a number a user reads |
 | Money | *(none in this system)* | — |
 | Booleans | `is_` or `has_` prefix | Reads as a predicate |
 | Timestamps | past-tense verb + `_at` | `resolved_at`, `last_seen_at` |
-| Event columns | `dateTime`, never `timestamp` | MariaDB rewrites a `timestamp` column behind your back. See [the trap below](#datetime-not-timestamp) |
+| Event columns | `dateTime`, never `timestamp` | MariaDB, which Atlas ran on until 2026-10-22, rewrote a `timestamp` column behind your back. See [the trap below](#datetime-not-timestamp) |
 | Soft deletes | On `users`, `lab_pcs`, `access_points` | Retiring a machine must not erase its history |
 | Timestamps block | `$table->timestamps()` on every table except `telemetry_readings` | Telemetry has its own `recorded_at`; two extra datetimes × millions of rows is waste |
 
@@ -48,6 +48,20 @@ Apply these everywhere. They are not negotiable per-module.
 | `shifts` | `(user_id, shift_date)` | "My shift today" |
 | `alarms` | `(user_id, read_at)` | Unread badge count |
 | `risk_assessments` | `(assessable_type, assessable_id, calculated_at)` | Risk history chart |
+
+---
+
+## The engine
+
+PostgreSQL 16 with the TimescaleDB 2.31 extension, the `db` service in `compose.yaml`. Atlas ran on MariaDB 10.4 until 2026-10-22, and the move changed no table. Five things differ from MariaDB, and each has already mattered:
+
+| | On PostgreSQL | Why it matters |
+|---|---|---|
+| Text comparison | Case-sensitive. Email addresses are stored in lower case and looked up the same way, through `User::normalizeEmail()`. List searches use `whereLike()`, which ignores case on every engine | MariaDB ignored case. Here an address typed with a capital became a second account, which its owner couldn't sign in to |
+| Date buckets | The hourly and ten-minute telemetry buckets have one SQL expression per engine, chosen by driver | PostgreSQL can't cut a timestamp as text, the way MariaDB's `DATE_FORMAT` did |
+| `json` columns | No `LIKE` or `REPLACE` on them. Cast to text first, as `atlas:renumber-tickets` does | PostgreSQL refuses string functions on `json` |
+| TimescaleDB | Installed in `atlas` and `atlas_test` by `docker/postgres/init/01-databases.sql`, with usage reports off. Nothing uses it until Phase 1 makes readings a hypertable | A run on plain PostgreSQL would pass and hide the missing extension, so CI checks for it |
+| Tests | `php artisan test` uses SQLite in memory. `phpunit.pgsql.xml` runs the suite on `atlas_test`, and CI runs both | SQLite forgives things PostgreSQL doesn't. See [07-testing.md](07-testing.md) |
 
 ---
 
@@ -326,6 +340,8 @@ This is the one place a polymorphic relationship genuinely earns its keep — it
 
 Every column recording **when something happened** is `dateTime`. This is the single most expensive schema mistake this project has made, and it has been made twice.
 
+The trap below is MariaDB's. PostgreSQL has nothing like it, and on PostgreSQL Laravel's `timestamp()` and `dateTime()` make the same column type. The rule stays, so the schema writes a time one way, and the history stays because it explains migrations that still exist.
+
 MySQL and MariaDB give the first `timestamp` column in a table an implicit `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` unless `explicit_defaults_for_timestamp` is on, which it is not in XAMPP. The column is then silently reset to the current time by **any** `UPDATE` that does not name it. No error, no warning, and the wrong value looks perfectly plausible.
 
 It cost three columns before anybody noticed:
@@ -341,7 +357,7 @@ Those three were converted on 2026-08-29. **Eight more were left**, and it is wo
 Two things follow for anyone adding a column:
 
 - **`created_at` and `updated_at` stay as they are.** Being touched automatically is their entire job.
-- **Run `php artisan atlas:check-schema` after any migration.** It reads `information_schema` and fails on any column that has acquired `on update`. The test suite cannot catch this — it runs on SQLite, which has no such behaviour, and that is why the bug survived four weeks of a green suite.
+- **Run `php artisan atlas:check-schema` after any migration.** On MariaDB it read `information_schema` and failed on any column that had acquired `on update`. The test suite could not catch this, because it ran on SQLite, which has no such behaviour, and that is why the bug survived four weeks of a green suite. On PostgreSQL the command skips that audit and checks the data: rows whose own timeline can't have happened, and scores out of range.
 
 ### `risk_assessments` keeps history
 
