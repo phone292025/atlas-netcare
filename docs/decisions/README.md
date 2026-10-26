@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-10-27
 
 An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and anyone on the team can explain any choice.
 
@@ -22,6 +22,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0012](ADR-0012-docker-compose-stack.md) | Run Atlas as one Docker Compose stack | Accepted |
 | [0013](ADR-0013-probe-agent-in-go.md) | Write the probe agent in Go | Accepted |
 | [0014](ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets, modules connected by events | Accepted |
+| [0015](ADR-0015-browser-tests-with-playwright.md) | Test the core flows in a browser with Playwright | Accepted |
 
 ## Rules
 

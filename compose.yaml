@@ -14,7 +14,9 @@
 # Shared by the three services that run Atlas itself: one image, three jobs.
 x-atlas: &atlas
   build: .
-  image: atlas-netcare:local
+  # A second stack builds its own tag, so it can't swap the code under this
+  # one: the browser tests build `atlas-netcare:browser-tests`.
+  image: atlas-netcare:${ATLAS_IMAGE_TAG:-local}
   restart: unless-stopped
   environment:
     # These win over the same names in .env, which may still describe an
@@ -32,9 +34,11 @@ x-atlas: &atlas
 
 # The project's .env inside the container, in long form so that a missing .env
 # is an error, rather than Docker quietly creating a directory called .env.
+# ATLAS_ENV_FILE points a second stack at its own copy: the browser tests'
+# stack uses one made from .env.example (tests/Browser/global-setup.js).
 x-env-file: &env-file
   type: bind
-  source: ./.env
+  source: ${ATLAS_ENV_FILE:-./.env}
   target: /app/.env
   bind:
     create_host_path: false
@@ -57,8 +61,9 @@ services:
     ports:
       # Bound to localhost only, so nothing else on the network can reach it.
       # It is published at all so the test suite, run on this machine, can
-      # use the atlas_test database (phpunit.pgsql.xml).
-      - "127.0.0.1:5432:5432"
+      # use the atlas_test database (phpunit.pgsql.xml). ATLAS_DB_PORT moves
+      # it, so a second stack can run beside this one.
+      - "127.0.0.1:${ATLAS_DB_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro

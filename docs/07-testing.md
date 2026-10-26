@@ -1,17 +1,18 @@
 # Testing
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-10-27
 
 The test plan covers unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
 ---
 
-## Three layers
+## Four layers
 
 | Layer | Target | Tool | When |
 |---|---|---|---|
 | **Unit** | Services with real logic | PHPUnit / Pest | As each service is written |
 | **Feature** | One happy path and one authorisation failure per controller | Laravel feature tests | As each module is finished |
+| **Browser** | Five core flows, end to end, against the Docker stack | Playwright ([ADR-0015](decisions/ADR-0015-browser-tests-with-playwright.md)) | Before committing a change to a screen or its JavaScript, and in CI |
 | **UAT** | Real users completing real tasks | Manual, documented | Week 12 |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of fixtures.
@@ -82,6 +83,30 @@ php artisan test -c phpunit.pgsql.xml   # PostgreSQL with TimescaleDB
 The second needs the Docker stack's database running (`docker compose up -d db`). It uses a separate `atlas_test` database, because each run starts by dropping every table in the database it uses. From 2026-09-04 the second run was MariaDB, with `phpunit.mariadb.xml`, and it earned its place on its first run by failing a telemetry test that had been green for weeks while measuring the wrong thing. `SchemaIntegrityTest` still checks MariaDB's timestamp trap, so it skips itself on both runs now.
 
 `php artisan atlas:check-schema` still audits the live database for schema traps and contradictory data, and is read only, so it is safe to point at real data. **Run it after any migration.**
+
+## Browser tests
+
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows run in Chromium instead, in `tests/Browser/`:
+
+| Spec | Flow |
+|---|---|
+| `sign-in.spec.js` | A wrong password is refused. The assistant and the engineer land on their home screens. The first administrator, made by `atlas:create-admin`, has to choose a password before any other screen opens |
+| `tickets.spec.js` | An assistant raises a ticket, picking the machine on the room plan, and an engineer acknowledges, starts and resolves it. The plan warns about a machine that already has an open ticket |
+| `inspections.spec.js` | An assistant inspects the next machine in a room's round, and the round's count goes up by one |
+| `monitor.spec.js` | The Network Monitor lists every access point, draws its chart, refreshes, filters by status and opens an access point's details |
+| `report.spec.js` | The report's Print button calls the browser's print, and on paper the page has its title block and the light palette, even from dark mode |
+
+```bash
+npx playwright install chromium   # once
+npm run test:browser
+```
+
+Four rules keep them honest:
+
+- **They get a stack of their own.** `tests/Browser/global-setup.js` builds the image from the working tree, starts the Compose project `atlas-browser` on ports 8100 and 5433 with a copy of `.env.example` and its own image tag, seeds demo data and creates the administrator. The teardown deletes the stack. They never run against a stack with real data: they raise tickets, and a developer's `.env` may send real mail.
+- **A console error fails the test.** The fixtures in `fixtures.js` collect JavaScript errors and failed requests from every page a test opens.
+- **Compare the screen with itself, not with the seed.** The scheduler keeps simulating readings during a run, so an access point's status can change between two looks. The monitor test checks that the "Online" filter shows as many rows as its button counts, never that a given access point is online.
+- **Each was watched failing.** Scoping the dark palette to all media instead of screens fails `report.spec.js` (text luminance 0.85 on paper), and renaming the room plan's script fails both ticket tests with console errors.
 
 ---
 

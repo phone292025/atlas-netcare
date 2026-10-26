@@ -25,6 +25,9 @@ storage/app/private/*
 *.log
 .phpunit.result.cache
 .phpunit.cache
+# Browser test results. Their traces hold signed-in session cookies.
+test-results
+playwright-report
 
 # Not needed to run Atlas. The tests stay out on purpose: the image caches its
 # config, and a test run against cached config would hit the real database.

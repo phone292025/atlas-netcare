@@ -22,7 +22,7 @@ It serves three roles (Student IT Assistants, Network Engineers and System Admin
 |---|---|
 | **Version** | 1.0 is complete: seven modules, every functional requirement with code and at least one test. The test count lives in `docs/progress/build-log.md` and `11-installation-guide.md`, nowhere else. |
 | **Now** | Building 2.0, which watches a real network instead of a simulated one. **Read `docs/roadmap.md` before starting work.** It lists the phases, the task in progress and the ADRs (0010 to 0014) behind them. |
-| **Last updated** | 2026-10-22 |
+| **Last updated** | 2026-10-27 |
 
 ## Stack
 
@@ -123,6 +123,8 @@ php artisan test --display-deprecations
 **Why `view:clear` first.** `./storage/framework/views/*.php` is in the Tailwind `content` array, so **compiled Blade views count as source**. Build output therefore depends on view-cache state, and a deleted view keeps contributing classes until its compiled artifact is cleared. Measured on identical source: 42 KB cleared, 54 KB cached.
 
 **Why `--display-deprecations`.** Warnings print above the summary line. Filtering test output down to `PASS|FAIL|Tests:` hides them — that is how five PHPUnit deprecations went unnoticed for a whole stage.
+
+**A change to a screen or its JavaScript** also runs `npm run test:browser`, with Docker running. It starts a stack of its own and never touches the one you work in. See `docs/07-testing.md`, "Browser tests".
 
 ## Verifying your work
 

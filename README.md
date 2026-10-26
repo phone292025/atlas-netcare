@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,033 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. A copy without the `docs` folder also skips the seven tests that check it.
+The suite has 1,033 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
 
 ## Getting started
 
@@ -155,6 +155,17 @@ php artisan test -c phpunit.pgsql.xml
 ```
 
 That uses a separate `atlas_test` database, which the stack creates the first time it starts. Never run the tests inside the app container: it caches its settings, which point at the real database.
+
+### Running the browser tests
+
+Five flows run in Chromium against the Docker stack: signing in as each role, raising and resolving a ticket, inspecting a machine, the Network Monitor, and printing the report. With Docker Desktop running, install the browser once, then run them:
+
+```bash
+npx playwright install chromium
+npm run test:browser
+```
+
+A run builds an image of its own from your code and starts a second stack for itself, on ports 8100 and 5433, with settings copied from `.env.example`. It seeds demo data, runs the tests and deletes that stack, so it never touches your data or sends real mail. Once the image is cached, a run takes about a minute. A failed test leaves a screenshot and a trace in `test-results/browser`, and `npx playwright show-trace <path to trace.zip>` replays it step by step.
 
 ### Signing in
 
