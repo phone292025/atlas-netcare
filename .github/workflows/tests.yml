@@ -217,8 +217,11 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
-        # --with-deps adds the system libraries Chromium needs on Ubuntu.
-        run: npx playwright install --with-deps chromium
+        # Without --with-deps. The runner image already has the libraries
+        # Chromium needs, because it ships Chrome. --with-deps only added fonts
+        # for scripts Atlas doesn't use and Xvfb, which headless runs don't
+        # need, and its apt downloads took 15 minutes on 2026-10-27.
+        run: npx playwright install chromium
 
       - name: Run the browser tests
         run: npm run test:browser
