@@ -200,7 +200,7 @@ class ForcedPasswordChangeTest extends TestCase
 
     public function test_the_first_administrator_is_flagged(): void
     {
-        // atlas:create-admin prints a one-time password and says Atlas asks
+        // atlas:create-admin prints a starting password and says Atlas asks
         // for a new one at the first sign-in. This makes that true.
         $this->artisan('atlas:create-admin')->assertSuccessful();
 

@@ -70,7 +70,7 @@ docker compose ps
 docker compose exec app php artisan db:seed
 ```
 
-**4. Create your administrator.** It prints a one-time password, which you replace at the first sign-in. [Signing in](#signing-in) explains why there is no default one.
+**4. Create your administrator.** It prints a starting password once, which you replace at the first sign-in. [Signing in](#signing-in) explains why there is no default one.
 
 ```bash
 docker compose exec app php artisan atlas:create-admin
@@ -177,7 +177,7 @@ docker compose exec app php artisan atlas:create-admin
 
 The account's address is `admin@atlas.local`, from `ATLAS_ADMIN_EMAIL` in `.env`, unless you give another with `--email=you@example.com`. The command prints a random password **once, in your terminal, and nowhere else**. No password ships with the project, because a password in the repository would be public.
 
-That password works for one sign-in. The account is flagged to change it, so the first sign-in lands on the profile screen, and every other page sends you back there until you choose your own.
+The account is flagged to change that password, so the first sign-in lands on the profile screen, and every other page sends you back there until you choose your own. The printed password keeps working until then, so copy it before you close the terminal.
 
 If you lock yourself out, for example by deactivating or demoting the last administrator, run the same command with `--restore`. It makes that account an active administrator again and leaves its password alone. For a forgotten password, use "Forgot password" on the sign-in page.
 

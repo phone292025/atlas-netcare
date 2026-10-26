@@ -24,7 +24,7 @@ stack.url = `http://127.0.0.1:${stack.port}`;
  *
  * Compose writes its progress to stderr, which passes through, so a slow image
  * build shows what it is doing. stdout comes back to the caller instead,
- * because it can hold the administrator's one-time password.
+ * because it can hold the administrator's starting password.
  */
 export function compose(...args) {
     return execFileSync('docker', ['compose', ...args], {

@@ -21,10 +21,10 @@ use Illuminate\Support\Str;
  * forced password change then let them choose a password the owner didn't
  * know. Nothing in the repository holds an admin password any more.
  *
- * Creating: the password is random, shown once on this terminal and nowhere
- * else, and works for one sign-in only. The account is flagged
- * must_change_password, so every other screen stays closed until the owner
- * chooses their own.
+ * Creating: the password is random and shown once, on this terminal and
+ * nowhere else. The account is flagged must_change_password, so every other
+ * screen stays closed until the owner chooses their own. The printed password
+ * keeps working until then: only whoever ran this command has seen it.
  *
  *   php artisan atlas:create-admin
  *   php artisan atlas:create-admin --email=me@example.com --name="Phone Myat Ko"

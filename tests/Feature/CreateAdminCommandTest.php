@@ -25,7 +25,7 @@ class CreateAdminCommandTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Run the command and return the one-time password it printed. */
+    /** Run the command and return the starting password it printed. */
     private function createAdmin(array $options = []): string
     {
         $exit = Artisan::call('atlas:create-admin', $options);
