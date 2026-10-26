@@ -100,11 +100,18 @@ services:
   worker:
     <<: *atlas
     command: ["php", "artisan", "queue:work", "--tries=3", "--sleep=1"]
-    # The base image's own check asks the web server, which this service
-    # doesn't run, so it would always report unhealthy. Restarts on a crash
-    # still come from `restart: unless-stopped`.
+    # Healthy while the worker process runs. The base image's own check asks
+    # the web server, which this service doesn't run. Turning the check off
+    # isn't an option: older Docker Compose versions, like the one on GitHub's
+    # runners, then refuse `up --wait`. Restarts on a crash still come from
+    # `restart: unless-stopped`.
     healthcheck:
-      disable: true
+      test: ["CMD", "pgrep", "-f", "artisan queue:work"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
     volumes:
       - <<: *env-file
         read_only: true
@@ -116,11 +123,15 @@ services:
   scheduler:
     <<: *atlas
     command: ["php", "artisan", "schedule:work"]
-    # The base image's own check asks the web server, which this service
-    # doesn't run, so it would always report unhealthy. Restarts on a crash
-    # still come from `restart: unless-stopped`.
+    # Healthy while the scheduler process runs, for the same reasons as the
+    # worker's check.
     healthcheck:
-      disable: true
+      test: ["CMD", "pgrep", "-f", "artisan schedule:work"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
     volumes:
       - <<: *env-file
         read_only: true
