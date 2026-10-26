@@ -197,6 +197,45 @@ jobs:
         if: failure()
         run: docker compose logs --no-color
 
+  browser:
+    name: Browser
+    # The five core flows in Chromium, against a stack built from this commit
+    # (docs/decisions/ADR-0015-browser-tests-with-playwright.md). The test run
+    # starts its own stack and removes it at the end.
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        # --with-deps adds the system libraries Chromium needs on Ubuntu.
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser tests
+        run: npm run test:browser
+
+      - name: Keep the report and traces
+        # A trace replays the failed test step by step: npx playwright
+        # show-trace <file>. Traces hold the passwords the tests typed, which
+        # belonged to a stack that no longer exists.
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-test-results
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
   style:
     name: Pint
     runs-on: ubuntu-24.04
