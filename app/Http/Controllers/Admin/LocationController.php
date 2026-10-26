@@ -71,7 +71,7 @@ class LocationController extends Controller
      * Deleting is allowed only while nothing lives here.
      *
      * The database enforces this too — restrictOnDelete on lab_pcs and
-     * access_points — but a foreign key error is not an explanation. This
+     * network_devices — but a foreign key error is not an explanation. This
      * turns it into one.
      */
     public function destroy(Location $location): RedirectResponse
@@ -84,7 +84,7 @@ class LocationController extends Controller
          * exists to prevent.
          */
         $held = $location->labPcs()->withTrashed()->count()
-            + $location->accessPoints()->withTrashed()->count();
+            + $location->networkDevices()->withTrashed()->count();
 
         if ($held > 0) {
             // Named "records", not "assets", because the count deliberately

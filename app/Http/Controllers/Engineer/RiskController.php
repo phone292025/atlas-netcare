@@ -114,7 +114,7 @@ class RiskController extends Controller
         ])->concat($aps->map(fn (AccessPoint $ap) => [
             'type' => 'access-point',
             'id' => $ap->id,
-            'name' => $ap->ap_code,
+            'name' => $ap->code,
             'detail' => $ap->model,
             'location' => $ap->location?->label(),
             'score' => $ap->risk_score,

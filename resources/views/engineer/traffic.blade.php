@@ -140,11 +140,11 @@
                                 <td class="whitespace-nowrap px-4 py-3">
                                     @if ($row->accessPoint?->trashed())
                                         {{-- Removed from the inventory: its history stays, its page does not. --}}
-                                        <span class="font-mono font-medium text-fg-muted">{{ $row->accessPoint->ap_code }}</span>
+                                        <span class="font-mono font-medium text-fg-muted">{{ $row->accessPoint->code }}</span>
                                         <span class="block text-xs text-fg-subtle">Removed</span>
                                     @else
                                         <a href="{{ route('engineer.aps.show', $row->access_point_id) }}"
-                                           class="font-mono font-medium text-fg hover:text-brand-700">{{ $row->accessPoint?->ap_code }}</a>
+                                           class="font-mono font-medium text-fg hover:text-brand-700">{{ $row->accessPoint?->code }}</a>
                                         <span class="block text-xs text-fg-subtle">{{ $row->accessPoint?->location?->code }}</span>
                                     @endif
                                 </td>

@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="title">{{ $accessPoint->ap_code }}</x-slot>
+    <x-slot name="title">{{ $accessPoint->code }}</x-slot>
 
     @php
         $device = [
@@ -18,7 +18,7 @@
         <x-icon name="arrow-left" class="size-4" /> Access points
     </a>
 
-    <x-page-header :title="$accessPoint->ap_code"
+    <x-page-header :title="$accessPoint->code"
                    :subtitle="$accessPoint->location?->label() ?? 'No location'">
         <x-slot:actions>
             <x-status-badge :status="$accessPoint->status" />

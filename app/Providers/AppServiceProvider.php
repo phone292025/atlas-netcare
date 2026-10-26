@@ -6,6 +6,7 @@ use App\Models\AccessPoint;
 use App\Models\ChecklistTemplate;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         Location::class,
         LabPc::class,
         AccessPoint::class,
+        NetworkDevice::class,
         Ticket::class,
         Shift::class,
         ChecklistTemplate::class,

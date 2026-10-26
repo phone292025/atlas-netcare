@@ -217,7 +217,7 @@ class TelemetryService
     {
         $accessPoints = AccessPoint::query()
             ->with('location')
-            ->orderBy('ap_code')
+            ->orderBy('code')
             ->get();
 
         $latest = $this->latestReadings($accessPoints->pluck('id'));
@@ -253,7 +253,7 @@ class TelemetryService
 
                 return [
                     'id' => $ap->id,
-                    'code' => $ap->ap_code,
+                    'code' => $ap->code,
                     'location' => $ap->location?->code,
                     'location_name' => $ap->location?->name,
                     // The latest reading over the limits, and why ("slow" or

@@ -96,8 +96,9 @@ app/
 │   ├── TicketStatus.php
 │   ├── TicketPriority.php
 │   ├── TicketCategory.php
-│   ├── DeviceStatus.php
-│   ├── NetworkStatus.php
+│   ├── DeviceStatus.php                 lab PCs
+│   ├── DeviceKind.php                   access point, switch, router…
+│   ├── NetworkStatus.php                network devices
 │   ├── ChecklistResult.php
 │   ├── ChecklistCategory.php
 │   ├── InspectionOutcome.php
@@ -118,7 +119,7 @@ app/
 │   │   │                                 deactivated account
 │   │   └── EnsurePasswordIsChanged.php   on the web GROUP, not an alias
 │   └── Requests/                         one Form Request per write action
-├── Models/                               17 Eloquent models
+├── Models/                               18 Eloquent models
 ├── Observers/
 │   └── AuditObserver.php                 ← NEW: writes audit_logs
 ├── Policies/                             per-record authorisation

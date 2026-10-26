@@ -79,11 +79,11 @@ class ListSortingTest extends TestCase
     public function test_the_access_point_list_sorts_descending(): void
     {
         foreach (['AP-AA-01', 'AP-AA-02', 'AP-AA-03'] as $code) {
-            AccessPoint::factory()->create(['ap_code' => $code]);
+            AccessPoint::factory()->create(['code' => $code]);
         }
 
         $this->actingAs($this->admin())
-            ->get(route('admin.aps.index', ['sort' => 'ap_code', 'direction' => 'desc']))
+            ->get(route('admin.aps.index', ['sort' => 'code', 'direction' => 'desc']))
             ->assertOk()
             ->assertSeeInOrder(['AP-AA-03', 'AP-AA-02', 'AP-AA-01']);
     }

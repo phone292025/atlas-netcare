@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AccessPoint;
 use App\Models\LabPc;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\Ticket;
 use App\Models\User;
@@ -116,7 +117,7 @@ class PurgeDemoData extends Command
     {
         $demoUsers = fn () => DB::table('users')->where('is_demo', true)->select('id');
         $demoPcs = fn () => DB::table('lab_pcs')->where('is_demo', true)->select('id');
-        $demoAps = fn () => DB::table('access_points')->where('is_demo', true)->select('id');
+        $demoDevices = fn () => DB::table('network_devices')->where('is_demo', true)->select('id');
 
         $steps = [
             /*
@@ -133,7 +134,7 @@ class PurgeDemoData extends Command
                     ->whereIn('user_id', $demoUsers())
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', User::class)->whereIn('auditable_id', $demoUsers()))
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', LabPc::class)->whereIn('auditable_id', $demoPcs()))
-                    ->orWhere(fn (Builder $x) => $x->where('auditable_type', AccessPoint::class)->whereIn('auditable_id', $demoAps()))
+                    ->orWhere(fn (Builder $x) => $x->whereIn('auditable_type', [AccessPoint::class, NetworkDevice::class])->whereIn('auditable_id', $demoDevices()))
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', Ticket::class)
                         ->whereIn('auditable_id', DB::table('tickets')->where('is_demo', true)->select('id')))
                     ->orWhere(fn (Builder $x) => $x->where('auditable_type', Shift::class)
@@ -144,7 +145,7 @@ class PurgeDemoData extends Command
             ['Risk assessments', 'risk_assessments', fn () => DB::table('risk_assessments')
                 ->where(fn (Builder $q) => $q
                     ->where(fn (Builder $x) => $x->where('assessable_type', LabPc::class)->whereIn('assessable_id', $demoPcs()))
-                    ->orWhere(fn (Builder $x) => $x->where('assessable_type', AccessPoint::class)->whereIn('assessable_id', $demoAps()))
+                    ->orWhere(fn (Builder $x) => $x->where('assessable_type', AccessPoint::class)->whereIn('assessable_id', $demoDevices()))
                 )],
 
             // Cascades from inspections, but counted and deleted explicitly so
@@ -174,7 +175,7 @@ class PurgeDemoData extends Command
 
             ['Shifts', 'shifts', fn () => DB::table('shifts')->whereIn('user_id', $demoUsers())],
 
-            // Cascades from access_points, but simulated readings can also
+            // Cascades from network_devices, but simulated readings can also
             // exist for a REAL access point — from the simulator driver — and
             // those are demonstration data too.
             ['Telemetry, hourly', 'telemetry_hourly', fn () => DB::table('telemetry_hourly')->where('source', 'simulated')],
@@ -182,7 +183,7 @@ class PurgeDemoData extends Command
 
             // Force deletes: both soft delete, and a retired demo machine is
             // still demo data.
-            ['Access points', 'access_points', fn () => DB::table('access_points')->where('is_demo', true)],
+            ['Network devices', 'network_devices', fn () => DB::table('network_devices')->where('is_demo', true)],
             ['Lab PCs', 'lab_pcs', fn () => DB::table('lab_pcs')->where('is_demo', true)],
 
             ['Demo accounts', 'users', fn () => DB::table('users')->where('is_demo', true)],
@@ -208,8 +209,8 @@ class PurgeDemoData extends Command
             ->where(fn (Builder $q) => $q
                 ->where(fn (Builder $x) => $x->where('ticketable_type', LabPc::class)
                     ->whereIn('ticketable_id', DB::table('lab_pcs')->where('is_demo', true)->select('id')))
-                ->orWhere(fn (Builder $x) => $x->where('ticketable_type', AccessPoint::class)
-                    ->whereIn('ticketable_id', DB::table('access_points')->where('is_demo', true)->select('id')))
+                ->orWhere(fn (Builder $x) => $x->whereIn('ticketable_type', [AccessPoint::class, NetworkDevice::class])
+                    ->whereIn('ticketable_id', DB::table('network_devices')->where('is_demo', true)->select('id')))
             )
             ->pluck('ticket_number');
 

@@ -45,7 +45,7 @@
     </form>
 
     <x-data-table :headers="[
-        ['label' => 'Access point', 'sort' => 'ap_code'],
+        ['label' => 'Access point', 'sort' => 'code'],
         'Location',
         'MAC and IP',
         ['label' => 'Status', 'sort' => 'status'],
@@ -63,7 +63,7 @@
                             <x-icon name="wifi" class="size-4" />
                         </span>
                         <span>
-                            <a href="{{ $url }}" class="font-mono font-medium text-fg group-hover:text-brand-700">{{ $ap->ap_code }}</a>
+                            <a href="{{ $url }}" class="font-mono font-medium text-fg group-hover:text-brand-700">{{ $ap->code }}</a>
                             @if ($ap->trashed())
                                 <x-badge class="ml-1">Removed</x-badge>
                             @endif

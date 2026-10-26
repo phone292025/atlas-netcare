@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Enums\DeviceKind;
 use App\Enums\InspectionOutcome;
 use App\Enums\RiskBand;
 use App\Enums\TicketCategory;
@@ -301,13 +302,14 @@ class ReportingService
         $since = Carbon::now()->subDays(30);
 
         $rows = TelemetryHourly::query()
-            ->join('access_points', 'access_points.id', '=', 'telemetry_hourly.access_point_id')
+            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.access_point_id')
+            ->where('network_devices.kind', DeviceKind::AccessPoint->value)
             ->where('telemetry_hourly.hour_bucket', '>=', $since)
-            ->groupBy('access_points.location_id')
-            ->selectRaw('access_points.location_id')
+            ->groupBy('network_devices.location_id')
+            ->selectRaw('network_devices.location_id')
             ->selectRaw('AVG(telemetry_hourly.uptime_pct) as uptime')
             ->selectRaw('AVG(telemetry_hourly.avg_latency_ms) as latency')
-            ->selectRaw('COUNT(DISTINCT access_points.id) as aps')
+            ->selectRaw('COUNT(DISTINCT network_devices.id) as aps')
             ->get();
 
         $peaks = $this->peakClientsByLocation($since);
@@ -340,10 +342,11 @@ class ReportingService
     private function peakClientsByLocation(Carbon $since): array
     {
         $hours = TelemetryHourly::query()
-            ->join('access_points', 'access_points.id', '=', 'telemetry_hourly.access_point_id')
+            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.access_point_id')
+            ->where('network_devices.kind', DeviceKind::AccessPoint->value)
             ->where('telemetry_hourly.hour_bucket', '>=', $since)
-            ->groupBy('access_points.location_id', 'telemetry_hourly.hour_bucket')
-            ->selectRaw('access_points.location_id')
+            ->groupBy('network_devices.location_id', 'telemetry_hourly.hour_bucket')
+            ->selectRaw('network_devices.location_id')
             ->selectRaw('SUM(telemetry_hourly.peak_client_count) as concurrent')
             ->get();
 

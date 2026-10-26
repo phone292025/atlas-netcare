@@ -250,7 +250,7 @@ class TicketController extends Controller
 
         $assessment = $asset->latestRiskAssessment;
         $isPc = $asset instanceof LabPc;
-        $name = $isPc ? $asset->asset_tag : $asset->ap_code;
+        $name = $isPc ? $asset->asset_tag : $asset->code;
 
         return [
             'title' => "Preventive maintenance: {$name}",

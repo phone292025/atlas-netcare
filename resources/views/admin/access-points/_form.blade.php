@@ -1,7 +1,7 @@
 {{-- Shared by create and edit.
      Included with ['accessPoint' => AccessPoint|null, 'locations' => array, 'statuses' => array]. --}}
 <div class="space-y-4">
-    <x-form.input name="ap_code" label="AP code" required :value="$accessPoint?->ap_code"
+    <x-form.input name="code" label="AP code" required :value="$accessPoint?->code"
                   help="The label on the unit, e.g. AP-L6-03. Stored uppercase." />
 
     <x-form.select name="location_id" label="Location" required :options="$locations"

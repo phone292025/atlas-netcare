@@ -100,7 +100,7 @@ class NetworkMonitorController extends Controller
                 : 'No access point is being polled, so there was nothing to apply it to.');
         }
 
-        $where = $target?->ap_code ?? "{$count} access ".str('point')->plural($count);
+        $where = $target?->code ?? "{$count} access ".str('point')->plural($count);
 
         return back()->with('success', match ($scenario) {
             null => "Recovery applied to {$where}. Normal telemetry resumes from this reading.",
@@ -125,7 +125,7 @@ class NetworkMonitorController extends Controller
     private function describe(Collection $changes): string
     {
         $named = $changes->take(3)
-            ->map(fn (array $c) => "{$c['access_point']->ap_code} {$c['from']->label()} → {$c['to']->label()}")
+            ->map(fn (array $c) => "{$c['access_point']->code} {$c['from']->label()} → {$c['to']->label()}")
             ->implode(', ');
 
         $rest = $changes->count() - 3;

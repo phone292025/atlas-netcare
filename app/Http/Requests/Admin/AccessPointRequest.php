@@ -19,9 +19,9 @@ class AccessPointRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ap_code' => [
+            'code' => [
                 'required', 'string', 'max:40',
-                Rule::unique('access_points', 'ap_code')->ignore($this->route('access_point')),
+                Rule::unique('network_devices', 'code')->ignore($this->route('access_point')),
             ],
             'location_id' => ['required', 'exists:locations,id'],
             'model' => ['nullable', 'string', 'max:255'],
@@ -30,7 +30,7 @@ class AccessPointRequest extends FormRequest
                 // A MAC identifies the hardware. Two records claiming one
                 // means somebody entered the same device twice.
                 'regex:/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/',
-                Rule::unique('access_points', 'mac_address')->ignore($this->route('access_point')),
+                Rule::unique('network_devices', 'mac_address')->ignore($this->route('access_point')),
             ],
             'ip_address' => ['nullable', 'ip'],
             'client_capacity' => ['required', 'integer', 'min:1', 'max:2000'],
@@ -43,8 +43,8 @@ class AccessPointRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ap_code.unique' => 'Another access point already uses that code.',
-            'mac_address.unique' => 'That MAC address is already registered to another access point.',
+            'code.unique' => 'Another device already uses that code.',
+            'mac_address.unique' => 'That MAC address is already registered to another device.',
             'mac_address.regex' => 'Use the form 00:1B:44:11:3A:B7.',
         ];
     }
@@ -52,7 +52,7 @@ class AccessPointRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge(array_filter([
-            'ap_code' => $this->filled('ap_code') ? strtoupper(trim($this->string('ap_code'))) : null,
+            'code' => $this->filled('code') ? strtoupper(trim($this->string('code'))) : null,
             // Accept 00-1B-44 and lowercase; store one canonical form so a
             // duplicate cannot slip past the unique index on formatting alone.
             'mac_address' => $this->filled('mac_address')

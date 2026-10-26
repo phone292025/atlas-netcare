@@ -44,7 +44,7 @@ class AccessPointInventoryTest extends TestCase
     private function validPayload(array $overrides = []): array
     {
         return array_merge([
-            'ap_code' => 'AP-L6-03',
+            'code' => 'AP-L6-03',
             'location_id' => Location::factory()->create()->id,
             'model' => 'Cisco C9120AXI',
             'mac_address' => '00:1B:44:11:3A:B7',
@@ -72,7 +72,7 @@ class AccessPointInventoryTest extends TestCase
             ->post(route('admin.aps.store'), $this->validPayload())
             ->assertForbidden();
 
-        $this->assertDatabaseCount('access_points', 0);
+        $this->assertDatabaseCount('network_devices', 0);
     }
 
     // ------------------------------------------------------------ create
@@ -83,8 +83,8 @@ class AccessPointInventoryTest extends TestCase
             ->post(route('admin.aps.store'), $this->validPayload())
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('access_points', [
-            'ap_code' => 'AP-L6-03',
+        $this->assertDatabaseHas('network_devices', [
+            'code' => 'AP-L6-03',
             'mac_address' => '00:1B:44:11:3A:B7',
         ]);
     }
@@ -102,7 +102,7 @@ class AccessPointInventoryTest extends TestCase
             ]))
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('access_points', ['mac_address' => '00:1B:44:11:3A:B7']);
+        $this->assertDatabaseHas('network_devices', ['mac_address' => '00:1B:44:11:3A:B7']);
     }
 
     public function test_a_duplicate_mac_address_is_rejected_however_it_is_written(): void
@@ -111,12 +111,12 @@ class AccessPointInventoryTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('admin.aps.store'), $this->validPayload([
-                'ap_code' => 'AP-L6-04',
+                'code' => 'AP-L6-04',
                 'mac_address' => '00-1b-44-11-3a-b7',
             ]))
             ->assertSessionHasErrors('mac_address');
 
-        $this->assertDatabaseCount('access_points', 1);
+        $this->assertDatabaseCount('network_devices', 1);
     }
 
     public function test_a_malformed_mac_address_is_rejected(): void
@@ -126,15 +126,15 @@ class AccessPointInventoryTest extends TestCase
             ->assertSessionHasErrors('mac_address');
     }
 
-    public function test_a_duplicate_ap_code_is_rejected(): void
+    public function test_a_duplicate_code_is_rejected(): void
     {
-        AccessPoint::factory()->create(['ap_code' => 'AP-L6-03']);
+        AccessPoint::factory()->create(['code' => 'AP-L6-03']);
 
         $this->actingAs($this->admin())
             ->post(route('admin.aps.store'), $this->validPayload([
                 'mac_address' => '00:1B:44:11:3A:C9',
             ]))
-            ->assertSessionHasErrors('ap_code');
+            ->assertSessionHasErrors('code');
     }
 
     public function test_client_capacity_is_required(): void
@@ -154,7 +154,7 @@ class AccessPointInventoryTest extends TestCase
 
         $this->actingAs($this->admin())
             ->patch(route('admin.aps.update', $ap), $this->validPayload([
-                'ap_code' => $ap->ap_code,
+                'code' => $ap->code,
                 'location_id' => $ap->location_id,
                 'mac_address' => $ap->mac_address,
                 'status' => NetworkStatus::Maintenance->value,
@@ -172,7 +172,7 @@ class AccessPointInventoryTest extends TestCase
 
         $this->actingAs($this->admin())
             ->patch(route('admin.aps.update', $ap), $this->validPayload([
-                'ap_code' => $ap->ap_code,
+                'code' => $ap->code,
                 'location_id' => $ap->location_id,
                 'mac_address' => $ap->mac_address,
                 'last_seen_at' => now()->toDateTimeString(),
@@ -191,31 +191,31 @@ class AccessPointInventoryTest extends TestCase
             ->delete(route('admin.aps.destroy', $ap))
             ->assertRedirect(route('admin.aps.index'));
 
-        $this->assertSoftDeleted('access_points', ['id' => $ap->id]);
+        $this->assertSoftDeleted('network_devices', ['id' => $ap->id]);
     }
 
     public function test_a_removed_access_point_drops_out_of_the_default_list(): void
     {
-        $kept = AccessPoint::factory()->create(['ap_code' => 'AP-L6-01']);
-        $gone = AccessPoint::factory()->create(['ap_code' => 'AP-L6-02']);
+        $kept = AccessPoint::factory()->create(['code' => 'AP-L6-01']);
+        $gone = AccessPoint::factory()->create(['code' => 'AP-L6-02']);
         $gone->delete();
 
         $this->actingAs($this->admin())
             ->get(route('admin.aps.index'))
             ->assertOk()
-            ->assertSee($kept->ap_code)
-            ->assertDontSee($gone->ap_code);
+            ->assertSee($kept->code)
+            ->assertDontSee($gone->code);
     }
 
     public function test_a_removed_access_point_is_listed_when_asked_for(): void
     {
-        $gone = AccessPoint::factory()->create(['ap_code' => 'AP-L6-02']);
+        $gone = AccessPoint::factory()->create(['code' => 'AP-L6-02']);
         $gone->delete();
 
         $this->actingAs($this->admin())
             ->get(route('admin.aps.index', ['removed' => 1]))
             ->assertOk()
-            ->assertSee($gone->ap_code);
+            ->assertSee($gone->code);
     }
 
     public function test_a_removed_access_point_keeps_its_history_reachable(): void
@@ -226,7 +226,7 @@ class AccessPointInventoryTest extends TestCase
         $this->actingAs($this->admin())
             ->get(route('admin.aps.show', $ap))
             ->assertOk()
-            ->assertSee($ap->ap_code);
+            ->assertSee($ap->code);
     }
 
     public function test_a_removed_access_point_can_be_restored(): void
@@ -238,6 +238,6 @@ class AccessPointInventoryTest extends TestCase
             ->patch(route('admin.aps.restore', $ap))
             ->assertRedirect(route('admin.aps.show', $ap));
 
-        $this->assertNotSoftDeleted('access_points', ['id' => $ap->id]);
+        $this->assertNotSoftDeleted('network_devices', ['id' => $ap->id]);
     }
 }

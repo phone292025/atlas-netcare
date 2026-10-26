@@ -45,6 +45,16 @@ class Location extends Model
     }
 
     /**
+     * Every network device here, access points included.
+     *
+     * @return HasMany<NetworkDevice, $this>
+     */
+    public function networkDevices(): HasMany
+    {
+        return $this->hasMany(NetworkDevice::class);
+    }
+
+    /**
      * "L6-IT-01 — Level 6 IT Lab 01", for a select or a table cell.
      *
      * The code comes first because that is what is printed on the door and

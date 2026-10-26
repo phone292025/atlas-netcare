@@ -79,7 +79,7 @@ class MaintenancePriorityTest extends TestCase
          * order at all.
          */
         $pc = LabPc::factory()->create(['asset_tag' => 'APU-MID', 'risk_score' => 50, 'risk_band' => RiskBand::Medium]);
-        $ap = AccessPoint::factory()->create(['ap_code' => 'AP-TOP', 'risk_score' => 90, 'risk_band' => RiskBand::Critical]);
+        $ap = AccessPoint::factory()->create(['code' => 'AP-TOP', 'risk_score' => 90, 'risk_band' => RiskBand::Critical]);
 
         RiskAssessment::factory()->forAsset($pc)->score(50)->create();
         RiskAssessment::factory()->forAsset($ap)->score(90)->create();
@@ -241,7 +241,7 @@ class MaintenancePriorityTest extends TestCase
          * risk ranking is a different situation, and StoreTicketRequest has
          * always accepted access_point.
          */
-        $ap = AccessPoint::factory()->create(['ap_code' => 'AP-RISK', 'risk_score' => 80, 'risk_band' => RiskBand::High]);
+        $ap = AccessPoint::factory()->create(['code' => 'AP-RISK', 'risk_score' => 80, 'risk_band' => RiskBand::High]);
         RiskAssessment::factory()->forAsset($ap)->score(80)->create();
 
         $this->actingAs($this->engineer())

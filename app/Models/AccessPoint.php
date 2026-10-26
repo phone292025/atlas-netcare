@@ -2,59 +2,55 @@
 
 namespace App\Models;
 
-use App\Enums\NetworkStatus;
+use App\Enums\DeviceKind;
 use App\Enums\RiskBand;
 use App\Enums\SimulationScenario;
 use Database\Factories\AccessPointFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * A Wi-Fi access point in one of the monitored zones.
  *
- * `status` here is the ADMINISTRATIVE state of the device and may be
- * `maintenance` — an engineer sets that to suppress alarms during planned
- * work. It is a wider set than telemetry_readings.status, which records a
- * MEASURED state and only ever holds online / degraded / offline. M5 must not
- * cast that column to NetworkStatus.
+ * A network device of kind `access_point` (ADR-0016), in the same table as
+ * switches and routers. This class sees only that kind, and sets it on every
+ * access point it creates. What it adds is what only access points have:
+ * clients and a capacity, a risk score, and the simulator's scenarios.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
- * @see docs/progress/decision-log.md — 2026-08-27
+ * @see App\Models\NetworkDevice
  */
-class AccessPoint extends Model
+class AccessPoint extends NetworkDevice
 {
     /** @use HasFactory<AccessPointFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     /**
-     * Columns the audit log skips: caches whose history is kept elsewhere
-     * (telemetry_readings, risk_assessments). Auditing `last_seen_at` wrote
-     * one row per access point per minute. The collector also saves `status`
-     * quietly, since every reading records it; a status an administrator sets
-     * and a risk band change are still audited.
+     * Every new access point is one. 50 clients is the capacity the column
+     * defaulted to before it became nullable for other kinds.
      *
-     * @see App\Observers\AuditObserver
-     * @see App\Services\Telemetry\TelemetryService::store()
+     * @var array<string, mixed>
      */
-    public const AUDIT_EXCEPT = ['last_seen_at', 'risk_score'];
+    protected $attributes = [
+        'kind' => 'access_point',
+        'client_capacity' => 50,
+    ];
 
     /**
      * `risk_score`, `risk_band`, `last_seen_at` and `is_demo` are written by
      * the system — the telemetry collector and M7's scoring run — never by a
      * form. So are `simulation_scenario` and `simulation_started_at`, which
-     * only SimulationService sets.
+     * only SimulationService sets. `kind` is fixed, so it is not here.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'ap_code',
+        'code',
         'location_id',
+        'parent_id',
         'model',
         'mac_address',
         'ip_address',
@@ -63,46 +59,24 @@ class AccessPoint extends Model
         'status',
     ];
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope('access_points', function (Builder $query): void {
+            $query->where($query->qualifyColumn('kind'), DeviceKind::AccessPoint->value);
+        });
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
-            'status' => NetworkStatus::class,
+            ...parent::casts(),
             'simulation_scenario' => SimulationScenario::class,
             'simulation_started_at' => 'datetime',
             'risk_band' => RiskBand::class,
-            'installed_at' => 'date',
-            'last_seen_at' => 'datetime',
             'risk_score' => 'decimal:2',
             'client_capacity' => 'integer',
-            'is_demo' => 'boolean',
         ];
-    }
-
-    /** @return BelongsTo<Location, $this> */
-    public function location(): BelongsTo
-    {
-        return $this->belongsTo(Location::class);
-    }
-
-    /**
-     * Access points the collector should poll.
-     *
-     * An access point under planned maintenance is skipped, so it does not
-     * generate offline alarms while somebody is standing on a ladder holding
-     * it.
-     *
-     * @param  Builder<AccessPoint>  $query
-     */
-    public function scopeCollectable(Builder $query): void
-    {
-        $query->where('status', '!=', NetworkStatus::Maintenance);
-    }
-
-    /** @param  Builder<AccessPoint>  $query */
-    public function scopeDemo(Builder $query): void
-    {
-        $query->where('is_demo', true);
     }
 
     /**
@@ -116,20 +90,6 @@ class AccessPoint extends Model
         return $this->client_capacity > 0
             ? $clientCount / $this->client_capacity
             : null;
-    }
-
-    /**
-     * Faults raised against this asset.
-     *
-     * Polymorphic because `tickets.ticketable` covers both asset types, so
-     * M7's fault-frequency factor reads the same relation whichever it is
-     * scoring.
-     *
-     * @return MorphMany<Ticket, $this>
-     */
-    public function tickets(): MorphMany
-    {
-        return $this->morphMany(Ticket::class, 'ticketable');
     }
 
     /**
@@ -167,6 +127,6 @@ class AccessPoint extends Model
      */
     public function hourly(): HasMany
     {
-        return $this->hasMany(TelemetryHourly::class);
+        return $this->hasMany(TelemetryHourly::class, 'access_point_id');
     }
 }

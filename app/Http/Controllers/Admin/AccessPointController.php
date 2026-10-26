@@ -29,7 +29,7 @@ class AccessPointController extends Controller
             'accessPoints' => AccessPoint::query()
                 ->with('location')
                 ->when($request->string('search')->trim()->value(), fn ($q, $term) => $q->where(
-                    fn ($q) => $q->whereLike('ap_code', "%{$term}%")
+                    fn ($q) => $q->whereLike('code', "%{$term}%")
                         ->orWhereLike('mac_address', "%{$term}%")
                         ->orWhereLike('ip_address', "%{$term}%")
                 ))
@@ -67,7 +67,7 @@ class AccessPointController extends Controller
 
         return redirect()
             ->route('admin.aps.show', $ap)
-            ->with('success', "{$ap->ap_code} added to the inventory.");
+            ->with('success', "{$ap->code} added to the inventory.");
     }
 
     public function show(AccessPoint $accessPoint): View
@@ -96,7 +96,7 @@ class AccessPointController extends Controller
 
         return redirect()
             ->route('admin.aps.show', $accessPoint)
-            ->with('success', "{$accessPoint->ap_code} updated.");
+            ->with('success', "{$accessPoint->code} updated.");
     }
 
     public function destroy(AccessPoint $accessPoint): RedirectResponse
@@ -105,7 +105,7 @@ class AccessPointController extends Controller
 
         return redirect()
             ->route('admin.aps.index')
-            ->with('success', "{$accessPoint->ap_code} removed. Its telemetry history is kept.");
+            ->with('success', "{$accessPoint->code} removed. Its telemetry history is kept.");
     }
 
     public function restore(AccessPoint $accessPoint): RedirectResponse
@@ -114,7 +114,7 @@ class AccessPointController extends Controller
 
         return redirect()
             ->route('admin.aps.show', $accessPoint)
-            ->with('success', "{$accessPoint->ap_code} is back in the inventory.");
+            ->with('success', "{$accessPoint->code} is back in the inventory.");
     }
 
     /** @return array<int, string> */
@@ -125,8 +125,8 @@ class AccessPointController extends Controller
 
     private function sortColumn(Request $request): string
     {
-        return in_array($request->string('sort')->value(), ['ap_code', 'status', 'client_capacity', 'last_seen_at'], true)
+        return in_array($request->string('sort')->value(), ['code', 'status', 'client_capacity', 'last_seen_at'], true)
             ? $request->string('sort')->value()
-            : 'ap_code';
+            : 'code';
     }
 }

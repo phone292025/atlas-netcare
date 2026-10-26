@@ -236,6 +236,7 @@ read better on the model than in a service.
 | `InspectionResult.php` | One answer to one checklist item within one inspection |
 | `LabPc.php` | A university-owned lab workstation |
 | `Location.php` | A campus place that houses assets: a lab, the library, the cafeteria |
+| `NetworkDevice.php` | Anything on the network Atlas watches: an access point, a switch, a router |
 | `RiskAssessment.php` | One predictive risk score for one asset, at one moment |
 | `Shift.php` | One assistant, on one date, in one place |
 | `ShiftTemplate.php` | A recurring weekly slot (Q4) |
@@ -268,6 +269,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `Concerns/HasValues.php` | Shared helpers for every backed enum in the system |
 | `Contracts/HasLabel.php` | Every enum in Atlas NetCare carries its own human-readable label, so a form |
 | `Contracts/HasTone.php` | A status that carries semantic colour |
+| `DeviceKind.php` | What a network device is (ADR-0016) |
 | `DeviceStatus.php` | Operational state of a lab PC |
 | `InspectionOutcome.php` | The overall outcome of one inspection |
 | `NetworkStatus.php` | Operational state of a network device: an access point, a switch, a router |
@@ -419,6 +421,7 @@ database that already ran it.
 | `2026_09_08_090001_finish_converting_domain_timestamps_to_datetime.php` | Disarm the rest of the MariaDB timestamp trap, rather than leaving it loaded |
 | `2026_09_19_090001_add_simulation_scenario_to_access_points_table.php` | Which condition the simulated driver is forcing on an access point, if any |
 | `2026_09_23_090001_add_inspection_result_id_to_tickets_table.php` | Which checklist answer a ticket was raised from (FR-207) |
+| `2026_10_27_090001_turn_access_points_into_network_devices.php` | Access points become one kind of network device (ADR-0016) |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -452,6 +455,7 @@ for tests.
 | `InspectionResultFactory.php` | _no summary in the file_ |
 | `LabPcFactory.php` | Lab workstations for tests and for M2's demo data |
 | `LocationFactory.php` | Locations are reference data, so the real ones are written out explicitly in |
+| `NetworkDeviceFactory.php` | Switches, routers and servers. Access points have AccessPointFactory, with |
 | `RiskAssessmentFactory.php` | A stored risk score |
 | `ShiftFactory.php` | Defaults to a shift scheduled for today that has not been started |
 | `ShiftTemplateFactory.php` | _no summary in the file_ |
@@ -686,6 +690,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/SlaLineTest.php` | <x-sla-line>: a ticket's time against its target, drawn as a line |
 | `Feature/Telemetry/CollectionGapTest.php` | The first collection round after the scheduler has been off |
 | `Feature/Telemetry/DashboardHealthTest.php` | The engineer's dashboard: access points by room, and a reading over the |
+| `Feature/Telemetry/NetworkDeviceTest.php` | Access points as one kind of network device (ADR-0016) |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |

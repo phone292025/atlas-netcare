@@ -1,7 +1,7 @@
 <x-app-layout>
-    <x-slot name="title">Edit {{ $accessPoint->ap_code }}</x-slot>
+    <x-slot name="title">Edit {{ $accessPoint->code }}</x-slot>
 
-    <x-page-header :title="'Edit '.$accessPoint->ap_code" :subtitle="$accessPoint->location?->label()">
+    <x-page-header :title="'Edit '.$accessPoint->code" :subtitle="$accessPoint->location?->label()">
         <x-slot:actions>
             <a href="{{ route('admin.aps.show', $accessPoint) }}"
                class="btn btn-secondary">View</a>
@@ -28,7 +28,7 @@
         </x-card>
     </form>
 
-    <x-modal name="confirm-remove-ap" title="Remove {{ $accessPoint->ap_code }}?">
+    <x-modal name="confirm-remove-ap" title="Remove {{ $accessPoint->code }}?">
         <p>It stops being polled and drops off the dashboard. Its telemetry readings
            and alarm history are kept. This is not a deletion, and it can be brought back.</p>
         <p class="mt-2 text-fg-muted">If the unit is only coming down for planned work,

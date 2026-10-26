@@ -77,7 +77,7 @@ class SimulationService
 
         if ($target?->status === NetworkStatus::Maintenance) {
             throw new DomainException(
-                "{$target->ap_code} is under maintenance, so the collector does not poll it. "
+                "{$target->code} is under maintenance, so the collector does not poll it. "
                 .'Take it out of maintenance first.'
             );
         }

@@ -391,7 +391,7 @@ class TelemetryPipelineTest extends TestCase
             if ($unreachable) {
                 $this->assertNull(
                     $ap->last_seen_at,
-                    "{$ap->ap_code} did not answer but was stamped as seen.",
+                    "{$ap->code} did not answer but was stamped as seen.",
                 );
 
                 continue;
@@ -401,7 +401,7 @@ class TelemetryPipelineTest extends TestCase
 
             $this->assertNotNull(
                 $ap->last_seen_at,
-                "{$ap->ap_code} answered but was not stamped as seen.",
+                "{$ap->code} answered but was not stamped as seen.",
             );
         }
 
@@ -535,8 +535,8 @@ class TelemetryPipelineTest extends TestCase
             }
 
             $answered++;
-            $this->assertSame(NetworkStatus::Online, $ap->status, "{$ap->ap_code} answered but was marked offline.");
-            $this->assertSame(0, Ticket::where('ticketable_id', $ap->id)->count(), "{$ap->ap_code} answered but got a ticket.");
+            $this->assertSame(NetworkStatus::Online, $ap->status, "{$ap->code} answered but was marked offline.");
+            $this->assertSame(0, Ticket::where('ticketable_id', $ap->id)->count(), "{$ap->code} answered but got a ticket.");
         }
 
         $this->assertGreaterThan(0, $answered, 'Every access point was unreachable at once.');
@@ -552,8 +552,8 @@ class TelemetryPipelineTest extends TestCase
          * demonstration data; one a person raised is not, whatever the asset.
          */
         $this->userWith(UserRole::Admin);
-        $demo = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'ap_code' => 'AP-DEMO']);
-        $real = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'ap_code' => 'AP-REAL']);
+        $demo = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'code' => 'AP-DEMO']);
+        $real = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value, 'code' => 'AP-REAL']);
         // Set explicitly on both: is_demo is not fillable, and the factory's
         // default is deliberately not what this test is about.
         $demo->forceFill(['is_demo' => true])->save();
@@ -750,7 +750,7 @@ class TelemetryPipelineTest extends TestCase
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->get(route('engineer.aps.show', $ap))
             ->assertOk()
-            ->assertSee($ap->ap_code);
+            ->assertSee($ap->code);
     }
 
     /**
@@ -785,7 +785,7 @@ class TelemetryPipelineTest extends TestCase
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->get(route('engineer.traffic.index'))
             ->assertOk()
-            ->assertSee($ap->ap_code);
+            ->assertSee($ap->code);
     }
 
     public function test_a_removed_access_point_keeps_its_name_in_the_traffic_log(): void
@@ -799,7 +799,7 @@ class TelemetryPipelineTest extends TestCase
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->get(route('engineer.traffic.index'))
             ->assertOk()
-            ->assertSee($ap->ap_code)
+            ->assertSee($ap->code)
             ->assertDontSee(route('engineer.aps.show', $ap));
     }
 
@@ -851,14 +851,14 @@ class TelemetryPipelineTest extends TestCase
                 ->orderByDesc('recorded_at')
                 ->first();
 
-            $this->assertNotNull($newest, "{$ap->ap_code} got no readings at all.");
+            $this->assertNotNull($newest, "{$ap->code} got no readings at all.");
 
             // A reading's `status` is a plain string, deliberately: it records
             // a measured state and never carries `maintenance`.
             $this->assertSame(
                 $newest->status,
                 $ap->status->value,
-                "{$ap->ap_code} reports {$ap->status->value} while its newest reading says {$newest->status}.",
+                "{$ap->code} reports {$ap->status->value} while its newest reading says {$newest->status}.",
             );
 
             $lastAnswered = TelemetryReading::query()
@@ -871,7 +871,7 @@ class TelemetryPipelineTest extends TestCase
                 $this->assertSame(
                     $lastAnswered->recorded_at->toDateTimeString(),
                     $ap->last_seen_at?->toDateTimeString(),
-                    "{$ap->ap_code} was last heard from at {$lastAnswered->recorded_at}.",
+                    "{$ap->code} was last heard from at {$lastAnswered->recorded_at}.",
                 );
             }
         }

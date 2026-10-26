@@ -64,7 +64,7 @@ class TelemetryCollector
 
         foreach ($transitions as $change) {
             $ap = $change['access_point'];
-            $line = "{$ap->ap_code}: {$change['from']->label()} → {$change['to']->label()}";
+            $line = "{$ap->code}: {$change['from']->label()} → {$change['to']->label()}";
             $report($change['to'] === NetworkStatus::Online ? 'info' : 'warn', $line);
 
             /*
@@ -79,7 +79,7 @@ class TelemetryCollector
              */
             if ($change['to'] === NetworkStatus::Offline) {
                 $this->raiseOfflineTicket($ap, $report);
-                $this->alertEngineers(AlarmType::ApOffline, $ap, "{$ap->ap_code} is not responding", $ap->location?->label());
+                $this->alertEngineers(AlarmType::ApOffline, $ap, "{$ap->code} is not responding", $ap->location?->label());
             } elseif ($change['to'] === NetworkStatus::Degraded && $change['from'] === NetworkStatus::Online
                 && ! $this->alarms->raisedRecently(AlarmType::ApDegraded, $ap, (int) config('atlas.thresholds.degraded_alert_cooldown_min'))) {
                 $why = 'Latency, packet loss or load has been over its threshold for '
@@ -88,7 +88,7 @@ class TelemetryCollector
                 $this->alertEngineers(
                     AlarmType::ApDegraded,
                     $ap,
-                    "{$ap->ap_code} is degraded",
+                    "{$ap->code} is degraded",
                     $ap->location ? "{$ap->location->label()}. {$why}" : $why,
                 );
             }
@@ -124,7 +124,7 @@ class TelemetryCollector
 
         if (! $reporter) {
             // Say so rather than failing the round: the reading is stored.
-            $report('warn', "No administrator to attribute the auto-ticket for {$ap->ap_code}.");
+            $report('warn', "No administrator to attribute the auto-ticket for {$ap->code}.");
 
             return;
         }
@@ -132,8 +132,8 @@ class TelemetryCollector
         // An absolute campus time, because the description is saved: "2
         // hours ago" would still say so next week.
         $this->tickets->open([
-            'title' => "{$ap->ap_code} is not responding",
-            'description' => "Raised automatically: no response from {$ap->ap_code}"
+            'title' => "{$ap->code} is not responding",
+            'description' => "Raised automatically: no response from {$ap->code}"
                 .($ap->location ? " in {$ap->location->label()}" : '')
                 .'. Last seen '.($ap->last_seen_at?->campus()->format('j M Y, H:i') ?? 'never').'.',
             'category' => TicketCategory::Network->value,
@@ -141,7 +141,7 @@ class TelemetryCollector
             'location_id' => $ap->location_id,
         ], $reporter, $ap, isDemo: (bool) $ap->is_demo);
 
-        $report('warn', "Raised a ticket for {$ap->ap_code}.");
+        $report('warn', "Raised a ticket for {$ap->code}.");
     }
 
     /**

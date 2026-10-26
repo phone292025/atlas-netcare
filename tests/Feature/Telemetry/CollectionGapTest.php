@@ -68,7 +68,7 @@ class CollectionGapTest extends TestCase
             ->assertExitCode(0);
 
         foreach ($aps as $ap) {
-            $this->assertLessThanOrEqual(5, $this->longestSilence($ap, now()->subHours(3)), "{$ap->ap_code} still has a hole.");
+            $this->assertLessThanOrEqual(5, $this->longestSilence($ap, now()->subHours(3)), "{$ap->code} still has a hole.");
             $this->assertSame(now()->toDateTimeString(), TelemetryReading::where('access_point_id', $ap->id)->max('recorded_at'));
         }
     }

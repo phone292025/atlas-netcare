@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Telemetry;
 
+use App\Enums\DeviceKind;
 use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,7 +26,7 @@ class RunSimulationRequest extends FormRequest
     {
         return [
             'scenario' => ['required', Rule::in([...SimulationScenario::values(), self::RECOVERY])],
-            'access_point_id' => ['nullable', 'integer', Rule::exists('access_points', 'id')->whereNull('deleted_at')],
+            'access_point_id' => ['nullable', 'integer', Rule::exists('network_devices', 'id')->where('kind', DeviceKind::AccessPoint->value)->whereNull('deleted_at')],
         ];
     }
 

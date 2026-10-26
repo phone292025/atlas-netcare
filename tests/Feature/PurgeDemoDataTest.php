@@ -162,7 +162,7 @@ class PurgeDemoDataTest extends TestCase
 
         $this->artisan('atlas:purge-demo-data', ['--force' => true])->assertExitCode(0);
 
-        $this->assertDatabaseHas('access_points', ['id' => $realAp->id]);
+        $this->assertDatabaseHas('network_devices', ['id' => $realAp->id]);
         $this->assertSame(0, TelemetryHourly::where('source', 'simulated')->count());
         $this->assertSame(1, TelemetryHourly::where('source', 'live')->count());
     }

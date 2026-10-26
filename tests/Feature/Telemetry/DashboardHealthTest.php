@@ -33,8 +33,8 @@ class DashboardHealthTest extends TestCase
 
     public function test_a_reading_over_the_limits_is_flagged_while_the_status_is_still_online(): void
     {
-        $slow = AccessPoint::factory()->create(['ap_code' => 'AP-01', 'client_capacity' => 80]);
-        $fine = AccessPoint::factory()->create(['ap_code' => 'AP-02', 'client_capacity' => 80]);
+        $slow = AccessPoint::factory()->create(['code' => 'AP-01', 'client_capacity' => 80]);
+        $fine = AccessPoint::factory()->create(['code' => 'AP-02', 'client_capacity' => 80]);
 
         TelemetryReading::factory()->slow()->create(['access_point_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
         TelemetryReading::factory()->create(['access_point_id' => $fine->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 4]);
@@ -50,8 +50,8 @@ class DashboardHealthTest extends TestCase
     {
         // Saturation counts as over the limits too, but a full access point
         // is not a slow one. Calling it "slow" sent people after the wrong fault.
-        $slow = AccessPoint::factory()->create(['ap_code' => 'AP-01', 'client_capacity' => 80]);
-        $busy = AccessPoint::factory()->create(['ap_code' => 'AP-02', 'client_capacity' => 30]);
+        $slow = AccessPoint::factory()->create(['code' => 'AP-01', 'client_capacity' => 80]);
+        $busy = AccessPoint::factory()->create(['code' => 'AP-02', 'client_capacity' => 30]);
 
         TelemetryReading::factory()->slow()->create(['access_point_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
         TelemetryReading::factory()->create(['access_point_id' => $busy->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 28]);
@@ -65,14 +65,14 @@ class DashboardHealthTest extends TestCase
 
     public function test_an_access_point_with_no_reading_is_not_called_slow(): void
     {
-        AccessPoint::factory()->create(['ap_code' => 'AP-01']);
+        AccessPoint::factory()->create(['code' => 'AP-01']);
 
         $this->assertFalse($this->payload()['AP-01']['over_threshold']);
     }
 
     public function test_each_access_point_carries_its_room_for_grouping(): void
     {
-        $ap = AccessPoint::factory()->create(['ap_code' => 'AP-01']);
+        $ap = AccessPoint::factory()->create(['code' => 'AP-01']);
 
         $this->assertSame($ap->location->name, $this->payload()['AP-01']['location_name']);
     }

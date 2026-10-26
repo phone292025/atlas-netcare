@@ -124,7 +124,7 @@ class AuditObserver
      */
     private function describe(Model $model): string
     {
-        foreach (['email', 'asset_tag', 'ap_code', 'code', 'name', 'title'] as $attribute) {
+        foreach (['email', 'asset_tag', 'code', 'name', 'title'] as $attribute) {
             if (filled($model->getAttribute($attribute))) {
                 return (string) $model->getAttribute($attribute);
             }

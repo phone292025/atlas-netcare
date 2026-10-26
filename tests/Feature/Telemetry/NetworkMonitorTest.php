@@ -68,7 +68,7 @@ class NetworkMonitorTest extends TestCase
             }
         }
 
-        $this->fail("{$ap->ap_code} was in an outage for ten hours straight; the simulator is broken.");
+        $this->fail("{$ap->code} was in an outage for ten hours straight; the simulator is broken.");
     }
 
     private function driverThatIsNotTheSimulator(): void
@@ -178,11 +178,11 @@ class NetworkMonitorTest extends TestCase
 
     public function test_an_access_point_with_no_recent_reading_is_unknown_not_its_old_status(): void
     {
-        $fresh = AccessPoint::factory()->create(['ap_code' => 'AP-FRESH']);
-        $old = AccessPoint::factory()->create(['ap_code' => 'AP-OLD']);
-        $never = AccessPoint::factory()->create(['ap_code' => 'AP-NEVER']);
-        $offline = AccessPoint::factory()->create(['ap_code' => 'AP-DOWN', 'status' => NetworkStatus::Offline]);
-        $held = AccessPoint::factory()->create(['ap_code' => 'AP-HELD', 'status' => NetworkStatus::Maintenance]);
+        $fresh = AccessPoint::factory()->create(['code' => 'AP-FRESH']);
+        $old = AccessPoint::factory()->create(['code' => 'AP-OLD']);
+        $never = AccessPoint::factory()->create(['code' => 'AP-NEVER']);
+        $offline = AccessPoint::factory()->create(['code' => 'AP-DOWN', 'status' => NetworkStatus::Offline]);
+        $held = AccessPoint::factory()->create(['code' => 'AP-HELD', 'status' => NetworkStatus::Maintenance]);
 
         TelemetryReading::factory()->create(['access_point_id' => $fresh->id, 'recorded_at' => now()->subMinute(), 'client_count' => 12]);
         TelemetryReading::factory()->create(['access_point_id' => $old->id, 'recorded_at' => now()->subHours(2), 'client_count' => 30]);
@@ -292,7 +292,7 @@ class NetworkMonitorTest extends TestCase
         $this->actingAs($this->userWith(UserRole::Assistant))
             ->getJson(route('api.monitor.aps.show', $ap))
             ->assertOk()
-            ->assertJsonPath('code', $ap->ap_code)
+            ->assertJsonPath('code', $ap->code)
             ->assertJsonPath('ip_address', '10.20.1.11')
             ->assertJsonPath('latency_ms', 21)
             ->assertJsonCount(1, 'activity');

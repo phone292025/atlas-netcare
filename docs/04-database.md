@@ -23,12 +23,12 @@ Apply these everywhere. They are not negotiable per-module.
 | Booleans | `is_` or `has_` prefix | Reads as a predicate |
 | Timestamps | past-tense verb + `_at` | `resolved_at`, `last_seen_at` |
 | Event columns | `dateTime`, never `timestamp` | MariaDB, which Atlas ran on until 2026-10-22, rewrote a `timestamp` column behind your back. See [the trap below](#datetime-not-timestamp) |
-| Soft deletes | On `users`, `lab_pcs`, `access_points` | Retiring a machine must not erase its history |
+| Soft deletes | On `users`, `lab_pcs`, `network_devices` | Retiring a machine must not erase its history |
 | Timestamps block | `$table->timestamps()` on every table except `telemetry_readings` | Telemetry has its own `recorded_at`; two extra datetimes × millions of rows is waste |
 
 ### Required unique keys
 
-`users.email` · `users.tp_number` · `lab_pcs.asset_tag` · `access_points.ap_code` · `access_points.mac_address` · `tickets.ticket_number` · `locations.code`
+`users.email` · `users.tp_number` · `lab_pcs.asset_tag` · `network_devices.code` · `network_devices.mac_address` · `tickets.ticket_number` · `locations.code`
 
 > Duplicate asset tags are the classic inventory-system demo failure. Enforce it at the database level, not in a validation rule alone.
 
@@ -71,7 +71,8 @@ PostgreSQL 16 with the TimescaleDB 2.31 extension, the `db` service in `compose.
 erDiagram
     USERS ||--o{ AUDIT_LOGS : records
     LOCATIONS ||--o{ LAB_PCS : houses
-    LOCATIONS ||--o{ ACCESS_POINTS : houses
+    LOCATIONS ||--o{ NETWORK_DEVICES : houses
+    NETWORK_DEVICES ||--o{ NETWORK_DEVICES : "parent of"
 
     USERS {
         bigint id PK
@@ -112,14 +113,17 @@ erDiagram
         boolean is_demo
         timestamp deleted_at
     }
-    ACCESS_POINTS {
+    NETWORK_DEVICES {
         bigint id PK
-        string ap_code UK
+        string kind "access_point|switch|router|server|other"
+        string code UK
+        string name "nullable"
         bigint location_id FK
+        bigint parent_id FK "nullable, another network device"
         string model
-        string mac_address UK
+        string mac_address UK "nullable"
         string ip_address
-        smallint client_capacity
+        smallint client_capacity "access points only"
         date installed_at
         string status "online|degraded|offline|maintenance"
         string simulation_scenario "nullable: congestion|outage|feed_interruption"
@@ -267,9 +271,9 @@ erDiagram
 
 ```mermaid
 erDiagram
-    ACCESS_POINTS ||--o{ TELEMETRY_READINGS : emits
-    ACCESS_POINTS ||--o{ TELEMETRY_HOURLY : "rolled up into"
-    ACCESS_POINTS ||--o{ RISK_ASSESSMENTS : scored
+    NETWORK_DEVICES ||--o{ TELEMETRY_READINGS : emits
+    NETWORK_DEVICES ||--o{ TELEMETRY_HOURLY : "rolled up into"
+    NETWORK_DEVICES ||--o{ RISK_ASSESSMENTS : "scored, access points only"
     LAB_PCS ||--o{ RISK_ASSESSMENTS : scored
 
     TELEMETRY_READINGS {
@@ -312,6 +316,19 @@ erDiagram
 ---
 
 ## Table notes
+
+### `network_devices` holds every kind of device
+
+Added 2026-10-27 (`2026_10_27_090001`, ADR-0016). Until then this was `access_points`. The table was renamed rather than copied, so every id stayed, and the readings, hourly rows, tickets, risk assessments, alarms and audit rows that point at those ids kept working unchanged. `ap_code` became `code`.
+
+`kind` says what a row is, and has no default: an insert that doesn't say fails rather than quietly becoming an access point. The `AccessPoint` model sees only rows of kind `access_point`, through a global scope, and sets that kind on every row it creates. `NetworkDevice` sees every kind, and loads an `access_point` row as an `AccessPoint`, so one found as a ticket's subject or a switch's child still has its capacity and risk score. That scope filters by kind, never by demo flag, so the rule against hiding demo rows is untouched.
+
+Only access points use `client_capacity`, `risk_score`, `risk_band` and `simulation_scenario`, so those are null on other kinds. `mac_address` is nullable because a device watched by ping may have none on record. It stays unique, and both engines allow any number of nulls under a unique index.
+
+`parent_id` is the device this one hangs from, such as the switch an access point plugs into. Phase 2 groups failures by it, so a loop must never be saved: `NetworkDevice::isSelfOrAncestorOf()` is the check. Deleting a parent for good sets its children's `parent_id` to null.
+
+On PostgreSQL the migration also renames the primary key, the location foreign key and the id sequence, which keep their old names through a table rename.
+
 
 ### `tickets` is polymorphic
 
@@ -363,7 +380,7 @@ Two things follow for anyone adding a column:
 
 A new row per asset per run, rather than overwriting. Costs a few thousand rows and buys the ability to chart an asset's risk trending upward over time.
 
-The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `access_points` are a deliberate cache of the latest assessment, so list views do not need a subquery. Update them in the same transaction that writes the assessment.
+The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `network_devices` (access points only) are a deliberate cache of the latest assessment, so list views do not need a subquery. Update them in the same transaction that writes the assessment.
 
 ### `checklist_templates.version`
 
@@ -389,7 +406,7 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 `status` here is a plain string and must **not** be cast to `NetworkStatus`. A reading records a MEASURED state — online, degraded or offline only. `NetworkStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
 
-### `access_points.simulation_scenario`
+### `network_devices.simulation_scenario`
 
 Added 2026-09-19 (`2026_09_19_090001`) for the Network monitor's simulation controls (FR-314). A string cast to `SimulationScenario` — `congestion`, `outage` or `feed_interruption` — and NULL for normal behaviour. `simulation_started_at` is `dateTime`, per the trap below.
 
@@ -413,7 +430,7 @@ The observer originally wrote only `changes`, from `getChanges()`. That answers 
 
 **That list is the model's own `$hidden`, not a list kept in the observer.** It used to be a hand-written `['updated_at', 'remember_token', 'password']`, and it missed `users.calendar_token` — the key that reads somebody's roster feed without signing in. Regenerating a calendar link put a working token into `audit_logs` in plain text. Keying off `$hidden` means the next secret column is covered by the act of declaring it secret. `updated_at` stays excluded separately: it is not a secret, just noise that would make every row look like something happened.
 
-**System-written caches are left out too, through the model's `AUDIT_EXCEPT`.** `access_points.last_seen_at` changes on every collection round, so auditing it wrote one row per access point per minute, about 42,000 a day, and buried every human action on the audit screen. `AccessPoint` excludes `last_seen_at` and `risk_score`; `LabPc` excludes `last_inspected_at` and `risk_score`. Their history is already kept in `telemetry_readings`, `inspections` and `risk_assessments`. A risk band change is still audited, and a save that changes nothing else writes no row. Rows written before 2026-09-23 may hold these heartbeats; they were left in place.
+**System-written caches are left out too, through the model's `AUDIT_EXCEPT`.** `network_devices.last_seen_at` changes on every collection round, so auditing it wrote one row per access point per minute, about 42,000 a day, and buried every human action on the audit screen. `AccessPoint` excludes `last_seen_at` and `risk_score`; `LabPc` excludes `last_inspected_at` and `risk_score`. Their history is already kept in `telemetry_readings`, `inspections` and `risk_assessments`. A risk band change is still audited, and a save that changes nothing else writes no row. Rows written before 2026-09-23 may hold these heartbeats; they were left in place.
 
 **The collector also saves an access point's `status` quietly** (`saveQuietly()`), because every reading row already records it and at peak an access point near a threshold flaps every few minutes: auditing each flap wrote hundreds of rows an hour, credited to whoever pressed "Generate sample". A status an administrator sets, such as maintenance, goes through a normal save and is audited.
 
@@ -421,6 +438,6 @@ The observer originally wrote only `changes`, from `getChanges()`. That answers 
 
 ### `is_demo`
 
-On `users`, `lab_pcs`, `access_points`, `tickets`. Set **only** by `DemoDataSeeder`, and read by `php artisan atlas:purge-demo-data`.
+On `users`, `lab_pcs`, `network_devices`, `tickets`. Set **only** by `DemoDataSeeder`, and read by `php artisan atlas:purge-demo-data`.
 
 Do **not** add a global Eloquent scope that hides demo rows. It will silently hide data during a demo and cost someone an afternoon.

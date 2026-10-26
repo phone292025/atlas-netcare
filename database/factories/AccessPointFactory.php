@@ -20,7 +20,7 @@ class AccessPointFactory extends Factory
     public function definition(): array
     {
         return [
-            'ap_code' => strtoupper($this->faker->unique()->bothify('AP-??-##')),
+            'code' => strtoupper($this->faker->unique()->bothify('AP-??-##')),
             'location_id' => Location::factory(),
             'model' => $this->faker->randomElement(['Cisco C9120AXI', 'Aruba AP-515', 'Ubiquiti U6-Pro']),
             'mac_address' => $this->faker->unique()->macAddress(),

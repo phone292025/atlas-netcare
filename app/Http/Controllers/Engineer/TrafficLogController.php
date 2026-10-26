@@ -43,8 +43,8 @@ class TrafficLogController extends Controller
             'rows' => $rows,
             'from' => $from,
             'to' => $to,
-            'accessPoints' => AccessPoint::orderBy('ap_code')->get()
-                ->mapWithKeys(fn ($ap) => [$ap->id => $ap->ap_code])->all(),
+            'accessPoints' => AccessPoint::orderBy('code')->get()
+                ->mapWithKeys(fn ($ap) => [$ap->id => $ap->code])->all(),
             'locations' => Location::orderBy('code')->get()
                 ->mapWithKeys(fn ($l) => [$l->id => $l->label()])->all(),
             'trend' => $this->campusTrend($from, $to, $request),

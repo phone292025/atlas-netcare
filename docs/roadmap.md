@@ -22,6 +22,7 @@ The cost: one PHP process becomes several (web, queue worker, scheduler, and lat
 | [0013](decisions/ADR-0013-probe-agent-in-go.md) | The agent is written in Go | Phase 1 |
 | [0014](decisions/ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets. Modules connected by events. The roster is the on-call schedule | Phase 2 |
 | [0015](decisions/ADR-0015-browser-tests-with-playwright.md) | Browser tests with Playwright, against a stack of their own | Phase 0 |
+| [0016](decisions/ADR-0016-network-devices-in-one-table.md) | Every network device in one table, access points as one kind | Phase 1 |
 
 Still to decide, each at the start of its phase: live updates over WebSockets (Phase 3, replacing ADR-0005), and the shape of the phone app (Phase 4).
 

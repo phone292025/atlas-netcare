@@ -119,7 +119,7 @@ class RecalculateRisk extends Command
                 '  %5.1f  %-10s %-14s %s',
                 $row->score,
                 $row->band->value,
-                $asset?->asset_tag ?? $asset?->ap_code ?? '—',
+                $asset?->asset_tag ?? $asset?->code ?? '—',
                 implode(', ', array_map(
                     fn ($k) => str_replace('_', ' ', $k),
                     array_keys($row->topFactors(2)),

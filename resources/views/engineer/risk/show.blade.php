@@ -1,6 +1,6 @@
 @php
     $isPc = $type === 'lab-pc';
-    $name = $isPc ? $asset->asset_tag : $asset->ap_code;
+    $name = $isPc ? $asset->asset_tag : $asset->code;
     $first = $history->first();
     $change = $latest && $first && $history->count() > 1 ? round($latest->score - $first->score) : null;
 @endphp

@@ -222,7 +222,7 @@ class DemoDataSeeder extends Seeder
 
         for ($i = 1; $i <= self::ACCESS_POINTS; $i++) {
             AccessPoint::factory()->demo()->create([
-                'ap_code' => sprintf('AP-%02d', $i),
+                'code' => sprintf('AP-%02d', $i),
                 'location_id' => $locations[$i % count($locations)],
                 'client_capacity' => [30, 50, 80][$i % 3],
             ]);

@@ -2,7 +2,7 @@
 
 **Depends on:** M1 · **Blocks:** M3, M5
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-27
 
 ## Purpose
 
@@ -14,7 +14,7 @@ FR-403, FR-404, FR-405 · NFR-08
 
 ## Tables owned
 
-`locations` · `lab_pcs` · `access_points` — see [../04-database.md](../04-database.md)
+`locations` · `lab_pcs` · `network_devices`, where access points are one kind ([ADR-0016](../decisions/ADR-0016-network-devices-in-one-table.md)) — see [../04-database.md](../04-database.md)
 
 ## Components
 

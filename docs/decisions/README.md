@@ -23,6 +23,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0013](ADR-0013-probe-agent-in-go.md) | Write the probe agent in Go | Accepted |
 | [0014](ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets, modules connected by events | Accepted |
 | [0015](ADR-0015-browser-tests-with-playwright.md) | Test the core flows in a browser with Playwright | Accepted |
+| [0016](ADR-0016-network-devices-in-one-table.md) | Keep every network device in one table, with access points as one kind | Accepted |
 
 ## Rules
 

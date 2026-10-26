@@ -1,6 +1,6 @@
 # System Diagrams
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-27
 >
 > **These four are the whole-system diagrams.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 
@@ -160,7 +160,8 @@ erDiagram
     USERS ||--o{ AUDIT_LOGS : acts
 
     LOCATIONS ||--o{ LAB_PCS : houses
-    LOCATIONS ||--o{ ACCESS_POINTS : houses
+    LOCATIONS ||--o{ NETWORK_DEVICES : houses
+    NETWORK_DEVICES ||--o{ NETWORK_DEVICES : parent_of
     LOCATIONS ||--o{ SHIFTS : hosts
     LOCATIONS ||--o{ SHIFT_TEMPLATES : hosts
     LOCATIONS ||--o{ TICKETS : locates
@@ -173,8 +174,8 @@ erDiagram
     INSPECTIONS ||--o| TICKETS : raises
 
     TICKETS ||--o{ TICKET_COMMENTS : has
-    ACCESS_POINTS ||--o{ TELEMETRY_READINGS : emits
-    ACCESS_POINTS ||--o{ TELEMETRY_HOURLY : rolls_up_to
+    NETWORK_DEVICES ||--o{ TELEMETRY_READINGS : emits
+    NETWORK_DEVICES ||--o{ TELEMETRY_HOURLY : rolls_up_to
 
     SHIFT_TEMPLATES ||--o{ SHIFTS : generates
     SHIFTS ||--o{ ALARMS : triggers
@@ -213,13 +214,16 @@ erDiagram
         boolean is_demo
         timestamp deleted_at "soft delete"
     }
-    ACCESS_POINTS {
+    NETWORK_DEVICES {
         bigint id PK
-        string ap_code UK
+        string kind "access_point|switch|router|server|other"
+        string code UK
+        string name "nullable"
         bigint location_id FK
-        string mac_address UK
+        bigint parent_id FK "nullable"
+        string mac_address UK "nullable"
         string ip_address
-        int client_capacity
+        int client_capacity "access points only"
         string status "online|degraded|offline|maintenance"
         decimal risk_score
         string risk_band

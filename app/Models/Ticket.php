@@ -178,7 +178,7 @@ class Ticket extends Model
         $asset = $this->ticketable;
 
         if ($asset) {
-            return $asset->asset_tag ?? $asset->ap_code ?? class_basename($asset).' #'.$asset->getKey();
+            return $asset->asset_tag ?? $asset->code ?? class_basename($asset).' #'.$asset->getKey();
         }
 
         return $this->location?->code ?? 'Unassigned';
