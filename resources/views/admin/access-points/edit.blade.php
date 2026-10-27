@@ -12,7 +12,7 @@
         @csrf
         @method('PATCH')
         <x-card>
-            @include('admin.access-points._form', ['accessPoint' => $accessPoint, 'locations' => $locations, 'statuses' => $statuses])
+            @include('admin.access-points._form', ['accessPoint' => $accessPoint])
             <x-slot:footer>
                 <div class="flex items-center justify-between gap-2">
                     <button type="button" @click="$dispatch('open-modal', 'confirm-remove-ap')"

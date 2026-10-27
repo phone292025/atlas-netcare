@@ -1,11 +1,18 @@
 {{-- Shared by create and edit.
-     Included with ['accessPoint' => AccessPoint|null, 'locations' => array, 'statuses' => array]. --}}
+     Included with ['accessPoint' => AccessPoint|null], beside $locations, $parents and $statuses. --}}
 <div class="space-y-4">
     <x-form.input name="code" label="AP code" required :value="$accessPoint?->code"
                   help="The label on the unit, e.g. AP-L6-03. Stored uppercase." />
 
-    <x-form.select name="location_id" label="Location" required :options="$locations"
-                   :selected="$accessPoint?->location_id" placeholder="Choose a location" />
+    <div class="grid gap-4 sm:grid-cols-2">
+        <x-form.select name="location_id" label="Location" required :options="$locations"
+                       :selected="$accessPoint?->location_id" placeholder="Choose a location" />
+        {{-- When the switch fails, its access points fail with it. Phase 2
+             opens one incident for the switch instead of one each. --}}
+        <x-form.select name="parent_id" label="Connected to" :options="$parents"
+                       :selected="$accessPoint?->parent_id" blank="Not recorded"
+                       help="The switch it plugs into. Add switches under Network devices." />
+    </div>
 
     <x-form.input name="model" label="Model" :value="$accessPoint?->model"
                   placeholder="Cisco Aironet 2802i" />

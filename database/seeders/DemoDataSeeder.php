@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\ChecklistResult;
+use App\Enums\DeviceKind;
 use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
 use App\Enums\NetworkStatus;
@@ -16,6 +17,7 @@ use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
@@ -63,7 +65,9 @@ class DemoDataSeeder extends Seeder
     {
         $this->demoAccounts();
         $this->labPcs();
+        $this->networkDevices();
         $this->accessPoints();
+        $this->connectAccessPoints();
         $this->telemetry();
         $this->inspections();
         $this->tickets();
@@ -191,6 +195,80 @@ class DemoDataSeeder extends Seeder
 
             $this->command?->line("  {$count} lab PCs — {$label}");
         }
+    }
+
+    /**
+     * A core router and one switch per room, connected to it (ADR-0016).
+     *
+     * So the network devices screen has something in it, and so access
+     * points have a switch to hang from: when one fails, Phase 2 opens one
+     * incident for it instead of one for each access point behind it.
+     */
+    private function networkDevices(): void
+    {
+        $seeded = NetworkDevice::query()
+            ->where('is_demo', true)
+            ->where('kind', '!=', DeviceKind::AccessPoint->value)
+            ->exists();
+
+        if ($seeded) {
+            $this->command?->line('  Network devices already seeded.');
+
+            return;
+        }
+
+        $locations = Location::orderBy('code')->get();
+
+        if ($locations->isEmpty()) {
+            $this->command?->warn('  Skipping network devices: no locations. Run ReferenceSeeder first.');
+
+            return;
+        }
+
+        $hub = $locations->firstWhere('code', 'L5-NET-01') ?? $locations->first();
+
+        $router = NetworkDevice::factory()->demo()->create([
+            'kind' => DeviceKind::Router->value,
+            'code' => 'RT-CORE',
+            'name' => 'Campus core router',
+            'location_id' => $hub->id,
+            'model' => 'MikroTik CCR2004',
+            'ip_address' => '10.20.0.1',
+        ]);
+
+        foreach ($locations->values() as $i => $location) {
+            NetworkDevice::factory()->demo()->create([
+                'kind' => DeviceKind::Switch->value,
+                'code' => 'SW-'.$location->code,
+                'name' => "{$location->name} switch",
+                'location_id' => $location->id,
+                'parent_id' => $router->id,
+                'model' => 'Cisco Catalyst 9200',
+                'ip_address' => sprintf('10.20.%d.2', $i + 1),
+            ]);
+        }
+
+        $this->command?->line('  1 router and '.$locations->count().' switches');
+    }
+
+    /**
+     * Each demo access point hangs from its room's switch. Also on a database
+     * seeded before switches existed, so re-seeding fills the gap.
+     */
+    private function connectAccessPoints(): void
+    {
+        $switches = NetworkDevice::query()
+            ->where('is_demo', true)
+            ->where('kind', DeviceKind::Switch->value)
+            ->pluck('id', 'location_id');
+
+        AccessPoint::query()
+            ->where('is_demo', true)
+            ->whereNull('parent_id')
+            ->get()
+            ->each(fn (AccessPoint $ap) => $switches->has($ap->location_id)
+                ? $ap->forceFill(['parent_id' => $switches[$ap->location_id]])->saveQuietly()
+                : null);
     }
 
     /**

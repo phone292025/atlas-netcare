@@ -52,7 +52,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 
 | # | Task |
 |---|---|
-| 1.1 | Devices beyond access points (switches, routers, servers), each with an optional parent device |
+| 1.1 | Devices beyond access points (switches, routers, servers), each with an optional parent device. Done: ADR-0016 |
 | 1.2 | Agents: registration, one token each, and the devices each agent watches |
 | 1.3 | Ingest API: batches of readings with a per-agent sequence number, stored under a unique key. Each reading keeps the agent's time and the time Atlas received it, and drifting agent clocks are flagged. Rate limits |
 | 1.4 | Readings as a TimescaleDB hypertable. Continuous aggregates replace `telemetry_hourly`. Compression after 7 days, retention by dropping chunks |

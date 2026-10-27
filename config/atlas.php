@@ -380,6 +380,7 @@ return [
             ['label' => 'Locations',       'route' => 'admin.locations.index',       'icon' => 'building',    'group' => 'Assets'],
             ['label' => 'Lab PCs',         'route' => 'admin.lab-pcs.index',         'icon' => 'desktop',     'group' => 'Assets'],
             ['label' => 'Access points',   'route' => 'admin.aps.index',             'icon' => 'wifi',        'group' => 'Assets'],
+            ['label' => 'Network devices', 'route' => 'admin.devices.index',         'icon' => 'network',     'group' => 'Assets'],
             ['label' => 'Checklists',      'route' => 'admin.checklists.index',      'icon' => 'list-checks', 'group' => 'Assets'],
             ['label' => 'Audit log',       'route' => 'admin.audit.index',           'icon' => 'shield',      'group' => 'Oversight'],
         ],

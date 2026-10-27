@@ -91,6 +91,7 @@ class AppLayout extends Component
                 ['Add a user', 'admin.users.create', 'plus'],
                 ['Add a lab PC', 'admin.lab-pcs.create', 'plus'],
                 ['Add an access point', 'admin.aps.create', 'plus'],
+                ['Add a network device', 'admin.devices.create', 'plus'],
             ],
             default => [],
         })->filter(fn (array $a) => Route::has($a[1]))->map(fn (array $a) => [

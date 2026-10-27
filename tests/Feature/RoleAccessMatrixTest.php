@@ -9,6 +9,7 @@ use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
@@ -93,6 +94,10 @@ class RoleAccessMatrixTest extends TestCase
             'new ap' => ['admin.aps.create', 200, 403, 403],
             'one ap' => ['admin.aps.show', 200, 403, 403],
             'edit ap' => ['admin.aps.edit', 200, 403, 403],
+            'network devices' => ['admin.devices.index', 200, 403, 403],
+            'new network device' => ['admin.devices.create', 200, 403, 403],
+            'one network device' => ['admin.devices.show', 200, 403, 403],
+            'edit network device' => ['admin.devices.edit', 200, 403, 403],
             'checklists' => ['admin.checklists.index', 200, 403, 403],
             'new checklist' => ['admin.checklists.create', 200, 403, 403],
             'edit checklist' => ['admin.checklists.edit', 200, 403, 403],
@@ -154,11 +159,14 @@ class RoleAccessMatrixTest extends TestCase
         $location = Location::first() ?? Location::factory()->create();
         $labPc = LabPc::factory()->create(['location_id' => $location->id]);
         $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
+        $switch = NetworkDevice::factory()->create(['location_id' => $location->id]);
+        $ap->update(['parent_id' => $switch->id]);
         $template = ChecklistTemplate::first() ?? ChecklistTemplate::factory()->create();
         $shiftTemplate = ShiftTemplate::first() ?? ShiftTemplate::factory()->create();
 
         $this->params = [
             'access_point' => $ap->id,
+            'network_device' => $switch->id,
             'accessPoint' => $ap->id,
             'lab_pc' => $labPc->id,
             'location' => $location->id,

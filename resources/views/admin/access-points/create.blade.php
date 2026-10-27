@@ -7,7 +7,7 @@
     <form method="POST" action="{{ route('admin.aps.store') }}" class="max-w-2xl">
         @csrf
         <x-card>
-            @include('admin.access-points._form', ['accessPoint' => null, 'locations' => $locations, 'statuses' => $statuses])
+            @include('admin.access-points._form', ['accessPoint' => null])
             <x-slot:footer>
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.aps.index') }}"

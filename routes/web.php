@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ChecklistTemplateController;
 use App\Http\Controllers\Admin\LabPcController;
 use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\NetworkDeviceController;
 use App\Http\Controllers\Admin\RosterController;
 use App\Http\Controllers\Admin\ShiftTemplateController;
 use App\Http\Controllers\Admin\UserController;
@@ -76,6 +77,13 @@ Route::middleware('auth')->group(function () {
             ->withTrashed(['show']);
         Route::patch('aps/{access_point}/restore', [AccessPointController::class, 'restore'])
             ->name('aps.restore')->withTrashed();
+
+        // Switches, routers and servers (ADR-0016).
+        Route::resource('devices', NetworkDeviceController::class)
+            ->parameters(['devices' => 'network_device'])
+            ->withTrashed(['show']);
+        Route::patch('devices/{network_device}/restore', [NetworkDeviceController::class, 'restore'])
+            ->name('devices.restore')->withTrashed();
 
         // M3: checklist templates. No `show`: the edit screen is the only
         // rendering of a template.

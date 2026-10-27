@@ -325,7 +325,7 @@ Added 2026-10-27 (`2026_10_27_090001`, ADR-0016). Until then this was `access_po
 
 Only access points use `client_capacity`, `risk_score`, `risk_band` and `simulation_scenario`, so those are null on other kinds. `mac_address` is nullable because a device watched by ping may have none on record. It stays unique, and both engines allow any number of nulls under a unique index.
 
-`parent_id` is the device this one hangs from, such as the switch an access point plugs into. Phase 2 groups failures by it, so a loop must never be saved: `NetworkDevice::isSelfOrAncestorOf()` is the check. Deleting a parent for good sets its children's `parent_id` to null.
+`parent_id` is the device this one hangs from, such as the switch an access point plugs into. Phase 2 groups failures by it, so a loop must never be saved: the network devices form refuses a parent that is the device itself or hangs below it (`NetworkDevice::isSelfOrAncestorOf()`), and doesn't offer one. A parent must be a switch, router, server or other device still in the inventory, never an access point. Deleting a parent for good sets its children's `parent_id` to null. Retiring one is soft, and the form refuses it while anything is still connected to it.
 
 On PostgreSQL the migration also renames the primary key, the location foreign key and the id sequence, which keep their old names through a table rename.
 

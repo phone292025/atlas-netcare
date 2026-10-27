@@ -33,6 +33,18 @@ enum DeviceKind: string implements HasLabel
         };
     }
 
+    /** The <x-icon> that stands for this kind in lists. */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::AccessPoint => 'wifi',
+            self::Switch => 'network',
+            self::Router => 'globe',
+            self::Server => 'server',
+            self::Other => 'cpu',
+        };
+    }
+
     /**
      * The kinds the network devices screen adds. Access points have their own
      * inventory, with the fields only they need.

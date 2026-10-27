@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
+use App\Models\NetworkDevice;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,6 +55,7 @@ class ListScreensDoNotNPlusOneTest extends TestCase
             'assistant status board' => ['assistant.aps.index', 'access_points'],
             'lab pc inventory' => ['admin.lab-pcs.index', 'lab_pcs'],
             'ap inventory' => ['admin.aps.index', 'access_points'],
+            'network devices' => ['admin.devices.index', 'network_devices'],
             'ticket queue' => ['engineer.tickets.index', 'tickets'],
             'my tickets' => ['assistant.tickets.index', 'tickets'],
             'maintenance priority' => ['engineer.risk.index', 'lab_pcs'],
@@ -78,6 +80,11 @@ class ListScreensDoNotNPlusOneTest extends TestCase
     {
         match ($subject) {
             'access_points' => AccessPoint::factory()->count($count)->create(),
+            // Each connected to the one before it, so the parent column and the
+            // count below it both have something to load.
+            'network_devices' => NetworkDevice::factory()->count($count)->create()->each(
+                fn (NetworkDevice $device, int $i) => $i > 0 ? $device->update(['parent_id' => $device->id - 1]) : null,
+            ),
             'lab_pcs' => LabPc::factory()->count($count)->create(),
             'tickets' => Ticket::factory()->count($count)->create(['reported_by' => $reporter->id]),
         };

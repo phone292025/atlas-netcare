@@ -93,6 +93,7 @@ couple of hundred lines is one that has started deciding things.
 | `Admin/ChecklistTemplateController.php` | Checklist templates (FR-406, Q2) |
 | `Admin/LabPcController.php` | Lab workstation inventory (FR-404) |
 | `Admin/LocationController.php` | Campus places that house assets (FR-403) |
+| `Admin/NetworkDeviceController.php` | Switches, routers, servers and other devices on the network (ADR-0016) |
 | `Admin/RosterController.php` | The week view, and the button that fills it (FR-408) |
 | `Admin/ShiftTemplateController.php` | Weekly shift patterns (FR-407) |
 | `Admin/UserController.php` | Account management. The only route into the system for a new user, since |
@@ -159,6 +160,7 @@ authorise it through a policy.
 | `Admin/ChecklistTemplateRequest.php` | A checklist template and all of its items, in one submission |
 | `Admin/LabPcRequest.php` | A lab workstation |
 | `Admin/LocationRequest.php` | One request class for create and update |
+| `Admin/NetworkDeviceRequest.php` | A switch, router, server or other device on the network (ADR-0016) |
 | `Admin/ShiftTemplateRequest.php` | A recurring weekly slot |
 | `Admin/StoreUserRequest.php` | Creating an account. There is no self-registration, so this is the only way |
 | `Admin/UpdateUserRequest.php` | Editing an account |
@@ -525,6 +527,11 @@ Blade files. Views receive data as props and never query.
 | `admin/locations/create.blade.php` |
 | `admin/locations/edit.blade.php` |
 | `admin/locations/index.blade.php` |
+| `admin/network-devices/_form.blade.php` |
+| `admin/network-devices/create.blade.php` |
+| `admin/network-devices/edit.blade.php` |
+| `admin/network-devices/index.blade.php` |
+| `admin/network-devices/show.blade.php` |
 | `admin/partials/device-tickets.blade.php` |
 | `admin/roster/index.blade.php` |
 | `admin/shift-templates/_form.blade.php` |
@@ -640,6 +647,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LabPcInventoryTest.php` | M2, lab PC inventory |
 | `Feature/Admin/ListSortingTest.php` | Clicking a column header twice sorts the list the other way |
 | `Feature/Admin/LocationManagementTest.php` | M2, locations |
+| `Feature/Admin/NetworkDeviceInventoryTest.php` | The network devices inventory: switches, routers and servers, and what |
 | `Feature/Admin/UserManagementTest.php` | M1, account management |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
 | `Feature/Assistant/InspectionRoundTest.php` | A round: one assistant working through every machine in a room |

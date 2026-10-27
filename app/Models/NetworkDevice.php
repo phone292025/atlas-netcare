@@ -167,6 +167,48 @@ class NetworkDevice extends Model
     }
 
     /**
+     * What a device can be connected to, for a select: every switch, router,
+     * server and other device still in the inventory, but not `$device` itself
+     * or anything below it, which would close a loop.
+     *
+     * @return array<int, string> id => "SW-CORE · Core switch", or "SW-02 (Switch)" with no name
+     */
+    public static function parentChoices(?NetworkDevice $device = null): array
+    {
+        $candidates = self::query()
+            ->where('kind', '!=', DeviceKind::AccessPoint->value)
+            ->orderBy('code')
+            ->get(['id', 'kind', 'code', 'name', 'parent_id']);
+
+        $excluded = [];
+
+        if ($device?->exists) {
+            // Breadth first, down from the device. In memory: a campus has
+            // tens of these, and a query per level would be one per row.
+            $excluded = [$device->getKey() => true];
+            $queue = [$device->getKey()];
+
+            while ($queue) {
+                $id = array_shift($queue);
+
+                foreach ($candidates->where('parent_id', $id) as $child) {
+                    if (! isset($excluded[$child->getKey()])) {
+                        $excluded[$child->getKey()] = true;
+                        $queue[] = $child->getKey();
+                    }
+                }
+            }
+        }
+
+        return $candidates
+            ->reject(fn (NetworkDevice $candidate) => isset($excluded[$candidate->getKey()]))
+            ->mapWithKeys(fn (NetworkDevice $candidate) => [$candidate->getKey() => $candidate->name
+                ? $candidate->label()
+                : "{$candidate->code} ({$candidate->kind->label()})"])
+            ->all();
+    }
+
+    /**
      * Whether `$candidate` is this device or hangs below it, at any depth.
      * Making either the parent would close a loop, which the grouping of
      * faults by parent could never leave.

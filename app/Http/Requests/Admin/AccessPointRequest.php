@@ -24,6 +24,9 @@ class AccessPointRequest extends FormRequest
                 Rule::unique('network_devices', 'code')->ignore($this->route('access_point')),
             ],
             'location_id' => ['required', 'exists:locations,id'],
+            // The switch it plugs into. An access point can't be a parent, so
+            // no loop can pass through one.
+            'parent_id' => ['nullable', 'integer', NetworkDeviceRequest::parentRule()],
             'model' => ['nullable', 'string', 'max:255'],
             'mac_address' => [
                 'required', 'string', 'max:17',
@@ -46,6 +49,7 @@ class AccessPointRequest extends FormRequest
             'code.unique' => 'Another device already uses that code.',
             'mac_address.unique' => 'That MAC address is already registered to another device.',
             'mac_address.regex' => 'Use the form 00:1B:44:11:3A:B7.',
+            'parent_id.exists' => 'Choose a switch, router, server or other device that is still in the inventory.',
         ];
     }
 

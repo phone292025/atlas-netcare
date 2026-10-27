@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DeviceKind;
 use App\Enums\RiskBand;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Inspection;
 use App\Models\LabPc;
+use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryHourly;
 use App\Models\Ticket;
 use App\Models\User;
@@ -187,8 +190,34 @@ class DemoDataSeederTest extends TestCase
         $this->seedEverything();
 
         $this->assertSame(0, LabPc::where('is_demo', false)->count(), 'A lab PC escaped without is_demo.');
-        $this->assertSame(0, AccessPoint::where('is_demo', false)->count(), 'An access point escaped without is_demo.');
+        $this->assertSame(0, NetworkDevice::where('is_demo', false)->count(), 'A network device escaped without is_demo.');
         $this->assertSame(0, Ticket::where('is_demo', false)->count(), 'A ticket escaped without is_demo.');
+    }
+
+    public function test_every_access_point_hangs_from_its_rooms_switch(): void
+    {
+        $this->seedEverything();
+
+        $router = NetworkDevice::firstWhere('code', 'RT-CORE');
+        $this->assertSame(DeviceKind::Router, $router?->kind);
+
+        $switches = NetworkDevice::where('kind', DeviceKind::Switch->value)->get();
+        $this->assertSame(Location::count(), $switches->count(), 'One switch per room.');
+        $this->assertTrue($switches->every(fn (NetworkDevice $switch) => $switch->parent_id === $router->id));
+
+        foreach (AccessPoint::with('parent')->get() as $ap) {
+            $this->assertSame(DeviceKind::Switch, $ap->parent?->kind, "{$ap->code} hangs from no switch.");
+            $this->assertSame($ap->location_id, $ap->parent->location_id, "{$ap->code} hangs from another room's switch.");
+        }
+    }
+
+    public function test_reseeding_adds_no_second_set_of_switches(): void
+    {
+        $this->seedEverything();
+        $this->seed(DemoDataSeeder::class);
+
+        $this->assertSame(1, NetworkDevice::where('kind', DeviceKind::Router->value)->count());
+        $this->assertSame(Location::count(), NetworkDevice::where('kind', DeviceKind::Switch->value)->count());
     }
 
     public function test_all_seeded_telemetry_is_marked_simulated(): void

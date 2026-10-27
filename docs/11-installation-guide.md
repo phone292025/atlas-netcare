@@ -83,7 +83,7 @@ docker compose exec app php artisan db:seed
 docker compose exec app php artisan atlas:create-admin
 ```
 
-`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the six campus locations, the checklist and the shift patterns. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, 24 access points, a fortnight of telemetry, 25 inspections and 43 tickets, in about five seconds. It scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated.
+`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the six campus locations, the checklist and the shift patterns. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, a core router with a switch in each room, 24 access points connected to those switches, a fortnight of telemetry, 25 inspections and 43 tickets, in about five seconds. It scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated.
 
 `atlas:create-admin` prints the administrator's address and password. Copy the password now: it is shown nowhere else.
 
