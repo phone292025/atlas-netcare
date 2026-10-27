@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-10-27 · **Covers:** all seven modules, built and tested.
+> **Last updated:** 2026-10-28 · **Covers:** all seven modules, built and tested.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -112,7 +112,7 @@ Model
 PostgreSQL
 ```
 
-Scheduled commands enter at the service layer and skip the top three entirely. That is deliberate. A command and a browser request run the same logic. The one exception is `atlas:prune-telemetry`, which deletes old readings through the models because nothing else needs that logic.
+Scheduled commands enter at the service layer and skip the top three entirely. That is deliberate. A command and a browser request run the same logic. Retention and the hourly summaries are not commands at all: the database runs them as TimescaleDB jobs.
 
 Plain admin screens, such as editing a location or a lab PC, write the model straight from the controller once the form request has validated it and the admin role check has let it through. A few small rules sit there too, such as refusing to delete a location that still has equipment in it. See the architecture document.
 
@@ -228,10 +228,8 @@ php artisan schedule:work
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | one reading per access point |
 | `atlas:dispatch-alarms` | every minute | raises SLA breaches, then sends anything due |
-| `atlas:aggregate-telemetry` | hourly | rolls readings into hourly summaries |
 | `atlas:mark-missed-shifts` | every five minutes | ended shifts nobody checked into become missed |
 | `atlas:generate-shifts` | Sunday evening | next week's roster from the patterns |
-| `atlas:prune-telemetry` | weekly | deletes data past its retention window |
 
 Two more you run yourself.
 

@@ -53,19 +53,21 @@ They are the first to move into a service if a second caller appears.
 
 ### Raw SQL
 
-Raw SQL is rare, and none of it takes request input. Most of it is aggregates in `selectRaw` (sums, averages, counts and maxima), mainly in `ReportingService` and `TelemetryAggregator`. The rest:
+Raw SQL is rare, and none of it takes request input. Most of it is aggregates in `selectRaw` (sums, averages, counts and maxima), mainly in `ReportingService`. The rest:
 
 - a `CASE` sort in `Ticket::scopeMostUrgentFirst()`, built from `TicketPriority` weights
-- timestamp bucket expressions (`SUBSTR`, `DATE_FORMAT`, `strftime`) in `NetworkMonitorService` and `TelemetryAggregator`, built from constants
+- timestamp bucket expressions (`SUBSTR`, `DATE_FORMAT`, `strftime`) in `NetworkMonitorService`, built from constants
+- the LATERAL lookup for each device's newest reading in `TelemetryService::latestReadings()`, which binds the ids as an array
+- TimescaleDB calls in `TelemetryStorage`: job settings built from integers in `config/atlas.php`, and a refresh whose window is bound
 - an `information_schema` query in `atlas:check-schema` and a `REPLACE()` update in `atlas:renumber-tickets`, both run by hand. The update takes its table and column names from a class constant and binds the values.
 
 Every value in these is either bound with `?` or built from a constant or an enum.
 
 ### Scheduled commands
 
-Six of the seven scheduled commands enter at the **Service** layer and skip the top three entirely. That is deliberate. A command and a controller then share exactly the same business logic: `atlas:collect-telemetry` and the Network monitor's Generate sample button both run `TelemetryCollector::tick()`.
+Every scheduled command enters at the **Service** layer and skips the top three entirely. That is deliberate. A command and a controller then share exactly the same business logic: `atlas:collect-telemetry` and the Network monitor's Generate sample button both run `TelemetryCollector::tick()`.
 
-`atlas:prune-telemetry` is the exception. It deletes rows past retention through `TelemetryReading` and `TelemetryHourly` directly. Retention has no second caller, and the only rule in it, how long to keep each table, is read from `config/atlas.php`. `atlas:recalculate-risk` also reads `RiskAssessment` directly, but only to print its summary after `RiskScoringService` has done the scoring.
+Retention, compression and the hourly summaries are not scheduled commands: they are TimescaleDB jobs, set from `config/atlas.php` by `atlas:telemetry-storage` when the app starts. `atlas:recalculate-risk` reads `RiskAssessment` directly, but only to print its summary after `RiskScoringService` has done the scoring.
 
 ---
 
@@ -77,8 +79,7 @@ Folders that do not exist in a stock Laravel install are marked **new**.
 app/
 ├── Console/Commands/                    ← scheduled jobs and maintenance tools
 │   ├── CollectTelemetry.php             scheduled (see the table below)
-│   ├── AggregateTelemetry.php
-│   ├── PruneTelemetry.php
+│   ├── TelemetryStorage.php             at app start: TimescaleDB's jobs from config
 │   ├── DispatchAlarms.php
 │   ├── GenerateShifts.php
 │   ├── MarkMissedShifts.php
@@ -306,15 +307,13 @@ return [
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | One reading per active AP through the current driver; a ticket and an alert when one goes offline, an alert when one degrades |
 | `atlas:dispatch-alarms` | every minute | Sends alarms past their trigger time; raises SLA breaches |
-| `atlas:aggregate-telemetry` | hourly | Rolls raw readings into `telemetry_hourly` |
-| `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Runs after aggregation, so trends do not stop hours short of now |
+| `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Out of hours, so the ranking doesn't reorder under somebody reading it |
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
 | `atlas:renumber-tickets` | never — run by hand | Repairs a database seeded with random ticket references: sequential per year, references rewritten, `--dry-run` first |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed, so the roster stops offering to reassign them |
 | `atlas:generate-shifts` | weekly, Sunday 18:00 | Materialises next week's shifts from templates |
-| `atlas:prune-telemetry` | weekly, Sunday 03:15 | Drops raw readings past retention |
 
-Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all seven scheduled commands; `php artisan schedule:work` does the same in a terminal.
+Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all five scheduled commands; `php artisan schedule:work` does the same in a terminal.
 
 ---
 

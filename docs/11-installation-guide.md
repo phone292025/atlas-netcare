@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-10-28
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 
@@ -132,13 +132,13 @@ The `scheduler` service runs `php artisan schedule:work`, and the `worker` servi
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | One reading per access point, and marks silent ones offline |
 | `atlas:dispatch-alarms` | every minute | Sends alarms that have come due |
-| `atlas:aggregate-telemetry` | hourly | Rolls readings into hourly buckets |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
 | `atlas:generate-shifts` | Sunday 18:00 | Next week's roster |
-| `atlas:prune-telemetry` | weekly | Drops readings past retention |
 
 `docker compose logs -f scheduler` shows each run.
+
+Hourly summaries, compression and retention aren't on this list. They are TimescaleDB's own jobs inside the database, set from `config/atlas.php` every time the app starts (`php artisan atlas:telemetry-storage`).
 
 ---
 

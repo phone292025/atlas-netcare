@@ -74,7 +74,7 @@
     <x-card title="Campus load" subtitle="Total clients and mean latency per hour." class="mb-6">
         @if (empty($trend['labels']))
             <x-empty-state title="Nothing in this range"
-                           message="Telemetry is rolled into hourly buckets by atlas:aggregate-telemetry. Widen the date range, or run the collector and aggregator."
+                           message="No readings arrived in this range. Widen the date range, or check that the scheduler is running."
                            icon="chart" />
         @else
             <x-chart type="line" :height="280"
@@ -116,7 +116,7 @@
     <x-card title="Hour by hour" subtitle="Each access point's hourly bucket, newest first." flush>
         @if ($rows->isEmpty())
             <x-empty-state title="No readings in this range"
-                           message="Try a wider date range, or run atlas:collect-telemetry and atlas:aggregate-telemetry."
+                           message="Try a wider date range, or check that the scheduler is running."
                            icon="chart" />
         @else
             <div class="overflow-x-auto">

@@ -2,7 +2,7 @@
 
 **Depends on:** M2 · **Blocks:** M7
 
-> **Last updated:** 2026-10-23
+> **Last updated:** 2026-10-28
 
 > **The headline feature, and the module 2.0 rebuilds.** Phase 1 of [../roadmap.md](../roadmap.md) replaces simulated pull with readings pushed by probe agents.
 
@@ -26,10 +26,10 @@ FR-209, FR-301, FR-302, FR-303, FR-304, FR-305, FR-312, FR-313, FR-314, FR-501, 
 | Interface | `TelemetrySource` |
 | Drivers | `SimulatedTelemetrySource`, `SnmpTelemetrySource` (stub) |
 | DTO | `ReadingData` |
-| Services | `TelemetryService` — store, classify, current status, history · `TelemetryCollector` — one collection round plus its tickets and alarms, shared by the command and the Generate sample button · `NetworkMonitorService` — the Network monitor snapshot · `SimulationService` — take a sample, force a scenario |
+| Services | `TelemetryStorage` — TimescaleDB's compression, retention and hourly refresh jobs · `TelemetryService` — store, classify, current status, history · `TelemetryCollector` — one collection round plus its tickets and alarms, shared by the command and the Generate sample button · `NetworkMonitorService` — the Network monitor snapshot · `SimulationService` — take a sample, force a scenario |
 | Enum | `SimulationScenario` — congestion, outage, feed interruption |
 | Controllers | `Engineer\DashboardController`, `Api\DashboardDataController`, `Engineer\TrafficLogController`, `NetworkMonitorController` |
-| Commands | `atlas:collect-telemetry`, `atlas:aggregate-telemetry`, `atlas:prune-telemetry` |
+| Commands | `atlas:collect-telemetry`, `atlas:telemetry-storage` (at app start) |
 | Components | `<x-chart>`, `<x-stat-tile>` |
 
 ## Screens
@@ -90,7 +90,7 @@ An access point turns Degraded only after `consecutive_breach` readings in a row
 
 **Two guards stop the auto-ticket flooding.** The ticket is raised on the **transition** into offline, not on every offline reading, and `TicketService::hasOutstandingFor()` catches the rest. Without both, a six-hour outage files 360 tickets.
 
-**Charts read `telemetry_hourly`.** 24 rows instead of 1,440. Aggregation upserts against a unique `(network_device_id, hour_bucket)` index, so re-running it corrects rows rather than doubling every point on the chart — and it deliberately rebuilds the last three hours, because a late collection run would otherwise leave a permanently wrong bucket nothing revisits.
+**Charts read `telemetry_hourly`.** 24 rows instead of 1,440. Since 2026-10-28 it is a TimescaleDB continuous aggregate the database derives from the readings, so no code writes it and it can't drift from them. Finished hours are stored and refreshed every 30 minutes over the last 7 days, so a late reading still lands in its hour; the newest hour is read live. See `docs/04-database.md`.
 
 Latency averages **exclude offline readings**. An unreachable AP has no latency, and counting it as zero would make an outage read as the best hour that access point ever had.
 

@@ -245,23 +245,39 @@ class DemoDataSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(140, count($activity));
     }
 
-    public function test_the_degrading_trend_survives_aggregating_the_last_day(): void
+    public function test_the_hourly_summaries_carry_the_degrading_trend(): void
     {
         /*
-         * The last day goes in as readings, so the scheduler's hourly run
-         * rebuilds those buckets. They must come out with the trend still in
-         * them, or the first hour after seeding quietly flattens the three
-         * access points the High band depends on.
+         * The summaries are derived from the seeded readings, so the trend the
+         * High band depends on has to be in the readings. The three degrading
+         * access points start the fortnight well inside the latency threshold
+         * and end it over.
          */
         $this->seedEverything();
-        $this->artisan('atlas:aggregate-telemetry', ['--hours' => 24])->assertExitCode(0);
 
         $degrading = AccessPoint::where('is_demo', true)->orderBy('id')->limit(3)->pluck('id');
-        $lastDay = TelemetryHourly::whereIn('network_device_id', $degrading)
-            ->where('hour_bucket', '>=', now()->subDay()->startOfHour());
+        $hours = fn () => TelemetryHourly::whereIn('network_device_id', $degrading);
 
+        $firstDay = (float) $hours()->where('hour_bucket', '<', now()->subDays(13))->avg('avg_latency_ms');
+        $lastDay = $hours()->where('hour_bucket', '>=', now()->subDay()->startOfHour());
+
+        $this->assertLessThan(config('atlas.thresholds.latency_ms'), $firstDay);
         $this->assertGreaterThan(0, (clone $lastDay)->count());
         $this->assertGreaterThan(config('atlas.thresholds.latency_ms'), (float) (clone $lastDay)->min('avg_latency_ms'));
+    }
+
+    public function test_every_hour_of_the_fortnight_is_built_from_readings(): void
+    {
+        // Twelve five-minute readings behind every finished hour, and none
+        // written as an hour on its own.
+        $this->seedEverything();
+
+        $ap = AccessPoint::where('is_demo', true)->orderBy('id')->skip(5)->first();
+        $finished = TelemetryHourly::where('network_device_id', $ap->id)
+            ->where('hour_bucket', '<', now()->startOfHour());
+
+        $this->assertGreaterThanOrEqual(14 * 24, (clone $finished)->count());
+        $this->assertSame([12], (clone $finished)->distinct()->pluck('reading_count')->all());
     }
 
     public function test_a_fresh_install_is_scored_without_a_second_command(): void

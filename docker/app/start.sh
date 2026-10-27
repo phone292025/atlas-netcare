@@ -5,8 +5,9 @@
 # again:
 #   1. an app key, generated into .env the first time
 #   2. migrations, which do nothing when the schema is already current
-#   3. config, route and view caches, rebuilt from the current environment
-#   4. the web server, which takes over this process
+#   3. TimescaleDB's telemetry jobs, set from config/atlas.php
+#   4. config, route and view caches, rebuilt from the current environment
+#   5. the web server, which takes over this process
 set -e
 
 # compose.yaml mounts the project's .env at /app/.env, so a generated key
@@ -18,6 +19,10 @@ if [ -z "$APP_KEY" ] && ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
 fi
 
 php artisan migrate --force
+
+# TimescaleDB's telemetry jobs, from config/atlas.php, so a changed retention
+# takes effect on the next start.
+php artisan atlas:telemetry-storage
 
 # Cached from the environment Docker passes in. Never run the test suite in
 # this container: the cached config points at the real database, and the

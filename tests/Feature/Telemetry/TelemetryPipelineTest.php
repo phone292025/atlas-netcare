@@ -16,12 +16,15 @@ use App\Services\Telemetry\SimulatedTelemetrySource;
 use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetryService;
 use App\Services\Telemetry\TelemetrySource;
+use App\Services\Telemetry\TelemetryStorage;
 use App\Support\CampusClock;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use LogicException;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -593,10 +596,11 @@ class TelemetryPipelineTest extends TestCase
         $this->assertFalse($fresh['stale']);
     }
 
-    // ------------------------------------------------------- aggregation
+    // ------------------------------------------------- hourly summaries
 
-    public function test_aggregation_rolls_readings_into_hourly_buckets(): void
+    public function test_hourly_summaries_are_derived_from_the_readings(): void
     {
+        // Nothing to run: telemetry_hourly is a view of the readings.
         $ap = AccessPoint::factory()->create();
         $hour = now()->subHour()->startOfHour();
 
@@ -609,11 +613,10 @@ class TelemetryPipelineTest extends TestCase
             ]);
         }
 
-        Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
-
         $bucket = TelemetryHourly::firstWhere('network_device_id', $ap->id);
 
         $this->assertNotNull($bucket);
+        $this->assertTrue($bucket->hour_bucket->eq($hour));
         $this->assertSame(3, $bucket->reading_count);
         // Peak, not mean — a room that filled up for ten minutes is the fact
         // worth keeping.
@@ -621,24 +624,26 @@ class TelemetryPipelineTest extends TestCase
         $this->assertEqualsWithDelta(30.0, (float) $bucket->avg_latency_ms, 0.01);
     }
 
-    public function test_aggregation_is_idempotent(): void
+    public function test_each_hour_is_one_summary_per_device(): void
     {
-        /*
-         * It is scheduled, and it can be run by hand or overlap itself. Without
-         * the upsert against the unique index, a second pass doubles every
-         * point on the chart.
-         */
         $ap = AccessPoint::factory()->create();
-        TelemetryReading::factory()->count(4)->create([
+        TelemetryReading::factory()->count(4)->sequence(fn ($s) => [
+            'recorded_at' => now()->subHour()->startOfHour()->addMinutes(10 + $s->index),
+        ])->create(['network_device_id' => $ap->id]);
+        TelemetryReading::factory()->create([
             'network_device_id' => $ap->id,
-            'recorded_at' => now()->subHour()->startOfHour()->addMinutes(10),
+            'recorded_at' => now()->subHours(2)->startOfHour()->addMinutes(10),
         ]);
 
-        Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
-        Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
+        $this->assertSame([1, 4], TelemetryHourly::orderBy('hour_bucket')->pluck('reading_count')->all());
+    }
 
-        $this->assertSame(1, TelemetryHourly::count());
-        $this->assertSame(4, TelemetryHourly::first()->reading_count);
+    public function test_a_summary_cannot_be_written_to(): void
+    {
+        // It would only disagree with its readings until the next refresh.
+        $this->expectException(LogicException::class);
+
+        (new TelemetryHourly)->forceFill(['network_device_id' => AccessPoint::factory()->create()->id])->save();
     }
 
     public function test_offline_readings_do_not_drag_the_latency_average_down(): void
@@ -661,42 +666,57 @@ class TelemetryPipelineTest extends TestCase
             'recorded_at' => $hour->copy()->addMinutes(35),
         ]);
 
-        Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
-
         $bucket = TelemetryHourly::firstWhere('network_device_id', $ap->id);
 
         $this->assertEqualsWithDelta(40.0, (float) $bucket->avg_latency_ms, 0.01);
         $this->assertEqualsWithDelta(50.0, (float) $bucket->uptime_pct, 0.01);
     }
 
-    // ------------------------------------------------------------ pruning
+    // ----------------------------------------------- storage jobs
 
-    public function test_pruning_removes_only_readings_past_retention(): void
+    public function test_timescaledb_jobs_are_set_from_config(): void
     {
-        $ap = AccessPoint::factory()->create();
+        if (! app(TelemetryStorage::class)->onTimescale()) {
+            $this->markTestSkipped('TimescaleDB runs only on PostgreSQL.');
+        }
 
-        TelemetryReading::factory()->create([
-            'network_device_id' => $ap->id,
-            'recorded_at' => now()->subDays(200),
+        config([
+            'atlas.retention.raw_days' => 30,
+            'atlas.retention.aggregate_months' => 6,
+            'atlas.retention.compress_after_days' => 3,
+            'atlas.retention.late_reading_days' => 2,
+            'atlas.retention.hourly_refresh_minutes' => 15,
         ]);
-        TelemetryReading::factory()->create([
-            'network_device_id' => $ap->id,
-            'recorded_at' => now()->subDay(),
-        ]);
 
-        Artisan::call('atlas:prune-telemetry');
+        $storage = app(TelemetryStorage::class);
+        $storage->applyPolicies();
+        // Again, as on every start: replaced, not added twice.
+        $storage->applyPolicies();
 
-        $this->assertSame(1, TelemetryReading::count());
+        // From 1000 up: TimescaleDB's own jobs, such as its job history
+        // cleanup, have lower ids and are not ours to count.
+        $jobs = collect(DB::select(
+            'SELECT proc_name, hypertable_name, config::text AS config, schedule_interval::text AS every
+             FROM timescaledb_information.jobs WHERE job_id >= 1000'
+        ))->keyBy(fn ($job) => "{$job->proc_name} {$job->hypertable_name}");
+
+        $this->assertCount(4, $jobs);
+        $this->assertStringContainsString('3 days', $jobs['policy_compression telemetry_readings']->config);
+        $this->assertStringContainsString('30 days', $jobs['policy_retention telemetry_readings']->config);
+        $this->assertStringContainsString('2 days', $jobs->first(fn ($job) => $job->proc_name === 'policy_refresh_continuous_aggregate')->config);
+        $this->assertSame('00:15:00', $jobs->first(fn ($job) => $job->proc_name === 'policy_refresh_continuous_aggregate')->every);
     }
 
-    public function test_a_dry_run_deletes_nothing(): void
+    public function test_off_timescaledb_the_storage_command_says_so_and_does_nothing(): void
     {
-        AccessPoint::factory()->create();
-        TelemetryReading::factory()->create(['recorded_at' => now()->subDays(200)]);
+        if (app(TelemetryStorage::class)->onTimescale()) {
+            $this->markTestSkipped('This is the SQLite path.');
+        }
 
-        Artisan::call('atlas:prune-telemetry', ['--dry-run' => true]);
-
-        $this->assertSame(1, TelemetryReading::count());
+        $this->assertSame([], app(TelemetryStorage::class)->applyPolicies());
+        $this->artisan('atlas:telemetry-storage')
+            ->expectsOutputToContain('TimescaleDB is not in use')
+            ->assertSuccessful();
     }
 
     // ------------------------------------------------------- the screens
@@ -754,18 +774,15 @@ class TelemetryPipelineTest extends TestCase
     }
 
     /**
-     * Consecutive hourly buckets for one access point.
-     *
-     * One row per hour, because (network_device_id, hour_bucket) is unique —
-     * that index is what stops a re-run of the aggregator doubling every point
-     * on the chart, so test data has to respect it too.
+     * Consecutive hours of history for one access point: a reading in each,
+     * which the hourly summaries are derived from.
      */
     private function hoursFor(AccessPoint $ap, int $count): void
     {
         for ($i = 1; $i <= $count; $i++) {
-            TelemetryHourly::factory()->create([
+            TelemetryReading::factory()->create([
                 'network_device_id' => $ap->id,
-                'hour_bucket' => now()->subHours($i)->startOfHour(),
+                'recorded_at' => now()->subHours($i)->startOfHour()->addMinutes(10),
             ]);
         }
     }

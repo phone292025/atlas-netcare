@@ -4,7 +4,6 @@ namespace App\Services\Telemetry;
 
 use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
-use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use Carbon\CarbonInterface;
 use Closure;
@@ -30,7 +29,7 @@ class TelemetryBackfill
 
     public function __construct(
         private readonly TelemetrySource $source,
-        private readonly TelemetryAggregator $aggregator,
+        private readonly TelemetryStorage $storage,
     ) {}
 
     /**
@@ -39,8 +38,8 @@ class TelemetryBackfill
      *
      * Nothing happens when the newest reading is fresher than
      * `offline_after_min`, when nothing was ever collected (that is not a
-     * gap), or with a real driver. The filled hours are aggregated here, so
-     * the hourly charts get them too.
+     * gap), or with a real driver. The hourly summaries are refreshed over the
+     * filled hours, so the hourly charts get them too.
      *
      * @return array{from: Carbon, written: int}|null
      */
@@ -71,7 +70,7 @@ class TelemetryBackfill
             return null;
         }
 
-        $this->aggregator->rebuildFrom($from);
+        $this->storage->refreshHourly($from);
 
         return ['from' => $from, 'written' => $written];
     }
@@ -145,45 +144,21 @@ class TelemetryBackfill
 
     /**
      * Where the gap begins: the newest reading, but never more than
-     * `gap_fill_hours` back, and never inside an hour the seeder wrote.
+     * `gap_fill_hours` back.
      *
-     * A newest bucket with no readings under it was written directly by
-     * DemoDataSeeder. Readings added to its hour would let the next
-     * aggregation replace it, and that is how the three degrading access
-     * points once lost their trend. Every older seeded bucket is behind it.
-     *
-     * Database-wide rather than per access point: both columns are indexed on
-     * their own, so this is two cheap lookups once a minute.
+     * Database-wide rather than per access point: one indexed lookup once a
+     * minute.
      */
     private function gapStart(): ?Carbon
     {
         $newestReading = TelemetryReading::query()->max('recorded_at');
-        $newestBucket = TelemetryHourly::query()->max('hour_bucket');
 
         // Never collected: nothing stopped. The chart says "No readings" itself.
-        if ($newestReading === null && $newestBucket === null) {
+        if ($newestReading === null) {
             return null;
         }
 
-        $from = now()->subHours((int) config('atlas.gap_fill_hours'));
-
-        if ($newestReading !== null) {
-            $from = $from->max(Carbon::parse($newestReading));
-        }
-
-        if ($newestBucket !== null) {
-            $hour = Carbon::parse($newestBucket);
-            $seeded = ! TelemetryReading::query()
-                ->where('recorded_at', '>=', $hour)
-                ->where('recorded_at', '<', $hour->copy()->addHour())
-                ->exists();
-
-            if ($seeded) {
-                $from = $from->max($hour->copy()->addHour());
-            }
-        }
-
-        return $from;
+        return now()->subHours((int) config('atlas.gap_fill_hours'))->max(Carbon::parse($newestReading));
     }
 
     /**

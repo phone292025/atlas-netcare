@@ -6,9 +6,9 @@ use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
 use App\Services\Telemetry\TelemetryBackfill;
+use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Artisan;
 
 /**
  * Invent plausible telemetry history, so the charts have something to draw.
@@ -36,7 +36,7 @@ class BackfillTelemetry extends Command
 
     protected $description = 'Generate simulated telemetry history so the charts have data';
 
-    public function handle(TelemetryBackfill $backfill): int
+    public function handle(TelemetryBackfill $backfill, TelemetryStorage $storage): int
     {
         if (config('atlas.telemetry_driver') !== 'simulated') {
             $this->error('Backfill only makes sense with ATLAS_TELEMETRY_DRIVER=simulated.');
@@ -81,10 +81,11 @@ class BackfillTelemetry extends Command
 
         $this->settle($accessPoints);
 
-        // The charts read the aggregates, so roll the new history up here:
-        // one command gives a working dashboard.
-        $this->line('Aggregating…');
-        Artisan::call('atlas:aggregate-telemetry', ['--hours' => $days * 24], $this->output);
+        // The charts read the hourly summaries, and these hours are older
+        // than the database's own refresh looks: bring them in now, so one
+        // command gives a working dashboard.
+        $this->line('Refreshing the hourly summaries…');
+        $storage->refreshHourly(now()->subDays($days));
 
         return self::SUCCESS;
     }

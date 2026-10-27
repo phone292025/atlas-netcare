@@ -2,38 +2,32 @@
 
 namespace App\Models;
 
-use Database\Factories\TelemetryHourlyFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 /**
- * One hour of readings for one access point, rolled up.
+ * One hour of readings for one network device, summarised.
  *
- * What every chart reads. See the migration for why.
+ * What every chart reads. READ ONLY: `telemetry_hourly` is a TimescaleDB
+ * continuous aggregate the database derives from the raw readings (a plain
+ * view on SQLite), so a summary can't drift from what was measured. To change
+ * an hour, change its readings.
  *
- * @see docs/04-database.md
+ * @see database/migrations/2026_10_28_090003_derive_hourly_telemetry_from_readings.php
+ * @see App\Services\Telemetry\TelemetryStorage
  */
 class TelemetryHourly extends Model
 {
-    /** @use HasFactory<TelemetryHourlyFactory> */
-    use HasFactory;
-
     protected $table = 'telemetry_hourly';
 
-    /** @var list<string> */
-    protected $fillable = [
-        'network_device_id',
-        'hour_bucket',
-        'avg_latency_ms',
-        'peak_client_count',
-        'avg_packet_loss_pct',
-        'avg_channel_util_pct',
-        'uptime_pct',
-        'reading_count',
-        'source',
-    ];
+    /** A view: no key, and no timestamps of its own. */
+    protected $primaryKey = null;
+
+    public $incrementing = false;
+
+    public $timestamps = false;
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -47,6 +41,13 @@ class TelemetryHourly extends Model
             'uptime_pct' => 'decimal:2',
             'reading_count' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(fn () => throw new LogicException(
+            'telemetry_hourly is derived from telemetry_readings. Write readings instead.'
+        ));
     }
 
     /** @return BelongsTo<NetworkDevice, $this> */

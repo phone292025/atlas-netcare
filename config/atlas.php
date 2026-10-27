@@ -286,6 +286,14 @@ return [
     | old. Retention drops whole chunks. Changing `chunk_days` affects new
     | chunks only.
     |
+    | Hourly summaries are a continuous aggregate the database refreshes every
+    | `hourly_refresh_minutes`, over the last `late_reading_days`: a reading
+    | that arrives later than that, from an agent offline for longer, is
+    | stored but missing from the hourly charts until the next full refresh.
+    |
+    | The app applies these as TimescaleDB policies every time it starts, with
+    | `php artisan atlas:telemetry-storage`.
+    |
     */
 
     'retention' => [
@@ -293,6 +301,8 @@ return [
         'aggregate_months' => 12,
         'chunk_days' => 1,
         'compress_after_days' => 7,
+        'late_reading_days' => 7,
+        'hourly_refresh_minutes' => 30,
     ],
 
     /*

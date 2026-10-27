@@ -18,15 +18,13 @@ use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\NetworkDevice;
-use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Risk\RiskScoringService;
-use App\Services\Telemetry\TelemetryAggregator;
+use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -310,12 +308,17 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Two weeks of telemetry: hourly rows, and the last day as readings.
+     * Two weeks of telemetry, as raw readings every five minutes.
      *
      * Written directly rather than by running the collector for a fortnight,
      * so a fresh install has charts and risk trends immediately, without a
-     * second command. Bulk inserted in chunks: eight thousand model saves is
-     * about a minute of somebody's life for no benefit.
+     * second command. Bulk inserted in chunks: a hundred thousand model saves
+     * is minutes of somebody's life for no benefit.
+     *
+     * Readings only. The hourly summaries are derived from them by the
+     * database (telemetry_hourly), so they can't disagree. This seeder once
+     * wrote hourly rows directly, with no readings behind them, and a later
+     * re-aggregation could overwrite a fortnight of trend.
      */
     private function telemetry(): void
     {
@@ -334,33 +337,16 @@ class DemoDataSeeder extends Seeder
          * readings instead. Their trend is the whole reason they exist — a
          * link that is getting worse is what M7 scores — and without it the
          * High band was empty.
-         *
-         * Deleting this window first also avoids the unique index on
-         * (network_device_id, hour_bucket), which is what a plain re-run would
-         * otherwise collide with.
          */
         $windowStart = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
 
-        /*
-         * THE LAST DAY GOES IN AS READINGS. The Network monitor charts raw
-         * readings over the last day, so hourly rows alone opened a fresh
-         * install onto an empty chart. The readings come from the same model,
-         * and aggregation builds that day's buckets from them, so the
-         * scheduler rebuilding those hours keeps the trend rather than
-         * flattening it.
-         */
-        $readingsFrom = now()->subDay()->startOfHour();
-
-        TelemetryHourly::whereIn('network_device_id', $aps->pluck('id'))
-            ->where('hour_bucket', '>=', $windowStart)
-            ->delete();
         TelemetryReading::whereIn('network_device_id', $aps->pluck('id'))
-            ->where('recorded_at', '>=', $readingsFrom)
+            ->where('recorded_at', '>=', $windowStart)
             ->delete();
 
         $hours = self::TELEMETRY_DAYS * 24;
-        $rows = [];
-        $readings = [];
+        $readings = 0;
+        $batch = [];
         $lastSeen = [];
 
         foreach ($aps as $index => $ap) {
@@ -374,52 +360,35 @@ class DemoDataSeeder extends Seeder
                 $progress = $h / $hours;
 
                 // A degrading link drops out occasionally, and more often as
-                // it gets worse. That is the offline_events factor.
+                // it gets worse: one reading at the top of the hour, which is
+                // the offline_events factor.
                 $dropsOut = $degrading && $progress > 0.5 && $h % 17 === 0;
-
-                if ($at->lt($readingsFrom)) {
-                    $busy = $this->busyness($at);
-                    [$latency, $loss] = $this->linkQuality($degrading, $progress, $busy, $index);
-
-                    $rows[] = [
-                        'network_device_id' => $ap->id,
-                        'hour_bucket' => $at->toDateTimeString(),
-                        'avg_latency_ms' => round($latency, 2),
-                        'peak_client_count' => (int) round($ap->client_capacity * (0.25 + $busy * 0.7)),
-                        'avg_packet_loss_pct' => round($loss, 2),
-                        'avg_channel_util_pct' => round(20 + $busy * 55, 2),
-                        'uptime_pct' => $dropsOut ? 92.5 : 100,
-                        'reading_count' => 60,
-                        'source' => 'simulated',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-
-                    continue;
-                }
-
                 $hourEnd = $at->copy()->addHour();
 
                 for ($moment = $at->copy(); $moment->lt($hourEnd) && $moment->lt(now()); $moment->addMinutes(5)) {
                     $down = $dropsOut && $moment->eq($at);
-                    $readings[] = $this->reading($ap, $moment, $degrading, $progress, $index, $down);
+                    $batch[] = $this->reading($ap, $moment, $degrading, $progress, $index, $down);
 
                     if (! $down) {
                         $lastSeen[$ap->id] = $moment->toDateTimeString();
+                    }
+
+                    if (count($batch) === 1000) {
+                        TelemetryReading::insert($batch);
+                        $readings += count($batch);
+                        $batch = [];
                     }
                 }
             }
         }
 
-        foreach (array_chunk($rows, 1000) as $chunk) {
-            DB::table('telemetry_hourly')->insert($chunk);
+        if ($batch !== []) {
+            TelemetryReading::insert($batch);
+            $readings += count($batch);
         }
 
-        foreach (array_chunk($readings, 1000) as $chunk) {
-            TelemetryReading::insert($chunk);
-        }
-
-        app(TelemetryAggregator::class)->rebuildFrom($readingsFrom);
+        // These hours are older than the database's own refresh looks.
+        app(TelemetryStorage::class)->refreshHourly($windowStart);
 
         /*
          * TELL THE ACCESS POINTS THEY HAVE BEEN HEARD FROM. Otherwise they read
@@ -434,13 +403,12 @@ class DemoDataSeeder extends Seeder
             AccessPoint::whereKey($id)->update(['last_seen_at' => $at]);
         }
 
-        $this->command?->line('  '.number_format(count($rows)).' hourly telemetry rows and '
-            .number_format(count($readings)).' readings, '.self::TELEMETRY_DAYS.' days');
+        $this->command?->line('  '.number_format($readings).' readings, '.self::TELEMETRY_DAYS.' days');
     }
 
     /**
      * Latency and packet loss for one hour, from the model the whole window
-     * shares, so the last day's readings continue the hourly rows' trend.
+     * shares.
      *
      * @return array{float, float}
      */
@@ -453,7 +421,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * One five-minute reading for the last seeded day.
+     * One five-minute reading.
      *
      * A small wobble so the ten-minute chart is not a staircase of hourly
      * steps. Throughput follows the simulator's rule, so live readings carry

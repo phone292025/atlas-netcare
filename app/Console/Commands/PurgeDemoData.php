@@ -8,6 +8,7 @@ use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ class PurgeDemoData extends Command
     /** Rows are deleted in this many at a time. */
     private const CHUNK = 500;
 
-    public function handle(): int
+    public function handle(TelemetryStorage $storage): int
     {
         $dryRun = (bool) $this->option('dry-run');
 
@@ -96,6 +97,10 @@ class PurgeDemoData extends Command
         foreach ($plan as $step) {
             $deleted += $this->purge($step);
         }
+
+        // The hourly summaries are derived from the readings, and the ones it
+        // had already stored would outlive them without this.
+        $storage->refreshHourly();
 
         $this->line('');
         $this->info("  {$deleted} rows removed.");
@@ -177,9 +182,9 @@ class PurgeDemoData extends Command
 
             // Cascades from network_devices, but simulated readings can also
             // exist for a REAL access point — from the simulator driver — and
-            // those are demonstration data too.
-            ['Telemetry, hourly', 'telemetry_hourly', fn () => DB::table('telemetry_hourly')->where('source', 'simulated')],
-            ['Telemetry, raw', 'telemetry_readings', fn () => DB::table('telemetry_readings')->where('source', 'simulated')],
+            // those are demonstration data too. Their hourly summaries go with
+            // them, once handle() refreshes the aggregate.
+            ['Telemetry readings', 'telemetry_readings', fn () => DB::table('telemetry_readings')->where('source', 'simulated')],
 
             // Force deletes: both soft delete, and a retired demo machine is
             // still demo data.

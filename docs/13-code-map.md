@@ -50,8 +50,8 @@ person may do it (`TicketPolicy`), and whether the move is legal at all
 to somebody else" becomes possible.
 
 Scheduled commands enter at the service layer and skip the top three. A
-command and a browser request run the same rules. `atlas:prune-telemetry` is
-the one exception: it deletes through the models, since nothing else prunes.
+command and a browser request run the same rules. Retention and the hourly
+summaries are TimescaleDB jobs, set by `atlas:telemetry-storage` at app start.
 
 ---
 
@@ -202,11 +202,11 @@ the same answer, it belongs here.
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
-| `Telemetry/TelemetryAggregator.php` | Raw readings rolled up into hourly buckets |
 | `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock: by `atlas:backfill-telemetry`, |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
 | `Telemetry/TelemetrySource.php` | Where access point telemetry comes from |
+| `Telemetry/TelemetryStorage.php` | The TimescaleDB jobs that look after telemetry (ADR-0011) |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle |
 <!-- /code-map -->
 
@@ -242,7 +242,7 @@ read better on the model than in a service.
 | `RiskAssessment.php` | One predictive risk score for one asset, at one moment |
 | `Shift.php` | One assistant, on one date, in one place |
 | `ShiftTemplate.php` | A recurring weekly slot (Q4) |
-| `TelemetryHourly.php` | One hour of readings for one access point, rolled up |
+| `TelemetryHourly.php` | One hour of readings for one network device, summarised |
 | `TelemetryReading.php` | One measurement of one network device |
 | `Ticket.php` | One traceable fault report |
 | `TicketComment.php` | A note on a ticket (FR-308) |
@@ -360,7 +360,6 @@ and why each runs when it does.
 <!-- code-map:app/Console/Commands/ -->
 | File | What it does |
 |---|---|
-| `AggregateTelemetry.php` | Roll raw readings up into hourly buckets |
 | `BackfillTelemetry.php` | Invent plausible telemetry history, so the charts have something to draw |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
@@ -370,11 +369,11 @@ and why each runs when it does.
 | `GenerateShifts.php` | Turn the weekly templates into dated shifts (Q4) |
 | `MailTest.php` | Prove that mail actually leaves this machine |
 | `MarkMissedShifts.php` | Mark ended shifts nobody checked into as missed |
-| `PruneTelemetry.php` | Delete telemetry older than the retention window (Q10) |
 | `PurgeDemoData.php` | Remove every demonstration row, leaving a system somebody could deploy |
 | `RecalculateRisk.php` | Score every asset and keep the result (FR-505) |
 | `RenumberTickets.php` | Give every ticket a sequential reference in the order it was opened |
 | `ShowResetLink.php` | Print the most recent password reset link out of the log |
+| `TelemetryStorage.php` | Set TimescaleDB's telemetry jobs from config, and bring the hourly |
 <!-- /code-map -->
 
 Nothing updates on its own unless `php artisan schedule:work` is running. That
@@ -426,6 +425,7 @@ database that already ran it.
 | `2026_10_27_090001_turn_access_points_into_network_devices.php` | Access points become one kind of network device (ADR-0016) |
 | `2026_10_28_090001_point_telemetry_at_network_devices.php` | Readings and hourly rows belong to a network device, not only an access |
 | `2026_10_28_090002_make_telemetry_readings_a_hypertable.php` | Raw readings become a TimescaleDB hypertable (ADR-0011, roadmap task 1.4) |
+| `2026_10_28_090003_derive_hourly_telemetry_from_readings.php` | Hourly summaries become something the database derives from raw readings |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -463,7 +463,6 @@ for tests.
 | `RiskAssessmentFactory.php` | A stored risk score |
 | `ShiftFactory.php` | Defaults to a shift scheduled for today that has not been started |
 | `ShiftTemplateFactory.php` | _no summary in the file_ |
-| `TelemetryHourlyFactory.php` | _no summary in the file_ |
 | `TelemetryReadingFactory.php` | Over the latency threshold |
 | `TicketCommentFactory.php` | Engineer-to-engineer. Never shown to the assistant who reported it |
 | `TicketFactory.php` | Tickets for tests and demo data |

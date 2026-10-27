@@ -1,6 +1,6 @@
 # System Diagrams
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-10-28
 >
 > **These four are the whole-system diagrams.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
 
@@ -424,10 +424,8 @@ flowchart LR
 
     AUTOM --> F1["collect-telemetry<br/><i>every minute</i>"]
     AUTOM --> F2["dispatch-alarms<br/><i>every minute</i>"]
-    AUTOM --> F3["aggregate-telemetry<br/><i>hourly</i>"]
     AUTOM --> F4["recalculate-risk<br/><i>daily 02:00</i>"]
     AUTOM --> F5["generate-shifts<br/><i>weekly</i>"]
-    AUTOM --> F6["prune-telemetry<br/><i>weekly</i>"]
     AUTOM --> F7["mark-missed-shifts<br/><i>every 5 minutes</i>"]
 
     classDef root fill:#4f46e5,stroke:#3730a3,color:#fff
@@ -435,7 +433,7 @@ flowchart LR
     classDef leaf fill:#f8fafc,stroke:#cbd5e1,color:#334155
     class ROOT root
     class AUTH,ASSIST,ENG,ADM,SHARED,AUTOM grp
-    class A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,C5,D1,D2,D3,D4,D5,D6,D7,D8,D9,E1,E2,E3,F1,F2,F3,F4,F5,F6 leaf
+    class A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,C5,D1,D2,D3,D4,D5,D6,D7,D8,D9,E1,E2,E3,F1,F2,F4,F5,F7 leaf
 ```
 
 **Why Automation is on the chart at all.** Six of the system's behaviours have no screen: telemetry collection, alarm dispatch, aggregation, risk scoring, roster generation and retention pruning. A hierarchy chart showing only screens would leave out the half of the system that runs on its own, including the module the project's case-study category depends on.

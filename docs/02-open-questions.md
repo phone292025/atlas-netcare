@@ -1,6 +1,6 @@
 # Open Questions
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-28
 
 Eleven things the approved proposal leaves undefined, or that building it exposed. Ten are settled. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
@@ -199,7 +199,9 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 
 **Working assumption:** 90 days of raw readings, 12 months of hourly aggregates, pruned weekly by `atlas:prune-telemetry`.
 
-**As built** exactly that, from `config('atlas.retention')`. The command deletes in chunks rather than one statement — a single `DELETE` across a million rows holds the table long enough to notice, and this is scheduled to run while the system is up. `--dry-run` reports what would go without touching anything.
+**As built** exactly that, from `config('atlas.retention')`. The command deleted in chunks rather than one statement — a single `DELETE` across a million rows held the table long enough to notice, and it was scheduled to run while the system was up. `--dry-run` reported what would go without touching anything.
+
+**Since 2026-10-28** the same limits are TimescaleDB jobs instead of a command (ADR-0011): raw readings are dropped a day-chunk at a time once older than 90 days, and hourly summaries after 12 months. `atlas:prune-telemetry` is gone.
 
 ---
 

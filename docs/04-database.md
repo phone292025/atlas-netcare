@@ -37,7 +37,7 @@ Apply these everywhere. They are not negotiable per-module.
 | Table | Index | Why |
 |---|---|---|
 | `telemetry_readings` | `(network_device_id, recorded_at)` | Every chart query. This is the only table that reaches six figures. |
-| `telemetry_hourly` | `(network_device_id, hour_bucket)` unique | Prevents duplicate aggregation |
+| `telemetry_hourly` | Made by TimescaleDB on the aggregate's own storage | It is a continuous aggregate, not a table we index |
 | `tickets` | `(status, priority)` | Queue filtering |
 | `tickets` | `(assigned_to)` | "My tickets" |
 | `tickets` | `(ticketable_type, ticketable_id)` | Tickets for one asset |
@@ -288,8 +288,7 @@ erDiagram
         string source "simulated|live"
     }
     TELEMETRY_HOURLY {
-        bigint id PK
-        bigint network_device_id FK
+        bigint network_device_id "continuous aggregate of TELEMETRY_READINGS"
         timestamp hour_bucket
         decimal avg_latency_ms
         smallint peak_client_count
@@ -415,11 +414,24 @@ Added 2026-09-19 (`2026_09_19_090001`) for the Network monitor's simulation cont
 
 **It is not a status.** Only `SimulatedTelemetrySource` reads it, and only for moments at or after `simulation_started_at`, so the backfill never rewrites history as congested. `status` still comes from the classifier. Under a live driver the column is ignored and the controls that set it are refused. Both columns are written only by `SimulationService` with `forceFill()`, never from request input, and every change goes through the audit observer with the user who made it.
 
-### `telemetry_hourly` is unique on `(network_device_id, hour_bucket)`
+### `telemetry_hourly` is derived from the readings
 
-Not merely indexed. Aggregation is re-runnable by design — scheduled hourly, rebuilding the last three hours, and runnable by hand — and without the unique constraint a second pass over the same hour silently doubles every point on the chart.
+Since 2026-10-28 (`2026_10_28_090003`, ADR-0011) this is a TimescaleDB **continuous aggregate**, not a table our code writes. It was a table filled by an hourly command, and it drifted: the demo seeder wrote hours no reading backed, and a wide re-run once threatened to overwrite a month of charts with different numbers. Now the database derives every hour from `telemetry_readings`, so the two can't disagree. The `TelemetryHourly` model refuses to save. On SQLite it is a plain view over the readings.
 
-Aggregated latency **excludes offline readings**: an unreachable access point has no latency, and counting it as zero makes an outage read as the best hour that AP ever had. Uptime is carried as its own column instead, which is also the figure the report quotes.
+It has the same columns as the table had, grouped by device, hour and `source`. Latency **excludes offline readings**: an unreachable device has no latency, and counting it as zero would make an outage read as its best hour. Clients are the hour's **peak**, and uptime is the share of readings that weren't offline, which is the figure the report quotes.
+
+How it stays current, all from `config('atlas.retention')` and set by `atlas:telemetry-storage` every time the app starts:
+
+| Job | What it does |
+|---|---|
+| Refresh | Every `hourly_refresh_minutes`, re-stores the hours over the last `late_reading_days` that have new readings, stopping an hour short of now |
+| Live hours | Hours newer than the last stored one are read straight from the readings (`materialized_only = false`), so the newest hour is never stale |
+| Retention | Raw readings dropped after `raw_days`, hourly summaries after `aggregate_months` |
+| Compression | Raw chunks compressed after `compress_after_days` |
+
+**Writing old readings needs a refresh.** The aggregate reads live only the hours after the last one it stored. Readings written further back, by the seeder, a backfill or a purge, stay invisible until those hours are refreshed. So each of those calls `TelemetryStorage::refreshHourly()` afterwards. TimescaleDB can't refresh inside a transaction, so inside one the call does nothing, and tests rely on that: no test DB ever stores an hour, so the aggregate reads everything live.
+
+On a database migrated from the old table, the hourly rows that no readings backed are gone. Re-seeding the demo data writes a fortnight of readings and brings them back.
 
 ### `audit_logs` stores both sides of a change
 

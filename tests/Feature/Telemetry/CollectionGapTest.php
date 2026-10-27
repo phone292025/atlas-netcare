@@ -135,32 +135,6 @@ class CollectionGapTest extends TestCase
         }
     }
 
-    public function test_an_hour_written_by_the_seeder_is_never_written_into(): void
-    {
-        /*
-         * A bucket with no readings under it was written directly, by
-         * DemoDataSeeder. Readings added to its hour would let the next
-         * aggregation replace it, which is how the three degrading access
-         * points lost their trend to a backfill.
-         */
-        $aps = AccessPoint::factory()->count(2)->create()->each(function (AccessPoint $ap) {
-            TelemetryHourly::factory()->create([
-                'network_device_id' => $ap->id,
-                'hour_bucket' => '2026-09-16 09:00:00',
-                'avg_latency_ms' => 999,
-                'reading_count' => 60,
-                'source' => 'simulated',
-            ]);
-            $ap->forceFill(['last_seen_at' => '2026-09-16 09:59:00'])->save();
-        });
-
-        $this->artisan('atlas:collect-telemetry');
-
-        $this->assertSame(0, TelemetryReading::where('recorded_at', '<', '2026-09-16 10:00:00')->count(), 'Readings were written into the seeded hour.');
-        $this->assertSame($aps->count(), TelemetryHourly::where('hour_bucket', '2026-09-16 09:00:00')->where('avg_latency_ms', 999)->count(), 'The seeded bucket was rewritten.');
-        $this->assertSame($aps->count(), TelemetryHourly::where('hour_bucket', '2026-09-16 10:00:00')->count(), 'The gap after it was not filled.');
-    }
-
     public function test_an_interrupted_feed_is_not_filled_in(): void
     {
         /*

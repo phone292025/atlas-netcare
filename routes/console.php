@@ -22,17 +22,9 @@ Schedule::command('atlas:collect-telemetry')
     ->everyMinute()
     ->withoutOverlapping();
 
-// The last few hours, not just the last one, so a late round is still
-// counted. Safe to repeat: it upserts against a unique index.
-Schedule::command('atlas:aggregate-telemetry --hours=3')
-    ->hourly()
-    ->withoutOverlapping();
-
-// Retention is 90 days of raw readings and 12 months of aggregates (Q10).
-// Weekly and out of hours, because it deletes in chunks across a large table.
-Schedule::command('atlas:prune-telemetry')
-    ->weeklyOn(0, '03:15')
-    ->timezone(CampusClock::timezone());
+// Hourly summaries, compression and retention are TimescaleDB's own jobs,
+// set from config('atlas.retention') when the app starts. Nothing to schedule
+// here. See App\Services\Telemetry\TelemetryStorage.
 
 // M6: alarms are written ahead with a `trigger_at`; this delivers them.
 // Every minute, because a late reminder teaches people to ignore them.
@@ -53,8 +45,8 @@ Schedule::command('atlas:mark-missed-shifts')
 
 /*
  * M7: risk scores (FR-505), out of hours so the ranking does not reorder under
- * somebody reading it, and at 02:00 so the previous day's telemetry has been
- * aggregated first.
+ * somebody reading it, and at 02:00 so the previous day's hours have been
+ * summarised first.
  */
 Schedule::command('atlas:recalculate-risk --show=0')
     ->dailyAt('02:00')

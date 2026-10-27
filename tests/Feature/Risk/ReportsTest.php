@@ -12,7 +12,7 @@ use App\Models\AccessPoint;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
-use App\Models\TelemetryHourly;
+use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Reports\ReportingService;
@@ -225,10 +225,10 @@ class ReportsTest extends TestCase
         foreach ([40, 30, 25] as $peak) {
             $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
 
-            TelemetryHourly::factory()->create([
+            TelemetryReading::factory()->create([
                 'network_device_id' => $ap->id,
-                'hour_bucket' => $hour,
-                'peak_client_count' => $peak,
+                'recorded_at' => $hour->copy()->addMinutes(20),
+                'client_count' => $peak,
             ]);
         }
 
@@ -248,10 +248,10 @@ class ReportsTest extends TestCase
         $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
 
         foreach ([30, 10] as $index => $peak) {
-            TelemetryHourly::factory()->create([
+            TelemetryReading::factory()->create([
                 'network_device_id' => $ap->id,
-                'hour_bucket' => now()->subDays(2)->startOfHour()->addHours($index),
-                'peak_client_count' => $peak,
+                'recorded_at' => now()->subDays(2)->startOfHour()->addHours($index)->addMinutes(20),
+                'client_count' => $peak,
             ]);
         }
 

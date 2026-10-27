@@ -144,20 +144,17 @@ class PurgeDemoDataTest extends TestCase
          */
         $realAp = AccessPoint::factory()->create();
 
-        // Distinct hour buckets: telemetry_hourly is uniquely indexed on
-        // (network_device_id, hour_bucket), which is the whole point of an
-        // hourly rollup.
         foreach (range(1, 3) as $h) {
-            TelemetryHourly::factory()->create([
+            TelemetryReading::factory()->create([
                 'network_device_id' => $realAp->id,
-                'hour_bucket' => now()->subHours($h)->startOfHour(),
+                'recorded_at' => now()->subHours($h)->startOfHour()->addMinutes(10),
                 'source' => 'simulated',
             ]);
         }
 
-        TelemetryHourly::factory()->create([
+        TelemetryReading::factory()->create([
             'network_device_id' => $realAp->id,
-            'hour_bucket' => now()->subHours(9)->startOfHour(),
+            'recorded_at' => now()->subHours(9)->startOfHour()->addMinutes(10),
             'source' => 'live',
         ]);
 

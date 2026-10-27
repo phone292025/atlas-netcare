@@ -55,7 +55,7 @@
             <x-card title="Last 24 hours" subtitle="Peak clients and mean latency, hour by hour.">
                 @if ($hours->isEmpty())
                     <x-empty-state title="No history yet"
-                                   message="Readings are rolled into hourly buckets by atlas:aggregate-telemetry. Run the collector and the aggregator, and this fills in."
+                                   message="Nothing has been measured for this access point in the last day. Its hours fill in as readings arrive."
                                    icon="chart" />
                 @else
                     <x-chart type="line" :height="280"

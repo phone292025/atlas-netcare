@@ -381,7 +381,6 @@ class CampusClockTest extends TestCase
         return [
             'risk scoring' => ['atlas:recalculate-risk', '0 2 * * *'],
             'next week\'s roster' => ['atlas:generate-shifts', '0 18 * * 0'],
-            'telemetry retention' => ['atlas:prune-telemetry', '15 3 * * 0'],
         ];
     }
 

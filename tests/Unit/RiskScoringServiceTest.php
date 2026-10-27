@@ -6,6 +6,7 @@ use App\Enums\RiskBand;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use App\Models\RiskAssessment;
+use App\Models\TelemetryReading;
 use App\Services\Risk\RiskScoringService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -345,16 +346,16 @@ class RiskScoringServiceTest extends TestCase
     {
         $ap = AccessPoint::factory()->create(['client_capacity' => 50]);
 
+        // One reading in each hour, which that hour's summary is derived from.
         foreach (array_values($latencies) as $i => $ms) {
-            $ap->hourly()->create([
-                'hour_bucket' => now()->subHours(count($latencies) - $i),
-                'avg_latency_ms' => $ms,
-                'peak_client_count' => 0,
-                'avg_packet_loss_pct' => 0,
-                'avg_channel_util_pct' => 0,
-                'uptime_pct' => 100,
-                'reading_count' => 60,
-                'source' => 'simulated',
+            TelemetryReading::factory()->create([
+                'network_device_id' => $ap->id,
+                'recorded_at' => now()->subHours(count($latencies) - $i)->startOfHour()->addMinutes(10),
+                'latency_ms' => $ms,
+                'client_count' => 0,
+                'packet_loss_pct' => 0,
+                'channel_util_pct' => 0,
+                'status' => 'online',
             ]);
         }
 
