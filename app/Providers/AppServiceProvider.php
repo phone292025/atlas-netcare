@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\ChecklistTemplate;
 use App\Models\LabPc;
 use App\Models\Location;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private const AUDITED = [
         User::class,
+        Agent::class,
         Location::class,
         LabPc::class,
         AccessPoint::class,

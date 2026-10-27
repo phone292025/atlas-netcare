@@ -61,6 +61,7 @@ class NetworkDevice extends Model
         'name',
         'location_id',
         'parent_id',
+        'agent_id',
         'model',
         'mac_address',
         'ip_address',
@@ -123,6 +124,17 @@ class NetworkDevice extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(NetworkDevice::class, 'parent_id');
+    }
+
+    /**
+     * The probe agent that measures this device. Only it may report readings
+     * for it (ADR-0017).
+     *
+     * @return BelongsTo<Agent, $this>
+     */
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class);
     }
 
     /** @return HasMany<NetworkDevice, $this> */

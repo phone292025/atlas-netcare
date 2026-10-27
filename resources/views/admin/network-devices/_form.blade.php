@@ -1,5 +1,5 @@
 {{-- Shared by create and edit.
-     Included with ['device' => NetworkDevice|null, 'kinds', 'locations', 'parents', 'statuses']. --}}
+     Included with ['device' => NetworkDevice|null, 'kinds', 'locations', 'parents', 'agents', 'statuses']. --}}
 <div class="space-y-4">
     <div class="grid gap-4 sm:grid-cols-2">
         <x-form.select name="kind" label="Kind" required :options="$kinds"
@@ -23,8 +23,13 @@
                        help="The device this one plugs into, if Atlas knows it." />
     </div>
 
-    <x-form.input name="model" label="Model" :value="$device?->model"
-                  placeholder="Cisco Catalyst 9200" />
+    <div class="grid gap-4 sm:grid-cols-2">
+        <x-form.input name="model" label="Model" :value="$device?->model"
+                      placeholder="Cisco Catalyst 9200" />
+        <x-form.select name="agent_id" label="Watched by" :options="$agents"
+                       :selected="$device?->agent_id" blank="No agent yet"
+                       help="The agent that measures it. Only that agent may send its readings." />
+    </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
         <x-form.input name="ip_address" label="IP address" :value="$device?->ip_address"

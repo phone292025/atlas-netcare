@@ -70,7 +70,7 @@ class EnumContractTest extends TestCase
         // was added by M3 — a bare string category column cannot supply the
         // section headings the inspection form groups by.
         $documented = [
-            'UserRole', 'TicketStatus', 'TicketPriority', 'TicketCategory',
+            'UserRole', 'TicketStatus', 'TicketPriority', 'TicketCategory', 'AgentContact',
             'DeviceStatus', 'DeviceKind', 'NetworkStatus', 'ChecklistResult', 'ChecklistCategory',
             'InspectionOutcome', 'ShiftStatus', 'AlarmType', 'RiskBand',
             'SimulationScenario',

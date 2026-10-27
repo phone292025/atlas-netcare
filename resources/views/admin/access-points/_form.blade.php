@@ -1,5 +1,5 @@
 {{-- Shared by create and edit.
-     Included with ['accessPoint' => AccessPoint|null], beside $locations, $parents and $statuses. --}}
+     Included with ['accessPoint' => AccessPoint|null], beside $locations, $parents, $agents and $statuses. --}}
 <div class="space-y-4">
     <x-form.input name="code" label="AP code" required :value="$accessPoint?->code"
                   help="The label on the unit, e.g. AP-L6-03. Stored uppercase." />
@@ -14,8 +14,13 @@
                        help="The switch it plugs into. Add switches under Network devices." />
     </div>
 
-    <x-form.input name="model" label="Model" :value="$accessPoint?->model"
-                  placeholder="Cisco Aironet 2802i" />
+    <div class="grid gap-4 sm:grid-cols-2">
+        <x-form.input name="model" label="Model" :value="$accessPoint?->model"
+                      placeholder="Cisco Aironet 2802i" />
+        <x-form.select name="agent_id" label="Watched by" :options="$agents"
+                       :selected="$accessPoint?->agent_id" blank="No agent yet"
+                       help="The agent that measures it. Only that agent may send its readings." />
+    </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
         <x-form.input name="mac_address" label="MAC address" required

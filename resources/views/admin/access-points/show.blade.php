@@ -5,6 +5,7 @@
         $device = [
             'Location' => [$accessPoint->location?->label() ?? '-', false],
             'Connected to' => [$accessPoint->parent?->label() ?? 'Not recorded', false],
+            'Watched by' => [$accessPoint->agent?->name ?? 'No agent yet', false],
             'Model' => [$accessPoint->model ?? '-', false],
             'MAC address' => [$accessPoint->mac_address, true],
             'IP address' => [$accessPoint->ip_address ?? '-', true],

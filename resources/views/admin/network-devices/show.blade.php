@@ -5,6 +5,7 @@
         $details = [
             'Kind' => [$device->kind->label(), false],
             'Location' => [$device->location?->label() ?? '-', false],
+            'Watched by' => [$device->agent?->name ?? 'No agent yet', false],
             'Model' => [$device->model ?? '-', false],
             'IP address' => [$device->ip_address ?? '-', true],
             'MAC address' => [$device->mac_address ?? '-', true],

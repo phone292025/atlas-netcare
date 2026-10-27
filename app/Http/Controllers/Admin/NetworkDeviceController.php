@@ -6,6 +6,7 @@ use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\NetworkDeviceRequest;
+use App\Models\Agent;
 use App\Models\AuditLog;
 use App\Models\Location;
 use App\Models\NetworkDevice;
@@ -68,7 +69,7 @@ class NetworkDeviceController extends Controller
         $this->refuseAccessPoint($networkDevice);
 
         return view('admin.network-devices.show', [
-            'device' => $networkDevice->load(['location', 'parent']),
+            'device' => $networkDevice->load(['location', 'parent', 'agent']),
             // Access points included: they are what hangs from a switch.
             'children' => $networkDevice->children()->with('location')->orderBy('code')->get(),
             'events' => AuditLog::forSubject($networkDevice)->with('user')->latest('created_at')->limit(20)->get(),
@@ -146,6 +147,7 @@ class NetworkDeviceController extends Controller
             'kinds' => DeviceKind::nonAccessPointOptions(),
             'locations' => $this->locationOptions(),
             'parents' => NetworkDevice::parentChoices($device),
+            'agents' => Agent::choices(),
             'statuses' => NetworkStatus::options(),
         ];
     }

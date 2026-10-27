@@ -296,6 +296,29 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Probe agents and the ingest API (ADR-0017)
+    |--------------------------------------------------------------------------
+    |
+    | Limits on POST /api/v1/readings. A reading measured more than
+    | `future_minutes` ahead of Atlas's clock is refused, and one older than
+    | `retention.late_reading_days`. An agent whose clock is more than
+    | `clock_drift_seconds` out is flagged on the agents screen.
+    |
+    */
+
+    'ingest' => [
+        // An agent that hasn't been heard from for this long is silent.
+        'silent_after_minutes' => 3,
+        'max_readings' => 500,
+        'max_kilobytes' => 256,
+        'per_agent_per_minute' => 60,
+        'per_address_per_minute' => 120,
+        'future_minutes' => 5,
+        'clock_drift_seconds' => 30,
+    ],
+
     'retention' => [
         'raw_days' => 90,
         'aggregate_months' => 12,
@@ -398,6 +421,7 @@ return [
             ['label' => 'Lab PCs',         'route' => 'admin.lab-pcs.index',         'icon' => 'desktop',     'group' => 'Assets'],
             ['label' => 'Access points',   'route' => 'admin.aps.index',             'icon' => 'wifi',        'group' => 'Assets'],
             ['label' => 'Network devices', 'route' => 'admin.devices.index',         'icon' => 'network',     'group' => 'Assets'],
+            ['label' => 'Agents',          'route' => 'admin.agents.index',          'icon' => 'activity',    'group' => 'Assets'],
             ['label' => 'Checklists',      'route' => 'admin.checklists.index',      'icon' => 'list-checks', 'group' => 'Assets'],
             ['label' => 'Audit log',       'route' => 'admin.audit.index',           'icon' => 'shield',      'group' => 'Oversight'],
         ],

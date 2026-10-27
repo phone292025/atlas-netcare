@@ -27,6 +27,8 @@ class AccessPointRequest extends FormRequest
             // The switch it plugs into. An access point can't be a parent, so
             // no loop can pass through one.
             'parent_id' => ['nullable', 'integer', NetworkDeviceRequest::parentRule()],
+            // Which agent may report its readings (ADR-0017).
+            'agent_id' => ['nullable', 'integer', Rule::exists('agents', 'id')->whereNull('deleted_at')],
             'model' => ['nullable', 'string', 'max:255'],
             'mac_address' => [
                 'required', 'string', 'max:17',
@@ -50,6 +52,7 @@ class AccessPointRequest extends FormRequest
             'mac_address.unique' => 'That MAC address is already registered to another device.',
             'mac_address.regex' => 'Use the form 00:1B:44:11:3A:B7.',
             'parent_id.exists' => 'Choose a switch, router, server or other device that is still in the inventory.',
+            'agent_id.exists' => 'Choose an agent that is still in use.',
         ];
     }
 

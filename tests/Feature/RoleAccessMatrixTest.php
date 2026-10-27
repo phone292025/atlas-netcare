@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\Alarm;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
@@ -98,6 +99,9 @@ class RoleAccessMatrixTest extends TestCase
             'new network device' => ['admin.devices.create', 200, 403, 403],
             'one network device' => ['admin.devices.show', 200, 403, 403],
             'edit network device' => ['admin.devices.edit', 200, 403, 403],
+            'agents' => ['admin.agents.index', 200, 403, 403],
+            'new agent' => ['admin.agents.create', 200, 403, 403],
+            'one agent' => ['admin.agents.show', 200, 403, 403],
             'checklists' => ['admin.checklists.index', 200, 403, 403],
             'new checklist' => ['admin.checklists.create', 200, 403, 403],
             'edit checklist' => ['admin.checklists.edit', 200, 403, 403],
@@ -167,6 +171,7 @@ class RoleAccessMatrixTest extends TestCase
         $this->params = [
             'access_point' => $ap->id,
             'network_device' => $switch->id,
+            'agent' => Agent::factory()->create()->id,
             'accessPoint' => $ap->id,
             'lab_pc' => $labPc->id,
             'location' => $location->id,

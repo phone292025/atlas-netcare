@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\LabPc;
 use App\Models\NetworkDevice;
 use App\Models\Ticket;
@@ -56,6 +57,7 @@ class ListScreensDoNotNPlusOneTest extends TestCase
             'lab pc inventory' => ['admin.lab-pcs.index', 'lab_pcs'],
             'ap inventory' => ['admin.aps.index', 'access_points'],
             'network devices' => ['admin.devices.index', 'network_devices'],
+            'agents' => ['admin.agents.index', 'agents'],
             'ticket queue' => ['engineer.tickets.index', 'tickets'],
             'my tickets' => ['assistant.tickets.index', 'tickets'],
             'maintenance priority' => ['engineer.risk.index', 'lab_pcs'],
@@ -80,6 +82,10 @@ class ListScreensDoNotNPlusOneTest extends TestCase
     {
         match ($subject) {
             'access_points' => AccessPoint::factory()->count($count)->create(),
+            // Each watching a device, so the count beside it has something to count.
+            'agents' => Agent::factory()->count($count)->create()->each(
+                fn (Agent $agent) => AccessPoint::factory()->create(['agent_id' => $agent->id]),
+            ),
             // Each connected to the one before it, so the parent column and the
             // count below it both have something to load.
             'network_devices' => NetworkDevice::factory()->count($count)->create()->each(

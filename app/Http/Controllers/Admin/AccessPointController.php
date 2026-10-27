@@ -6,6 +6,7 @@ use App\Enums\NetworkStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AccessPointRequest;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\AuditLog;
 use App\Models\Location;
 use App\Models\NetworkDevice;
@@ -59,6 +60,7 @@ class AccessPointController extends Controller
         return view('admin.access-points.create', [
             'locations' => $this->locationOptions(),
             'parents' => NetworkDevice::parentChoices(),
+            'agents' => Agent::choices(),
             'statuses' => NetworkStatus::options(),
         ]);
     }
@@ -75,7 +77,7 @@ class AccessPointController extends Controller
     public function show(AccessPoint $accessPoint): View
     {
         return view('admin.access-points.show', [
-            'accessPoint' => $accessPoint->load(['location', 'parent']),
+            'accessPoint' => $accessPoint->load(['location', 'parent', 'agent']),
             'events' => AuditLog::forSubject($accessPoint)->with('user')->latest('created_at')->limit(20)->get(),
             // Newest first, open or not: a device that keeps coming back is the
             // pattern worth seeing here.
@@ -89,6 +91,7 @@ class AccessPointController extends Controller
             'accessPoint' => $accessPoint,
             'locations' => $this->locationOptions(),
             'parents' => NetworkDevice::parentChoices(),
+            'agents' => Agent::choices(),
             'statuses' => NetworkStatus::options(),
         ]);
     }

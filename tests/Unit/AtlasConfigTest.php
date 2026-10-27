@@ -29,6 +29,7 @@ class AtlasConfigTest extends TestCase
             'risk_bands',
             'sla_hours',
             'retention',
+            'ingest',
             'navigation',
         ] as $key) {
             $this->assertNotNull(config("atlas.{$key}"), "config/atlas.php is missing '{$key}'");

@@ -89,6 +89,7 @@ couple of hundred lines is one that has started deciding things.
 | File | What it does |
 |---|---|
 | `Admin/AccessPointController.php` | Access point inventory (FR-405) |
+| `Admin/AgentController.php` | Probe agents and their tokens (ADR-0017) |
 | `Admin/AuditLogController.php` | The audit trail, read-only (FR-409) |
 | `Admin/ChecklistTemplateController.php` | Checklist templates (FR-406, Q2) |
 | `Admin/LabPcController.php` | Lab workstation inventory (FR-404) |
@@ -157,6 +158,7 @@ authorise it through a policy.
 | File | What it does |
 |---|---|
 | `Admin/AccessPointRequest.php` | A Wi-Fi access point |
+| `Admin/AgentRequest.php` | Registering a probe agent. Only its name comes from the form: the token is |
 | `Admin/ChecklistTemplateRequest.php` | A checklist template and all of its items, in one submission |
 | `Admin/LabPcRequest.php` | A lab workstation |
 | `Admin/LocationRequest.php` | One request class for create and update |
@@ -197,6 +199,7 @@ the same answer, it belongs here.
 | `Shifts/AlarmService.php` | The delivery mechanism for the whole system (FR-506) |
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) |
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it |
+| `Telemetry/AgentService.php` | Registering agents and the tokens they prove themselves with (ADR-0017) |
 | `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database |
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
@@ -230,6 +233,7 @@ read better on the model than in a service.
 | File | What it does |
 |---|---|
 | `AccessPoint.php` | A Wi-Fi access point in one of the monitored zones |
+| `Agent.php` | A probe agent: a program inside a network that measures its devices and |
 | `Alarm.php` | Something one person needs to be told, at a particular time |
 | `AuditLog.php` | One recorded fact: who changed what, when, from where |
 | `ChecklistItem.php` | One question on a checklist template |
@@ -265,6 +269,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 <!-- code-map:app/Enums/ -->
 | File | What it does |
 |---|---|
+| `AgentContact.php` | Whether a probe agent is being heard from (ADR-0017) |
 | `AlarmType.php` | Why an alarm was raised |
 | `ChecklistCategory.php` | What part of a machine a checklist item is about |
 | `ChecklistResult.php` | The answer to one checklist item during an inspection |
@@ -426,6 +431,7 @@ database that already ran it.
 | `2026_10_28_090001_point_telemetry_at_network_devices.php` | Readings and hourly rows belong to a network device, not only an access |
 | `2026_10_28_090002_make_telemetry_readings_a_hypertable.php` | Raw readings become a TimescaleDB hypertable (ADR-0011, roadmap task 1.4) |
 | `2026_10_28_090003_derive_hourly_telemetry_from_readings.php` | Hourly summaries become something the database derives from raw readings |
+| `2026_10_28_100001_create_agents_table.php` | Probe agents, and which one watches each network device (ADR-0010, |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -452,6 +458,7 @@ for tests.
 | File | What it does |
 |---|---|
 | `AccessPointFactory.php` | Access points for tests and for M5's demo data |
+| `AgentFactory.php` | Agents for tests. These carry no working token: use AgentService::issue() |
 | `AlarmFactory.php` | Defaults to an alarm already sent and not yet read, the state the unread |
 | `ChecklistItemFactory.php` | A critical item failing turns the whole inspection into a `fail` |
 | `ChecklistTemplateFactory.php` | Checklist templates for tests |
@@ -514,6 +521,10 @@ Blade files. Views receive data as props and never query.
 | `admin/access-points/edit.blade.php` |
 | `admin/access-points/index.blade.php` |
 | `admin/access-points/show.blade.php` |
+| `admin/agents/create.blade.php` |
+| `admin/agents/index.blade.php` |
+| `admin/agents/show.blade.php` |
+| `admin/agents/token.blade.php` |
 | `admin/audit/index.blade.php` |
 | `admin/checklists/_form.blade.php` |
 | `admin/checklists/create.blade.php` |
@@ -644,6 +655,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | File | What it does |
 |---|---|
 | `Feature/Admin/AccessPointInventoryTest.php` | M2, access point inventory |
+| `Feature/Admin/AgentManagementTest.php` | Probe agents and their tokens (ADR-0017, roadmap task 1.2) |
 | `Feature/Admin/ChecklistTemplateTest.php` | M3, checklist templates and the versioning rule (Q2) |
 | `Feature/Admin/LabPcInventoryTest.php` | M2, lab PC inventory |
 | `Feature/Admin/ListSortingTest.php` | Clicking a column header twice sorts the list the other way |

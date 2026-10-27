@@ -62,6 +62,8 @@ class EveryScreenRendersTest extends TestCase
             'admin access points' => ['admin.aps.index', 'admin'],
             'network devices' => ['admin.devices.index', 'admin'],
             'new network device' => ['admin.devices.create', 'admin'],
+            'agents' => ['admin.agents.index', 'admin'],
+            'new agent' => ['admin.agents.create', 'admin'],
             'checklists' => ['admin.checklists.index', 'admin'],
             'shift templates' => ['admin.shift-templates.index', 'admin'],
             'roster' => ['admin.roster.index', 'admin'],

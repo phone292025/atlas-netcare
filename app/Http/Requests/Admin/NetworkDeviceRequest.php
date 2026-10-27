@@ -31,6 +31,8 @@ class NetworkDeviceRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:120'],
             'location_id' => ['required', 'exists:locations,id'],
             'parent_id' => ['nullable', 'integer', self::parentRule()],
+            // Which agent may report its readings (ADR-0017).
+            'agent_id' => ['nullable', 'integer', Rule::exists('agents', 'id')->whereNull('deleted_at')],
             'model' => ['nullable', 'string', 'max:255'],
             'mac_address' => [
                 'nullable', 'string', 'max:17',
@@ -87,6 +89,7 @@ class NetworkDeviceRequest extends FormRequest
             'code.unique' => 'Another device already uses that code.',
             'parent_id.exists' => 'Choose a switch, router, server or other device that is still in the inventory.',
             'mac_address.unique' => 'That MAC address is already registered to another device.',
+            'agent_id.exists' => 'Choose an agent that is still in use.',
             'mac_address.regex' => 'Use the form 00:1B:44:11:3A:B7.',
         ];
     }

@@ -51,6 +51,7 @@ class AccessPoint extends NetworkDevice
         'code',
         'location_id',
         'parent_id',
+        'agent_id',
         'model',
         'mac_address',
         'ip_address',

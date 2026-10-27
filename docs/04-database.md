@@ -120,6 +120,7 @@ erDiagram
         string name "nullable"
         bigint location_id FK
         bigint parent_id FK "nullable, another network device"
+        bigint agent_id FK "nullable, the agent that watches it"
         string model
         string mac_address UK "nullable"
         string ip_address
@@ -314,6 +315,14 @@ erDiagram
 ---
 
 ## Table notes
+
+### `agents` hold a token hash, never a token
+
+Added 2026-10-28 (`2026_10_28_100001`, ADR-0017). A probe agent proves who it is with a token, `atl_` and 40 random characters. Only its SHA-256 hash is stored, unique, and `$hidden` on the model, so it never reaches JSON or the audit log; `token_hint` is its last four characters. The token is shown once, in the response to the request that made it, and never put in the session. `last_seen_at`, `last_address`, `version` and `clock_offset_ms` are written by the ingest endpoint on each authenticated request, quietly, because the readings are their history.
+
+Retiring is a soft delete: the token stops working, its devices are released (`network_devices.agent_id` set to null), and its readings keep pointing at it. A retired agent's name isn't reused. The simulator's virtual agent (task 1.5) has no token at all.
+
+`network_devices.agent_id` is the one agent that may report a device's readings.
 
 ### `network_devices` holds every kind of device
 

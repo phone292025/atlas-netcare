@@ -23,6 +23,7 @@ The cost: one PHP process becomes several (web, queue worker, scheduler, and lat
 | [0014](decisions/ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets. Modules connected by events. The roster is the on-call schedule | Phase 2 |
 | [0015](decisions/ADR-0015-browser-tests-with-playwright.md) | Browser tests with Playwright, against a stack of their own | Phase 0 |
 | [0016](decisions/ADR-0016-network-devices-in-one-table.md) | Every network device in one table, access points as one kind | Phase 1 |
+| [0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md) | Agent tokens, and the ingest endpoint with its threat model | Phase 1 |
 
 Still to decide, each at the start of its phase: live updates over WebSockets (Phase 3, replacing ADR-0005), and the shape of the phone app (Phase 4).
 
@@ -53,7 +54,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | # | Task |
 |---|---|
 | 1.1 | Devices beyond access points (switches, routers, servers), each with an optional parent device. Done: ADR-0016 |
-| 1.2 | Agents: registration, one token each, and the devices each agent watches |
+| 1.2 | Agents: registration, one token each, and the devices each agent watches. Done |
 | 1.3 | Ingest API: batches of readings with a per-agent sequence number, stored under a unique key. Each reading keeps the agent's time and the time Atlas received it, and drifting agent clocks are flagged. Rate limits |
 | 1.4 | Readings as a TimescaleDB hypertable. Continuous aggregates replace `telemetry_hourly`. Compression after 7 days, retention by dropping chunks. Done, before 1.2: the ingest API writes into this table |
 | 1.5 | The simulator as a virtual agent on the ingest path. The pull driver and the SNMP stub are removed, and ADR-0002 is superseded |

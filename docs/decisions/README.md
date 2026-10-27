@@ -24,6 +24,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | [0014](ADR-0014-incidents-and-domain-events.md) | Incidents between readings and tickets, modules connected by events | Accepted |
 | [0015](ADR-0015-browser-tests-with-playwright.md) | Test the core flows in a browser with Playwright | Accepted |
 | [0016](ADR-0016-network-devices-in-one-table.md) | Keep every network device in one table, with access points as one kind | Accepted |
+| [0017](ADR-0017-agent-tokens-and-ingest-api.md) | Agents authenticate with one token each, and push readings to one ingest endpoint | Accepted |
 
 ## Rules
 

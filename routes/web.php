@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessPointController;
+use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ChecklistTemplateController;
 use App\Http\Controllers\Admin\LabPcController;
@@ -84,6 +85,13 @@ Route::middleware('auth')->group(function () {
             ->withTrashed(['show']);
         Route::patch('devices/{network_device}/restore', [NetworkDeviceController::class, 'restore'])
             ->name('devices.restore')->withTrashed();
+
+        // Probe agents and their tokens (ADR-0017). Retired agents keep a
+        // readable page; retiring is final, so there is no restore.
+        Route::resource('agents', AgentController::class)
+            ->only(['index', 'create', 'store', 'show', 'destroy'])
+            ->withTrashed(['show']);
+        Route::post('agents/{agent}/token', [AgentController::class, 'rotate'])->name('agents.rotate');
 
         // M3: checklist templates. No `show`: the edit screen is the only
         // rendering of a template.
