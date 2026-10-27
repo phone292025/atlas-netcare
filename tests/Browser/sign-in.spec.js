@@ -41,6 +41,14 @@ test('an engineer lands on the dashboard', async ({ page }) => {
     await page.context().storageState({ path: sessionFile('engineer') });
 });
 
+test('the default administrator goes straight in', async ({ page }) => {
+    // The demo install's admin@atlas.local, with the shared demo password.
+    await signIn(page, accounts.defaultAdmin);
+
+    await expect(page).toHaveURL(/\/admin\/users$/);
+    await expect(page.getByRole('cell', { name: accounts.defaultAdmin.email })).toBeVisible();
+});
+
 test('the first administrator chooses a password before anything else', async ({ page }) => {
     // The password atlas:create-admin printed. Nothing opens until it's replaced.
     await signIn(page, accounts.admin);

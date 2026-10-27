@@ -56,8 +56,9 @@ return [
     | flags it must_change_password. These are the defaults it uses for the
     | address and the name when none is given on the command line.
     |
-    | There is deliberately no password setting. A password in configuration
-    | ends up in .env.example and the README, where anybody can read it.
+    | In demo mode DemoDataSeeder also creates this address as the demo
+    | administrator, with the demo password below, outside production only.
+    | There is deliberately no admin password setting of its own.
     |
     */
 
@@ -71,11 +72,12 @@ return [
     | Demo accounts
     |--------------------------------------------------------------------------
     |
-    | One sign-in per role, so the engineer and assistant screens can be
-    | opened. Created only in demo mode, tagged is_demo, and not flagged
-    | must_change_password. Two assistants, so "an assistant sees only their
-    | own work" can be shown. One shared password, which is published in the
-    | README: set your own before the app is reachable beyond localhost.
+    | One sign-in per role, the administrator at `first_admin` included, so
+    | every screen can be opened. Created only in demo mode, tagged is_demo,
+    | and not flagged must_change_password. Two assistants, so "an assistant
+    | sees only their own work" can be shown. One shared password, which is
+    | published in the README: set your own before the app is reachable
+    | beyond localhost.
     |
     */
 

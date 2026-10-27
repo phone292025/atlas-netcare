@@ -6,8 +6,9 @@ import { artisan, compose, stack } from './stack.js';
  *
  * 1. Whatever an earlier run left behind goes, volume included.
  * 2. The image is built from the working tree, so the run tests this code.
- * 3. Demo data is seeded, and the first administrator is created with
- *    atlas:create-admin, as on a new install.
+ * 3. Demo data is seeded, which makes the default accounts, and an
+ *    administrator of its own is created with atlas:create-admin, as the
+ *    README tells an owner to.
  *
  * The accounts reach the tests through ATLAS_BROWSER_ACCOUNTS, which Playwright
  * hands to every worker. The demo accounts are read from the app's own config,
@@ -20,7 +21,7 @@ export default function globalSetup() {
 
     artisan('db:seed', '--force');
 
-    const created = artisan('atlas:create-admin');
+    const created = artisan('atlas:create-admin', '--email=owner@atlas.local');
     const admin = {
         email: created.match(/Administrator created: (\S+)/)?.[1],
         password: created.match(/Password: (\S+)/)?.[1],
@@ -31,9 +32,11 @@ export default function globalSetup() {
     }
 
     const demo = JSON.parse(artisan('tinker', '--execute=echo json_encode(config("atlas.demo_users"));'));
+    const defaultAdmin = JSON.parse(artisan('tinker', '--execute=echo json_encode(config("atlas.first_admin"));'));
 
     process.env.ATLAS_BROWSER_ACCOUNTS = JSON.stringify({
         admin,
+        defaultAdmin: { ...defaultAdmin, password: demo.password },
         engineer: { ...demo.engineer, password: demo.password },
         assistant: { ...demo.assistant, password: demo.password },
     });

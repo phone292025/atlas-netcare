@@ -1,6 +1,6 @@
 # Decision Log
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-10-28
 
 Small calls that affect other people but do not warrant a full ADR. One line each. Newest at the top.
 
@@ -10,6 +10,7 @@ Small calls that affect other people but do not warrant a full ADR. One line eac
 
 | Date | Decision | Made by | Affects |
 |---|---|---|---|
+| 2026-10-28 | **A demo install gets a default administrator again.** `db:seed` in demo mode creates `admin@atlas.local` with the public `ATLAS_DEMO_PASSWORD`, tagged `is_demo` and not forced to change it, so a fresh clone signs in at once. Roadmap task 0.5's reason for removing the old default still holds, so the default never reaches a real install: it isn't created with demo mode off or in production, the seeder never resets a real account's password, `atlas:create-admin` refuses a demo account's address, and the purge says so when no administrator is left. | Phone | Everyone |
 | 2026-10-22 | **Four packages updated for security advisories, the one exception to "never run `composer update`".** `composer audit` reported five advisories in four locked packages: XSS on Laravel's debug page, two in league/commonmark (raw HTML getting past its filter, and a slow table parse), and crash bugs in symfony/http-foundation and symfony/yaml. The update named only those four, so nothing else in the lock file moved: laravel/framework 12.68.0 to 12.70.1 (still Laravel 12, ADR-0008), league/commonmark 2.10.0 to 2.10.4, and symfony/http-foundation and symfony/yaml 7.4.17 to 7.4.21. symfony/yaml is a development package, through Sail. `composer audit` is clean after it. | Project owner | Everyone |
 | 2026-10-22 | **The architecture test is plain PHPUnit, not deptrac or PHPArkitect.** `tests/Unit/ArchitectureTest.php` reads the imports in `app/` with PHP's own tokenizer and checks the dependency rules in `03-architecture.md`. A tool would add a Composer dependency and a second command for CI, for rules that fit in one test file that runs with the suite. If the rules outgrow one readable file, deptrac is the next step. | Phase 0, task 0.6 | Anyone adding a dependency between modules |
 | 2026-10-22 | **Faker is a runtime dependency, not a development one.** The Docker image installs Composer packages without development extras, and `db:seed` then failed in the container on `fake()`, because the demo data seeder builds its rows with factories. Demo data is a feature of the running app (ADR-0003: `ATLAS_DEMO_MODE`, `is_demo`, `atlas:purge-demo-data`), so the package it needs moved from `require-dev` to `require` in `composer.json`. The locked version is unchanged at v1.24.1, and no other package moved. | Phase 0, task 0.4 | M2, M5, seeding |

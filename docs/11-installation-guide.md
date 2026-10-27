@@ -50,11 +50,11 @@ Keys worth checking:
 |---|---|
 | `ATLAS_PORT` | The port Atlas answers on. Not in the file, so 8000. Add it if 8000 is taken |
 | `ATLAS_BIND` | The address the port listens on. Not in the file, so `127.0.0.1`, this machine only. See [Reaching it from a phone](#reaching-it-from-a-phone) |
-| `ATLAS_ADMIN_EMAIL` | The first administrator's address |
-| `ATLAS_DEMO_PASSWORD` | One shared password for the demonstration accounts |
+| `ATLAS_ADMIN_EMAIL` | The administrator's address: the default administrator on a demo install, and `atlas:create-admin`'s default |
+| `ATLAS_DEMO_PASSWORD` | One shared password for the default accounts, the administrator's included |
 | `APP_DEBUG` | `true` shows error details in the browser. Turn it off before anyone else can reach the app |
 
-**There is no administrator password in `.env`.** `atlas:create-admin` creates the administrator and prints a random password once, in your terminal. A password in the repository would be public, so none ships.
+**There is no separate administrator password.** On a demo install the default administrator uses `ATLAS_DEMO_PASSWORD`, which is public. Your own administrator comes from `atlas:create-admin`, which prints a random password once, in your terminal.
 
 ---
 
@@ -76,16 +76,13 @@ The database lives in the volume `db-data`, so it survives `stop`, `down` and re
 
 ---
 
-## 4. Load the data and create the administrator
+## 4. Load the data
 
 ```bash
 docker compose exec app php artisan db:seed
-docker compose exec app php artisan atlas:create-admin
 ```
 
-`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the six campus locations, the checklist and the shift patterns. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds 80 lab PCs, a core router with a switch in each room, 24 access points connected to those switches, a fortnight of telemetry, 25 inspections and 43 tickets, in about five seconds. It scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated.
-
-`atlas:create-admin` prints the administrator's address and password. Copy the password now: it is shown nowhere else.
+`db:seed` runs two seeders. `ReferenceSeeder` always runs and creates the six campus locations, the checklist and the shift patterns. `DemoDataSeeder` runs only while `ATLAS_DEMO_MODE=true` and adds a sign-in for each role, 80 lab PCs, a core router with a switch in each room, 24 access points connected to those switches, a fortnight of telemetry, 25 inspections and 43 tickets, in about five seconds. It scores the assets as its last step, so the maintenance ranking opens with all four risk bands populated.
 
 ---
 
@@ -95,30 +92,34 @@ Open **http://localhost:8000**.
 
 | Role | Email | Password |
 |---|---|---|
-| Administrator | `admin@atlas.local` | Printed by `atlas:create-admin`, then your own |
+| Administrator | `admin@atlas.local` | `AtlasDemo!2026` |
 | Network Engineer | `engineer@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
 
-The administrator is flagged `must_change_password`. The first sign-in lands on **Profile**, and every other screen sends you back there until you choose your own password. The printed one keeps working until then.
+These are the default accounts, tagged `is_demo`. Re-running `db:seed` resets their passwords, and never touches a real account at the same address. A production install (`APP_ENV=production`) gets no default administrator.
 
-Re-running `db:seed` never creates or changes the administrator. If the last administrator is locked out or demoted, `docker compose exec app php artisan atlas:create-admin --restore --email=<address>` makes that account an active administrator again, keeping its password.
+**These addresses are login identifiers, not mailboxes.** Nothing is sent to them, so signing in needs no mail account.
 
-**These addresses are login identifiers, not mailboxes.** Nothing is sent to them, so signing in needs no mail account. Section 7 covers pointing them at a real mailbox if you want the password reset to deliver.
+**The password is public**, because it is printed here and in the README. Before the app is reachable from anywhere but your own machine, create your own administrator and remove the default accounts with `atlas:purge-demo-data`.
 
-**The demo password is public**, because it is printed here and in the README. Before the app is reachable from anywhere but your own machine, set your own `ATLAS_DEMO_PASSWORD` and re-run `db:seed`, or remove the demo accounts with `atlas:purge-demo-data`.
-
-Forgotten a demonstration password? Re-run the demo seeder. It resets them rather than failing:
+### Creating an administrator account
 
 ```bash
-docker compose exec app php artisan db:seed --class=DemoDataSeeder
+docker compose exec app php artisan atlas:create-admin --email=you@example.com --name="Your Name"
 ```
+
+It prints a random password once, in your terminal. Copy it now: it is shown nowhere else. The account is flagged `must_change_password`, so the first sign-in lands on **Profile**, and every other screen sends you back there until you choose your own password. On a clean install (`ATLAS_DEMO_MODE=false`) this is the only account until you create more.
+
+Without `--email` it uses `ATLAS_ADMIN_EMAIL`. On a demo install that is the default administrator's address, a demo account, and the command refuses it.
+
+An administrator adds every other account, other administrators included, under **Users → Add user**. If the last administrator is locked out or demoted, `docker compose exec app php artisan atlas:create-admin --restore --email=<address>` makes that account an active administrator again, keeping its password.
 
 ### Reaching it from a phone
 
 The stack listens on this machine only. To open it from a phone on the same Wi-Fi, add `ATLAS_BIND=0.0.0.0` to `.env` and run `docker compose up -d`. Then browse to `http://<your-machine-ip>:8000`, where `ipconfig` gives the IP. Windows asks once whether to let Docker through the firewall. It has to be allowed on public networks too, because most Wi-Fi networks are classified public.
 
-Anyone on that Wi-Fi can then reach the sign-in page. Change the demo password first, and set `APP_DEBUG=false`.
+Anyone on that Wi-Fi can then reach the sign-in page, and the default accounts' password is public. Create your own administrator and remove the default accounts first, or at least set your own `ATLAS_DEMO_PASSWORD` and seed again, and set `APP_DEBUG=false`.
 
 Switching `ATLAS_BIND` can fail with "ports are not available" while Docker Desktop is still letting go of the old address. Run `docker compose up -d` again a few seconds later.
 
@@ -180,13 +181,13 @@ npm install
 php artisan test
 ```
 
-Expect **1,151 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
+Expect **1,158 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
 
 ```bash
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That is **1,153 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
+That is **1,160 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
 
 The browser tests run five core flows in Chromium against a stack of their own, on ports 8100 and 5433:
 
@@ -240,7 +241,7 @@ Backups and restores are in the README, under "Backups".
 
 **A setting in `.env` seems ignored** — the app caches its config when it starts, and the worker and scheduler read it once. `docker compose restart app worker scheduler` makes all three read it again.
 
-**There is no administrator** — seeding doesn't create one. Run `atlas:create-admin`.
+**There is no administrator** — demo mode is off, the install is production, or the demo data was purged. Run `atlas:create-admin --email=you@example.com`.
 
 **Every asset scores Low** — the risk model has not run, or the assets seeded without ages. `docker compose exec app php artisan atlas:recalculate-risk`.
 

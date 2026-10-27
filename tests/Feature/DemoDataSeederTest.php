@@ -18,14 +18,16 @@ use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * Demo accounts — one sign-in per role.
+ * Demo accounts — one sign-in per role, the administrator included.
  *
- * Without these the only account on a fresh install is the administrator, and
- * most of the built screens belong to the other two roles: there would be no
- * way to open the inspection form or the ticket queue at all.
+ * Without these a fresh install has no account to sign in with, and most of
+ * the built screens belong to the engineer and the assistants: there would be
+ * no way to open the inspection form or the ticket queue at all.
  *
  * @see database/seeders/DemoDataSeeder.php
  * @see docs/05-data-strategy.md
@@ -38,8 +40,62 @@ class DemoDataSeederTest extends TestCase
     {
         $this->seed(DemoDataSeeder::class);
 
+        $this->assertSame(1, User::where('role', UserRole::Admin)->count());
         $this->assertSame(1, User::where('role', UserRole::Engineer)->count());
         $this->assertSame(2, User::where('role', UserRole::Assistant)->count());
+    }
+
+    public function test_the_default_administrator_signs_in_without_a_forced_change(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+
+        $this->assertSame(UserRole::Admin, $admin->role);
+        $this->assertTrue($admin->is_demo, 'The purge could not take it away.');
+        $this->assertFalse($admin->must_change_password);
+
+        $this->post('/login', [
+            'email' => config('atlas.first_admin.email'),
+            'password' => config('atlas.demo_users.password'),
+        ])->assertRedirect();
+
+        $this->assertAuthenticatedAs($admin);
+    }
+
+    public function test_seeding_never_gives_a_real_account_the_demo_password(): void
+    {
+        /*
+         * The real administrator made with atlas:create-admin sits at the same
+         * address as the default one. Seeding used to reset whatever account
+         * held a demo address, which would have handed the real administrator
+         * the public password and made it purgeable.
+         */
+        Artisan::call('atlas:create-admin');
+        preg_match('/Password: (\S+)/', Artisan::output(), $printed);
+
+        $this->seed(DemoDataSeeder::class);
+
+        $admin = User::where('email', config('atlas.first_admin.email'))->firstOrFail();
+
+        $this->assertFalse($admin->is_demo);
+        $this->assertTrue($admin->must_change_password);
+        $this->assertTrue(Hash::check($printed[1], $admin->password), 'Seeding changed the real administrator\'s password.');
+        $this->assertFalse(Hash::check(config('atlas.demo_users.password'), $admin->password));
+    }
+
+    public function test_production_gets_no_default_administrator(): void
+    {
+        // A published password must never guard a real install's administrator.
+        $this->app['env'] = 'production';
+
+        // --force, as in production db:seed asks first.
+        $this->artisan('db:seed', ['--class' => DemoDataSeeder::class, '--force' => true])
+            ->expectsOutputToContain('No demo administrator in production')
+            ->assertSuccessful();
+
+        $this->assertSame(0, User::where('role', UserRole::Admin)->count());
+        $this->assertSame(1, User::where('role', UserRole::Engineer)->count());
     }
 
     public function test_two_assistants_so_ownership_rules_can_be_demonstrated(): void
@@ -64,7 +120,7 @@ class DemoDataSeederTest extends TestCase
          */
         $this->seed(DemoDataSeeder::class);
 
-        $this->assertSame(3, User::where('is_demo', true)->count());
+        $this->assertSame(4, User::where('is_demo', true)->count());
     }
 
     public function test_purging_the_demo_data_keeps_the_administrator(): void
@@ -144,9 +200,9 @@ class DemoDataSeederTest extends TestCase
         // teammate get in as each role?
         $this->seed(DemoDataSeeder::class);
 
-        foreach (['engineer', 'assistant', 'assistant_two'] as $key) {
+        foreach (['first_admin', 'demo_users.engineer', 'demo_users.assistant', 'demo_users.assistant_two'] as $key) {
             $this->post('/login', [
-                'email' => config("atlas.demo_users.{$key}.email"),
+                'email' => config("atlas.{$key}.email"),
                 'password' => config('atlas.demo_users.password'),
             ])->assertRedirect();
 

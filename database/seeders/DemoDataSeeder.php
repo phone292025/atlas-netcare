@@ -88,8 +88,8 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * One sign-in per role, with fixed credentials the README can quote, so
-     * the engineer and assistant screens can be opened on a fresh install.
+     * One sign-in per role, the administrator included, with fixed credentials
+     * the README can quote, so every screen can be opened on a fresh install.
      *
      * updateOrCreate keyed on email, so re-running the seeder resets a
      * forgotten demo password rather than failing on the unique index.
@@ -104,14 +104,38 @@ class DemoDataSeeder extends Seeder
         $password = config('atlas.demo_users.password');
 
         $accounts = [
+            [config('atlas.first_admin'), UserRole::Admin],
             [config('atlas.demo_users.engineer'), UserRole::Engineer],
             [config('atlas.demo_users.assistant'), UserRole::Assistant],
             [config('atlas.demo_users.assistant_two'), UserRole::Assistant],
         ];
 
         foreach ($accounts as [$account, $role]) {
+            // An administrator with a published password owns a reachable
+            // system, so a production install makes its own with
+            // atlas:create-admin instead.
+            if ($role === UserRole::Admin && app()->isProduction()) {
+                $this->command?->warn('  No demo administrator in production. Run atlas:create-admin.');
+
+                continue;
+            }
+
+            /*
+             * A REAL ACCOUNT KEEPS ITS PASSWORD. Without this check, re-seeding
+             * gave whichever account held one of these addresses the public
+             * demo password, and with the administrator's address that was
+             * the real administrator, made purgeable as well.
+             */
+            $existing = User::withTrashed()->firstWhere('email', User::normalizeEmail($account['email']));
+
+            if ($existing !== null && ! $existing->is_demo) {
+                $this->command?->warn("  Skipped {$existing->email}: it is a real account, so its password stays.");
+
+                continue;
+            }
+
             $user = User::withTrashed()->updateOrCreate(
-                ['email' => $account['email']],
+                ['email' => User::normalizeEmail($account['email'])],
                 [
                     'name' => $account['name'],
                     'password' => Hash::make($password),
@@ -131,7 +155,7 @@ class DemoDataSeeder extends Seeder
                 'must_change_password' => false,
             ])->save();
 
-            $this->command?->info("  Demo {$role->value}: {$account['email']}");
+            $this->command?->info("  Demo {$role->value}: {$user->email}");
         }
 
         $this->command?->warn('  Demo accounts share one password, from ATLAS_DEMO_PASSWORD.');

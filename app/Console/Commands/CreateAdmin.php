@@ -19,7 +19,10 @@ use Illuminate\Support\Str;
  * .env.example and the README. On any copy reachable by someone else,
  * whoever signed in first with that password owned the system, because the
  * forced password change then let them choose a password the owner didn't
- * know. Nothing in the repository holds an admin password any more.
+ * know. A demo install still gets an administrator with the public demo
+ * password, from DemoDataSeeder, but a real administrator comes from here.
+ * It refuses a demo account's address, so it never makes an account with a
+ * public password into a real administrator.
  *
  * Creating: the password is random and shown once, on this terminal and
  * nowhere else. The account is flagged must_change_password, so every other
@@ -70,6 +73,10 @@ class CreateAdmin extends Command
 
     private function create(string $email, ?User $existing): int
     {
+        if ($existing?->is_demo) {
+            return $this->refuseDemoAccount($email);
+        }
+
         if ($existing) {
             $this->error("An account already uses {$email}. Nothing was changed.");
             $this->line('  To make it an administrator again, add --restore.');
@@ -113,6 +120,10 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
+        if ($existing->is_demo) {
+            return $this->refuseDemoAccount($email);
+        }
+
         $existing->forceFill([
             'role' => UserRole::Admin,
             'is_active' => true,
@@ -124,5 +135,17 @@ class CreateAdmin extends Command
         $this->line('  Its password is unchanged. If it is forgotten, use "Forgot password" on the sign-in page.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The demo administrator lives at ATLAS_ADMIN_EMAIL, this command's
+     * default, so this is what running it bare on a demo install meets.
+     */
+    private function refuseDemoAccount(string $email): int
+    {
+        $this->error("{$email} is a demo account, and its password is public. Nothing was changed.");
+        $this->line('  To create your own administrator, give your own address: --email=you@example.com');
+
+        return self::FAILURE;
     }
 }

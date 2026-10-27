@@ -92,6 +92,29 @@ class PurgeDemoDataTest extends TestCase
         $this->assertDatabaseMissing('lab_pcs', ['id' => $demoPc->id]);
     }
 
+    public function test_it_says_when_no_administrator_is_left(): void
+    {
+        // The default administrator is demo data too. With no real one, only
+        // the terminal lets anybody back in, so the purge says how.
+        $admin = $this->demoAssistant();
+        $admin->forceFill(['role' => UserRole::Admin])->save();
+
+        $this->artisan('atlas:purge-demo-data', ['--force' => true])
+            ->expectsOutputToContain('No administrator is left')
+            ->expectsOutputToContain('atlas:create-admin --email=you@example.com')
+            ->assertExitCode(0);
+    }
+
+    public function test_it_says_nothing_about_administrators_while_a_real_one_remains(): void
+    {
+        $this->realAdmin();
+        $this->demoAssistant();
+
+        $this->artisan('atlas:purge-demo-data', ['--force' => true])
+            ->doesntExpectOutputToContain('No administrator is left')
+            ->assertExitCode(0);
+    }
+
     public function test_reference_data_survives(): void
     {
         /*

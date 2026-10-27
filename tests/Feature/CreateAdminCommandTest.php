@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\User;
+use Database\Seeders\DemoDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +18,9 @@ use Tests\TestCase;
  * .env.example and the README. On any copy someone else could reach, whoever
  * signed in first with that password owned the system. These tests pin the
  * replacement: a random password shown once, the forced change, and no admin
- * password anywhere in the repository.
+ * password setting in the repository. A demo install's default administrator
+ * uses the public demo password, so this command never turns a demo account
+ * into a real administrator.
  *
  * @see App\Console\Commands\CreateAdmin
  */
@@ -167,6 +170,33 @@ class CreateAdminCommandTest extends TestCase
         $this->assertNull($restored->deleted_at);
         $this->assertTrue(Hash::check('the-one-they-chose', $restored->password), 'Restoring changed the password.');
         $this->assertFalse($restored->must_change_password, 'Restoring sent them back to the change screen.');
+    }
+
+    public function test_the_default_administrators_address_is_refused(): void
+    {
+        // What running it bare on a demo install meets: ATLAS_ADMIN_EMAIL is
+        // the demo administrator, whose password is public.
+        $this->seed(DemoDataSeeder::class);
+
+        $this->artisan('atlas:create-admin')
+            ->expectsOutputToContain('is a demo account, and its password is public')
+            ->expectsOutputToContain('--email=you@example.com')
+            ->assertFailed();
+
+        $this->assertTrue($this->admin()->is_demo);
+        $this->assertTrue(Hash::check(config('atlas.demo_users.password'), $this->admin()->password));
+    }
+
+    public function test_restore_never_makes_a_demo_account_a_real_administrator(): void
+    {
+        // It would keep the public password and survive the purge.
+        $this->seed(DemoDataSeeder::class);
+
+        $this->artisan('atlas:create-admin', ['--restore' => true, '--email' => config('atlas.first_admin.email')])
+            ->expectsOutputToContain('is a demo account')
+            ->assertFailed();
+
+        $this->assertTrue($this->admin()->is_demo);
     }
 
     public function test_restore_refuses_an_address_nobody_uses(): void

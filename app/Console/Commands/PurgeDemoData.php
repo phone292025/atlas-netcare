@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use App\Models\NetworkDevice;
@@ -104,7 +105,16 @@ class PurgeDemoData extends Command
 
         $this->line('');
         $this->info("  {$deleted} rows removed.");
-        $this->line('  Reference data, the administrator and every real record are untouched.');
+        $this->line('  Reference data and every real record are untouched.');
+
+        // The demo administrator went with the rest. Without a real one, only
+        // the terminal can let anybody back in.
+        if (! User::query()->active()->role(UserRole::Admin)->exists()) {
+            $this->line('');
+            $this->warn('  No administrator is left. Create yours:');
+            $this->warn('  php artisan atlas:create-admin --email=you@example.com');
+        }
+
         $this->line('');
 
         return self::SUCCESS;

@@ -151,12 +151,14 @@ jobs:
         # config would wipe the real database (Dockerfile).
         run: docker compose exec -T app sh -c 'test ! -e tests && test ! -e phpunit.xml && test ! -e vendor/bin/phpunit'
 
-      - name: Seed demo data and create the administrator
-        # grep keeps the starting password out of the log, which anybody can
-        # read on a public repository.
+      - name: Seed demo data and create an administrator
+        # Seeding makes the default administrator at admin@atlas.local, so the
+        # real one gets an address of its own. grep keeps its starting
+        # password out of the log, which anybody can read on a public
+        # repository.
         run: |
           docker compose exec -T app php artisan db:seed --force
-          docker compose exec -T app php artisan atlas:create-admin | grep 'Administrator created'
+          docker compose exec -T app php artisan atlas:create-admin --email=owner@atlas.local | grep 'Administrator created'
 
       - name: Check that nothing restarted
         # Every service restarts itself after a crash, which would hide the

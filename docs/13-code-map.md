@@ -692,7 +692,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/ComponentLibraryTest.php` | The shared component library. Every screen is built from these, so a fault |
 | `Feature/CreateAdminCommandTest.php` | `atlas:create-admin`, the only way the first administrator comes to exist |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it |
-| `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role |
+| `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role, the administrator included |
 | `Feature/DevGalleryTest.php` | The component gallery is a development tool, not part of the system |
 | `Feature/DisplayComponentsTest.php` | The four read-only components from Stage 3c: stat-tile, risk-gauge, timeline |
 | `Feature/EnsureUserHasRoleTest.php` | Area-level authorisation is the boundary between the three roles, so it is |
