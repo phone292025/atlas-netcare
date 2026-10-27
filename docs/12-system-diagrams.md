@@ -290,7 +290,7 @@ erDiagram
     }
     TELEMETRY_READINGS {
         bigint id PK
-        bigint access_point_id FK
+        bigint network_device_id FK
         datetime recorded_at
         int latency_ms
         int client_count
@@ -300,8 +300,8 @@ erDiagram
     }
     TELEMETRY_HOURLY {
         bigint id PK
-        bigint access_point_id FK
-        datetime hour_bucket UK "unique with access_point_id"
+        bigint network_device_id FK
+        datetime hour_bucket UK "unique with network_device_id"
         decimal avg_latency_ms
         int peak_client_count
         decimal uptime_pct

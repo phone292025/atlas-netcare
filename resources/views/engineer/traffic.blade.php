@@ -138,14 +138,14 @@
                             <tr class="hover:bg-sunken/60">
                                 <td class="whitespace-nowrap px-5 py-3 text-fg-muted">{{ $row->hour_bucket->campus()->format('j M, H:i') }}</td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                    @if ($row->accessPoint?->trashed())
+                                    @if ($row->device?->trashed())
                                         {{-- Removed from the inventory: its history stays, its page does not. --}}
-                                        <span class="font-mono font-medium text-fg-muted">{{ $row->accessPoint->code }}</span>
+                                        <span class="font-mono font-medium text-fg-muted">{{ $row->device->code }}</span>
                                         <span class="block text-xs text-fg-subtle">Removed</span>
                                     @else
-                                        <a href="{{ route('engineer.aps.show', $row->access_point_id) }}"
-                                           class="font-mono font-medium text-fg hover:text-brand-700">{{ $row->accessPoint?->code }}</a>
-                                        <span class="block text-xs text-fg-subtle">{{ $row->accessPoint?->location?->code }}</span>
+                                        <a href="{{ route('engineer.aps.show', $row->network_device_id) }}"
+                                           class="font-mono font-medium text-fg hover:text-brand-700">{{ $row->device?->code }}</a>
+                                        <span class="block text-xs text-fg-subtle">{{ $row->device?->location?->code }}</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right tabular-nums">{{ $row->peak_client_count }}</td>

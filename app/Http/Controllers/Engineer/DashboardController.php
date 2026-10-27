@@ -71,7 +71,7 @@ class DashboardController extends Controller
     public function show(AccessPoint $accessPoint): View
     {
         $hours = TelemetryHourly::query()
-            ->where('access_point_id', $accessPoint->id)
+            ->where('network_device_id', $accessPoint->id)
             ->where('hour_bucket', '>=', now()->subDay()->startOfHour())
             ->orderBy('hour_bucket')
             ->get();

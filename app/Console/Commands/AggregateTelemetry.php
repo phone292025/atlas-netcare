@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
  *
  * IDEMPOTENT. Runs hourly on the schedule, but it can be run by hand, run
  * twice, or overlap itself — the upsert against the unique
- * (access_point_id, hour_bucket) index means a second pass corrects the row
+ * (network_device_id, hour_bucket) index means a second pass corrects the row
  * rather than doubling every point on the chart.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md

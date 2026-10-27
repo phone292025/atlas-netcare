@@ -127,6 +127,6 @@ class AccessPoint extends NetworkDevice
      */
     public function hourly(): HasMany
     {
-        return $this->hasMany(TelemetryHourly::class, 'access_point_id');
+        return $this->hasMany(TelemetryHourly::class, 'network_device_id');
     }
 }

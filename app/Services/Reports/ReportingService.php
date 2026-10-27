@@ -302,7 +302,7 @@ class ReportingService
         $since = Carbon::now()->subDays(30);
 
         $rows = TelemetryHourly::query()
-            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.access_point_id')
+            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.network_device_id')
             ->where('network_devices.kind', DeviceKind::AccessPoint->value)
             ->where('telemetry_hourly.hour_bucket', '>=', $since)
             ->groupBy('network_devices.location_id')
@@ -342,7 +342,7 @@ class ReportingService
     private function peakClientsByLocation(Carbon $since): array
     {
         $hours = TelemetryHourly::query()
-            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.access_point_id')
+            ->join('network_devices', 'network_devices.id', '=', 'telemetry_hourly.network_device_id')
             ->where('network_devices.kind', DeviceKind::AccessPoint->value)
             ->where('telemetry_hourly.hour_bucket', '>=', $since)
             ->groupBy('network_devices.location_id', 'telemetry_hourly.hour_bucket')

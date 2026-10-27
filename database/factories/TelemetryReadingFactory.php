@@ -18,7 +18,7 @@ class TelemetryReadingFactory extends Factory
     public function definition(): array
     {
         return [
-            'access_point_id' => AccessPoint::factory(),
+            'network_device_id' => AccessPoint::factory(),
             'recorded_at' => now(),
             'latency_ms' => $this->faker->numberBetween(8, 45),
             'client_count' => $this->faker->numberBetween(0, 20),

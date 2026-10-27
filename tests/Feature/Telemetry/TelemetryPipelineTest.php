@@ -88,7 +88,7 @@ class TelemetryPipelineTest extends TestCase
     private function driverWhereEverythingIsSlow(): void
     {
         $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: now(),
             latencyMs: 500,
             clientCount: 5,
@@ -103,7 +103,7 @@ class TelemetryPipelineTest extends TestCase
     private function driverWhereEverythingIsHealthy(): void
     {
         $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: now(),
             latencyMs: 20,
             clientCount: 5,
@@ -377,7 +377,7 @@ class TelemetryPipelineTest extends TestCase
 
         Artisan::call('atlas:collect-telemetry');
 
-        $readings = TelemetryReading::all()->keyBy('access_point_id');
+        $readings = TelemetryReading::all()->keyBy('network_device_id');
 
         $this->assertCount(6, $readings, 'Every access point should have been polled.');
 
@@ -526,7 +526,7 @@ class TelemetryPipelineTest extends TestCase
 
         Artisan::call('atlas:collect-telemetry');
 
-        $readings = TelemetryReading::all()->keyBy('access_point_id');
+        $readings = TelemetryReading::all()->keyBy('network_device_id');
         $answered = 0;
 
         foreach (AccessPoint::all() as $ap) {
@@ -583,12 +583,12 @@ class TelemetryPipelineTest extends TestCase
         $this->assertNull($empty['readings_as_of']);
         $this->assertFalse($empty['stale']);
 
-        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()->subHours(3)]);
+        TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => now()->subHours(3)]);
         $old = $this->actingAs($engineer)->getJson(route('api.dashboard'))->json();
         $this->assertNotNull($old['readings_as_of']);
         $this->assertTrue($old['stale']);
 
-        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()]);
+        TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => now()]);
         $fresh = $this->actingAs($engineer)->getJson(route('api.dashboard'))->json();
         $this->assertFalse($fresh['stale']);
     }
@@ -602,7 +602,7 @@ class TelemetryPipelineTest extends TestCase
 
         foreach ([5, 25, 45] as $index => $minute) {
             TelemetryReading::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'recorded_at' => $hour->copy()->addMinutes($minute),
                 'client_count' => [10, 30, 20][$index],
                 'latency_ms' => [20, 40, 30][$index],
@@ -611,7 +611,7 @@ class TelemetryPipelineTest extends TestCase
 
         Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
 
-        $bucket = TelemetryHourly::firstWhere('access_point_id', $ap->id);
+        $bucket = TelemetryHourly::firstWhere('network_device_id', $ap->id);
 
         $this->assertNotNull($bucket);
         $this->assertSame(3, $bucket->reading_count);
@@ -630,7 +630,7 @@ class TelemetryPipelineTest extends TestCase
          */
         $ap = AccessPoint::factory()->create();
         TelemetryReading::factory()->count(4)->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subHour()->startOfHour()->addMinutes(10),
         ]);
 
@@ -652,18 +652,18 @@ class TelemetryPipelineTest extends TestCase
         $hour = now()->subHour()->startOfHour();
 
         TelemetryReading::factory()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => $hour->copy()->addMinutes(5),
             'latency_ms' => 40,
         ]);
         TelemetryReading::factory()->offline()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => $hour->copy()->addMinutes(35),
         ]);
 
         Artisan::call('atlas:aggregate-telemetry', ['--hours' => 3]);
 
-        $bucket = TelemetryHourly::firstWhere('access_point_id', $ap->id);
+        $bucket = TelemetryHourly::firstWhere('network_device_id', $ap->id);
 
         $this->assertEqualsWithDelta(40.0, (float) $bucket->avg_latency_ms, 0.01);
         $this->assertEqualsWithDelta(50.0, (float) $bucket->uptime_pct, 0.01);
@@ -676,11 +676,11 @@ class TelemetryPipelineTest extends TestCase
         $ap = AccessPoint::factory()->create();
 
         TelemetryReading::factory()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subDays(200),
         ]);
         TelemetryReading::factory()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subDay(),
         ]);
 
@@ -756,7 +756,7 @@ class TelemetryPipelineTest extends TestCase
     /**
      * Consecutive hourly buckets for one access point.
      *
-     * One row per hour, because (access_point_id, hour_bucket) is unique —
+     * One row per hour, because (network_device_id, hour_bucket) is unique —
      * that index is what stops a re-run of the aggregator doubling every point
      * on the chart, so test data has to respect it too.
      */
@@ -764,7 +764,7 @@ class TelemetryPipelineTest extends TestCase
     {
         for ($i = 1; $i <= $count; $i++) {
             TelemetryHourly::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'hour_bucket' => now()->subHours($i)->startOfHour(),
             ]);
         }
@@ -847,7 +847,7 @@ class TelemetryPipelineTest extends TestCase
             $ap->refresh();
 
             $newest = TelemetryReading::query()
-                ->where('access_point_id', $ap->id)
+                ->where('network_device_id', $ap->id)
                 ->orderByDesc('recorded_at')
                 ->first();
 
@@ -862,7 +862,7 @@ class TelemetryPipelineTest extends TestCase
             );
 
             $lastAnswered = TelemetryReading::query()
-                ->where('access_point_id', $ap->id)
+                ->where('network_device_id', $ap->id)
                 ->whereNotNull('latency_ms')
                 ->orderByDesc('recorded_at')
                 ->first();
@@ -903,7 +903,7 @@ class TelemetryPipelineTest extends TestCase
         // The collector's reading, newer than anything the backfill will
         // write: an outage, a minute ago.
         TelemetryReading::create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subMinute(),
             'latency_ms' => null,
             'client_count' => 0,
@@ -942,8 +942,8 @@ class TelemetryPipelineTest extends TestCase
         $this->assertSame($afterFirst, TelemetryReading::count(), 'A second backfill wrote history that was already there.');
 
         $duplicated = TelemetryReading::query()
-            ->selectRaw('access_point_id, recorded_at, COUNT(*) as n')
-            ->groupBy('access_point_id', 'recorded_at')
+            ->selectRaw('network_device_id, recorded_at, COUNT(*) as n')
+            ->groupBy('network_device_id', 'recorded_at')
             ->havingRaw('COUNT(*) > 1')
             ->count();
 
@@ -967,6 +967,6 @@ class TelemetryPipelineTest extends TestCase
 
         $this->assertSame(NetworkStatus::Maintenance, $ap->status);
         $this->assertNull($ap->last_seen_at);
-        $this->assertSame(0, TelemetryReading::where('access_point_id', $ap->id)->count());
+        $this->assertSame(0, TelemetryReading::where('network_device_id', $ap->id)->count());
     }
 }

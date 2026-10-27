@@ -36,8 +36,8 @@ Apply these everywhere. They are not negotiable per-module.
 
 | Table | Index | Why |
 |---|---|---|
-| `telemetry_readings` | `(access_point_id, recorded_at)` | Every chart query. This is the only table that reaches six figures. |
-| `telemetry_hourly` | `(access_point_id, hour_bucket)` unique | Prevents duplicate aggregation |
+| `telemetry_readings` | `(network_device_id, recorded_at)` | Every chart query. This is the only table that reaches six figures. |
+| `telemetry_hourly` | `(network_device_id, hour_bucket)` unique | Prevents duplicate aggregation |
 | `tickets` | `(status, priority)` | Queue filtering |
 | `tickets` | `(assigned_to)` | "My tickets" |
 | `tickets` | `(ticketable_type, ticketable_id)` | Tickets for one asset |
@@ -278,7 +278,7 @@ erDiagram
 
     TELEMETRY_READINGS {
         bigint id PK
-        bigint access_point_id FK
+        bigint network_device_id FK
         timestamp recorded_at
         smallint latency_ms
         smallint client_count
@@ -290,7 +290,7 @@ erDiagram
     }
     TELEMETRY_HOURLY {
         bigint id PK
-        bigint access_point_id FK
+        bigint network_device_id FK
         timestamp hour_bucket
         decimal avg_latency_ms
         smallint peak_client_count
@@ -318,6 +318,8 @@ erDiagram
 ## Table notes
 
 ### `network_devices` holds every kind of device
+
+Their readings and hourly rows point at them by `network_device_id`, renamed from `access_point_id` on 2026-10-28 (`2026_10_28_090001`), because a switch's reading is not an access point's.
 
 Added 2026-10-27 (`2026_10_27_090001`, ADR-0016). Until then this was `access_points`. The table was renamed rather than copied, so every id stayed, and the readings, hourly rows, tickets, risk assessments, alarms and audit rows that point at those ids kept working unchanged. `ap_code` became `code`.
 
@@ -412,7 +414,7 @@ Added 2026-09-19 (`2026_09_19_090001`) for the Network monitor's simulation cont
 
 **It is not a status.** Only `SimulatedTelemetrySource` reads it, and only for moments at or after `simulation_started_at`, so the backfill never rewrites history as congested. `status` still comes from the classifier. Under a live driver the column is ignored and the controls that set it are refused. Both columns are written only by `SimulationService` with `forceFill()`, never from request input, and every change goes through the audit observer with the user who made it.
 
-### `telemetry_hourly` is unique on `(access_point_id, hour_bucket)`
+### `telemetry_hourly` is unique on `(network_device_id, hour_bucket)`
 
 Not merely indexed. Aggregation is re-runnable by design — scheduled hourly, rebuilding the last three hours, and runnable by hand — and without the unique constraint a second pass over the same hour silently doubles every point on the chart.
 

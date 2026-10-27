@@ -17,7 +17,7 @@ class TelemetryHourlyFactory extends Factory
     public function definition(): array
     {
         return [
-            'access_point_id' => AccessPoint::factory(),
+            'network_device_id' => AccessPoint::factory(),
             'hour_bucket' => now()->startOfHour(),
             'avg_latency_ms' => $this->faker->numberBetween(10, 60),
             'peak_client_count' => $this->faker->numberBetween(5, 45),

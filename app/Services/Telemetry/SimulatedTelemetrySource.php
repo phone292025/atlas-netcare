@@ -81,7 +81,7 @@ class SimulatedTelemetrySource implements TelemetrySource
         $saturation = min(1.2, $clients / $capacity);
 
         return new ReadingData(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: Carbon::instance($at->toDateTime()),
             latencyMs: $this->latency($ap, $saturation),
             clientCount: $clients,

@@ -164,11 +164,11 @@ class NetworkMonitorService
 
         $rows = TelemetryReading::query()
             ->toBase()
-            ->selectRaw("{$bucket} as bucket, access_point_id")
+            ->selectRaw("{$bucket} as bucket, network_device_id")
             ->selectRaw('AVG(client_count) as clients, AVG(throughput_mbps) as throughput, AVG(latency_ms) as latency')
-            ->whereIn('access_point_id', $accessPointIds)
+            ->whereIn('network_device_id', $accessPointIds)
             ->where('recorded_at', '>=', now()->subDay())
-            ->groupByRaw("{$bucket}, access_point_id")
+            ->groupByRaw("{$bucket}, network_device_id")
             ->get();
 
         return $rows->groupBy('bucket')

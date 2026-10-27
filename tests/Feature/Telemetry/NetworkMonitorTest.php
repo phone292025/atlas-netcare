@@ -184,9 +184,9 @@ class NetworkMonitorTest extends TestCase
         $offline = AccessPoint::factory()->create(['code' => 'AP-DOWN', 'status' => NetworkStatus::Offline]);
         $held = AccessPoint::factory()->create(['code' => 'AP-HELD', 'status' => NetworkStatus::Maintenance]);
 
-        TelemetryReading::factory()->create(['access_point_id' => $fresh->id, 'recorded_at' => now()->subMinute(), 'client_count' => 12]);
-        TelemetryReading::factory()->create(['access_point_id' => $old->id, 'recorded_at' => now()->subHours(2), 'client_count' => 30]);
-        TelemetryReading::factory()->create(['access_point_id' => $offline->id, 'recorded_at' => now()->subHours(2)]);
+        TelemetryReading::factory()->create(['network_device_id' => $fresh->id, 'recorded_at' => now()->subMinute(), 'client_count' => 12]);
+        TelemetryReading::factory()->create(['network_device_id' => $old->id, 'recorded_at' => now()->subHours(2), 'client_count' => 30]);
+        TelemetryReading::factory()->create(['network_device_id' => $offline->id, 'recorded_at' => now()->subHours(2)]);
 
         $rows = collect(app(NetworkMonitorService::class)->snapshot()['access_points'])->keyBy('code');
 
@@ -234,7 +234,7 @@ class NetworkMonitorTest extends TestCase
 
         foreach ([[$a, '10:01', 10, 4.0], [$a, '10:03', 15, 6.0], [$a, '10:05', 20, 8.0], [$b, '10:02', 30, 10.0]] as [$ap, $time, $clients, $mbps]) {
             TelemetryReading::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'recorded_at' => Carbon::parse("2026-09-16 {$time}:00"),
                 'client_count' => $clients,
                 'throughput_mbps' => $mbps,
@@ -256,7 +256,7 @@ class NetworkMonitorTest extends TestCase
     public function test_activity_ignores_readings_older_than_a_day(): void
     {
         $ap = AccessPoint::factory()->create();
-        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()->subDays(2)]);
+        TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => now()->subDays(2)]);
 
         $this->assertSame([], app(NetworkMonitorService::class)->snapshot()['activity']);
     }
@@ -287,7 +287,7 @@ class NetworkMonitorTest extends TestCase
     public function test_one_access_point_comes_with_its_own_activity(): void
     {
         $ap = AccessPoint::factory()->create(['ip_address' => '10.20.1.11']);
-        TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => now()->subMinutes(2), 'latency_ms' => 21]);
+        TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => now()->subMinutes(2), 'latency_ms' => 21]);
 
         $this->actingAs($this->userWith(UserRole::Assistant))
             ->getJson(route('api.monitor.aps.show', $ap))
@@ -367,7 +367,7 @@ class NetworkMonitorTest extends TestCase
         $this->actingAs($engineer)
             ->post(route('monitor.simulate'), ['scenario' => 'congestion', 'access_point_id' => $ap->id]);
 
-        $first = TelemetryReading::query()->where('access_point_id', $ap->id)->sole();
+        $first = TelemetryReading::query()->where('network_device_id', $ap->id)->sole();
         $this->assertGreaterThan(50, $first->client_count, 'Congestion puts the access point over capacity.');
         $this->assertGreaterThan(config('atlas.thresholds.latency_ms'), $first->latency_ms);
 
@@ -394,7 +394,7 @@ class NetworkMonitorTest extends TestCase
 
         // Silent for half an hour, well past the offline window — but nobody
         // was listening, so the silence sweep must leave it alone.
-        $this->assertSame(0, TelemetryReading::query()->where('access_point_id', $ap->id)->count());
+        $this->assertSame(0, TelemetryReading::query()->where('network_device_id', $ap->id)->count());
         $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
         $this->assertSame(0, Ticket::count());
 
@@ -526,7 +526,7 @@ class NetworkMonitorTest extends TestCase
     {
         $ap = AccessPoint::factory()->create();
         TelemetryReading::factory()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subMinute(),
             'channel_util_pct' => -1.4,
         ]);

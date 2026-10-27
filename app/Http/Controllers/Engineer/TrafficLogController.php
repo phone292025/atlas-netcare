@@ -31,10 +31,11 @@ class TrafficLogController extends Controller
         [$from, $to] = $this->range($request);
 
         $rows = TelemetryHourly::query()
-            ->with('accessPoint.location')
+            ->accessPoints()
+            ->with('device.location')
             ->whereBetween('hour_bucket', [$from, $to])
-            ->when($request->filled('access_point'), fn ($q) => $q->where('access_point_id', $request->integer('access_point')))
-            ->when($request->filled('location'), fn ($q) => $q->whereHas('accessPoint', fn ($q) => $q->where('location_id', $request->integer('location'))))
+            ->when($request->filled('access_point'), fn ($q) => $q->where('network_device_id', $request->integer('access_point')))
+            ->when($request->filled('location'), fn ($q) => $q->whereHas('device', fn ($q) => $q->where('location_id', $request->integer('location'))))
             ->orderByDesc('hour_bucket')
             ->paginate(50)
             ->withQueryString();
@@ -64,11 +65,12 @@ class TrafficLogController extends Controller
     private function campusTrend(Carbon $from, Carbon $to, Request $request): array
     {
         $rows = TelemetryHourly::query()
+            ->accessPoints()
             ->selectRaw('hour_bucket')
             ->selectRaw('SUM(peak_client_count) as clients')
             ->selectRaw('AVG(avg_latency_ms) as latency')
             ->whereBetween('hour_bucket', [$from, $to])
-            ->when($request->filled('access_point'), fn ($q) => $q->where('access_point_id', $request->integer('access_point')))
+            ->when($request->filled('access_point'), fn ($q) => $q->where('network_device_id', $request->integer('access_point')))
             ->groupBy('hour_bucket')
             ->orderBy('hour_bucket')
             ->get();

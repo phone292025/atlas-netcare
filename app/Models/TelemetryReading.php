@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One measurement of one access point.
+ * One measurement of one network device.
  *
  * NO TIMESTAMPS. `recorded_at` is the only time that means anything here, and
  * this is the one table where two extra datetimes per row is a real cost —
@@ -33,7 +33,7 @@ class TelemetryReading extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'access_point_id',
+        'network_device_id',
         'recorded_at',
         'latency_ms',
         'client_count',
@@ -57,10 +57,15 @@ class TelemetryReading extends Model
         ];
     }
 
-    /** @return BelongsTo<AccessPoint, $this> */
-    public function accessPoint(): BelongsTo
+    /**
+     * The device measured: an access point, or from roadmap task 1.3 a
+     * switch or router. An access point loads as an AccessPoint.
+     *
+     * @return BelongsTo<NetworkDevice, $this>
+     */
+    public function device(): BelongsTo
     {
-        return $this->belongsTo(AccessPoint::class);
+        return $this->belongsTo(NetworkDevice::class, 'network_device_id');
     }
 
     /** @param  Builder<TelemetryReading>  $query */

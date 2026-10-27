@@ -336,7 +336,7 @@ class DemoDataSeeder extends Seeder
          * High band was empty.
          *
          * Deleting this window first also avoids the unique index on
-         * (access_point_id, hour_bucket), which is what a plain re-run would
+         * (network_device_id, hour_bucket), which is what a plain re-run would
          * otherwise collide with.
          */
         $windowStart = now()->subDays(self::TELEMETRY_DAYS)->startOfHour();
@@ -351,10 +351,10 @@ class DemoDataSeeder extends Seeder
          */
         $readingsFrom = now()->subDay()->startOfHour();
 
-        TelemetryHourly::whereIn('access_point_id', $aps->pluck('id'))
+        TelemetryHourly::whereIn('network_device_id', $aps->pluck('id'))
             ->where('hour_bucket', '>=', $windowStart)
             ->delete();
-        TelemetryReading::whereIn('access_point_id', $aps->pluck('id'))
+        TelemetryReading::whereIn('network_device_id', $aps->pluck('id'))
             ->where('recorded_at', '>=', $readingsFrom)
             ->delete();
 
@@ -382,7 +382,7 @@ class DemoDataSeeder extends Seeder
                     [$latency, $loss] = $this->linkQuality($degrading, $progress, $busy, $index);
 
                     $rows[] = [
-                        'access_point_id' => $ap->id,
+                        'network_device_id' => $ap->id,
                         'hour_bucket' => $at->toDateTimeString(),
                         'avg_latency_ms' => round($latency, 2),
                         'peak_client_count' => (int) round($ap->client_capacity * (0.25 + $busy * 0.7)),
@@ -464,7 +464,7 @@ class DemoDataSeeder extends Seeder
     private function reading(AccessPoint $ap, Carbon $at, bool $degrading, float $progress, int $index, bool $down): array
     {
         $row = [
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => $at->toDateTimeString(),
             'source' => 'simulated',
         ];

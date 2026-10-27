@@ -51,7 +51,7 @@ class TelemetryService
     public function store(Collection $readings): Collection
     {
         $accessPoints = AccessPoint::query()
-            ->whereIn('id', $readings->pluck('accessPointId')->unique())
+            ->whereIn('id', $readings->pluck('deviceId')->unique())
             ->get()
             ->keyBy('id');
 
@@ -61,7 +61,7 @@ class TelemetryService
             $rows = [];
 
             foreach ($readings as $reading) {
-                $ap = $accessPoints->get($reading->accessPointId);
+                $ap = $accessPoints->get($reading->deviceId);
 
                 if (! $ap) {
                     continue;
@@ -138,7 +138,7 @@ class TelemetryService
 
         // This reading is one of them, so only the previous n-1 are needed.
         $previous = TelemetryReading::query()
-            ->where('access_point_id', $ap->id)
+            ->where('network_device_id', $ap->id)
             ->orderByDesc('recorded_at')
             ->limit($required - 1)
             ->get();
@@ -289,14 +289,14 @@ class TelemetryService
 
         $latestIds = TelemetryReading::query()
             ->selectRaw('MAX(id) as id')
-            ->whereIn('access_point_id', $accessPointIds)
-            ->groupBy('access_point_id')
+            ->whereIn('network_device_id', $accessPointIds)
+            ->groupBy('network_device_id')
             ->pluck('id');
 
         return TelemetryReading::query()
             ->whereIn('id', $latestIds)
             ->get()
-            ->keyBy('access_point_id');
+            ->keyBy('network_device_id');
     }
 
     /**

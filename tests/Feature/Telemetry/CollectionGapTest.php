@@ -43,7 +43,7 @@ class CollectionGapTest extends TestCase
     private function accessPointsLastHeardFrom(Carbon $at, int $count = 3): Collection
     {
         return AccessPoint::factory()->count($count)->create()->each(function (AccessPoint $ap) use ($at) {
-            TelemetryReading::factory()->create(['access_point_id' => $ap->id, 'recorded_at' => $at]);
+            TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => $at]);
             $ap->forceFill(['last_seen_at' => $at])->save();
         });
     }
@@ -51,7 +51,7 @@ class CollectionGapTest extends TestCase
     /** The longest silence between consecutive readings for this access point, in minutes. */
     private function longestSilence(AccessPoint $ap, Carbon $since): float
     {
-        $times = TelemetryReading::where('access_point_id', $ap->id)
+        $times = TelemetryReading::where('network_device_id', $ap->id)
             ->where('recorded_at', '>=', $since)
             ->orderBy('recorded_at')
             ->pluck('recorded_at');
@@ -69,7 +69,7 @@ class CollectionGapTest extends TestCase
 
         foreach ($aps as $ap) {
             $this->assertLessThanOrEqual(5, $this->longestSilence($ap, now()->subHours(3)), "{$ap->code} still has a hole.");
-            $this->assertSame(now()->toDateTimeString(), TelemetryReading::where('access_point_id', $ap->id)->max('recorded_at'));
+            $this->assertSame(now()->toDateTimeString(), TelemetryReading::where('network_device_id', $ap->id)->max('recorded_at'));
         }
     }
 
@@ -101,7 +101,7 @@ class CollectionGapTest extends TestCase
         foreach ($aps as $ap) {
             $this->assertSame(
                 0,
-                TelemetryReading::where('access_point_id', $ap->id)
+                TelemetryReading::where('network_device_id', $ap->id)
                     ->where('recorded_at', '>', now()->subWeek())
                     ->where('recorded_at', '<', $dayAgo)
                     ->count(),
@@ -120,7 +120,7 @@ class CollectionGapTest extends TestCase
         $this->artisan('atlas:collect-telemetry');
 
         foreach ($aps as $ap) {
-            $this->assertSame(1, TelemetryReading::where('access_point_id', $ap->id)->count());
+            $this->assertSame(1, TelemetryReading::where('network_device_id', $ap->id)->count());
         }
     }
 
@@ -131,7 +131,7 @@ class CollectionGapTest extends TestCase
         $this->artisan('atlas:collect-telemetry')->doesntExpectOutputToContain('simulated readings');
 
         foreach ($aps as $ap) {
-            $this->assertSame(2, TelemetryReading::where('access_point_id', $ap->id)->count());
+            $this->assertSame(2, TelemetryReading::where('network_device_id', $ap->id)->count());
         }
     }
 
@@ -145,7 +145,7 @@ class CollectionGapTest extends TestCase
          */
         $aps = AccessPoint::factory()->count(2)->create()->each(function (AccessPoint $ap) {
             TelemetryHourly::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'hour_bucket' => '2026-09-16 09:00:00',
                 'avg_latency_ms' => 999,
                 'reading_count' => 60,
@@ -177,8 +177,8 @@ class CollectionGapTest extends TestCase
 
         $this->artisan('atlas:collect-telemetry');
 
-        $this->assertSame(1, TelemetryReading::where('access_point_id', $interrupted->id)->count(), 'The interrupted feed was filled in.');
-        $this->assertGreaterThan(30, TelemetryReading::where('access_point_id', $healthy->id)->count(), 'The healthy one was not filled.');
+        $this->assertSame(1, TelemetryReading::where('network_device_id', $interrupted->id)->count(), 'The interrupted feed was filled in.');
+        $this->assertGreaterThan(30, TelemetryReading::where('network_device_id', $healthy->id)->count(), 'The healthy one was not filled.');
     }
 
     public function test_a_real_driver_never_fills_a_gap(): void

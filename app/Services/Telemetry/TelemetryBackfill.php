@@ -192,7 +192,7 @@ class TelemetryBackfill
      * Makes a re-run safe: it fills gaps and writes nothing it already has.
      * Without this, every run doubled its window, and the duplicates were not
      * harmless because the simulator draws loss at random. A unique index on
-     * (access_point_id, recorded_at) would be stronger, but cannot be added
+     * (network_device_id, recorded_at) would be stronger, but cannot be added
      * while old duplicates exist.
      *
      * Through the query builder, so a fortnight is a list of strings rather
@@ -207,13 +207,13 @@ class TelemetryBackfill
 
         TelemetryReading::query()
             ->toBase()
-            ->select(['access_point_id', 'recorded_at'])
-            ->whereIn('access_point_id', $accessPoints->pluck('id'))
+            ->select(['network_device_id', 'recorded_at'])
+            ->whereIn('network_device_id', $accessPoints->pluck('id'))
             ->whereBetween('recorded_at', [$from, $to])
             ->orderBy('id')
             ->chunk(5000, function ($rows) use (&$recorded): void {
                 foreach ($rows as $row) {
-                    $recorded[(int) $row->access_point_id][(string) $row->recorded_at] = true;
+                    $recorded[(int) $row->network_device_id][(string) $row->recorded_at] = true;
                 }
             });
 

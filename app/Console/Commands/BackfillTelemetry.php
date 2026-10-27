@@ -112,7 +112,7 @@ class BackfillTelemetry extends Command
 
         foreach ($accessPoints as $ap) {
             $newest = TelemetryReading::query()
-                ->where('access_point_id', $ap->id)
+                ->where('network_device_id', $ap->id)
                 ->orderByDesc('recorded_at')
                 ->first();
 
@@ -122,7 +122,7 @@ class BackfillTelemetry extends Command
 
             // An unreachable reading has no latency; one that answered does.
             $lastAnswered = TelemetryReading::query()
-                ->where('access_point_id', $ap->id)
+                ->where('network_device_id', $ap->id)
                 ->whereNotNull('latency_ms')
                 ->orderByDesc('recorded_at')
                 ->value('recorded_at');

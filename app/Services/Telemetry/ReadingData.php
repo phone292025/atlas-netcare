@@ -22,7 +22,7 @@ use Carbon\CarbonInterface;
 final readonly class ReadingData
 {
     public function __construct(
-        public int $accessPointId,
+        public int $deviceId,
         public CarbonInterface $recordedAt,
         public ?int $latencyMs,
         public int $clientCount,
@@ -43,7 +43,7 @@ final readonly class ReadingData
     public static function unreachable(AccessPoint $ap, CarbonInterface $at, string $source): self
     {
         return new self(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: $at,
             latencyMs: null,
             clientCount: 0,
@@ -59,7 +59,7 @@ final readonly class ReadingData
     public function toRow(string $status): array
     {
         return [
-            'access_point_id' => $this->accessPointId,
+            'network_device_id' => $this->deviceId,
             'recorded_at' => $this->recordedAt->toDateTimeString(),
             'latency_ms' => $this->latencyMs,
             'client_count' => $this->clientCount,

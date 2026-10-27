@@ -257,7 +257,7 @@ class DemoDataSeederTest extends TestCase
         $this->artisan('atlas:aggregate-telemetry', ['--hours' => 24])->assertExitCode(0);
 
         $degrading = AccessPoint::where('is_demo', true)->orderBy('id')->limit(3)->pluck('id');
-        $lastDay = TelemetryHourly::whereIn('access_point_id', $degrading)
+        $lastDay = TelemetryHourly::whereIn('network_device_id', $degrading)
             ->where('hour_bucket', '>=', now()->subDay()->startOfHour());
 
         $this->assertGreaterThan(0, (clone $lastDay)->count());

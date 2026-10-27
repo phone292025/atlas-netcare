@@ -33,7 +33,7 @@ class TelemetryClassificationTest extends TestCase
     private function reading(AccessPoint $ap, array $overrides = []): ReadingData
     {
         return new ReadingData(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: $overrides['recordedAt'] ?? now(),
             latencyMs: $overrides['latencyMs'] ?? 20,
             clientCount: $overrides['clientCount'] ?? 5,
@@ -50,7 +50,7 @@ class TelemetryClassificationTest extends TestCase
     {
         for ($i = 1; $i <= $count; $i++) {
             TelemetryReading::factory()->slow()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'recorded_at' => now()->subMinutes($i),
             ]);
         }
@@ -154,11 +154,11 @@ class TelemetryClassificationTest extends TestCase
         $ap = AccessPoint::factory()->create(['client_capacity' => 50]);
 
         TelemetryReading::factory()->slow()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subMinutes(2),
         ]);
         TelemetryReading::factory()->create([
-            'access_point_id' => $ap->id,
+            'network_device_id' => $ap->id,
             'recorded_at' => now()->subMinute(),
         ]);
 
@@ -187,7 +187,7 @@ class TelemetryClassificationTest extends TestCase
 
         for ($i = 1; $i <= 2; $i++) {
             TelemetryReading::factory()->lossy()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'recorded_at' => now()->subMinutes($i),
             ]);
         }
@@ -205,7 +205,7 @@ class TelemetryClassificationTest extends TestCase
 
         for ($i = 1; $i <= 2; $i++) {
             TelemetryReading::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'recorded_at' => now()->subMinutes($i),
                 'client_count' => 48,
             ]);

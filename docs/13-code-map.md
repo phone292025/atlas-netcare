@@ -243,7 +243,7 @@ read better on the model than in a service.
 | `Shift.php` | One assistant, on one date, in one place |
 | `ShiftTemplate.php` | A recurring weekly slot (Q4) |
 | `TelemetryHourly.php` | One hour of readings for one access point, rolled up |
-| `TelemetryReading.php` | One measurement of one access point |
+| `TelemetryReading.php` | One measurement of one network device |
 | `Ticket.php` | One traceable fault report |
 | `TicketComment.php` | A note on a ticket (FR-308) |
 | `User.php` | A person who uses Atlas NetCare |
@@ -424,6 +424,7 @@ database that already ran it.
 | `2026_09_19_090001_add_simulation_scenario_to_access_points_table.php` | Which condition the simulated driver is forcing on an access point, if any |
 | `2026_09_23_090001_add_inspection_result_id_to_tickets_table.php` | Which checklist answer a ticket was raised from (FR-207) |
 | `2026_10_27_090001_turn_access_points_into_network_devices.php` | Access points become one kind of network device (ADR-0016) |
+| `2026_10_28_090001_point_telemetry_at_network_devices.php` | Readings and hourly rows belong to a network device, not only an access |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`

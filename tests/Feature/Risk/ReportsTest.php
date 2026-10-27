@@ -226,7 +226,7 @@ class ReportsTest extends TestCase
             $ap = AccessPoint::factory()->create(['location_id' => $location->id]);
 
             TelemetryHourly::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'hour_bucket' => $hour,
                 'peak_client_count' => $peak,
             ]);
@@ -249,7 +249,7 @@ class ReportsTest extends TestCase
 
         foreach ([30, 10] as $index => $peak) {
             TelemetryHourly::factory()->create([
-                'access_point_id' => $ap->id,
+                'network_device_id' => $ap->id,
                 'hour_bucket' => now()->subDays(2)->startOfHour()->addHours($index),
                 'peak_client_count' => $peak,
             ]);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\TelemetryHourlyFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,7 +24,7 @@ class TelemetryHourly extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'access_point_id',
+        'network_device_id',
         'hour_bucket',
         'avg_latency_ms',
         'peak_client_count',
@@ -48,11 +49,22 @@ class TelemetryHourly extends Model
         ];
     }
 
-    /** @return BelongsTo<AccessPoint, $this> */
-    public function accessPoint(): BelongsTo
+    /** @return BelongsTo<NetworkDevice, $this> */
+    public function device(): BelongsTo
     {
         // withTrashed: removing an access point keeps its telemetry, and the
         // traffic log still lists those hours. Without this they had no name.
-        return $this->belongsTo(AccessPoint::class)->withTrashed();
+        return $this->belongsTo(NetworkDevice::class, 'network_device_id')->withTrashed();
+    }
+
+    /**
+     * Only access points' hours: the traffic screens are about clients and
+     * throughput, which other kinds don't report.
+     *
+     * @param  Builder<TelemetryHourly>  $query
+     */
+    public function scopeAccessPoints(Builder $query): void
+    {
+        $query->whereIn('network_device_id', AccessPoint::withTrashed()->select('id'));
     }
 }

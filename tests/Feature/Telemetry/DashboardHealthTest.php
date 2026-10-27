@@ -36,8 +36,8 @@ class DashboardHealthTest extends TestCase
         $slow = AccessPoint::factory()->create(['code' => 'AP-01', 'client_capacity' => 80]);
         $fine = AccessPoint::factory()->create(['code' => 'AP-02', 'client_capacity' => 80]);
 
-        TelemetryReading::factory()->slow()->create(['access_point_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
-        TelemetryReading::factory()->create(['access_point_id' => $fine->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 4]);
+        TelemetryReading::factory()->slow()->create(['network_device_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
+        TelemetryReading::factory()->create(['network_device_id' => $fine->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 4]);
 
         $aps = $this->payload();
 
@@ -53,8 +53,8 @@ class DashboardHealthTest extends TestCase
         $slow = AccessPoint::factory()->create(['code' => 'AP-01', 'client_capacity' => 80]);
         $busy = AccessPoint::factory()->create(['code' => 'AP-02', 'client_capacity' => 30]);
 
-        TelemetryReading::factory()->slow()->create(['access_point_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
-        TelemetryReading::factory()->create(['access_point_id' => $busy->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 28]);
+        TelemetryReading::factory()->slow()->create(['network_device_id' => $slow->id, 'recorded_at' => now()->subMinute(), 'client_count' => 4]);
+        TelemetryReading::factory()->create(['network_device_id' => $busy->id, 'recorded_at' => now()->subMinute(), 'latency_ms' => 30, 'client_count' => 28]);
 
         $aps = $this->payload();
 

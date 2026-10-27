@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Raw readings rolled up into hourly buckets.
  *
- * IDEMPOTENT: the upsert against the unique (access_point_id, hour_bucket)
+ * IDEMPOTENT: the upsert against the unique (network_device_id, hour_bucket)
  * index means a second pass corrects a bucket rather than doubling every point
  * on the chart. Only hours that HAVE readings are touched, so a bucket written
  * directly by DemoDataSeeder survives unless something writes readings into
@@ -27,7 +27,7 @@ class TelemetryAggregator
     {
         $rows = TelemetryReading::query()
             ->selectRaw($this->bucketExpression().' as bucket')
-            ->selectRaw('access_point_id')
+            ->selectRaw('network_device_id')
             ->selectRaw('source')
             ->selectRaw('AVG(CASE WHEN status != ? THEN latency_ms END) as avg_latency', [NetworkStatus::Offline->value])
             ->selectRaw('MAX(client_count) as peak_clients')
@@ -36,11 +36,11 @@ class TelemetryAggregator
             ->selectRaw('COUNT(*) as reading_count')
             ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as offline_count', [NetworkStatus::Offline->value])
             ->where('recorded_at', '>=', Carbon::instance($from)->startOfHour())
-            ->groupBy('bucket', 'access_point_id', 'source')
+            ->groupBy('bucket', 'network_device_id', 'source')
             ->get();
 
         $payload = $rows->map(fn ($row) => [
-            'access_point_id' => $row->access_point_id,
+            'network_device_id' => $row->network_device_id,
             'hour_bucket' => Carbon::parse($row->bucket)->startOfHour()->toDateTimeString(),
 
             /*
@@ -69,7 +69,7 @@ class TelemetryAggregator
         foreach (array_chunk($payload, 500) as $chunk) {
             TelemetryHourly::upsert(
                 $chunk,
-                ['access_point_id', 'hour_bucket'],
+                ['network_device_id', 'hour_bucket'],
                 ['avg_latency_ms', 'peak_client_count', 'avg_packet_loss_pct',
                     'avg_channel_util_pct', 'uptime_pct', 'reading_count', 'source', 'updated_at'],
             );

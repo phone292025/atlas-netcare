@@ -35,7 +35,7 @@ class AuditObserverTest extends TestCase
     private function healthyReading(AccessPoint $ap): ReadingData
     {
         return new ReadingData(
-            accessPointId: $ap->id,
+            deviceId: $ap->id,
             recordedAt: now(),
             latencyMs: 20,
             clientCount: 5,

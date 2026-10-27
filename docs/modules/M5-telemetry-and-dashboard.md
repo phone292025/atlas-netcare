@@ -90,7 +90,7 @@ An access point turns Degraded only after `consecutive_breach` readings in a row
 
 **Two guards stop the auto-ticket flooding.** The ticket is raised on the **transition** into offline, not on every offline reading, and `TicketService::hasOutstandingFor()` catches the rest. Without both, a six-hour outage files 360 tickets.
 
-**Charts read `telemetry_hourly`.** 24 rows instead of 1,440. Aggregation upserts against a unique `(access_point_id, hour_bucket)` index, so re-running it corrects rows rather than doubling every point on the chart — and it deliberately rebuilds the last three hours, because a late collection run would otherwise leave a permanently wrong bucket nothing revisits.
+**Charts read `telemetry_hourly`.** 24 rows instead of 1,440. Aggregation upserts against a unique `(network_device_id, hour_bucket)` index, so re-running it corrects rows rather than doubling every point on the chart — and it deliberately rebuilds the last three hours, because a late collection run would otherwise leave a permanently wrong bucket nothing revisits.
 
 Latency averages **exclude offline readings**. An unreachable AP has no latency, and counting it as zero would make an outage read as the best hour that access point ever had.
 
