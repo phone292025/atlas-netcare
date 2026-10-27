@@ -37,6 +37,14 @@ final readonly class ReadingData
          * outage look like excellent latency.
          */
         public bool $unreachable = false,
+        /**
+         * From an agent (ADR-0017): which one, its number for this reading,
+         * and when Atlas received it. Null for readings made inside Atlas.
+         * The agent and sequence make a retried reading a duplicate.
+         */
+        public ?int $agentId = null,
+        public ?int $sequence = null,
+        public ?CarbonInterface $receivedAt = null,
     ) {}
 
     /** An access point that did not respond. */
@@ -68,6 +76,9 @@ final readonly class ReadingData
             'throughput_mbps' => round($this->throughputMbps, 2),
             'status' => $status,
             'source' => $this->source,
+            'agent_id' => $this->agentId,
+            'sequence' => $this->sequence,
+            'received_at' => $this->receivedAt?->toDateTimeString(),
         ];
     }
 }

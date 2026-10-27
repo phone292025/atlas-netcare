@@ -7,7 +7,7 @@ use App\Enums\NetworkStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\UserRole;
-use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Tickets\TicketService;
@@ -39,7 +39,7 @@ class TelemetryCollector
      * level (`info` or `warn`) and a message; the command prints them.
      *
      * @param  (Closure(string, string): void)|null  $report
-     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
     public function tick(?Closure $report = null): Collection
     {
@@ -62,8 +62,26 @@ class TelemetryCollector
         $transitions = $this->telemetry->collectAndStore()
             ->concat($this->telemetry->markStaleOffline());
 
+        $this->react($transitions, $report);
+
+        return $transitions;
+    }
+
+    /**
+     * Act on status changes: a ticket and an alert when a device goes
+     * offline, an alert when one degrades. The scheduler's round and the
+     * ingest API both come here, so a reading from an agent raises exactly
+     * what a simulated one does.
+     *
+     * @param  Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>  $transitions
+     * @param  (Closure(string, string): void)|null  $report
+     */
+    public function react(Collection $transitions, ?Closure $report = null): void
+    {
+        $report ??= static function (string $level, string $message): void {};
+
         foreach ($transitions as $change) {
-            $ap = $change['access_point'];
+            $ap = $change['device'];
             $line = "{$ap->code}: {$change['from']->label()} → {$change['to']->label()}";
             $report($change['to'] === NetworkStatus::Online ? 'info' : 'warn', $line);
 
@@ -93,8 +111,6 @@ class TelemetryCollector
                 );
             }
         }
-
-        return $transitions;
     }
 
     /**
@@ -102,19 +118,19 @@ class TelemetryCollector
      * stored, scheduled or delivered. The ticket is the record of work; the
      * alarm is what puts it in front of somebody.
      */
-    private function alertEngineers(AlarmType $type, AccessPoint $ap, string $title, ?string $message): void
+    private function alertEngineers(AlarmType $type, NetworkDevice $ap, string $title, ?string $message): void
     {
         $this->alarms->raiseForRole($type, UserRole::Engineer, $title, $message, related: $ap);
     }
 
     /**
-     * An access point going offline raises exactly one ticket (FR-503): only
-     * on the transition, and not while an earlier ticket about it is still
-     * open, whether raised by hand or by a previous flap.
+     * A device going offline raises exactly one ticket (FR-503): only on the
+     * transition, and not while an earlier ticket about it is still open,
+     * whether raised by hand or by a previous flap.
      *
      * @param  Closure(string, string): void  $report
      */
-    private function raiseOfflineTicket(AccessPoint $ap, Closure $report): void
+    private function raiseOfflineTicket(NetworkDevice $ap, Closure $report): void
     {
         if ($this->tickets->hasOutstandingFor($ap)) {
             return;

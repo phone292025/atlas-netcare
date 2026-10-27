@@ -142,6 +142,10 @@ Hourly summaries, compression and retention aren't on this list. They are Timesc
 
 ---
 
+## Probe agents
+
+Agents send readings from inside a network to `POST /api/v1/readings`. Register one under **Agents** as the administrator, copy its token into its config, and set **Watched by** on each device it measures. The README's "Probe agents" section shows the batch format. Over anything but a trusted network, put Atlas behind HTTPS first.
+
 ## 7. Optional: password reset by email
 
 FR-102 sends a reset link by email. Without mail it still works, and says plainly that nothing was sent. `.env.example` sends mail to the log.

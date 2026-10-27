@@ -244,21 +244,46 @@ That sends one real message and, if the server refuses it, reads the error and t
 
 Leaving `MAIL_PASSWORD` empty is supported. The reset screen detects it and says so, rather than claiming to have sent something. Nobody has to configure mail to work on the rest of the system.
 
+### Probe agents
+
+A probe agent is a small program on a machine inside the network. It measures the devices it watches and sends their readings to Atlas, which turns them into statuses, tickets and alerts the same way as the simulator's.
+
+1. Sign in as the administrator, open **Agents** and add one. Atlas shows its token once: copy it into the agent's config.
+2. Open each device the agent should watch, under **Access points** or **Network devices**, and set **Watched by**.
+3. The agent sends batches to `POST /api/v1/readings` with the header `Authorization: Bearer <token>`.
+
+A batch looks like this:
+
+```json
+{
+  "sent_at": "2026-10-28T03:00:05Z",
+  "agent_version": "0.1.0",
+  "readings": [
+    {"sequence": 1201, "device": "SW-L6-IT-01", "measured_at": "2026-10-28T02:59:30Z",
+     "reachable": true, "latency_ms": 2, "packet_loss_pct": 0}
+  ]
+}
+```
+
+`sequence` counts up for each reading the agent takes, and a batch sent twice is stored once. `latency_ms`, `packet_loss_pct`, `client_count`, `channel_util_pct` and `throughput_mbps` are optional. An empty `readings` list is a heartbeat. The answer lists every sequence as `stored`, `duplicate` or `rejected` with a reason, and the agent can drop all of them. Atlas refuses a reading for a device the agent doesn't watch, one dated more than 5 minutes ahead, and one more than 7 days old.
+
+Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. **Over anything but this machine or a network you trust, put Atlas behind HTTPS before an agent sends to it:** the token travels in the header.
+
 ### Keeping the monitor live
 
-The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs seven jobs on a timer:
+The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs five jobs on a timer:
 
 | Job | When | What it does |
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | Takes one reading per access point. One that has been silent for 5 minutes goes offline and gets a ticket |
 | `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
 | `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
-| `atlas:aggregate-telemetry` | hourly | Rolls the last 3 hours of readings into the hourly chart data |
 | `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |
 | `atlas:generate-shifts` | Sundays at 18:00 | Builds next week's roster |
-| `atlas:prune-telemetry` | Sundays at 03:15 | Deletes raw readings older than 90 days and hourly data older than 12 months |
 
 The times are campus time.
+
+Hourly summaries, compression and retention aren't on this list. The database runs them itself, as TimescaleDB jobs, set from `config/atlas.php` every time the app starts (`php artisan atlas:telemetry-storage`). Raw readings are compressed after 7 days and dropped after 90, and hourly summaries are kept for 12 months.
 
 Without the scheduler nothing looks broken at first. Five minutes after the last reading, every access point on the Network Monitor reads Unknown, and no new alarms reach the bell.
 

@@ -45,7 +45,7 @@ class NetworkDevice extends Model
      * @see App\Observers\AuditObserver
      * @see App\Services\Telemetry\TelemetryService::store()
      */
-    public const AUDIT_EXCEPT = ['last_seen_at', 'risk_score'];
+    public const AUDIT_EXCEPT = ['last_seen_at', 'last_reading_at', 'risk_score'];
 
     /**
      * `last_seen_at` and `is_demo` are written by the system, never by a form.
@@ -77,6 +77,7 @@ class NetworkDevice extends Model
             'status' => NetworkStatus::class,
             'installed_at' => 'date',
             'last_seen_at' => 'datetime',
+            'last_reading_at' => 'datetime',
             'is_demo' => 'boolean',
         ];
     }

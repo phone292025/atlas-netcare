@@ -4,7 +4,9 @@ namespace App\Services\Telemetry;
 
 use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +31,7 @@ class TelemetryService
      * a transition rather than to every reading: one ticket for an outage, not
      * one a minute for six hours.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
     public function collectAndStore(): Collection
     {
@@ -43,68 +45,178 @@ class TelemetryService
     }
 
     /**
-     * Persist readings and update each access point's current state.
+     * Persist readings and update each device's current state.
      *
      * @param  Collection<int, ReadingData>  $readings
-     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
     public function store(Collection $readings): Collection
     {
-        $accessPoints = AccessPoint::query()
+        return $this->record($readings)->transitions;
+    }
+
+    /**
+     * Persist readings, and say which were new and which devices changed.
+     *
+     * Readings are classified in the order they were measured, each with the
+     * readings before it in view, including earlier ones in the same batch:
+     * an agent that was offline sends its buffer as one batch.
+     *
+     * A reading that carries an agent and a sequence is stored once. A batch
+     * sent twice, after a reply that never arrived, adds nothing the second
+     * time (ADR-0017).
+     *
+     * Only a reading newer than the device's newest one moves its status, so
+     * a late reading fills in history without turning a device that has
+     * since recovered back to offline. `last_seen_at` moves only when the
+     * device answered: it is what the silence sweep reads.
+     *
+     * @param  Collection<int, ReadingData>  $readings
+     */
+    public function record(Collection $readings): StoredReadings
+    {
+        $devices = NetworkDevice::query()
             ->whereIn('id', $readings->pluck('deviceId')->unique())
             ->get()
             ->keyBy('id');
 
-        $transitions = collect();
+        $ordered = $readings
+            ->filter(fn (ReadingData $reading) => $devices->has($reading->deviceId))
+            ->sortBy(fn (ReadingData $reading) => $reading->recordedAt->getTimestamp())
+            ->values();
 
-        DB::transaction(function () use ($readings, $accessPoints, &$transitions) {
+        $window = (int) config('atlas.thresholds.consecutive_breach') - 1;
+
+        return DB::transaction(function () use ($ordered, $devices, $window): StoredReadings {
+            $recent = [];
+            $statuses = [];
             $rows = [];
 
-            foreach ($readings as $reading) {
-                $ap = $accessPoints->get($reading->deviceId);
+            foreach ($ordered as $i => $reading) {
+                $device = $devices->get($reading->deviceId);
+                $recent[$device->id] ??= $this->recentBreaches($device, $window);
 
-                if (! $ap) {
+                $statuses[$i] = $this->classify($device, $reading, $recent[$device->id]);
+                $rows[$i] = $reading->toRow($statuses[$i]->value);
+
+                $recent[$device->id] = $recent[$device->id]
+                    ->prepend($this->breachesThreshold($device, $reading))
+                    ->take($window);
+            }
+
+            $stored = $this->insertOnce($rows);
+            $transitions = collect();
+
+            foreach ($devices as $device) {
+                $mine = array_values(array_filter(
+                    $stored,
+                    fn (int $i) => $ordered[$i]->deviceId === $device->id,
+                ));
+
+                if ($mine === []) {
                     continue;
                 }
 
-                $status = $this->classify($ap, $reading);
-                $rows[] = $reading->toRow($status->value);
+                $newest = end($mine);
+                $answered = array_filter($mine, fn (int $i) => ! $ordered[$i]->unreachable);
+                $lastAnswer = $answered === [] ? null : $ordered[end($answered)]->recordedAt;
 
-                $from = $ap->status;
+                if ($device->last_reading_at !== null && $ordered[$newest]->recordedAt->lte($device->last_reading_at)) {
+                    // Late: history only.
+                    continue;
+                }
 
-                if ($from !== $status) {
-                    $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => $status]);
+                $from = $device->status;
+                $to = $statuses[$newest];
+
+                if ($from !== $to) {
+                    $transitions->push(['device' => $device, 'from' => $from, 'to' => $to]);
                 }
 
                 /*
-                 * The access point's own columns cache its latest reading, so
-                 * lists need no subquery. Same transaction, so the two never
-                 * disagree. `last_seen_at` only moves when the device actually
-                 * answered: it is what the silence sweep reads.
+                 * The device's own columns cache its latest reading, so lists
+                 * need no subquery. Same transaction, so the two never
+                 * disagree.
                  *
-                 * Saved quietly, so not audited: the reading row just written
-                 * records this status, and at peak an access point near a
-                 * threshold flaps every few minutes. A status an administrator
-                 * sets, such as maintenance, is still audited.
+                 * Saved quietly, so not audited: the reading rows record this
+                 * status, and at peak an access point near a threshold flaps
+                 * every few minutes. A status an administrator sets, such as
+                 * maintenance, is still audited.
                  */
-                $ap->forceFill(array_filter([
-                    'status' => $status,
-                    'last_seen_at' => $reading->unreachable ? null : $reading->recordedAt,
+                $device->forceFill(array_filter([
+                    'status' => $to,
+                    'last_reading_at' => $ordered[$newest]->recordedAt,
+                    'last_seen_at' => $lastAnswer !== null && ($device->last_seen_at === null || $lastAnswer->gt($device->last_seen_at))
+                        ? $lastAnswer
+                        : null,
                 ], fn ($value) => $value !== null))->saveQuietly();
             }
 
-            // Chunked insert(): a round is forty rows, a backfill hundreds of
-            // thousands.
-            foreach (array_chunk($rows, 500) as $chunk) {
-                TelemetryReading::insert($chunk);
-            }
+            return new StoredReadings(
+                stored: collect($stored)->map(fn (int $i) => $ordered[$i])->values(),
+                transitions: $transitions,
+            );
         });
-
-        return $transitions;
     }
 
     /**
-     * What this reading means for this access point (Q1).
+     * Insert rows, each at most once, and return the indexes stored.
+     *
+     * Rows from an agent go through ON CONFLICT DO NOTHING on the unique key
+     * of agent, sequence and time, and RETURNING says which were new. Rows
+     * made inside Atlas carry no sequence and can't collide, so they are a
+     * plain insert. Chunked: a round is forty rows, a backfill hundreds of
+     * thousands.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return list<int>
+     */
+    private function insertOnce(array $rows): array
+    {
+        $plain = array_filter($rows, fn (array $row) => $row['sequence'] === null);
+        $numbered = array_filter($rows, fn (array $row) => $row['sequence'] !== null);
+
+        foreach (array_chunk($plain, 500) as $chunk) {
+            TelemetryReading::insert($chunk);
+        }
+
+        $stored = array_keys($plain);
+
+        if ($numbered === []) {
+            sort($stored);
+
+            return $stored;
+        }
+
+        $columns = array_keys(reset($numbered));
+        $placeholder = '('.implode(', ', array_fill(0, count($columns), '?')).')';
+        $index = [];
+
+        foreach ($numbered as $i => $row) {
+            $index[$row['agent_id'].':'.$row['sequence'].':'.$row['recorded_at']] = $i;
+        }
+
+        foreach (array_chunk($numbered, 200, preserve_keys: true) as $chunk) {
+            $returned = DB::select(
+                'INSERT INTO telemetry_readings ('.implode(', ', $columns).') VALUES '
+                .implode(', ', array_fill(0, count($chunk), $placeholder))
+                .' ON CONFLICT (agent_id, sequence, recorded_at) DO NOTHING RETURNING agent_id, sequence, recorded_at',
+                array_merge(...array_map(fn (array $row) => array_values($row), array_values($chunk))),
+            );
+
+            foreach ($returned as $row) {
+                $key = $row->agent_id.':'.$row->sequence.':'.Carbon::parse($row->recorded_at)->toDateTimeString();
+                $stored[] = $index[$key];
+            }
+        }
+
+        sort($stored);
+
+        return $stored;
+    }
+
+    /**
+     * What this reading means for this device (Q1).
      *
      *   offline   — did not answer (silence is markStaleOffline()'s job)
      *   degraded  — latency, loss or saturation over threshold for
@@ -114,10 +226,15 @@ class TelemetryService
      *
      * Maintenance is kept regardless: it is an administrator's decision, not
      * a measurement.
+     *
+     * `$earlier` is whether each of the readings before this one was over the
+     * limits, newest first. Left out, they are read from the database.
+     *
+     * @param  Collection<int, bool>|null  $earlier
      */
-    public function classify(AccessPoint $ap, ReadingData $reading): NetworkStatus
+    public function classify(NetworkDevice $device, ReadingData $reading, ?Collection $earlier = null): NetworkStatus
     {
-        if ($ap->status === NetworkStatus::Maintenance) {
+        if ($device->status === NetworkStatus::Maintenance) {
             return NetworkStatus::Maintenance;
         }
 
@@ -130,37 +247,51 @@ class TelemetryService
             return NetworkStatus::Offline;
         }
 
-        if (! $this->breachesThreshold($ap, $reading)) {
+        if (! $this->breachesThreshold($device, $reading)) {
             return NetworkStatus::Online;
         }
 
-        $required = (int) config('atlas.thresholds.consecutive_breach');
-
         // This reading is one of them, so only the previous n-1 are needed.
-        $previous = TelemetryReading::query()
-            ->where('network_device_id', $ap->id)
-            ->orderByDesc('recorded_at')
-            ->limit($required - 1)
-            ->get();
+        $needed = (int) config('atlas.thresholds.consecutive_breach') - 1;
+        $earlier ??= $this->recentBreaches($device, $needed);
 
-        if ($previous->count() < $required - 1) {
+        if ($earlier->count() < $needed) {
             // Not enough history yet. A false Degraded on new kit trains
             // people to ignore the dashboard.
             return NetworkStatus::Online;
         }
 
-        $allBreaching = $previous->every(
-            fn (TelemetryReading $r) => $this->rowBreaches($ap, $r)
-        );
+        return $earlier->take($needed)->every(fn (bool $breached) => $breached)
+            ? NetworkStatus::Degraded
+            : NetworkStatus::Online;
+    }
 
-        return $allBreaching ? NetworkStatus::Degraded : NetworkStatus::Online;
+    /**
+     * Whether each of a device's newest stored readings was over the limits,
+     * newest first.
+     *
+     * @return Collection<int, bool>
+     */
+    private function recentBreaches(NetworkDevice $device, int $count): Collection
+    {
+        if ($count < 1) {
+            return collect();
+        }
+
+        return TelemetryReading::query()
+            ->where('network_device_id', $device->id)
+            ->orderByDesc('recorded_at')
+            ->limit($count)
+            ->get()
+            ->map(fn (TelemetryReading $r) => $this->rowBreaches($device, $r))
+            ->values();
     }
 
     /** Whether a fresh reading is over any threshold. */
-    private function breachesThreshold(AccessPoint $ap, ReadingData $reading): bool
+    private function breachesThreshold(NetworkDevice $device, ReadingData $reading): bool
     {
         return $this->overThresholds(
-            $ap,
+            $device,
             $reading->latencyMs,
             $reading->packetLossPct,
             $reading->clientCount,
@@ -168,10 +299,10 @@ class TelemetryService
     }
 
     /** The same test, against a stored row. */
-    private function rowBreaches(AccessPoint $ap, TelemetryReading $reading): bool
+    private function rowBreaches(NetworkDevice $device, TelemetryReading $reading): bool
     {
         return $this->overThresholds(
-            $ap,
+            $device,
             $reading->latency_ms,
             (float) $reading->packet_loss_pct,
             $reading->client_count,
@@ -182,9 +313,9 @@ class TelemetryService
      * One threshold test for both paths, so a fresh reading and a stored one
      * are always judged identically.
      */
-    private function overThresholds(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): bool
+    private function overThresholds(NetworkDevice $device, ?int $latencyMs, float $lossPct, int $clients): bool
     {
-        return $this->breachReason($ap, $latencyMs, $lossPct, $clients) !== null;
+        return $this->breachReason($device, $latencyMs, $lossPct, $clients) !== null;
     }
 
     /**
@@ -193,7 +324,7 @@ class TelemetryService
      * Degraded, but they are different faults, and a screen calling a full
      * access point slow sends somebody after the wrong one.
      */
-    private function breachReason(AccessPoint $ap, ?int $latencyMs, float $lossPct, int $clients): ?string
+    private function breachReason(NetworkDevice $device, ?int $latencyMs, float $lossPct, int $clients): ?string
     {
         $thresholds = config('atlas.thresholds');
 
@@ -201,7 +332,8 @@ class TelemetryService
             return 'slow';
         }
 
-        $saturation = $ap->saturation($clients);
+        // Only an access point has a capacity to be busy against.
+        $saturation = $device instanceof AccessPoint ? $device->saturation($clients) : null;
 
         return $saturation !== null && $saturation > $thresholds['client_saturation'] ? 'busy' : null;
     }
@@ -323,7 +455,7 @@ class TelemetryService
      * silence is judged. Returns transitions in the same shape as store(), so
      * the caller raises the same ticket and alert.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
     public function markStaleOffline(): Collection
     {
@@ -354,7 +486,7 @@ class TelemetryService
             // Quietly, as in store(). The ticket and the alert are the record.
             $ap->forceFill(['status' => NetworkStatus::Offline])->saveQuietly();
 
-            $transitions->push(['access_point' => $ap, 'from' => $from, 'to' => NetworkStatus::Offline]);
+            $transitions->push(['device' => $ap, 'from' => $from, 'to' => NetworkStatus::Offline]);
         }
 
         return $transitions;

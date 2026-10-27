@@ -18,8 +18,11 @@ use App\Services\Telemetry\SnmpTelemetrySource;
 use App\Services\Telemetry\TelemetrySource;
 use App\Support\CampusClock;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -83,6 +86,22 @@ class AppServiceProvider extends ServiceProvider
 
         $this->composeResetPasswordEmail();
         $this->registerCampusClock();
+        $this->limitIngest();
+    }
+
+    /**
+     * Rate limits on the ingest API (ADR-0017). Per address before the token
+     * is checked, so a caller without one can't keep the app busy, and per
+     * agent after, so one agent can't crowd out the rest. An agent sends a
+     * batch every 30 to 60 seconds, well inside both.
+     */
+    private function limitIngest(): void
+    {
+        RateLimiter::for('agent-address', fn (Request $request) => Limit::perMinute((int) config('atlas.ingest.per_address_per_minute'))
+            ->by('ingest-address:'.$request->ip()));
+
+        RateLimiter::for('agent', fn (Request $request) => Limit::perMinute((int) config('atlas.ingest.per_agent_per_minute'))
+            ->by('ingest-agent:'.$request->attributes->get('agent')?->getKey()));
     }
 
     /**

@@ -121,6 +121,7 @@ erDiagram
         bigint location_id FK
         bigint parent_id FK "nullable, another network device"
         bigint agent_id FK "nullable, the agent that watches it"
+        datetime last_reading_at "newest reading, from any agent"
         string model
         string mac_address UK "nullable"
         string ip_address
@@ -279,6 +280,9 @@ erDiagram
 
     TELEMETRY_READINGS {
         bigint network_device_id FK
+        bigint agent_id FK "nullable"
+        bigint sequence "nullable, unique per agent and time"
+        datetime received_at "nullable"
         datetime recorded_at "hypertable time column"
         smallint latency_ms
         smallint client_count
@@ -412,6 +416,8 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 `simulated` or `live`. Both can sit in the same table. This is what makes the mock/real strategy work without a second database — see [05-data-strategy.md](05-data-strategy.md).
 
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
+
+**From agents since 2026-10-28** (`2026_10_28_110001`, ADR-0017). A reading from a probe agent carries `agent_id` and its `sequence`, and the unique key on agent, sequence and `recorded_at` stores a retried batch once; it includes `recorded_at` because every unique key on a hypertable must. `recorded_at` is when the agent measured it, and `received_at` when Atlas got it. Readings made inside Atlas have neither agent nor sequence, and nulls never collide. On SQLite `agent_id` has no foreign key, because adding one rebuilds the table and the rebuild fails on the `telemetry_hourly` view. `network_devices.last_reading_at` is the newest reading's time: only a newer reading moves a device's status, so a late one fills in history without turning a recovered device back to offline.
 
 **A TimescaleDB hypertable since 2026-10-28** (`2026_10_28_090002`, ADR-0011). Rows are stored in chunks of `retention.chunk_days` by `recorded_at`, and a chunk is compressed once it is `retention.compress_after_days` old, segmented by device and ordered newest first. So the table has **no `id`**: a unique key on a hypertable must include the time column, and no code looks a reading up by id. The newest reading per device is found by time, with a LATERAL lookup that stops at the newest chunk (`TelemetryService::latestReadings()`). On SQLite, which runs the quick local suite, it stays a plain table. The migration rebuilt the table and copied every row across, because SQLite can't drop a primary key column.
 

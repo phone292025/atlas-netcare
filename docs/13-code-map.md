@@ -62,6 +62,7 @@ Every URL the system answers.
 <!-- code-map:routes/ -->
 | File | What it does |
 |---|---|
+| `api.php` | _no summary in the file_ |
 | `auth.php` | _no summary in the file_ |
 | `console.php` | _no summary in the file_ |
 | `web.php` | _no summary in the file_ |
@@ -99,6 +100,7 @@ couple of hundred lines is one that has started deciding things.
 | `Admin/ShiftTemplateController.php` | Weekly shift patterns (FR-407) |
 | `Admin/UserController.php` | Account management. The only route into the system for a new user, since |
 | `Api/DashboardDataController.php` | The endpoint the dashboard polls (FR-302) |
+| `Api/ReadingIngestController.php` | POST /api/v1/readings: a batch of readings from a probe agent (ADR-0017) |
 | `Assistant/AccessPointStatusController.php` | AP status, read-only, for an assistant on a lab round (FR-209) |
 | `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) |
 | `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) |
@@ -136,10 +138,12 @@ They answer different questions.
 <!-- code-map:app/Http/Middleware/ -->
 | File | What it does |
 |---|---|
+| `AuthenticateAgent.php` | Lets a probe agent in by its bearer token, and nothing else (ADR-0017) |
 | `EnsureAccountIsActive.php` | Signs out a deactivated account on its next request (FR-106) |
 | `EnsurePasswordIsChanged.php` | Stops a user who is still on an administrator-chosen password (Q6) |
 | `EnsureUserHasRole.php` | Area-level authorisation: may this role reach this part of the system at all? |
 | `IgnoreArrayQueryValues.php` | Drops array values from the query string |
+| `LimitBodySize.php` | Refuses a request body larger than `atlas.ingest.max_kilobytes` with 413, |
 <!-- /code-map -->
 
 `EnsureUserHasRole` is applied per route group: may this role reach this area
@@ -166,6 +170,7 @@ authorise it through a policy.
 | `Admin/ShiftTemplateRequest.php` | A recurring weekly slot |
 | `Admin/StoreUserRequest.php` | Creating an account. There is no self-registration, so this is the only way |
 | `Admin/UpdateUserRequest.php` | Editing an account |
+| `Api/IngestReadingsRequest.php` | The shape of a batch from a probe agent (ADR-0017) |
 | `Assistant/InspectionRequest.php` | A completed inspection: one answer per checklist item |
 | `Auth/LoginRequest.php` | Determine if the user is authorized to make this request |
 | `ProfileUpdateRequest.php` | Get the validation rules that apply to the request |
@@ -202,9 +207,11 @@ the same answer, it belongs here.
 | `Telemetry/AgentService.php` | Registering agents and the tokens they prove themselves with (ADR-0017) |
 | `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and |
 | `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database |
+| `Telemetry/ReadingIngest.php` | One batch of readings from a probe agent (ADR-0017, roadmap task 1.3) |
 | `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
 | `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
+| `Telemetry/StoredReadings.php` | What TelemetryService::record() did with a set of readings: which it stored, |
 | `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock: by `atlas:backfill-telemetry`, |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
@@ -432,6 +439,7 @@ database that already ran it.
 | `2026_10_28_090002_make_telemetry_readings_a_hypertable.php` | Raw readings become a TimescaleDB hypertable (ADR-0011, roadmap task 1.4) |
 | `2026_10_28_090003_derive_hourly_telemetry_from_readings.php` | Hourly summaries become something the database derives from raw readings |
 | `2026_10_28_100001_create_agents_table.php` | Probe agents, and which one watches each network device (ADR-0010, |
+| `2026_10_28_110001_add_agent_and_sequence_to_telemetry_readings.php` | What the ingest API needs to store a reading once and in its place |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -662,6 +670,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Admin/LocationManagementTest.php` | M2, locations |
 | `Feature/Admin/NetworkDeviceInventoryTest.php` | The network devices inventory: switches, routers and servers, and what |
 | `Feature/Admin/UserManagementTest.php` | M1, account management |
+| `Feature/Api/ReadingIngestTest.php` | POST /api/v1/readings, the endpoint probe agents push readings to |
 | `Feature/AppShellTest.php` | The shell is the one thing every screen in the system renders inside, so a |
 | `Feature/Assistant/InspectionRoundTest.php` | A round: one assistant working through every machine in a room |
 | `Feature/Assistant/InspectionTest.php` | M3, completing an inspection |

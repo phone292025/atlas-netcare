@@ -125,7 +125,7 @@ class NetworkMonitorController extends Controller
     private function describe(Collection $changes): string
     {
         $named = $changes->take(3)
-            ->map(fn (array $c) => "{$c['access_point']->code} {$c['from']->label()} → {$c['to']->label()}")
+            ->map(fn (array $c) => "{$c['device']->code} {$c['from']->label()} → {$c['to']->label()}")
             ->implode(', ');
 
         $rest = $changes->count() - 3;

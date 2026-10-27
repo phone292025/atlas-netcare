@@ -5,6 +5,7 @@ namespace App\Services\Telemetry;
 use App\Enums\NetworkStatus;
 use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,7 @@ class SimulationService
     /**
      * One collection round, now, instead of waiting for the scheduler.
      *
-     * @return Collection<int, array{access_point: AccessPoint, from: NetworkStatus, to: NetworkStatus}>
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
     public function sample(): Collection
     {

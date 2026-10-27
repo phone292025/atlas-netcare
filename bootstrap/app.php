@@ -7,10 +7,12 @@ use App\Http\Middleware\IgnoreArrayQueryValues;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -35,5 +37,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(IgnoreArrayQueryValues::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Agents read JSON whatever they asked for: an HTML error page in a
+        // log is no use to anyone (ADR-0017). Setting this replaces Laravel's
+        // own test, so a request that asks for JSON still gets it.
+        $exceptions->shouldRenderJsonWhen(fn (Request $request) => $request->is('api/v1/*') || $request->expectsJson());
     })->create();

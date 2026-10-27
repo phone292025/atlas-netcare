@@ -63,6 +63,20 @@ What an agent can't do: read any data back, add devices, raise a ticket directly
 
 Remaining risk: an agent whose token is stolen can make its own devices flap, and each fall to offline alerts the engineers. Phase 2's flapping rule and incidents are the fix.
 
+## Review, 2026-10-28
+
+Checked as built, before it shipped. Each control has a test in `tests/Feature/Api/ReadingIngestTest.php` or `tests/Feature/Admin/AgentManagementTest.php`:
+
+- A request without a valid token, with the token in the query string, or from a retired agent is refused with 401, and nothing is stored. The token opens no web screen, and the API sets no session cookie.
+- The token never reaches the session, the audit log or the agent's page after it is shown, and the stored hash doesn't work as a token.
+- A malformed batch, an extra field, a repeated sequence or an out-of-range number is refused whole with 422. Over the reading cap gets 422, and over the size cap 413. Caddy also refuses any API body over 512 KB, sent with or without a length, before PHP reads it.
+- A reading for another agent's device and for an unknown one get the same reason.
+- A resent batch is stored once. A late reading doesn't move a status. Readings in one batch are judged in the order they were measured.
+- An agent over its rate gets 429.
+- Every query that takes agent input binds it. The one raw insert builds its column list from a constant.
+
+Open: with `APP_DEBUG=true`, a server error answers an agent with a stack trace in JSON. The installation guide already says to turn it off before anyone else can reach the app.
+
 ## Consequences
 
 **Easier**

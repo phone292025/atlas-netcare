@@ -31,7 +31,7 @@
             <dl class="space-y-3 text-sm">
                 <div>
                     <dt class="text-fg-muted">Ingest address</dt>
-                    <dd class="mt-0.5 font-mono text-fg">{{ url('api/v1/readings') }}</dd>
+                    <dd class="mt-0.5 font-mono text-fg">{{ route('agent.readings') }}</dd>
                 </div>
                 <div>
                     <dt class="text-fg-muted">Header</dt>

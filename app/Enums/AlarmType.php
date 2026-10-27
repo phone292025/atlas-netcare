@@ -41,8 +41,8 @@ enum AlarmType: string implements HasLabel, HasTone
             self::ShiftRemoved => 'Shift removed',
             self::TicketRaised => 'New ticket',
             self::TicketAssigned => 'Ticket assigned',
-            self::ApDegraded => 'Access point degraded',
-            self::ApOffline => 'Access point offline',
+            self::ApDegraded => 'Device degraded',
+            self::ApOffline => 'Device offline',
             self::SlaBreach => 'Ticket overdue',
         };
     }

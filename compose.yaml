@@ -31,6 +31,13 @@ x-atlas: &atlas
     LOG_CHANNEL: stderr
     QUEUE_CONNECTION: database
     APP_URL: http://localhost:${ATLAS_PORT:-8000}
+    # Caddy refuses an API request body over 512 KB before PHP reads any of
+    # it, including one sent without a length. The ingest endpoint's own
+    # limit, atlas.ingest.max_kilobytes, is smaller (ADR-0017).
+    CADDY_SERVER_EXTRA_DIRECTIVES: |
+      request_body /api/* {
+        max_size 512KB
+      }
 
 # The project's .env inside the container, in long form so that a missing .env
 # is an error, rather than Docker quietly creating a directory called .env.
