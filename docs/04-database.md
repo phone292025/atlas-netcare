@@ -277,9 +277,8 @@ erDiagram
     LAB_PCS ||--o{ RISK_ASSESSMENTS : scored
 
     TELEMETRY_READINGS {
-        bigint id PK
         bigint network_device_id FK
-        timestamp recorded_at
+        datetime recorded_at "hypertable time column"
         smallint latency_ms
         smallint client_count
         decimal packet_loss_pct
@@ -405,6 +404,8 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 `simulated` or `live`. Both can sit in the same table. This is what makes the mock/real strategy work without a second database — see [05-data-strategy.md](05-data-strategy.md).
 
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
+
+**A TimescaleDB hypertable since 2026-10-28** (`2026_10_28_090002`, ADR-0011). Rows are stored in chunks of `retention.chunk_days` by `recorded_at`, and a chunk is compressed once it is `retention.compress_after_days` old, segmented by device and ordered newest first. So the table has **no `id`**: a unique key on a hypertable must include the time column, and no code looks a reading up by id. The newest reading per device is found by time, with a LATERAL lookup that stops at the newest chunk (`TelemetryService::latestReadings()`). On SQLite, which runs the quick local suite, it stays a plain table. The migration rebuilt the table and copied every row across, because SQLite can't drop a primary key column.
 
 `status` here is a plain string and must **not** be cast to `NetworkStatus`. A reading records a MEASURED state — online, degraded or offline only. `NetworkStatus` is wider because it carries `maintenance`, which is an administrative decision about the access point rather than something anyone measured.
 

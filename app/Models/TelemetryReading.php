@@ -31,6 +31,14 @@ class TelemetryReading extends Model
 
     public $timestamps = false;
 
+    /**
+     * No `id`: the table is a TimescaleDB hypertable, where a unique key must
+     * include the time column. A reading is found by its device and time.
+     */
+    protected $primaryKey = null;
+
+    public $incrementing = false;
+
     /** @var list<string> */
     protected $fillable = [
         'network_device_id',

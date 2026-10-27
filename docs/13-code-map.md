@@ -425,6 +425,7 @@ database that already ran it.
 | `2026_09_23_090001_add_inspection_result_id_to_tickets_table.php` | Which checklist answer a ticket was raised from (FR-207) |
 | `2026_10_27_090001_turn_access_points_into_network_devices.php` | Access points become one kind of network device (ADR-0016) |
 | `2026_10_28_090001_point_telemetry_at_network_devices.php` | Readings and hourly rows belong to a network device, not only an access |
+| `2026_10_28_090002_make_telemetry_readings_a_hypertable.php` | Raw readings become a TimescaleDB hypertable (ADR-0011, roadmap task 1.4) |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -701,6 +702,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Telemetry/DashboardHealthTest.php` | The engineer's dashboard: access points by room, and a reading over the |
 | `Feature/Telemetry/NetworkDeviceTest.php` | Access points as one kind of network device (ADR-0016) |
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
+| `Feature/Telemetry/ReadingStorageTest.php` | Where raw readings live (ADR-0011, roadmap task 1.4) |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
 | `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
 | `Feature/TicketDueTest.php` | <x-ticket-due>: when a ticket is due, in the words a queue is scanned by |

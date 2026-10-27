@@ -40,13 +40,10 @@ class PruneTelemetry extends Command
             return self::SUCCESS;
         }
 
-        $deletedRaw = 0;
-
-        // Chunked, so a long-running delete never holds the table.
-        do {
-            $batch = TelemetryReading::where('recorded_at', '<', $rawBefore)->limit(2000)->delete();
-            $deletedRaw += $batch;
-        } while ($batch > 0);
+        // One statement. On the hypertable each chunk is deleted from on its
+        // own, and a LIMIT here compiles to a ctid lookup that hypertables
+        // don't support.
+        $deletedRaw = TelemetryReading::where('recorded_at', '<', $rawBefore)->delete();
 
         $deletedAgg = TelemetryHourly::where('hour_bucket', '<', $aggBefore)->delete();
 

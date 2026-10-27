@@ -210,7 +210,8 @@ class TelemetryBackfill
             ->select(['network_device_id', 'recorded_at'])
             ->whereIn('network_device_id', $accessPoints->pluck('id'))
             ->whereBetween('recorded_at', [$from, $to])
-            ->orderBy('id')
+            ->orderBy('network_device_id')
+            ->orderBy('recorded_at')
             ->chunk(5000, function ($rows) use (&$recorded): void {
                 foreach ($rows as $row) {
                     $recorded[(int) $row->network_device_id][(string) $row->recorded_at] = true;

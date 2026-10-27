@@ -281,11 +281,18 @@ return [
     | access points, so it is pruned after `raw_days`. Hourly aggregates are
     | small and kept far longer. See Q10.
     |
+    | Raw readings live in a TimescaleDB hypertable (ADR-0011), stored in
+    | chunks of `chunk_days` and compressed once they are `compress_after_days`
+    | old. Retention drops whole chunks. Changing `chunk_days` affects new
+    | chunks only.
+    |
     */
 
     'retention' => [
         'raw_days' => 90,
         'aggregate_months' => 12,
+        'chunk_days' => 1,
+        'compress_after_days' => 7,
     ],
 
     /*

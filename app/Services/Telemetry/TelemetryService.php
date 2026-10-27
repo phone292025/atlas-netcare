@@ -275,26 +275,41 @@ class TelemetryService
     }
 
     /**
-     * The most recent reading for each of these access points, in one query
-     * rather than one per access point: this runs on every dashboard poll.
+     * The most recent reading for each of these devices, in one query rather
+     * than one per device: this runs on every dashboard poll.
      *
-     * @param  Collection<int, int>  $accessPointIds
+     * @param  Collection<int, int>  $deviceIds
      * @return Collection<int, TelemetryReading>
      */
-    public function latestReadings(Collection $accessPointIds): Collection
+    public function latestReadings(Collection $deviceIds): Collection
     {
-        if ($accessPointIds->isEmpty()) {
+        if ($deviceIds->isEmpty()) {
             return collect();
         }
 
-        $latestIds = TelemetryReading::query()
-            ->selectRaw('MAX(id) as id')
-            ->whereIn('network_device_id', $accessPointIds)
-            ->groupBy('network_device_id')
-            ->pluck('id');
+        $ids = $deviceIds->map(fn ($id) => (int) $id)->unique()->values();
 
+        if (DB::getDriverName() === 'pgsql') {
+            /*
+             * One newest row per device, through LATERAL and LIMIT 1. On the
+             * hypertable that reads the newest chunk first and stops at the
+             * first row, however many weeks are stored. A GROUP BY for each
+             * device's newest time would read every chunk.
+             */
+            $rows = DB::select(
+                'SELECT r.* FROM unnest(?::bigint[]) AS d(id) '
+                .'CROSS JOIN LATERAL (SELECT * FROM telemetry_readings WHERE network_device_id = d.id ORDER BY recorded_at DESC LIMIT 1) AS r',
+                ['{'.$ids->implode(',').'}'],
+            );
+
+            return TelemetryReading::hydrate($rows)->keyBy('network_device_id');
+        }
+
+        // SQLite, for the quick local suite: each device's newest time, then
+        // the row at that time.
         return TelemetryReading::query()
-            ->whereIn('id', $latestIds)
+            ->whereIn('network_device_id', $ids)
+            ->whereRaw('recorded_at = (SELECT MAX(newest.recorded_at) FROM telemetry_readings AS newest WHERE newest.network_device_id = telemetry_readings.network_device_id)')
             ->get()
             ->keyBy('network_device_id');
     }
