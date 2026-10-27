@@ -58,7 +58,7 @@ flowchart LR
 
 **Two things to be able to say about this diagram.**
 
-The access points are dashed because the connection is real in design and simulated in fact. `TelemetrySource` has two implementations and the live one is a documented stub — see [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md) and [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
+The access points are dashed because the connection is real in design and simulated in fact. Their readings come from the simulator, a virtual agent inside Atlas, through the same path a probe agent's would take — see [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) and [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 
 The phone calendar is an external system rather than a feature, and that is the point. Rather than build push notifications, the system hands a shift to the phone as an `.ics` file and the phone's own alarm does the reminding — with the app closed and no internet. See [Q5](02-open-questions.md#q5).
 

@@ -180,13 +180,13 @@ npm install
 php artisan test
 ```
 
-Expect **1,064 passing, 1 skipped**, on an in-memory SQLite database. The skip is deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
+Expect **1,151 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
 
 ```bash
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That is **1,064 passing, 1 skipped** too, in about three minutes. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
+That is **1,153 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
 
 The browser tests run five core flows in Chromium against a stack of their own, on ports 8100 and 5433:
 

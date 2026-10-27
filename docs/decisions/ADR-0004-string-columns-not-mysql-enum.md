@@ -16,7 +16,7 @@ Three further fields are enumerated in the schema but deliberately get **no** en
 | `checklist_items.category` | `boot` · `display` · `peripheral` · `network` | Grouping label on the inspection form |
 | `telemetry_readings.source` | `simulated` · `live` | Written by the collector, read by reports |
 
-> ⚠️ `telemetry_readings.source` (`simulated`/`live`) is **not** the same vocabulary as `config('atlas.telemetry_driver')` (`simulated`/`snmp`). The driver is *how* a reading was collected; the source is *what kind of data it is*. The `snmp` driver writes rows with `source = 'live'`. Never assign one to the other directly.
+> ⚠️ `telemetry_readings.source` (`simulated`/`live`) says *what kind of data* a reading is. Until 2026-10-28 it was easy to confuse with `config('atlas.telemetry_driver')` (`simulated`/`snmp`), which said *how* it was collected. That setting is gone (ADR-0010): the source now follows the agent that sent the reading, `simulated` for the simulator's virtual agent and `live` for a probe agent.
 
 MySQL offers a native `ENUM` column type. Laravel offers PHP 8.1 backed enums with model casting.
 

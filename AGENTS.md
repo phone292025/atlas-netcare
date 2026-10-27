@@ -107,7 +107,7 @@ These are not stylistic preferences. Each one is here because breaking it has al
 - **Never build a Tailwind class from a variable.** `"bg-{$colour}-50"`, or prefixing a class string with `str_replace`, produces a name Tailwind's scanner never sees. The class is purged from the build and the element renders **completely unstyled, with no error anywhere**. Write every class out in full. *This trap has been hit twice — once in the very file that documents it.*
 - **Never nest a Blade comment inside a Blade comment.** The inner closing token ends the outer one, and everything after it becomes live template code. A usage example in a component docblock then gets compiled and evaluated. Keep examples as plain indented text.
 - **Never run `composer update`.** It drifts dependencies off the committed lock file and can pull a Laravel version ADR-0008 rules out. Use `composer install`.
-- **Never let a component query the database.** Components receive data as props. That is the single property that lets `ATLAS_TELEMETRY_DRIVER` change without a view being touched.
+- **Never let a component query the database.** Components receive data as props. That is why moving a device from the simulator to a real probe agent touches no view.
 - **Never put a privilege column in `$fillable`.** `role`, `is_active` and `is_demo` on `User`, and `risk_score` / `risk_band` / `is_demo` on the asset models, are written by the system — never from request input. A mass-assigned `role` turns any profile form into privilege escalation.
 
 ---

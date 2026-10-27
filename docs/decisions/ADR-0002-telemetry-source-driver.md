@@ -2,8 +2,10 @@
 
 # ADR-0002: Telemetry enters the system through a swappable driver
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0010](ADR-0010-probe-agents-push-readings.md) on 2026-10-28
 **Date:** 2026-08-26
+
+> **Superseded.** Atlas no longer pulls from a driver. Probe agents push readings to an ingest API, and the simulator is a virtual agent inside Atlas whose readings take the same path (roadmap task 1.5). `TelemetrySource`, `SnmpTelemetrySource` and `ATLAS_TELEMETRY_DRIVER` are gone. The reasoning below about a simulator built from a model, not `rand()`, still holds and still describes `SimulatedReadings`.
 **Deciders:** Group Atlas
 
 ## Context

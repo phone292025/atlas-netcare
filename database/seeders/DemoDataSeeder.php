@@ -12,6 +12,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
@@ -22,6 +23,7 @@ use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Risk\RiskScoringService;
+use App\Services\Telemetry\Simulator;
 use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -200,7 +202,8 @@ class DemoDataSeeder extends Seeder
      *
      * So the network devices screen has something in it, and so access
      * points have a switch to hang from: when one fails, Phase 2 opens one
-     * incident for it instead of one for each access point behind it.
+     * incident for it instead of one for each access point behind it. The
+     * simulator watches them, as it does the access points.
      */
     private function networkDevices(): void
     {
@@ -224,6 +227,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $hub = $locations->firstWhere('code', 'L5-NET-01') ?? $locations->first();
+        $simulator = Agent::simulator()->id;
 
         $router = NetworkDevice::factory()->demo()->create([
             'kind' => DeviceKind::Router->value,
@@ -232,6 +236,7 @@ class DemoDataSeeder extends Seeder
             'location_id' => $hub->id,
             'model' => 'MikroTik CCR2004',
             'ip_address' => '10.20.0.1',
+            'agent_id' => $simulator,
         ]);
 
         foreach ($locations->values() as $i => $location) {
@@ -243,6 +248,7 @@ class DemoDataSeeder extends Seeder
                 'parent_id' => $router->id,
                 'model' => 'Cisco Catalyst 9200',
                 'ip_address' => sprintf('10.20.%d.2', $i + 1),
+                'agent_id' => $simulator,
             ]);
         }
 
@@ -348,6 +354,7 @@ class DemoDataSeeder extends Seeder
         $readings = 0;
         $batch = [];
         $lastSeen = [];
+        $lastReading = [];
 
         foreach ($aps as $index => $ap) {
             // The first three deteriorate across the window; the rest hold
@@ -368,6 +375,7 @@ class DemoDataSeeder extends Seeder
                 for ($moment = $at->copy(); $moment->lt($hourEnd) && $moment->lt(now()); $moment->addMinutes(5)) {
                     $down = $dropsOut && $moment->eq($at);
                     $batch[] = $this->reading($ap, $moment, $degrading, $progress, $index, $down);
+                    $lastReading[$ap->id] = $moment->toDateTimeString();
 
                     if (! $down) {
                         $lastSeen[$ap->id] = $moment->toDateTimeString();
@@ -399,8 +407,8 @@ class DemoDataSeeder extends Seeder
          * occasional downtime are degradation, not absence, and the risk model
          * is what surfaces them.
          */
-        foreach ($lastSeen as $id => $at) {
-            AccessPoint::whereKey($id)->update(['last_seen_at' => $at]);
+        foreach ($lastReading as $id => $at) {
+            AccessPoint::whereKey($id)->update(['last_seen_at' => $lastSeen[$id] ?? null, 'last_reading_at' => $at]);
         }
 
         $this->command?->line('  '.number_format($readings).' readings, '.self::TELEMETRY_DAYS.' days');
@@ -424,8 +432,10 @@ class DemoDataSeeder extends Seeder
      * One five-minute reading.
      *
      * A small wobble so the ten-minute chart is not a staircase of hourly
-     * steps. Throughput follows the simulator's rule, so live readings carry
-     * on from these in the same shape.
+     * steps. Throughput follows the simulator's rule, and the reading is
+     * numbered the way the simulator numbers its own, so live readings carry
+     * on from these in the same shape and a backfill over the same moments
+     * stores nothing twice.
      *
      * @return array<string, mixed>
      */
@@ -435,6 +445,8 @@ class DemoDataSeeder extends Seeder
             'network_device_id' => $ap->id,
             'recorded_at' => $at->toDateTimeString(),
             'source' => 'simulated',
+            'agent_id' => $ap->agent_id,
+            'sequence' => Simulator::sequence($ap->id, $at),
         ];
 
         if ($down) {
@@ -639,7 +651,7 @@ class DemoDataSeeder extends Seeder
      *
      * Quiet overnight, a peak late morning, a dip at lunch, a second peak mid
      * afternoon, and quieter at weekends. Shared shape with
-     * SimulatedTelemetrySource so seeded history and collected readings do not
+     * SimulatedReadings so seeded history and collected readings do not
      * look like two different campuses meeting in the middle.
      */
     private function busyness(Carbon $at): float

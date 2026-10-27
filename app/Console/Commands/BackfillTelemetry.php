@@ -2,13 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\NetworkStatus;
-use App\Models\AccessPoint;
 use App\Models\TelemetryReading;
+use App\Services\Telemetry\Simulator;
 use App\Services\Telemetry\TelemetryBackfill;
 use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 
 /**
  * Invent plausible telemetry history, so the charts have something to draw.
@@ -21,8 +19,10 @@ use Illuminate\Support\Collection;
  * is 350,000 rows for thirty days of forty access points instead of 1.7
  * million. Rows go in with chunked insert(), not create() in a loop.
  *
- * Refuses to run against a real driver, rather than invent history and stamp
- * it `live`.
+ * Only for the devices the simulator watches: inventing history for a device
+ * a real agent measures would put fiction in front of an engineer. A re-run
+ * stores nothing it already has, and each device's status follows its newest
+ * reading only when that is newer than the one it has.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
  * @see docs/05-data-strategy.md
@@ -36,19 +36,13 @@ class BackfillTelemetry extends Command
 
     protected $description = 'Generate simulated telemetry history so the charts have data';
 
-    public function handle(TelemetryBackfill $backfill, TelemetryStorage $storage): int
+    public function handle(TelemetryBackfill $backfill, TelemetryStorage $storage, Simulator $simulator): int
     {
-        if (config('atlas.telemetry_driver') !== 'simulated') {
-            $this->error('Backfill only makes sense with ATLAS_TELEMETRY_DRIVER=simulated.');
-            $this->line('Inventing history and stamping it `live` would put fiction in front of an engineer.');
+        $devices = $simulator->watched()->get();
 
-            return self::FAILURE;
-        }
-
-        $accessPoints = AccessPoint::query()->collectable()->get();
-
-        if ($accessPoints->isEmpty()) {
-            $this->error('No access points to generate readings for.');
+        if ($devices->isEmpty()) {
+            $this->error('The simulator watches no devices, so there is nothing to invent history for.');
+            $this->line('Real agents\' devices keep only what was measured.');
 
             return self::FAILURE;
         }
@@ -67,19 +61,17 @@ class BackfillTelemetry extends Command
         $bar = $this->output->createProgressBar((int) ceil($from->diffInMinutes($end) / $step));
         $bar->start();
 
-        // Moments an access point already has a reading for are left alone,
+        // Moments a device already has a reading for come back as duplicates,
         // so a re-run fills gaps rather than doubling the window.
-        $result = $backfill->write($accessPoints, $from, $end, $step, fn () => $bar->advance());
+        $result = $backfill->write($devices, $from, $end, $step, fn () => $bar->advance());
 
         $bar->finish();
         $this->newLine(2);
-        $this->info(number_format($result['written']).' readings written across '.$accessPoints->count().' access points.');
+        $this->info(number_format($result['written']).' readings written across '.$devices->count().' devices.');
 
         if ($result['skipped'] > 0) {
             $this->line('  '.number_format($result['skipped']).' already recorded, left alone.');
         }
-
-        $this->settle($accessPoints);
 
         // The charts read the hourly summaries, and these hours are older
         // than the database's own refresh looks: bring them in now, so one
@@ -88,54 +80,5 @@ class BackfillTelemetry extends Command
         $storage->refreshHourly(now()->subDays($days));
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Bring each access point's cached `status` and `last_seen_at` into line
-     * with its history, since this command bypasses store(), which normally
-     * keeps them in step.
-     *
-     * From the NEWEST reading in the database, not the last one written here:
-     * a backfill fills in BEHIND whatever the live collector recorded, and
-     * settling from its own older reading once hid a real outage. A backfill
-     * never overrules a live measurement.
-     *
-     * `last_seen_at` comes from the newest reading that answered, as in
-     * store(). One that never answered keeps what it had: inventing a sighting
-     * is the one thing this must not do. Two small queries per access point,
-     * once, against hundreds of thousands of rows inserted.
-     *
-     * @param  Collection<int, AccessPoint>  $accessPoints
-     */
-    private function settle(Collection $accessPoints): void
-    {
-        $settled = 0;
-
-        foreach ($accessPoints as $ap) {
-            $newest = TelemetryReading::query()
-                ->where('network_device_id', $ap->id)
-                ->orderByDesc('recorded_at')
-                ->first();
-
-            if (! $newest) {
-                continue;
-            }
-
-            // An unreachable reading has no latency; one that answered does.
-            $lastAnswered = TelemetryReading::query()
-                ->where('network_device_id', $ap->id)
-                ->whereNotNull('latency_ms')
-                ->orderByDesc('recorded_at')
-                ->value('recorded_at');
-
-            $ap->forceFill(array_filter([
-                'status' => NetworkStatus::from($newest->status),
-                'last_seen_at' => $lastAnswered,
-            ], fn ($value) => $value !== null))->save();
-
-            $settled++;
-        }
-
-        $this->line("  {$settled} access ".str('point')->plural($settled).' brought into line with their newest reading.');
     }
 }

@@ -5,11 +5,10 @@ namespace Tests\Feature\Telemetry;
 use App\Enums\SimulationScenario;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\User;
-use App\Services\Telemetry\TelemetrySource;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -20,8 +19,8 @@ use Tests\TestCase;
  *
  * The Network monitor charts the last day of raw readings. With the scheduler
  * stopped for a week, it came back to one point and an empty chart, and the
- * only way out was running `atlas:backfill-telemetry` by hand. With the
- * simulated driver the gap is now filled by the round that ends it.
+ * only way out was running `atlas:backfill-telemetry` by hand. On the
+ * simulator's devices the gap is now filled by the round that ends it.
  *
  * @see App\Services\Telemetry\TelemetryBackfill::fillGap()
  */
@@ -155,29 +154,13 @@ class CollectionGapTest extends TestCase
         $this->assertGreaterThan(30, TelemetryReading::where('network_device_id', $healthy->id)->count(), 'The healthy one was not filled.');
     }
 
-    public function test_a_real_driver_never_fills_a_gap(): void
+    public function test_a_real_agents_devices_are_never_filled(): void
     {
         // Silence from real access points is a fact about the network.
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
-        {
-            public function sourceLabel(): string
-            {
-                return 'live';
-            }
+        $agent = Agent::factory()->create();
 
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable();
-            }
-
-            public function collect(): Collection
-            {
-                return collect();
-            }
-        });
-
-        $this->accessPointsLastHeardFrom(now()->subHours(3));
+        $this->accessPointsLastHeardFrom(now()->subHours(3))
+            ->each(fn (AccessPoint $ap) => $ap->forceFill(['agent_id' => $agent->id])->save());
 
         $this->artisan('atlas:collect-telemetry');
 

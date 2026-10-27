@@ -18,31 +18,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Telemetry source
-    |--------------------------------------------------------------------------
-    |
-    | Which driver supplies access point readings, bound in
-    | AppServiceProvider. An unknown name throws rather than falling back.
-    |
-    |   simulated  generated locally, no external dependency (default)
-    |   snmp       polled from real access points; a stub until APU IT grants
-    |              access
-    |
-    | See docs/decisions/ADR-0002-telemetry-source-driver.md
-    |
-    */
-
-    'telemetry_driver' => env('ATLAS_TELEMETRY_DRIVER', 'simulated'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Filling a collection gap
     |--------------------------------------------------------------------------
     |
-    | With the simulated driver, the first round after the scheduler has been
-    | off fills the silence with simulated readings, so the charts do not come
-    | back empty. At most this many hours back, the longest chart's window. A
-    | real driver never fills: a gap in real telemetry is a fact.
+    | The first round after the scheduler has been off fills the silence on
+    | the simulator's devices with simulated readings, so the charts do not
+    | come back empty. At most this many hours back, the longest chart's
+    | window. A real agent's devices are never filled: a gap in real
+    | telemetry is a fact.
     |
     */
 

@@ -20,7 +20,6 @@ class AtlasConfigTest extends TestCase
     public function test_every_expected_top_level_key_is_present(): void
     {
         foreach ([
-            'telemetry_driver',
             'demo_mode',
             'poll_interval',
             'thresholds',

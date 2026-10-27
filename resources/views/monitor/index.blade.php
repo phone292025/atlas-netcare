@@ -25,7 +25,7 @@
          x-init="start()">
 
         <x-page-header title="Network monitor"
-                       :subtitle="'Campus connectivity from '.($simulated ? 'synthetic' : 'live').' telemetry, every access point in one place.'">
+                       :subtitle="'Campus connectivity from '.['simulated' => 'synthetic', 'live' => 'live', 'mixed' => 'synthetic and live'][$feed].' telemetry, every access point in one place.'">
             <x-slot:actions>
                 <x-button variant="secondary" @click="refresh()" x-bind:disabled="refreshing">
                     <x-icon name="refresh" class="size-4" x-bind:class="refreshing && 'animate-spin'" />
@@ -46,7 +46,7 @@
                           x-show="! failing"></span>
                     <span class="relative inline-flex size-2 rounded-full" :class="failing ? 'bg-red-500' : 'bg-emerald-500'"></span>
                 </span>
-                {{ $simulated ? 'Simulated feed' : 'Live feed' }}
+                {{ ['simulated' => 'Simulated feed', 'live' => 'Live feed', 'mixed' => 'Simulated and live feed'][$feed] }}
             </span>
             <span>Last sample <span class="font-medium text-fg" x-text="data.last_sample ?? 'none yet'"></span></span>
             <span class="max-md:hidden">
@@ -325,12 +325,12 @@
                     @csrf
 
                     <p class="text-sm text-fg-muted">
-                        Changes what the simulated driver reports. Nothing on a real network is touched, and the
+                        Changes what the simulator reports. Nothing on a real network is touched, and the
                         system reacts through its ordinary rules: classification, tickets and alarms.
                     </p>
 
-                    <x-form.select name="access_point_id" label="Target access point" blank="All access points"
-                                   :options="collect($data['access_points'])->mapWithKeys(fn ($ap) => [$ap['id'] => $ap['code'].($ap['location'] ? ' · '.$ap['location'] : '')])->all()" />
+                    <x-form.select name="access_point_id" label="Target access point" blank="All simulated access points"
+                                   :options="collect($data['access_points'])->whereIn('id', $targets)->mapWithKeys(fn ($ap) => [$ap['id'] => $ap['code'].($ap['location'] ? ' · '.$ap['location'] : '')])->all()" />
 
                     <fieldset>
                         <legend class="mb-2 text-sm font-medium text-fg">Scenario</legend>

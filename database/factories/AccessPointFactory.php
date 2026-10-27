@@ -4,11 +4,15 @@ namespace Database\Factories;
 
 use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * Access points for tests and for M5's demo data.
+ *
+ * Watched by the simulator unless a test says otherwise, so a collection
+ * round measures them, as it measured every access point before agents.
  *
  * @extends Factory<AccessPoint>
  */
@@ -28,6 +32,7 @@ class AccessPointFactory extends Factory
             'client_capacity' => $this->faker->randomElement([30, 50, 80]),
             'installed_at' => $this->faker->dateTimeBetween('-5 years', '-1 month'),
             'status' => NetworkStatus::Online->value,
+            'agent_id' => fn () => Agent::simulator()->id,
         ];
     }
 

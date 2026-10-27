@@ -3,35 +3,35 @@
 namespace Tests\Feature\Telemetry;
 
 use App\Enums\AlarmType;
+use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Telemetry\ReadingData;
-use App\Services\Telemetry\SimulatedTelemetrySource;
-use App\Services\Telemetry\SnmpTelemetrySource;
+use App\Services\Telemetry\SimulatedReadings;
+use App\Services\Telemetry\Simulator;
 use App\Services\Telemetry\TelemetryService;
-use App\Services\Telemetry\TelemetrySource;
 use App\Services\Telemetry\TelemetryStorage;
 use App\Support\CampusClock;
+use Carbon\CarbonInterface;
 use Closure;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use LogicException;
-use RuntimeException;
 use Tests\TestCase;
 
 /**
- * M5 — the driver swap, the commands, and the screens.
+ * M5 — the simulator, the commands, and the screens.
  *
- * @see docs/decisions/ADR-0002-telemetry-source-driver.md
+ * @see docs/decisions/ADR-0010-probe-agents-push-readings.md
  * @see docs/modules/M5-telemetry-and-dashboard.md
  */
 class TelemetryPipelineTest extends TestCase
@@ -47,33 +47,21 @@ class TelemetryPipelineTest extends TestCase
     }
 
     /**
-     * A driver bound in place of the simulator, reporting whatever `$reading`
-     * makes for each access point, so a test can force a state without betting
-     * on the simulator's randomness.
+     * The simulator, reporting whatever `$reading` makes for each device, so a
+     * test can force a state without betting on the model's randomness. The
+     * readings still go through the Simulator and the collector.
      *
-     * @param  Closure(AccessPoint): ReadingData  $reading
+     * @param  Closure(NetworkDevice, CarbonInterface): ReadingData  $reading
      */
-    private function driverReporting(Closure $reading): void
+    private function simulatorReporting(Closure $reading): void
     {
-        $this->app->instance(TelemetrySource::class, new class($reading) implements TelemetrySource
+        $this->app->instance(SimulatedReadings::class, new class($reading) extends SimulatedReadings
         {
-            public function __construct(private readonly Closure $reading) {}
+            public function __construct(private readonly Closure $fake) {}
 
-            public function sourceLabel(): string
+            public function reading(NetworkDevice $ap, CarbonInterface $at): ReadingData
             {
-                return 'simulated';
-            }
-
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable();
-            }
-
-            /** @return Collection<int, ReadingData> */
-            public function collect(): Collection
-            {
-                return $this->pollable()->get()->map(fn (AccessPoint $ap) => ($this->reading)($ap));
+                return ($this->fake)($ap, $at);
             }
         });
     }
@@ -82,17 +70,17 @@ class TelemetryPipelineTest extends TestCase
      * Every access point fails to answer. Forces "offline" without relying on
      * a stale `last_seen_at`, which is exactly the thing classify() must ignore.
      */
-    private function driverWhereNothingAnswers(): void
+    private function simulatorWhereNothingAnswers(): void
     {
-        $this->driverReporting(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+        $this->simulatorReporting(fn (NetworkDevice $ap, CarbonInterface $at) => ReadingData::unreachable($ap, $at, 'simulated'));
     }
 
     /** Every access point answers, with latency far over the threshold. */
-    private function driverWhereEverythingIsSlow(): void
+    private function simulatorWhereEverythingIsSlow(): void
     {
-        $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
+        $this->simulatorReporting(fn (NetworkDevice $ap, CarbonInterface $at) => new ReadingData(
             deviceId: $ap->id,
-            recordedAt: now(),
+            recordedAt: $at,
             latencyMs: 500,
             clientCount: 5,
             packetLossPct: 0.0,
@@ -103,11 +91,11 @@ class TelemetryPipelineTest extends TestCase
     }
 
     /** Every access point answers well inside every threshold. */
-    private function driverWhereEverythingIsHealthy(): void
+    private function simulatorWhereEverythingIsHealthy(): void
     {
-        $this->driverReporting(fn (AccessPoint $ap) => new ReadingData(
+        $this->simulatorReporting(fn (NetworkDevice $ap, CarbonInterface $at) => new ReadingData(
             deviceId: $ap->id,
-            recordedAt: now(),
+            recordedAt: $at,
             latencyMs: 20,
             clientCount: 5,
             packetLossPct: 0.0,
@@ -125,120 +113,99 @@ class TelemetryPipelineTest extends TestCase
         }
     }
 
-    // ------------------------------------------------------- the driver swap
-
-    public function test_the_driver_comes_from_config(): void
-    {
-        // ADR-0002's whole promise: going live is an .env change and one class.
-        config(['atlas.telemetry_driver' => 'simulated']);
-        $this->assertInstanceOf(SimulatedTelemetrySource::class, app(TelemetrySource::class));
-
-        config(['atlas.telemetry_driver' => 'snmp']);
-        $this->assertInstanceOf(SnmpTelemetrySource::class, app(TelemetrySource::class));
-
-    }
-
     // ------------------------------------------------- the stale sweep
 
-    public function test_the_stale_sweep_only_judges_access_points_the_driver_actually_polls(): void
+    public function test_the_stale_sweep_only_judges_devices_somebody_is_listening_for(): void
     {
         /*
          * THE BUG THIS PINS. `markStaleOffline()` marks a device offline when
          * it has gone quiet, and it used to ask for every access point the
          * system watches. Silence is only evidence of failure if somebody was
-         * listening: one no driver pings is not quiet, it is unasked, and
+         * listening: one nothing measures is not quiet, it is unasked, and
          * marking it offline raises a ticket about hardware nothing tried to
-         * reach.
-         *
-         * Both shipped drivers poll everything, so the bug is invisible until
-         * one polls a subset. The driver below is that case, written inline
-         * rather than borrowed from a real one, so the guard survives whatever
-         * drivers happen to exist. Measured against a partial driver on the
+         * reach. Measured against a driver that polled a subset, on the
          * development database: 28 access points marked offline, 28 tickets
          * and 56 alarms, on the first tick of the scheduler.
          *
-         * Both access points below have been silent for a week. Only one is
-         * something this driver ever tries to reach.
+         * Every device below has been silent for a week. Somebody is listening
+         * for two of them: the simulator, and a real agent that is still
+         * sending. A device no agent watches, and one whose agent has itself
+         * gone quiet, are not this sweep's to judge.
          */
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
-        {
-            public function sourceLabel(): string
-            {
-                return 'simulated';
-            }
+        $quiet = ['status' => NetworkStatus::Online, 'last_seen_at' => now()->subWeek()];
 
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable()->where('is_demo', false);
-            }
+        $unwatched = AccessPoint::factory()->create(['agent_id' => null] + $quiet);
+        $simulated = AccessPoint::factory()->create($quiet);
 
-            /** @return Collection<int, ReadingData> */
-            public function collect(): Collection
-            {
-                return collect();
-            }
-        });
+        $sending = Agent::factory()->create();
+        $sending->forceFill(['last_seen_at' => now()])->save();
+        $heard = AccessPoint::factory()->create(['agent_id' => $sending->id] + $quiet);
 
-        $unpolled = AccessPoint::factory()->create([
-            'is_demo' => true,
-            'status' => NetworkStatus::Online,
-            'last_seen_at' => now()->subWeek(),
-        ]);
-
-        $polled = AccessPoint::factory()->create([
-            'is_demo' => false,
-            'status' => NetworkStatus::Online,
-            'last_seen_at' => now()->subWeek(),
-        ]);
+        $silent = Agent::factory()->create();
+        $silent->forceFill(['last_seen_at' => now()->subHour()])->save();
+        $behindASilentAgent = AccessPoint::factory()->create(['agent_id' => $silent->id] + $quiet);
 
         $transitions = app(TelemetryService::class)->markStaleOffline();
 
-        $this->assertSame(
-            NetworkStatus::Online,
-            $unpolled->fresh()->status,
-            'An access point nothing polls was marked offline for staying quiet.',
-        );
-
-        $this->assertSame(NetworkStatus::Offline, $polled->fresh()->status);
-        $this->assertCount(1, $transitions);
-    }
-
-    public function test_an_unknown_driver_throws_rather_than_falling_back(): void
-    {
-        /*
-         * A typo in .env silently producing invented data on a system meant to
-         * be showing real readings is the worst outcome available here, so it
-         * fails loudly instead.
-         */
-        config(['atlas.telemetry_driver' => 'snmpp']);
-
-        $this->expectException(\InvalidArgumentException::class);
-
-        app(TelemetrySource::class);
-    }
-
-    public function test_the_snmp_driver_is_an_honest_stub(): void
-    {
-        // It throws rather than returning nothing: forty access points all
-        // going quiet at once would cost somebody an afternoon.
-        $this->expectException(RuntimeException::class);
-
-        (new SnmpTelemetrySource)->collect();
+        $this->assertSame(NetworkStatus::Online, $unwatched->fresh()->status, 'A device nothing measures was marked offline for staying quiet.');
+        $this->assertSame(NetworkStatus::Online, $behindASilentAgent->fresh()->status, 'A quiet agent took its devices offline with it.');
+        $this->assertSame(NetworkStatus::Offline, $simulated->fresh()->status);
+        $this->assertSame(NetworkStatus::Offline, $heard->fresh()->status);
+        $this->assertCount(2, $transitions);
     }
 
     // ------------------------------------------------------- the simulator
 
-    public function test_the_simulator_reads_every_collectable_access_point(): void
+    public function test_the_simulator_reads_every_collectable_device_it_watches(): void
     {
         AccessPoint::factory()->count(3)->create();
         AccessPoint::factory()->maintenance()->create();
+        AccessPoint::factory()->create(['agent_id' => null]);
+        AccessPoint::factory()->create(['agent_id' => Agent::factory()->create()->id]);
 
-        $readings = (new SimulatedTelemetrySource)->collect();
+        $stored = app(Simulator::class)->round()->stored;
 
         // Maintenance is skipped — an engineer holding a ladder should not be
-        // paged about the access point in their hands.
-        $this->assertCount(3, $readings);
+        // paged about the access point in their hands. A device nobody
+        // watches, or a real agent watches, is not the simulator's to invent.
+        $this->assertCount(3, $stored);
+        $this->assertSame([Agent::simulator()->id], $stored->pluck('agentId')->unique()->values()->all());
+    }
+
+    public function test_the_same_moment_measured_twice_is_stored_once(): void
+    {
+        // Numbered by moment and device, so it is a duplicate, like a real
+        // agent's retry.
+        AccessPoint::factory()->count(2)->create();
+        $this->freezeSecond();
+
+        app(Simulator::class)->round();
+        $second = app(Simulator::class)->round();
+
+        $this->assertCount(0, $second->stored);
+        $this->assertSame(2, TelemetryReading::count());
+    }
+
+    public function test_the_simulator_is_heard_from_only_when_it_measured_something(): void
+    {
+        $agent = Agent::simulator();
+
+        app(Simulator::class)->round();
+        $this->assertNull($agent->fresh()->last_seen_at);
+
+        AccessPoint::factory()->create();
+        app(Simulator::class)->round();
+        $this->assertNotNull($agent->fresh()->last_seen_at);
+    }
+
+    public function test_the_simulator_measures_wired_devices_it_watches(): void
+    {
+        $switch = NetworkDevice::factory()->kind(DeviceKind::Switch)->create(['agent_id' => Agent::simulator()->id]);
+
+        app(Simulator::class)->round();
+
+        $reading = TelemetryReading::where('network_device_id', $switch->id)->sole();
+        $this->assertSame(0, $reading->client_count);
     }
 
     public function test_an_access_point_has_a_stable_personality(): void
@@ -249,7 +216,7 @@ class TelemetryPipelineTest extends TestCase
          * stable answer and M7's risk ranking means nothing.
          */
         $busy = AccessPoint::factory()->create(['client_capacity' => 60]);
-        $source = new SimulatedTelemetrySource;
+        $source = new SimulatedReadings;
 
         $at = now()->setTime(11, 0);
 
@@ -265,7 +232,7 @@ class TelemetryPipelineTest extends TestCase
         // A flat 24-hour chart is the giveaway that the data is invented
         // carelessly. This is the daily curve actually being there.
         $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
-        $source = new SimulatedTelemetrySource;
+        $source = new SimulatedReadings;
 
         /*
          * Midday and 3 am on the CAMPUS clock, handed over as UTC moments —
@@ -321,7 +288,7 @@ class TelemetryPipelineTest extends TestCase
          * about.
          */
         $ap = AccessPoint::factory()->create(['client_capacity' => 60]);
-        $source = new SimulatedTelemetrySource;
+        $source = new SimulatedReadings;
         // Campus hours, handed over as UTC moments — see
         // test_the_simulator_is_busier_at_midday_than_at_night.
         $tuesday = CampusClock::now()->next('Tuesday');
@@ -423,7 +390,7 @@ class TelemetryPipelineTest extends TestCase
          */
         $this->userWith(UserRole::Admin);
         $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
-        $this->driverWhereNothingAnswers();
+        $this->simulatorWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
         $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
@@ -440,7 +407,7 @@ class TelemetryPipelineTest extends TestCase
         // and no ticket: congestion is a warning, not a fault report.
         $this->userWith(UserRole::Engineer);
         $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
-        $this->driverWhereEverythingIsSlow();
+        $this->simulatorWhereEverythingIsSlow();
 
         $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') + 1);
 
@@ -460,11 +427,16 @@ class TelemetryPipelineTest extends TestCase
         $degradedAlerts = fn () => Alarm::where('type', AlarmType::ApDegraded)->count();
 
         $flap = function () use ($breaches): void {
-            $this->driverWhereEverythingIsSlow();
+            $this->simulatorWhereEverythingIsSlow();
             $this->collectRounds($breaches);
-            $this->driverWhereEverythingIsHealthy();
+            $this->simulatorWhereEverythingIsHealthy();
             $this->collectRounds(1);
         };
+
+        // The wait below is long enough to count as a collection gap, and
+        // the gap would be filled with this test's own slow readings, quietly
+        // degrading the access point before the flap. Gaps are not the point.
+        config(['atlas.gap_fill_hours' => 0]);
 
         $flap();
         $flap();
@@ -482,11 +454,11 @@ class TelemetryPipelineTest extends TestCase
         $this->userWith(UserRole::Engineer);
         $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
 
-        $this->driverWhereNothingAnswers();
+        $this->simulatorWhereNothingAnswers();
         $this->collectRounds((int) config('atlas.thresholds.consecutive_breach') - 1);
         $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
 
-        $this->driverWhereEverythingIsSlow();
+        $this->simulatorWhereEverythingIsSlow();
         $this->collectRounds(1);
 
         $this->assertSame(NetworkStatus::Degraded, $ap->fresh()->status);
@@ -499,7 +471,7 @@ class TelemetryPipelineTest extends TestCase
         // stored — losing telemetry because nobody can own a ticket would be
         // the wrong trade.
         AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
-        $this->driverWhereNothingAnswers();
+        $this->simulatorWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
 
@@ -561,7 +533,7 @@ class TelemetryPipelineTest extends TestCase
         // default is deliberately not what this test is about.
         $demo->forceFill(['is_demo' => true])->save();
         $real->forceFill(['is_demo' => false])->save();
-        $this->driverWhereNothingAnswers();
+        $this->simulatorWhereNothingAnswers();
 
         Artisan::call('atlas:collect-telemetry');
 
@@ -842,11 +814,11 @@ class TelemetryPipelineTest extends TestCase
     public function test_the_backfill_leaves_each_access_point_agreeing_with_its_own_newest_reading(): void
     {
         /*
-         * The backfill writes reading rows with insert() and bypasses
-         * TelemetryService::store(), which is the only thing that normally
-         * keeps `access_points.status` and `last_seen_at` in step with them.
-         * So the cache kept whatever it had while the history said something
-         * else, and the AP health table — which reads status from the access
+         * The backfill once wrote reading rows with insert() and bypassed
+         * TelemetryService, which is the only thing that keeps a device's
+         * `status` and `last_seen_at` in step with them. Now it goes through
+         * record(). Before, the cache kept whatever it had while the history
+         * said something else, and the AP health table — which reads status from the access
          * point and latency and loss from the newest reading — rendered rows
          * that contradicted themselves: Online, no latency, 100% packet loss.
          *
@@ -915,10 +887,11 @@ class TelemetryPipelineTest extends TestCase
          */
         $this->travelTo(now()->startOfHour()->addMinutes(30));
 
-        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Offline]);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Offline, 'last_reading_at' => now()->subMinute()]);
 
         // The collector's reading, newer than anything the backfill will
-        // write: an outage, a minute ago.
+        // write: an outage, a minute ago. The collector also noted its time
+        // on the access point, above, which is what the backfill checks.
         TelemetryReading::create([
             'network_device_id' => $ap->id,
             'recorded_at' => now()->subMinute(),

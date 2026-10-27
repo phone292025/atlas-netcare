@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-10-28
 
 An ADR records a decision that shapes how code is written, why it was made, and what it costs. It exists so that in week 10 nobody re-opens a settled argument, and anyone on the team can explain any choice.
 
@@ -9,7 +9,7 @@ An ADR records a decision that shapes how code is written, why it was made, and 
 | # | Decision | Status |
 |---|---|---|
 | [0001](ADR-0001-modular-monolith-no-repositories.md) | Modular monolith on Laravel MVC, no repository pattern | Accepted |
-| [0002](ADR-0002-telemetry-source-driver.md) | Telemetry enters through a swappable driver | Accepted |
+| [0002](ADR-0002-telemetry-source-driver.md) | Telemetry enters through a swappable driver | Superseded by 0010 |
 | [0003](ADR-0003-single-database-demo-flag.md) | One database; demo data tagged, not separated | Accepted |
 | [0004](ADR-0004-string-columns-not-mysql-enum.md) | String columns cast to PHP enums, not MySQL ENUM | Accepted |
 | [0005](ADR-0005-ajax-polling-not-websockets.md) | AJAX polling for live updates, not WebSockets | Accepted |

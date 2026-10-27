@@ -4,11 +4,10 @@ namespace App\Services\Telemetry;
 
 use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Support\CampusClock;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 
 /**
  * Telemetry invented, but invented from a model rather than rand().
@@ -26,52 +25,31 @@ use Illuminate\Support\Collection;
  *      does: fine until it is not
  *   5. rare, sticky outages rather than single missing samples
  *
- * @see docs/decisions/ADR-0002-telemetry-source-driver.md
+ * The Simulator, Atlas's virtual agent, asks this for each reading it sends
+ * (ADR-0010). Not final, so a test can replace it with readings of its own.
+ *
+ * @see App\Services\Telemetry\Simulator
  * @see docs/modules/M5-telemetry-and-dashboard.md
  */
-class SimulatedTelemetrySource implements TelemetrySource
+class SimulatedReadings
 {
-    public function sourceLabel(): string
-    {
-        return 'simulated';
-    }
+    public const SOURCE = 'simulated';
 
     /**
-     * Everything not under maintenance, except an access point whose feed is
-     * simulated as interrupted: there the path to the device is what failed,
-     * so nobody is listening, and markStaleOffline() must not turn "we cannot
-     * see it" into "it is down". The Network monitor shows it as unknown.
-     *
-     * @return Builder<AccessPoint>
+     * One reading for one device at one moment. The backfill walks a clock
+     * backwards through the same model, so history and live data are the
+     * same shape.
      */
-    public function pollable(): Builder
-    {
-        return AccessPoint::query()
-            ->collectable()
-            ->where(fn (Builder $query) => $query
-                ->whereNull('simulation_scenario')
-                ->orWhere('simulation_scenario', '!=', SimulationScenario::FeedInterruption->value));
-    }
-
-    /** @return Collection<int, ReadingData> */
-    public function collect(): Collection
-    {
-        return $this->pollable()
-            ->get()
-            ->map(fn (AccessPoint $ap) => $this->reading($ap, now()));
-    }
-
-    /**
-     * One reading for one access point at one moment. Public so the backfill
-     * can walk a clock backwards through the same model, making history and
-     * live data the same shape.
-     */
-    public function reading(AccessPoint $ap, CarbonInterface $at): ReadingData
+    public function reading(NetworkDevice $ap, CarbonInterface $at): ReadingData
     {
         $scenario = $this->scenarioAt($ap, $at);
 
         if ($scenario === SimulationScenario::Outage || $this->isOutage($ap, $at)) {
-            return ReadingData::unreachable($ap, $at, $this->sourceLabel());
+            return ReadingData::unreachable($ap, $at, self::SOURCE);
+        }
+
+        if (! $ap instanceof AccessPoint) {
+            return $this->wiredReading($ap, $at);
         }
 
         $capacity = max(1, (int) $ap->client_capacity);
@@ -90,12 +68,30 @@ class SimulatedTelemetrySource implements TelemetrySource
             // otherwise reports negative utilisation.
             channelUtilPct: round(max(0.0, min(99.0, $saturation * 78 + $this->jitter(6))), 2),
             throughputMbps: $this->throughput($clients, $saturation),
-            source: $this->sourceLabel(),
+            source: self::SOURCE,
+        );
+    }
+
+    /**
+     * A switch, router or server, watched by ping: up, a few milliseconds
+     * away, and no clients. Steadier than radio, so it has its own range.
+     */
+    private function wiredReading(NetworkDevice $device, CarbonInterface $at): ReadingData
+    {
+        return new ReadingData(
+            deviceId: $device->id,
+            recordedAt: Carbon::instance($at->toDateTime()),
+            latencyMs: (int) max(1, round($this->personality($device, 'latency', 1, 4) + $this->jitter(0.8))),
+            clientCount: 0,
+            packetLossPct: 0.0,
+            channelUtilPct: 0.0,
+            throughputMbps: 0.0,
+            source: self::SOURCE,
         );
     }
 
     /** Baseline popularity × time of day × weekday factor, plus noise. */
-    private function clientCount(AccessPoint $ap, CarbonInterface $at, int $capacity): int
+    private function clientCount(NetworkDevice $ap, CarbonInterface $at, int $capacity): int
     {
         $popularity = $this->personality($ap, 'popularity', 0.45, 1.05);
 
@@ -113,7 +109,7 @@ class SimulatedTelemetrySource implements TelemetrySource
      * from the moment it was set, so a backfill does not rewrite two weeks of
      * history as congested.
      */
-    private function scenarioAt(AccessPoint $ap, CarbonInterface $at): ?SimulationScenario
+    private function scenarioAt(NetworkDevice $ap, CarbonInterface $at): ?SimulationScenario
     {
         $scenario = $ap->simulation_scenario;
 
@@ -129,7 +125,7 @@ class SimulatedTelemetrySource implements TelemetrySource
      * access point, so latency and loss rise through the same curves as a
      * real overload and the ordinary rule turns it Degraded.
      */
-    private function congestedClientCount(AccessPoint $ap, int $capacity): int
+    private function congestedClientCount(NetworkDevice $ap, int $capacity): int
     {
         $overload = 1.08 + $this->personality($ap, 'overload', 0.0, 0.14);
 
@@ -168,7 +164,7 @@ class SimulatedTelemetrySource implements TelemetrySource
      * Latency in milliseconds: flat until saturation climbs, then sharply up.
      * The cubic term is the correlation M7 is meant to find.
      */
-    private function latency(AccessPoint $ap, float $saturation): int
+    private function latency(NetworkDevice $ap, float $saturation): int
     {
         $base = $this->personality($ap, 'latency', 12, 34);
         $congestion = 210 * ($saturation ** 3);
@@ -201,7 +197,7 @@ class SimulatedTelemetrySource implements TelemetrySource
      * outage lasts minutes and one missing sample would never trip the
      * offline rule.
      */
-    private function isOutage(AccessPoint $ap, CarbonInterface $at): bool
+    private function isOutage(NetworkDevice $ap, CarbonInterface $at): bool
     {
         $window = (int) floor($at->getTimestamp() / 1200);
         $reliability = $this->personality($ap, 'reliability', 0.0, 1.0);
@@ -217,7 +213,7 @@ class SimulatedTelemetrySource implements TelemetrySource
      * it never changes between runs, or between the backfill and live
      * collection. It is what makes one access point consistently the worst.
      */
-    private function personality(AccessPoint $ap, string $trait, float $min, float $max): float
+    private function personality(NetworkDevice $ap, string $trait, float $min, float $max): float
     {
         return $min + $this->hash($ap->id.':'.$trait) * ($max - $min);
     }

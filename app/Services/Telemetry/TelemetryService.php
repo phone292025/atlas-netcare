@@ -3,6 +3,7 @@
 namespace App\Services\Telemetry;
 
 use App\Enums\NetworkStatus;
+use App\Enums\SimulationScenario;
 use App\Models\AccessPoint;
 use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
@@ -13,37 +14,15 @@ use Illuminate\Support\Facades\DB;
 /**
  * Storing readings, deciding what they mean, and answering the dashboard.
  *
- * Classification lives here, not in a driver: a driver reports numbers, and
+ * Classification lives here, not in an agent: an agent reports numbers, and
  * whether they amount to "degraded" is a business rule with thresholds in
- * config that needs previous readings a driver does not have.
+ * config that needs previous readings an agent does not have.
  *
  * @see docs/modules/M5-telemetry-and-dashboard.md
  * @see docs/02-open-questions.md Q1
  */
 class TelemetryService
 {
-    public function __construct(private readonly TelemetrySource $source) {}
-
-    /**
-     * Take a round of readings and store them.
-     *
-     * Returns the access points whose status CHANGED, so the caller reacts to
-     * a transition rather than to every reading: one ticket for an outage, not
-     * one a minute for six hours.
-     *
-     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
-     */
-    public function collectAndStore(): Collection
-    {
-        $readings = $this->source->collect();
-
-        if ($readings->isEmpty()) {
-            return collect();
-        }
-
-        return $this->store($readings);
-    }
-
     /**
      * Persist readings and update each device's current state.
      *
@@ -447,13 +426,13 @@ class TelemetryService
     }
 
     /**
-     * Mark access points offline that have simply stopped being heard from.
+     * Mark devices offline that have simply stopped being heard from.
      *
-     * Every other status change is driven by a reading arriving. A real SNMP
-     * driver omits a device it cannot enumerate, so without this sweep that
-     * device would keep its last status forever. This is the ONLY place
-     * silence is judged. Returns transitions in the same shape as store(), so
-     * the caller raises the same ticket and alert.
+     * Every other status change is driven by a reading arriving. An agent
+     * that can't reach a device may send nothing for it, so without this
+     * sweep that device would keep its last status forever. This is the ONLY
+     * place a device's silence is judged. Returns transitions in the same
+     * shape as store(), so the caller raises the same ticket and alert.
      *
      * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
      */
@@ -462,12 +441,24 @@ class TelemetryService
         $cutoff = now()->subMinutes((int) config('atlas.thresholds.offline_after_min'));
 
         /*
-         * Only what the driver polls. Silence is evidence of failure only if
-         * somebody was listening: marking an unpolled device offline raises a
-         * ticket about hardware nothing tried to reach. Maintenance is outside
-         * pollable() too, because being quiet is what maintenance means.
+         * Only what somebody is listening to. Silence is evidence of failure
+         * only then: marking a device offline that nothing tried to reach
+         * raises a ticket about nothing. So, devices an agent watches, and
+         * only while that agent is itself being heard from: when an agent
+         * goes quiet, its devices are unknown, not down. The simulator is
+         * always listening. Maintenance is left out because being quiet is
+         * what maintenance means, and a simulated feed interruption because
+         * there the path to the device is what failed.
          */
-        $stale = $this->source->pollable()
+        $silentAfter = now()->subMinutes((int) config('atlas.ingest.silent_after_minutes'));
+
+        $stale = NetworkDevice::query()
+            ->whereNotNull('agent_id')
+            ->whereHas('agent', fn ($q) => $q->where('is_virtual', true)->orWhere('last_seen_at', '>=', $silentAfter))
+            ->collectable()
+            ->where(fn ($q) => $q
+                ->whereNull('simulation_scenario')
+                ->orWhere('simulation_scenario', '!=', SimulationScenario::FeedInterruption->value))
             ->where('status', '!=', NetworkStatus::Offline->value)
             ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
             ->get();

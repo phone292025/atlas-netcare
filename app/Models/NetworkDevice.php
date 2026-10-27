@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
+use App\Enums\SimulationScenario;
 use Database\Factories\NetworkDeviceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -78,6 +79,8 @@ class NetworkDevice extends Model
             'installed_at' => 'date',
             'last_seen_at' => 'datetime',
             'last_reading_at' => 'datetime',
+            'simulation_scenario' => SimulationScenario::class,
+            'simulation_started_at' => 'datetime',
             'is_demo' => 'boolean',
         ];
     }
@@ -165,6 +168,17 @@ class NetworkDevice extends Model
     public function scopeCollectable(Builder $query): void
     {
         $query->where('status', '!=', NetworkStatus::Maintenance);
+    }
+
+    /**
+     * Devices the simulator's virtual agent watches (task 1.5). Through the
+     * agent rather than its id, so asking does not create the agent.
+     *
+     * @param  Builder<static>  $query
+     */
+    public function scopeSimulated(Builder $query): void
+    {
+        $query->whereHas('agent', fn (Builder $agent) => $agent->where('is_virtual', true));
     }
 
     /** @param  Builder<static>  $query */

@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,064 passing tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
+The suite has 1,155 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
 
 ## Getting started
 
@@ -291,6 +291,6 @@ Turning it back on repairs the charts by itself. Its first round sees the silenc
 
 The charts don't need it to start with. `db:seed` writes two weeks of hourly history, with the last day as readings, so the Network Monitor opens on a full day. Three access points' latency and packet loss climb over the fortnight. Those three are what fill the risk model's High band.
 
-> **Don't run `atlas:backfill-telemetry` after seeding demo data.** It writes steady readings into every hour it covers that has none and re-aggregates them, so a two-week backfill flattens those three trends. Use it only for access points with no history.
+`atlas:backfill-telemetry` invents history for devices that have none, such as the seeded switches and router. Moments a device already has a reading for are left alone, so running it after seeding keeps the three trends. Keep its `--minutes` at the default 5 there: a smaller step adds steady readings between the seeded ones and flattens the trends.
 
-Telemetry is simulated by default, with `ATLAS_TELEMETRY_DRIVER=simulated`. Real access points need that `.env` value changed and `SnmpTelemetrySource` implemented. Nothing else in the system changes.
+The demo's devices are watched by the simulator, a virtual agent inside Atlas. To measure a real device, set its **Watched by** to a probe agent, as in Probe agents above. The simulation controls and the backfill leave devices a real agent watches alone.

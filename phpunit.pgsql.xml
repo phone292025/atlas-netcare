@@ -37,9 +37,6 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
 
-        <!-- Pinned for the same reason as phpunit.xml: the suite must not
-             inherit a driver from .env and start pinging a real network. -->
-        <env name="ATLAS_TELEMETRY_DRIVER" value="simulated"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

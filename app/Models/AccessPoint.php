@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\DeviceKind;
 use App\Enums\RiskBand;
-use App\Enums\SimulationScenario;
 use Database\Factories\AccessPointFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -72,8 +71,6 @@ class AccessPoint extends NetworkDevice
     {
         return [
             ...parent::casts(),
-            'simulation_scenario' => SimulationScenario::class,
-            'simulation_started_at' => 'datetime',
             'risk_band' => RiskBand::class,
             'risk_score' => 'decimal:2',
             'client_capacity' => 'integer',

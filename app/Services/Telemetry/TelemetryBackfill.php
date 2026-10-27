@@ -2,22 +2,24 @@
 
 namespace App\Services\Telemetry;
 
-use App\Enums\NetworkStatus;
-use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use LogicException;
 
 /**
  * Simulated history written behind the clock: by `atlas:backfill-telemetry`,
  * and by the first collection round after the scheduler has been off.
  *
- * Simulated driver only. Inventing history for real access points would put
- * fiction in front of an engineer, and a gap in real telemetry is a fact about
- * the network.
+ * Only for devices the simulator watches. Inventing history for a device a
+ * real agent measures would put fiction in front of an engineer, and a gap in
+ * real telemetry is a fact about the network.
+ *
+ * Through the same path as the simulator's live readings, numbered by minute
+ * and device, so a re-run stores nothing it already has: the unique key on
+ * agent, sequence and time sees it as a duplicate.
  *
  * @see App\Console\Commands\BackfillTelemetry
  * @see App\Services\Telemetry\TelemetryCollector
@@ -27,8 +29,12 @@ class TelemetryBackfill
     /** Minutes between filled readings. Live collection is every minute; the charts cannot tell. */
     public const STEP_MINUTES = 5;
 
+    /** Readings per store call: a fortnight is hundreds of thousands. */
+    private const BATCH = 2000;
+
     public function __construct(
-        private readonly TelemetrySource $source,
+        private readonly Simulator $simulator,
+        private readonly TelemetryService $telemetry,
         private readonly TelemetryStorage $storage,
     ) {}
 
@@ -37,34 +43,30 @@ class TelemetryBackfill
      * back empty.
      *
      * Nothing happens when the newest reading is fresher than
-     * `offline_after_min`, when nothing was ever collected (that is not a
-     * gap), or with a real driver. The hourly summaries are refreshed over the
-     * filled hours, so the hourly charts get them too.
+     * `offline_after_min`, or when nothing was ever collected (that is not a
+     * gap). The hourly summaries are refreshed over the filled hours, so the
+     * hourly charts get them too.
      *
      * @return array{from: Carbon, written: int}|null
      */
     public function fillGap(): ?array
     {
-        if (! $this->source instanceof SimulatedTelemetrySource) {
+        // What the simulator measures, the same set a live round reads. A
+        // device whose feed is interrupted is not listened to, so its silence
+        // is the point and must not be filled in.
+        $devices = $this->simulator->watched()->get();
+
+        if ($devices->isEmpty()) {
             return null;
         }
 
-        $from = $this->gapStart();
+        $from = $this->gapStart($devices);
 
         if (! $from || $from->diffInMinutes(now()) < (int) config('atlas.thresholds.offline_after_min')) {
             return null;
         }
 
-        // What the driver polls, the same set live collection reads. An
-        // access point whose feed is interrupted is not listened to, so its
-        // silence is the point and must not be filled in.
-        $accessPoints = $this->source->pollable()->get();
-
-        if ($accessPoints->isEmpty()) {
-            return null;
-        }
-
-        $written = $this->write($accessPoints, $from, now())['written'];
+        $written = $this->write($devices, $from, now())['written'];
 
         if ($written === 0) {
             return null;
@@ -76,55 +78,43 @@ class TelemetryBackfill
     }
 
     /**
-     * Readings every `$step` minutes from `$from` up to, not including, `$to`,
-     * for each moment an access point does not already have one.
+     * Readings every `$step` minutes from `$from` up to, not including, `$to`.
      *
      * The moments sit on a grid counted from the hour, so a re-run lands on
-     * the same moments and finds its own rows.
+     * the same moments, and the readings it already stored come back as
+     * duplicates. A device's status follows its newest reading only when that
+     * is newer than the one it has, so history filled in behind a live
+     * reading never overrules it. Status changes here raise nothing: this is
+     * history, not news.
      *
-     * Status is set directly, not through classify(), which reads previous
-     * readings: a query per row, a quarter of a million of them. Backfilled
-     * history is scenery for the charts.
-     *
-     * @param  Collection<int, AccessPoint>  $accessPoints
+     * @param  Collection<int, NetworkDevice>  $devices
      * @param  (Closure(): void)|null  $onStep  called once per moment, for a progress bar
      * @return array{written: int, skipped: int}
      */
-    public function write(Collection $accessPoints, CarbonInterface $from, CarbonInterface $to, int $step = self::STEP_MINUTES, ?Closure $onStep = null): array
+    public function write(Collection $devices, CarbonInterface $from, CarbonInterface $to, int $step = self::STEP_MINUTES, ?Closure $onStep = null): array
     {
-        if (! $this->source instanceof SimulatedTelemetrySource) {
-            throw new LogicException('Only the simulated driver can write history.');
-        }
-
         $cursor = Carbon::instance($from)->startOfHour();
 
         while ($cursor->lt($from)) {
             $cursor->addMinutes($step);
         }
 
-        $existing = $this->alreadyRecorded($accessPoints, $cursor, $to);
-        $rows = [];
+        $pending = collect();
         $written = 0;
         $skipped = 0;
 
+        $flush = function () use (&$pending, &$written, &$skipped): void {
+            $stored = $this->telemetry->record($pending)->stored->count();
+            $written += $stored;
+            $skipped += $pending->count() - $stored;
+            $pending = collect();
+        };
+
         while ($cursor->lt($to)) {
-            foreach ($accessPoints as $ap) {
-                $reading = $this->source->reading($ap, $cursor);
+            $pending = $pending->concat($this->simulator->readingsAt($devices, $cursor));
 
-                if (isset($existing[$ap->id][$reading->recordedAt->toDateTimeString()])) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                $status = $reading->unreachable ? NetworkStatus::Offline : NetworkStatus::Online;
-                $rows[] = $reading->toRow($status->value);
-            }
-
-            if (count($rows) >= 2000) {
-                TelemetryReading::insert($rows);
-                $written += count($rows);
-                $rows = [];
+            if ($pending->count() >= self::BATCH) {
+                $flush();
             }
 
             $cursor->addMinutes($step);
@@ -134,24 +124,24 @@ class TelemetryBackfill
             }
         }
 
-        if ($rows !== []) {
-            TelemetryReading::insert($rows);
-            $written += count($rows);
+        if ($pending->isNotEmpty()) {
+            $flush();
         }
 
         return ['written' => $written, 'skipped' => $skipped];
     }
 
     /**
-     * Where the gap begins: the newest reading, but never more than
-     * `gap_fill_hours` back.
+     * Where the gap begins: the newest reading from these devices, but never
+     * more than `gap_fill_hours` back.
      *
-     * Database-wide rather than per access point: one indexed lookup once a
-     * minute.
+     * @param  Collection<int, NetworkDevice>  $devices
      */
-    private function gapStart(): ?Carbon
+    private function gapStart(Collection $devices): ?Carbon
     {
-        $newestReading = TelemetryReading::query()->max('recorded_at');
+        $newestReading = TelemetryReading::query()
+            ->whereIn('network_device_id', $devices->pluck('id'))
+            ->max('recorded_at');
 
         // Never collected: nothing stopped. The chart says "No readings" itself.
         if ($newestReading === null) {
@@ -159,40 +149,5 @@ class TelemetryBackfill
         }
 
         return now()->subHours((int) config('atlas.gap_fill_hours'))->max(Carbon::parse($newestReading));
-    }
-
-    /**
-     * Every moment each access point already has a reading for, in this window.
-     *
-     * Makes a re-run safe: it fills gaps and writes nothing it already has.
-     * Without this, every run doubled its window, and the duplicates were not
-     * harmless because the simulator draws loss at random. A unique index on
-     * (network_device_id, recorded_at) would be stronger, but cannot be added
-     * while old duplicates exist.
-     *
-     * Through the query builder, so a fortnight is a list of strings rather
-     * than 160,000 hydrated models.
-     *
-     * @param  Collection<int, AccessPoint>  $accessPoints
-     * @return array<int, array<string, true>> access point id => [moment => true]
-     */
-    private function alreadyRecorded(Collection $accessPoints, CarbonInterface $from, CarbonInterface $to): array
-    {
-        $recorded = [];
-
-        TelemetryReading::query()
-            ->toBase()
-            ->select(['network_device_id', 'recorded_at'])
-            ->whereIn('network_device_id', $accessPoints->pluck('id'))
-            ->whereBetween('recorded_at', [$from, $to])
-            ->orderBy('network_device_id')
-            ->orderBy('recorded_at')
-            ->chunk(5000, function ($rows) use (&$recorded): void {
-                foreach ($rows as $row) {
-                    $recorded[(int) $row->network_device_id][(string) $row->recorded_at] = true;
-                }
-            });
-
-        return $recorded;
     }
 }

@@ -9,17 +9,17 @@ use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Alarm;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\ReadingData;
-use App\Services\Telemetry\TelemetrySource;
+use App\Services\Telemetry\SimulatedReadings;
 use App\Support\CampusClock;
-use Illuminate\Database\Eloquent\Builder;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
@@ -203,28 +203,15 @@ class AlarmTest extends TestCase
 
         AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
 
-        // A driver whose access point does not answer. Until 2026-09-04 this
+        // A simulator whose access point does not answer. Until 2026-09-04 this
         // test forced "offline" with a stale last_seen_at instead, which only
         // worked because classify() had a bug: it marked a reachable reading
         // offline after any pause in collection.
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        $this->app->instance(SimulatedReadings::class, new class extends SimulatedReadings
         {
-            public function sourceLabel(): string
+            public function reading(NetworkDevice $ap, CarbonInterface $at): ReadingData
             {
-                return 'simulated';
-            }
-
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable();
-            }
-
-            /** @return Collection<int, ReadingData> */
-            public function collect(): Collection
-            {
-                return $this->pollable()->get()
-                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+                return ReadingData::unreachable($ap, $at, self::SOURCE);
             }
         });
 

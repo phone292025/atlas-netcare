@@ -7,19 +7,17 @@ use App\Enums\NetworkStatus;
 use App\Enums\SimulationScenario;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\Alarm;
 use App\Models\AuditLog;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Telemetry\NetworkMonitorService;
-use App\Services\Telemetry\SimulatedTelemetrySource;
-use App\Services\Telemetry\TelemetrySource;
+use App\Services\Telemetry\SimulatedReadings;
 use App\Support\CampusClock;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 /**
@@ -57,7 +55,7 @@ class NetworkMonitorTest extends TestCase
      */
     private function travelToAWindowWhereItAnswers(AccessPoint $ap): void
     {
-        $source = app(SimulatedTelemetrySource::class);
+        $source = app(SimulatedReadings::class);
         $at = Carbon::parse('2026-09-16 02:00:00'); // on a window boundary
 
         for ($i = 0; $i < 30; $i++, $at = $at->copy()->addMinutes(20)) {
@@ -71,26 +69,10 @@ class NetworkMonitorTest extends TestCase
         $this->fail("{$ap->code} was in an outage for ten hours straight; the simulator is broken.");
     }
 
-    private function driverThatIsNotTheSimulator(): void
+    /** An access point a real probe agent measures, not the simulator. */
+    private function onARealNetwork(): AccessPoint
     {
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
-        {
-            public function sourceLabel(): string
-            {
-                return 'live';
-            }
-
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable();
-            }
-
-            public function collect(): Collection
-            {
-                return collect();
-            }
-        });
+        return AccessPoint::factory()->create(['agent_id' => Agent::factory()->create()->id]);
     }
 
     // --- The page -----------------------------------------------------------
@@ -125,6 +107,8 @@ class NetworkMonitorTest extends TestCase
 
     public function test_engineers_and_administrators_get_the_controls(): void
     {
+        AccessPoint::factory()->create();
+
         foreach (['engineer.monitor.index' => UserRole::Engineer, 'admin.monitor.index' => UserRole::Admin] as $route => $role) {
             $this->actingAs($this->userWith($role))
                 ->get(route($route))
@@ -135,9 +119,9 @@ class NetworkMonitorTest extends TestCase
         }
     }
 
-    public function test_the_controls_are_hidden_when_the_driver_is_not_the_simulator(): void
+    public function test_the_controls_are_hidden_when_the_simulator_watches_nothing(): void
     {
-        $this->driverThatIsNotTheSimulator();
+        $this->onARealNetwork();
 
         $this->actingAs($this->userWith(UserRole::Engineer))
             ->get(route('engineer.monitor.index'))
@@ -327,8 +311,7 @@ class NetworkMonitorTest extends TestCase
 
     public function test_a_sample_is_refused_against_a_real_network(): void
     {
-        $this->driverThatIsNotTheSimulator();
-        AccessPoint::factory()->create();
+        $this->onARealNetwork();
 
         $this->actingAs($this->userWith(UserRole::Admin))
             ->post(route('monitor.sample'))
@@ -474,14 +457,49 @@ class NetworkMonitorTest extends TestCase
 
     public function test_a_scenario_is_refused_against_a_real_network(): void
     {
-        $this->driverThatIsNotTheSimulator();
-        $ap = AccessPoint::factory()->create();
+        $ap = $this->onARealNetwork();
 
         $this->actingAs($this->userWith(UserRole::Admin))
             ->post(route('monitor.simulate'), ['scenario' => 'outage', 'access_point_id' => $ap->id])
             ->assertSessionHas('error');
 
         $this->assertNull($ap->fresh()->simulation_scenario);
+    }
+
+    public function test_beside_simulated_ones_a_real_device_still_cannot_be_given_a_fault(): void
+    {
+        // One installation can have both while a real network is brought in.
+        // The controls are there for the simulated devices, and only those.
+        $simulated = AccessPoint::factory()->create();
+        $real = $this->onARealNetwork();
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->get(route('engineer.monitor.index'))
+            ->assertViewHas('targets', [$simulated->id]);
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->post(route('monitor.simulate'), ['scenario' => 'outage', 'access_point_id' => $real->id])
+            ->assertSessionHas('error');
+
+        $this->actingAs($this->userWith(UserRole::Engineer))
+            ->post(route('monitor.simulate'), ['scenario' => 'congestion']);
+
+        $this->assertNull($real->fresh()->simulation_scenario);
+        $this->assertSame(1, AccessPoint::query()->where('simulation_scenario', 'congestion')->count());
+    }
+
+    public function test_the_badge_says_where_the_numbers_come_from(): void
+    {
+        $route = route('engineer.monitor.index');
+        $engineer = $this->userWith(UserRole::Engineer);
+
+        $this->actingAs($engineer)->get($route)->assertSee('Live feed');
+
+        AccessPoint::factory()->create();
+        $this->actingAs($engineer)->get($route)->assertSee('Simulated feed');
+
+        $this->onARealNetwork();
+        $this->actingAs($engineer)->get($route)->assertSee('Simulated and live feed');
     }
 
     public function test_who_ran_a_scenario_is_in_the_audit_log(): void
@@ -510,7 +528,7 @@ class NetworkMonitorTest extends TestCase
          * utilisation column printed as "-1%".
          */
         $ap = AccessPoint::factory()->create(['client_capacity' => 80]);
-        $source = app(SimulatedTelemetrySource::class);
+        $source = app(SimulatedReadings::class);
         $night = CampusClock::now()->next('Sunday')->setTime(3, 0)->utc();
 
         $lowest = collect(range(0, 199))
@@ -545,7 +563,7 @@ class NetworkMonitorTest extends TestCase
 
         $ap->forceFill(['simulation_scenario' => SimulationScenario::Outage, 'simulation_started_at' => now()])->save();
 
-        $source = app(SimulatedTelemetrySource::class);
+        $source = app(SimulatedReadings::class);
 
         $this->assertFalse(
             $source->reading($ap, now()->subMinutes(5))->unreachable,

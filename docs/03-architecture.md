@@ -8,7 +8,7 @@
 
 **A modular monolith on standard Laravel MVC, with a thin service layer and exactly one abstraction.**
 
-Seven students over eight weeks need an architecture each of them can explain under questioning. That rules out anything clever. Eloquent is already a data-access layer, so there are no repositories. The single genuine abstraction is `TelemetrySource`, because access point telemetry is the only data that comes from outside the system.
+Seven students over eight weeks need an architecture each of them can explain under questioning. That rules out anything clever. Eloquent is already a data-access layer, so there are no repositories. The single genuine abstraction is the agent, because telemetry is the only data that comes from outside the system: every reading comes from an agent watching the device, either a probe agent on a real network or the simulator inside Atlas, and both take the same path in (ADR-0010).
 
 ## Request lifecycle
 
@@ -125,7 +125,7 @@ app/
 │   └── AuditObserver.php                 ← NEW: writes audit_logs
 ├── Policies/                             per-record authorisation
 ├── Providers/
-│   └── AppServiceProvider.php            binds TelemetrySource
+│   └── AppServiceProvider.php            audited models, ingest rate limits
 ├── Support/                              ← NEW: shared, framework-free helpers
 │   ├── Tone.php                          THE tone → Tailwind mapping. One
 │   │                                     method per surface. Never write a
@@ -136,14 +136,14 @@ app/
 │                                         <x-form.field> and its three controls
 └── Services/                             ← NEW: all business logic
     ├── Telemetry/
-    │   ├── TelemetrySource.php           interface
-    │   ├── SimulatedTelemetrySource.php
-    │   ├── SnmpTelemetrySource.php       stub until real access exists
+    │   ├── Simulator.php                 the simulator's virtual agent: one round of readings
+    │   ├── SimulatedReadings.php         the model the simulator's numbers come from
+    │   ├── ReadingIngest.php             one batch from a probe agent
     │   ├── ReadingData.php               simple DTO
     │   ├── TelemetryService.php
     │   ├── TelemetryCollector.php        one collection round, with its tickets and alarms
     │   ├── NetworkMonitorService.php     the Network monitor snapshot
-    │   └── SimulationService.php         take a sample, force a scenario (simulated driver only)
+    │   └── SimulationService.php         take a sample, force a scenario (simulated devices only)
     ├── Maintenance/
     │   ├── InspectionService.php         start, save answers, derive the outcome
     │   └── ChecklistService.php          template versioning and activation
@@ -262,7 +262,6 @@ Route::middleware(['auth'])->group(function () {
 
 ```php
 return [
-    'telemetry_driver' => env('ATLAS_TELEMETRY_DRIVER', 'simulated'), // simulated | snmp
     'demo_mode' => (bool) env('ATLAS_DEMO_MODE', true),
     'poll_interval' => (int) env('ATLAS_POLL_INTERVAL', 20),          // seconds
 

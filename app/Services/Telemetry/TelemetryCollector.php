@@ -17,10 +17,11 @@ use Illuminate\Support\Collection;
 /**
  * One collection round, and everything the system does about what it finds.
  *
- * Fill any gap since the last round, take a reading from every access point,
- * sweep the silent ones, then act on each status change. The scheduled command
- * and the Network monitor's "Generate sample" button both run this, so both
- * raise the same tickets and alerts.
+ * Fill any gap since the last round, take the simulator's readings for the
+ * devices it watches, sweep the silent ones, then act on each status change.
+ * The scheduled command and the Network monitor's "Generate sample" button
+ * both run this, so both raise the same tickets and alerts. Real agents send
+ * their readings to the ingest API instead, and come to react() from there.
  *
  * @see App\Console\Commands\CollectTelemetry
  * @see docs/modules/M5-telemetry-and-dashboard.md
@@ -32,6 +33,7 @@ class TelemetryCollector
         private readonly TicketService $tickets,
         private readonly AlarmService $alarms,
         private readonly TelemetryBackfill $backfill,
+        private readonly Simulator $simulator,
     ) {}
 
     /**
@@ -49,17 +51,17 @@ class TelemetryCollector
          * The scheduler was off. Without this the charts came back to a single
          * point and an empty day, and the only way out was a backfill by hand.
          * Before the live reading, so classification sees the filled history.
-         * Simulated driver only: silence from real kit is a fact.
+         * Simulated devices only: silence from real kit is a fact.
          */
         if ($gap = $this->backfill->fillGap()) {
             $report('info', 'Filled the gap since '.$gap['from']->campus()->format('j M, H:i')
                 .' with '.number_format($gap['written']).' simulated readings.');
         }
 
-        // Readings that arrived, plus access points that sent nothing. The
-        // sweep runs even when collection returned nothing at all, so a
-        // driver failing wholesale does not leave everything looking healthy.
-        $transitions = $this->telemetry->collectAndStore()
+        // The simulator's readings, plus devices nobody heard from. The sweep
+        // covers every agent's devices, not only the simulator's: an agent
+        // still sending heartbeats can stop sending one device's readings.
+        $transitions = $this->simulator->round()->transitions
             ->concat($this->telemetry->markStaleOffline());
 
         $this->react($transitions, $report);

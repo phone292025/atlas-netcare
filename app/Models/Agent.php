@@ -56,6 +56,25 @@ class Agent extends Model
     }
 
     /**
+     * The simulator's virtual agent (ADR-0010): it watches the demonstration
+     * devices and sends their readings from inside Atlas. It has no token, so
+     * nothing outside can speak for it. Made on first use.
+     */
+    public static function simulator(): self
+    {
+        $agent = self::query()->where('is_virtual', true)->first();
+
+        if ($agent !== null) {
+            return $agent;
+        }
+
+        $agent = new self(['name' => 'Simulator']);
+        $agent->forceFill(['is_virtual' => true])->save();
+
+        return $agent;
+    }
+
+    /**
      * Every agent still in use, for a "Watched by" select.
      *
      * @return array<int, string>

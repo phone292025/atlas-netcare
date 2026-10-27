@@ -18,9 +18,9 @@ use Illuminate\Support\Collection;
 
 /**
  * The Network monitor (FR-312 to FR-314): every access point on one screen,
- * campus activity over the last day, and — for engineers and administrators on
- * a simulated installation — the controls to take a sample or force a
- * scenario.
+ * campus activity over the last day, and — for engineers and administrators,
+ * while the simulator watches devices — the controls to take a sample or force
+ * a scenario.
  *
  * One page for all three roles. It is reached through three role-prefixed
  * routes only because the sidebar's navigation names must carry the role
@@ -40,12 +40,14 @@ class NetworkMonitorController extends Controller
     public function index(Request $request): View
     {
         $data = $this->monitor->snapshot();
+        $canSimulate = $this->canSimulate($request->user());
 
         return view('monitor.index', [
             'data' => $data,
             'pollInterval' => (int) config('atlas.poll_interval'),
-            'simulated' => $this->simulation->available(),
-            'canSimulate' => $this->canSimulate($request->user()),
+            'feed' => $this->monitor->feed(),
+            'canSimulate' => $canSimulate,
+            'targets' => $canSimulate ? $this->simulation->targets() : [],
             'scenarios' => SimulationScenario::cases(),
             // The filter lists only locations that have an access point, taken
             // from the rows already loaded rather than a second query.

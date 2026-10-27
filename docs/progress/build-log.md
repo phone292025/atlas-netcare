@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-10-28
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -10,13 +10,13 @@
 
 | | |
 |---|---|
-| **Phase** | 2.0, Phase 0 done: the same features as 1.0 on PostgreSQL with TimescaleDB, in Docker. Phase 1 next. See `docs/roadmap.md` |
-| **Last session** | 2026-10-27 (the CI stack job fixed, browser tests, the docs moved to Docker and PostgreSQL) |
+| **Phase** | 2.0, Phase 0 done, Phase 1 up to task 1.5: network devices, probe agents and the ingest API, readings in a TimescaleDB hypertable, and the simulator as a virtual agent. See `docs/roadmap.md` |
+| **Last session** | 2026-10-28 (roadmap tasks 1.1 to 1.5) |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **1,064 passing (1 skipped)** on SQLite, and the same on PostgreSQL with TimescaleDB. Zero deprecations. The skip is `SchemaIntegrityTest`, which checks a MariaDB trap. **9 browser tests** pass against the Docker stack (`npm run test:browser`). The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. The README quotes it too, because the README has to stand on its own |
+| **Tests** | **1,155**: 1,151 passing and 4 skipped on SQLite, 1,153 passing and 2 skipped on PostgreSQL with TimescaleDB. Zero deprecations. `SchemaIntegrityTest` checks a MariaDB trap and skips on both; three TimescaleDB tests skip on SQLite, and one test of the SQLite path skips on PostgreSQL. **9 browser tests** pass against the Docker stack (`npm run test:browser`). The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. The README quotes it too, because the README has to stand on its own |
 | **Mail** | **Working.** Gmail SMTP, app password in `.env`, confirmed arriving on a phone. Check it with `docker compose exec app php artisan atlas:mail-test` before any demonstration. |
 | **Environment** | Laravel 12.70.1 + Breeze · PostgreSQL 16 + TimescaleDB 2.31 · one Docker Compose stack: `app`, `worker`, `scheduler`, `db` |
-| **Next action** | Phase 1 of `docs/roadmap.md`, real telemetry: devices beyond access points, agents and the ingest API. |
+| **Next action** | Roadmap task 1.6, the agent heartbeat: a silent agent's devices read Unknown and the agent raises an alert. Then the Go agent (1.7). |
 | **CI** | GitHub Actions runs the suite on SQLite **and** PostgreSQL with TimescaleDB, Pint, a job that builds the image and starts the stack, and the browser tests. `.github/workflows/tests.yml`. |
 | **To see live data** | The stack's `scheduler` service collects every minute. Seeding fills the charts, and the scheduler's first round after a gap fills the silence. |
 

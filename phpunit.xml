@@ -21,17 +21,6 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
 
-        <!--
-            Pinned, or the suite inherits whatever is in .env. Setting
-            ATLAS_TELEMETRY_DRIVER=local there to watch a real network made the
-            test run shell out to `ping` for every collection: two tests went
-            from milliseconds to 42 seconds each and three more failed, because
-            the local driver polls nothing whose is_demo is true and every
-            factory-made access point is. A suite whose result depends on an
-            untracked file, or on whether the machine has a network, is not a
-            suite. Tests that want another driver bind it themselves.
-        -->
-        <env name="ATLAS_TELEMETRY_DRIVER" value="simulated"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

@@ -4,6 +4,7 @@ namespace App\Services\Telemetry;
 
 use App\Enums\NetworkStatus;
 use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Support\CampusClock;
 use App\Support\Tone;
@@ -37,6 +38,23 @@ class NetworkMonitorService
     private const BUCKET_CHARS = 15;
 
     public function __construct(private readonly TelemetryService $telemetry) {}
+
+    /**
+     * Where the numbers come from: `simulated`, `live` from probe agents on a
+     * real network, or `mixed` while one is being brought in beside the
+     * other.
+     */
+    public function feed(): string
+    {
+        $simulated = NetworkDevice::query()->simulated()->exists();
+        $live = NetworkDevice::query()->whereHas('agent', fn ($agent) => $agent->where('is_virtual', false))->exists();
+
+        return match (true) {
+            $simulated && $live => 'mixed',
+            $simulated => 'simulated',
+            default => 'live',
+        };
+    }
 
     /** @return array<string, mixed> */
     public function snapshot(): array

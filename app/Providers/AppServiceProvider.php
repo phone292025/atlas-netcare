@@ -13,9 +13,6 @@ use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\AuditObserver;
-use App\Services\Telemetry\SimulatedTelemetrySource;
-use App\Services\Telemetry\SnmpTelemetrySource;
-use App\Services\Telemetry\TelemetrySource;
 use App\Support\CampusClock;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -24,7 +21,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use InvalidArgumentException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,31 +48,6 @@ class AppServiceProvider extends ServiceProvider
         ChecklistTemplate::class,
         ShiftTemplate::class,
     ];
-
-    /**
-     * The one place the telemetry driver is chosen (ADR-0002). Everything
-     * downstream depends on the interface, so going live is this binding
-     * resolving differently.
-     *
-     * An unknown driver name throws rather than falling back to the simulator:
-     * a typo that silently showed invented data as real is the worst outcome.
-     *
-     * @see docs/decisions/ADR-0002-telemetry-source-driver.md
-     */
-    public function register(): void
-    {
-        $this->app->bind(TelemetrySource::class, function () {
-            $driver = config('atlas.telemetry_driver');
-
-            return match ($driver) {
-                'simulated' => new SimulatedTelemetrySource,
-                'snmp', 'live' => new SnmpTelemetrySource,
-                default => throw new InvalidArgumentException(
-                    "Unknown telemetry driver [{$driver}]. Set ATLAS_TELEMETRY_DRIVER to 'simulated' or 'snmp'."
-                ),
-            };
-        });
-    }
 
     public function boot(): void
     {

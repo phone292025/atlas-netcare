@@ -206,24 +206,24 @@ the same answer, it belongs here.
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it |
 | `Telemetry/AgentService.php` | Registering agents and the tokens they prove themselves with (ADR-0017) |
 | `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and |
-| `Telemetry/ReadingData.php` | One measurement, on its way from a driver into the database |
+| `Telemetry/ReadingData.php` | One measurement, on its way from an agent into the database |
 | `Telemetry/ReadingIngest.php` | One batch of readings from a probe agent (ADR-0017, roadmap task 1.3) |
-| `Telemetry/SimulatedTelemetrySource.php` | Telemetry invented, but invented from a model rather than rand() |
+| `Telemetry/SimulatedReadings.php` | Telemetry invented, but invented from a model rather than rand() |
 | `Telemetry/SimulationService.php` | The Network monitor's simulation controls: take a sample on demand, and force |
-| `Telemetry/SnmpTelemetrySource.php` | Real access points, over SNMP |
+| `Telemetry/Simulator.php` | Atlas's virtual agent: the simulator, sending readings from inside Atlas |
 | `Telemetry/StoredReadings.php` | What TelemetryService::record() did with a set of readings: which it stored, |
 | `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock: by `atlas:backfill-telemetry`, |
 | `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
-| `Telemetry/TelemetrySource.php` | Where access point telemetry comes from |
 | `Telemetry/TelemetryStorage.php` | The TimescaleDB jobs that look after telemetry (ADR-0011) |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle |
 <!-- /code-map -->
 
-`TelemetrySource` is the only abstraction in the project and it earns its
-place. `SimulatedTelemetrySource` invents readings; `SnmpTelemetrySource`
-would read real hardware. Swapping them is one line in `.env`, and no view,
-controller or model knows which one answered.
+Every reading comes from an agent, and that is the one abstraction in the
+project. `Simulator` is the virtual agent inside Atlas and asks
+`SimulatedReadings` for its numbers; probe agents send theirs through
+`ReadingIngest`. Both end in `TelemetryService::record()`, so no view,
+controller or model knows which agent answered.
 
 `RiskScoringService` is the module the whole project turns on. It combines
 weighted factors, drops any it cannot measure, and rescales the rest so a
@@ -289,7 +289,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `NetworkStatus.php` | Operational state of a network device: an access point, a switch, a router |
 | `RiskBand.php` | The band a predictive risk score falls into |
 | `ShiftStatus.php` | Where a rostered shift has got to |
-| `SimulationScenario.php` | A condition forced onto an access point by the simulated telemetry driver |
+| `SimulationScenario.php` | A condition forced onto an access point the simulator watches |
 | `TicketCategory.php` | What kind of fault a ticket describes. Used for filtering the queue and for |
 | `TicketPriority.php` | How urgent a ticket is. Drives the service level target |
 | `TicketStatus.php` | Lifecycle states of a workspace incident ticket |
@@ -356,11 +356,10 @@ Small, and more of the system passes through it than its size suggests.
 
 Three things happen here. `AUDITED` lists every model the audit observer
 watches, so adding a model to that array is how a table starts being tracked.
-The `TelemetrySource` binding reads `atlas.telemetry_driver` and throws on an
-unknown value rather than falling back, because a typo silently producing
-invented data on a system meant to show real readings is the worst outcome
-available. And `toMailUsing()` rewrites the password reset email, which is
-where the on screen reset link comes from on a machine with no mail account.
+`limitIngest()` sets the ingest API's rate limits, per address before the
+token is checked and per agent after. And `toMailUsing()` rewrites the
+password reset email, which is where the on screen reset link comes from on a
+machine with no mail account.
 
 ---
 
@@ -440,6 +439,7 @@ database that already ran it.
 | `2026_10_28_090003_derive_hourly_telemetry_from_readings.php` | Hourly summaries become something the database derives from raw readings |
 | `2026_10_28_100001_create_agents_table.php` | Probe agents, and which one watches each network device (ADR-0010, |
 | `2026_10_28_110001_add_agent_and_sequence_to_telemetry_readings.php` | What the ingest API needs to store a reading once and in its place |
+| `2026_10_28_120001_hand_existing_devices_to_the_simulator.php` | The simulator becomes an agent (ADR-0010, roadmap task 1.5), so the devices |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -724,7 +724,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Telemetry/NetworkMonitorTest.php` | The Network monitor (FR-312 to FR-314): the page for all three roles, the |
 | `Feature/Telemetry/ReadingStorageTest.php` | Where raw readings live (ADR-0011, roadmap task 1.4) |
 | `Feature/Telemetry/TelemetryClassificationTest.php` | M5, turning numbers into a health state (Q1) |
-| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the driver swap, the commands, and the screens |
+| `Feature/Telemetry/TelemetryPipelineTest.php` | M5, the simulator, the commands, and the screens |
 | `Feature/TicketDueTest.php` | <x-ticket-due>: when a ticket is due, in the words a queue is scanned by |
 | `Feature/Tickets/CrossRoleTicketWorkflowTest.php` | One fault, from the person who found it to the person who fixed it |
 | `Feature/Tickets/EngineerOverviewTest.php` | The engineer's dashboard: their own work, what nobody has picked up, and |

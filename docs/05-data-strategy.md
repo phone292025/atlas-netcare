@@ -3,7 +3,7 @@
 # Data Strategy
  — Mock, Real, or Both
 
-> **Last updated:** 2026-10-22 · **Decision:** [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
+> **Last updated:** 2026-10-28 · **Decision:** [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) (which superseded ADR-0002), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
 >
 > **Read this before writing any seeder, factory, or anything that produces data.**
 
@@ -15,58 +15,38 @@ Start by noticing what is *not* in question. Users, locations, lab PCs, checklis
 
 There is exactly **one** genuinely external data source in Atlas NetCare: **Wi-Fi access point telemetry**. That is the only place the mock-versus-real question actually arises.
 
-So we do not build an abstraction over everything. We build one, over the one thing that needs it.
+So we do not build an abstraction over everything. We build one, over the one thing that needs it: every reading comes from an agent.
 
 ## The strategy in one paragraph
 
-One database, one schema. Telemetry enters through a swappable driver chosen by config, so switching from a simulator to live SNMP is a `.env` change plus one new class. Everything else is seeded, split into reference data that always runs and demo data that only runs when demo mode is on. Demo records carry an `is_demo` flag and simulated readings carry `source = 'simulated'`, so a single command can remove all of it and leave real data untouched.
+One database, one schema. Every reading comes from an agent watching the device: a probe agent on a real network, or the simulator, a virtual agent inside Atlas. Both take the same path into the database, so moving a device from one to the other is a change to its **Watched by** field. Everything else is seeded, split into reference data that always runs and demo data that only runs when demo mode is on. Demo records carry an `is_demo` flag and simulated readings carry `source = 'simulated'`, so a single command can remove all of it and leave real data untouched.
 
 ---
 
-## Mechanism 1 — the telemetry driver swap
+## Mechanism 1 — every reading comes from an agent
 
-### The interface
+Each network device has an `agent_id`: the agent that watches it. An agent may report only its own devices.
+
+- **A probe agent** runs on a machine inside a real network and sends batches to `POST /api/v1/readings` with its token (ADR-0017). Its readings are stored with `source = 'live'`.
+- **The simulator** is a virtual agent: an `agents` row with `is_virtual = true` and no token, so nothing outside Atlas can speak for it. Each minute the scheduler's collection round asks `SimulatedReadings` for a reading per device it watches, and `Simulator::round()` hands them to `TelemetryService::record()`. Its readings are stored with `source = 'simulated'`.
 
 ```php
-// app/Services/Telemetry/TelemetrySource.php
-interface TelemetrySource
+// app/Services/Telemetry/Simulator.php: one round, every minute
+public function round(): StoredReadings
 {
-    /** @return Collection<ReadingData> one reading per active access point */
-    public function collect(): Collection;
+    $devices = $this->watched()->get();
+    $result = $this->telemetry->record($this->readingsAt($devices, now()));
+    // ...
 }
 ```
 
-### The binding — the swap lives here, and only here
+`TelemetryService::record()` is the one way in. The ingest API calls it too. It stores each reading under the unique key `(agent_id, sequence, recorded_at)`, classifies it, and moves the device's status only when the reading is newer than the one it has. The simulator numbers each reading from the second it was measured at and the device, so a backfill run twice stores nothing new, the same way a batch an agent sends twice is stored once.
 
-```php
-// app/Providers/AppServiceProvider.php
-$this->app->bind(TelemetrySource::class, fn () => match (config('atlas.telemetry_driver')) {
-    'snmp'  => new SnmpTelemetrySource(),
-    default => new SimulatedTelemetrySource(),
-});
-```
+**Nothing downstream knows which agent sent a reading.** The dashboard, the risk scorer and every Blade view read `telemetry_readings` and cannot tell the difference. That is the property we are buying.
 
-### The consumer — driver-agnostic
+### Moving a device to real data
 
-```php
-// app/Console/Commands/CollectTelemetry.php — runs every minute
-public function handle(TelemetrySource $source, TelemetryService $service): int
-{
-    $service->store($source->collect());
-    return self::SUCCESS;
-}
-```
-
-**Nothing downstream knows which driver ran.** The dashboard controller, the risk scorer and every Blade view read `telemetry_readings` and cannot tell the difference. That is the property we are buying.
-
-### Switching to real data
-
-```dotenv
-# .env
-ATLAS_TELEMETRY_DRIVER=snmp
-```
-
-Plus implementing `SnmpTelemetrySource::collect()`. No controller, service, view, migration or test changes.
+Register a probe agent under **Agents**, then set **Watched by** on the device. The simulator stops measuring it, and only what the agent measures is stored from then on. The simulation controls and the backfill refuse devices a real agent watches: they would put invented numbers in front of an engineer.
 
 ### Writing the simulator
 

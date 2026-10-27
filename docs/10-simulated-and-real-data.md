@@ -1,6 +1,6 @@
 # What Is Simulated, and What Would Make It Real
 
-> **Last updated:** 2026-09-26
+> **Last updated:** 2026-10-28
 >
 > Section 1 lists what the data stops the system from doing. Section 2 lists the numbers that are judgement rather than measurement. Section 4 answers "is any of this real?"
 >
@@ -22,11 +22,11 @@ That distinction matters because the two need different answers. Simulated telem
 
 **24,585 readings and 1,365 hourly rollups, every one tagged `source = 'simulated'`.**
 
-`SimulatedTelemetrySource` produces latency, packet loss, client counts and uptime from a baseline popularity per access point, multiplied by a time-of-day curve and a weekday factor, with bounded jitter on top. It is deliberately not `rand()`: ADR-0002 argued that random noise uncorrelated with anything would make every chart meaningless and every risk trend an artefact.
+`SimulatedReadings` produces latency, packet loss, client counts and uptime from a baseline popularity per access point, multiplied by a time-of-day curve and a weekday factor, with bounded jitter on top. It is deliberately not `rand()`: ADR-0002 argued that random noise uncorrelated with anything would make every chart meaningless and every risk trend an artefact.
 
 **Why it is simulated.** Reading real access points needs SNMP access to campus network equipment, which is a permission granted by APU IT to a student project. We do not control that decision and may never receive it. The system was built so the headline feature does not depend on it.
 
-**What replacing it costs.** One class. `SnmpTelemetrySource` is a deliberate stub that throws with instructions; implement `collect()`, set `ATLAS_TELEMETRY_DRIVER=snmp`, and nothing else changes — no controller, no view, no migration, no test. The interface is the whole point of ADR-0002, and being able to say "going live is one class" is a stronger answer than having live data would have been.
+**What replacing it costs.** No code. The simulator is a virtual agent (ADR-0010): it watches the demo devices through `network_devices.agent_id` and sends their readings through `TelemetryService::record()`, the same way in as a probe agent's batches through the ingest API. Going live is registering a probe agent on a machine inside the network and setting **Watched by** on each device it should measure. Nothing in a controller, view or migration knows which agent sent a reading.
 
 ### 1.2 Alarms reach the notification bell and nothing else
 
@@ -126,7 +126,7 @@ Neither depends on a permission anybody has to grant.
 
 > The locations are real and match the proposal's scope. The accounts are real people on real addresses. The tickets, inspections and shifts are genuine records created by using the system — there are just few of them.
 >
-> Access point telemetry is simulated, deliberately, because reading live campus equipment needs a permission we do not control. It sits behind a `TelemetrySource` interface with a second implementation already stubbed, so going live is one class and a configuration change — no controllers, views, migrations or tests.
+> Access point telemetry is simulated, deliberately, because reading live campus equipment needs a permission we do not control. The simulator is an agent like the real ones: its readings take the same path into the database as a probe agent's, so going live is installing a probe agent and pointing devices at it, with no change to controllers, views, migrations or tests.
 >
 > The asset inventory is demonstration data standing in for IT's register. The thresholds and risk weights are our engineering judgement rather than measured values.
 

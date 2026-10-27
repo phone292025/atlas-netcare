@@ -427,7 +427,7 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 Added 2026-09-19 (`2026_09_19_090001`) for the Network monitor's simulation controls (FR-314). A string cast to `SimulationScenario` — `congestion`, `outage` or `feed_interruption` — and NULL for normal behaviour. `simulation_started_at` is `dateTime`, per the trap below.
 
-**It is not a status.** Only `SimulatedTelemetrySource` reads it, and only for moments at or after `simulation_started_at`, so the backfill never rewrites history as congested. `status` still comes from the classifier. Under a live driver the column is ignored and the controls that set it are refused. Both columns are written only by `SimulationService` with `forceFill()`, never from request input, and every change goes through the audit observer with the user who made it.
+**It is not a status.** Only `SimulatedReadings` reads it, and only for moments at or after `simulation_started_at`, so the backfill never rewrites history as congested. `status` still comes from the classifier. On a device a real agent watches the column is ignored, and the controls that set it are refused. Both columns are written only by `SimulationService` with `forceFill()`, never from request input, and every change goes through the audit observer with the user who made it.
 
 ### `telemetry_hourly` is derived from the readings
 

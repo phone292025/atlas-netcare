@@ -7,7 +7,7 @@ use App\Enums\Contracts\HasLabel;
 use App\Enums\Contracts\HasTone;
 
 /**
- * A condition forced onto an access point by the simulated telemetry driver.
+ * A condition forced onto an access point the simulator watches.
  *
  * Demonstration tooling, not a status. The status is still whatever
  * TelemetryService concludes from the readings the scenario produces — a
@@ -16,8 +16,8 @@ use App\Enums\Contracts\HasTone;
  * `access_points.simulation_scenario`; NULL means normal behaviour, which is
  * what "Recovery" sets it back to.
  *
- * Only the simulated driver reads it. Under a live driver the column is
- * ignored and the controls that set it are refused.
+ * Only SimulatedReadings reads it. On a device a real agent watches the
+ * column is ignored, and the controls that set it are refused.
  *
  * @see App\Services\Telemetry\SimulationService
  * @see docs/modules/M5-telemetry-and-dashboard.md

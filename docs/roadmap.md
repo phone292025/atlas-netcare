@@ -57,7 +57,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 1.2 | Agents: registration, one token each, and the devices each agent watches. Done |
 | 1.3 | Ingest API: batches of readings with a per-agent sequence number, stored under a unique key. Each reading keeps the agent's time and the time Atlas received it, and drifting agent clocks are flagged. Rate limits. Done: `POST /api/v1/readings`, reviewed against ADR-0017's threats |
 | 1.4 | Readings as a TimescaleDB hypertable. Continuous aggregates replace `telemetry_hourly`. Compression after 7 days, retention by dropping chunks. Done, before 1.2: the ingest API writes into this table |
-| 1.5 | The simulator as a virtual agent on the ingest path. The pull driver and the SNMP stub are removed, and ADR-0002 is superseded |
+| 1.5 | The simulator as a virtual agent on the ingest path. The pull driver and the SNMP stub are removed, and ADR-0002 is superseded. Done: `Simulator`, and a migration hands existing devices to it |
 | 1.6 | Agent heartbeat: when an agent goes silent, its devices read Unknown and the agent raises an alert |
 | 1.7 | Go agent, first version: config file, ping, HTTP and SNMP v2c checks run concurrently, a SQLite buffer for when Atlas is unreachable, batch sends with retries, and release builds for Windows, Linux and Raspberry Pi |
 | 1.8 | Run it against a home network |

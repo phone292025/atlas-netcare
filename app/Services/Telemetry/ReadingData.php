@@ -2,22 +2,22 @@
 
 namespace App\Services\Telemetry;
 
-use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use Carbon\CarbonInterface;
 
 /**
- * One measurement, on its way from a driver into the database.
+ * One measurement, on its way from an agent into the database.
  *
- * A plain readonly object rather than an array or an Eloquent model, so a
- * driver cannot quietly hand back a differently-shaped payload and so nothing
- * touches the database until TelemetryService decides to store it.
+ * A plain readonly object rather than an array or an Eloquent model, so the
+ * simulator and the ingest API hand over the same shape, and nothing touches
+ * the database until TelemetryService decides to store it.
  *
- * `status` is deliberately absent. A driver reports what it MEASURED;
+ * `status` is deliberately absent. An agent reports what it MEASURED;
  * classifying that into online / degraded / offline is TelemetryService's job
- * and needs the previous readings, which a driver does not have. A driver that
+ * and needs the previous readings, which an agent does not have. An agent that
  * could set status would let the simulator decide its own health.
  *
- * @see docs/decisions/ADR-0002-telemetry-source-driver.md
+ * @see docs/decisions/ADR-0010-probe-agents-push-readings.md
  */
 final readonly class ReadingData
 {
@@ -47,8 +47,8 @@ final readonly class ReadingData
         public ?CarbonInterface $receivedAt = null,
     ) {}
 
-    /** An access point that did not respond. */
-    public static function unreachable(AccessPoint $ap, CarbonInterface $at, string $source): self
+    /** A device that did not respond. */
+    public static function unreachable(NetworkDevice $ap, CarbonInterface $at, string $source): self
     {
         return new self(
             deviceId: $ap->id,

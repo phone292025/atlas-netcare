@@ -13,6 +13,7 @@ use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
@@ -20,14 +21,13 @@ use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Shifts\ShiftService;
 use App\Services\Telemetry\ReadingData;
-use App\Services\Telemetry\TelemetrySource;
+use App\Services\Telemetry\SimulatedReadings;
 use App\Services\Tickets\TicketService;
 use App\Support\CampusClock;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -339,24 +339,11 @@ class CampusClockTest extends TestCase
             'last_seen_at' => Carbon::parse('2026-09-19 04:00', 'UTC'),
         ]);
 
-        $this->app->instance(TelemetrySource::class, new class implements TelemetrySource
+        $this->app->instance(SimulatedReadings::class, new class extends SimulatedReadings
         {
-            public function sourceLabel(): string
+            public function reading(NetworkDevice $ap, CarbonInterface $at): ReadingData
             {
-                return 'simulated';
-            }
-
-            /** @return Builder<AccessPoint> */
-            public function pollable(): Builder
-            {
-                return AccessPoint::query()->collectable();
-            }
-
-            /** @return Collection<int, ReadingData> */
-            public function collect(): Collection
-            {
-                return $this->pollable()->get()
-                    ->map(fn (AccessPoint $ap) => ReadingData::unreachable($ap, now(), 'simulated'));
+                return ReadingData::unreachable($ap, $at, self::SOURCE);
             }
         });
 

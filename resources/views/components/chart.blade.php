@@ -17,9 +17,9 @@
                  label="Mean latency over 24 hours" />
 
     THIS COMPONENT NEVER QUERIES. It receives `data` already shaped. It cannot
-    tell whether the numbers came from the simulator or from live access
-    points — the property that lets ATLAS_TELEMETRY_DRIVER change without a
-    single view being touched.
+    tell whether the numbers came from the simulator or from a probe agent
+    on a real network, so moving a device from one to the other touches no
+    view.
 
     HEIGHT IS EXPLICIT. resources/js/app.js sets maintainAspectRatio = false so
     charts fill their container, which means a container with no height

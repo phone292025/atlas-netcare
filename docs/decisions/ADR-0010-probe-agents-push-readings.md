@@ -28,7 +28,7 @@ Readings are measured by **probe agents** and **pushed** to Atlas.
 
 The agent itself is a separate program in its own folder, written in Go. See [ADR-0013](ADR-0013-probe-agent-in-go.md).
 
-ADR-0002 stays in force until Phase 1 replaces the pull driver. Its status changes to `Superseded by ADR-0010` in the same change.
+ADR-0002 stays in force until Phase 1 replaces the pull driver. Its status changes to `Superseded by ADR-0010` in the same change. That change was roadmap task 1.5, on 2026-10-28.
 
 ## Consequences
 
