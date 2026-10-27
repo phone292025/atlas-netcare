@@ -149,18 +149,19 @@ Agents send readings from inside a network to `POST /api/v1/readings`. Register 
 
 ## 7. Optional: password reset by email
 
-FR-102 sends a reset link by email. Without mail it still works, and says plainly that nothing was sent. `.env.example` sends mail to the log.
+FR-102 sends a reset link by email. `.env.example` sets `MAIL_MAILER=log`, so nothing is sent: the message goes into the app's log, the reset screen shows the link on a local install, and `docker compose exec app php artisan atlas:reset-link` prints the newest one.
 
-1. The Google account needs **2-Step Verification** on. Then **Security → App passwords**, create one, and copy the sixteen characters.
-2. In `.env`, set `MAIL_MAILER=smtp`, set `ATLAS_MAIL_ACCOUNT` to the Gmail name **without** `@gmail.com`, and paste the app password into `MAIL_PASSWORD`, **without the spaces Google displays**.
-3. Restart the three app services so they read the new settings, and check them:
+To send real mail:
+
+1. In `.env`, set `MAIL_MAILER=smtp` and your mail provider's `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` and `MAIL_FROM_ADDRESS`.
+2. Restart the three app services so they read the new settings, and check them:
 
 ```bash
 docker compose restart app worker scheduler
 docker compose exec app php artisan atlas:mail-test
 ```
 
-The app password is a key to that Google account. `.env` is ignored by git and must stay so.
+The mail password stays in `.env`, which git ignores.
 
 ---
 

@@ -76,7 +76,7 @@ class MailTestCommandTest extends TestCase
             ));
 
         $this->artisan('atlas:mail-test', ['to' => 'swan@example.com'])
-            ->expectsOutputToContain('APP password')
+            ->expectsOutputToContain('rejected login')
             ->assertExitCode(1);
     }
 

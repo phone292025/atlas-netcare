@@ -32,7 +32,7 @@ flowchart LR
     SYSTEM(("Atlas NetCare<br/>Campus Network Monitoring<br/>and IT Operations Portal"))
 
     APS["Campus Access Points<br/><i>SNMP, stubbed</i>"]
-    MAIL["Gmail SMTP"]
+    MAIL["Mail server<br/><i>optional</i>"]
     PHONE["Phone Calendar"]
 
     ASSISTANT -->|"inspections, faults,<br/>check-in"| SYSTEM

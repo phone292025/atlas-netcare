@@ -8,9 +8,9 @@ use Illuminate\Console\Command;
  * Print the most recent password reset link out of the log.
  *
  * FR-102 is only demonstrable if somebody can follow the link. Real delivery
- * needs a Google app password, which is a key to a personal Google account and
- * can never live in the repository, so nobody cloning this project can send
- * mail without setting one up themselves.
+ * needs a mail account, whose password can never live in the repository, so
+ * nobody cloning this project can send mail without setting one up
+ * themselves.
  *
  * With MAIL_MAILER=log, which is what .env.example ships, Laravel writes the
  * whole message into storage/logs/laravel.log instead of sending it. The link
@@ -19,7 +19,7 @@ use Illuminate\Console\Command;
  * quietly ignores.
  *
  * This finds it. The reset flow can then be demonstrated end to end on a
- * fresh clone with no mail account, no app password and no downloads.
+ * fresh clone with no mail account and no downloads.
  *
  *   php artisan atlas:reset-link
  *

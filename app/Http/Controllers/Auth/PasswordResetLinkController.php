@@ -45,9 +45,9 @@ class PasswordResetLinkController extends Controller
          * Password::sendResetLink() sends the notification inline, so a
          * refused SMTP login throws right here and Laravel's handler turns
          * that into a 500 with a stack trace on the password screen. The most
-         * likely cause by far is an app password that was never pasted, was
-         * pasted with Google's display spaces still in it, or has been
-         * revoked — none of which is worth a stack trace.
+         * likely cause by far is a mail password that was never set, was
+         * pasted wrong, or has been revoked — none of which is worth a stack
+         * trace.
          *
          * The token row has already been written at this point. That is
          * harmless: it goes unused and expires on config('auth.passwords').

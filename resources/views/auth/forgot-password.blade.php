@@ -11,7 +11,7 @@
 
     {{-- Say what will actually happen when this machine cannot send mail:
          with MAIL_MAILER=log the link lands in storage/logs/laravel.log, and
-         with smtp but no app password the send fails. Only while debug is on,
+         with smtp but no password the send fails. Only while debug is on,
          so it never appears on a configured deployment.
 
          @see docs/02-open-questions.md Q11 --}}
@@ -28,7 +28,7 @@
                 </span>
             @else
                 <code class="font-mono text-xs">MAIL_PASSWORD</code> is empty, so
-                the send will fail. Paste a Google app password into
+                the send will fail. Set your mail provider's password in
                 <code class="font-mono text-xs">.env</code>, then check it with
                 <code class="font-mono text-xs">php artisan atlas:mail-test</code>.
             @endif
@@ -37,10 +37,10 @@
 
     {{-- The link itself, when this machine cannot send mail.
 
-         Delivery needs a Google app password, which is a key to a personal
-         account and can never be committed, so nobody cloning this project can
-         send email. Without this a reviewer reaches a dead end and FR-102 looks
-         broken when it is only undelivered.
+         Delivery needs a mail account, whose password can never be
+         committed, so a fresh clone can't send email. Without this a reviewer
+         reaches a dead end and FR-102 looks broken when it is only
+         undelivered.
 
          The token behind it is real, single-use and still expires. Only where
          the link appears changes. AppServiceProvider flashes it, and only when

@@ -214,35 +214,35 @@ docker compose exec app php artisan atlas:create-admin --restore --email=you@exa
 
 For a forgotten password, use "Forgot password" on the sign-in page.
 
-### If you want the password reset to actually deliver
-
-FR-102 sends a reset link by email, and `@atlas.local` can never receive one. To demonstrate it, point the four addresses at a real mailbox instead. Gmail ignores everything after a `+`, so one account covers all four and nobody has to share a personal address:
-
-```
-ATLAS_MAIL_ACCOUNT=your.gmail.name
-ATLAS_ADMIN_EMAIL="${ATLAS_MAIL_ACCOUNT}+admin@gmail.com"
-ATLAS_DEMO_ENGINEER_EMAIL="${ATLAS_MAIL_ACCOUNT}+engineer@gmail.com"
-```
-
-The example file ships the `@atlas.local` versions on purpose. Deriving the login from a Gmail account meant anybody cloning this saw `your.gmail.name+admin@gmail.com` on the sign-in screen, which works and reads like a mistake.
-
 ### Email
 
-FR-102 lets a user request a password reset link **by email**, which is only a real feature if a message arrives. Set it up once:
-
-1. Your Google account needs **2-Step Verification** on. Then **Google Account → Security → App passwords**, create one named `Atlas NetCare`, and copy the 16 characters.
-2. In `.env`, set `ATLAS_MAIL_ACCOUNT` to your Gmail account name **without** `@gmail.com`, and paste the app password into `MAIL_PASSWORD`. **Remove the spaces Google displays it with.**
-3. Check it:
+Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead, and on your own machine the reset screen shows the link as well. To print the newest link:
 
 ```bash
-php artisan atlas:mail-test
+docker compose exec app php artisan atlas:reset-link
 ```
 
-That sends one real message and, if the server refuses it, reads the error and tells you which of the usual three causes it is. A green test suite proves nothing here — the suite fakes the mailer, so this command is the only thing that can tell you mail works.
+To send real mail, put your mail provider's SMTP settings in `.env`:
 
-**The app password is a key to your Google account.** `.env` is gitignored and must stay that way; `.env.example` has the shape but no value. If one is ever committed, revoke it on that same App passwords screen — rewriting git history does not help, because the push already happened.
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=you@example.com
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM_ADDRESS=you@example.com
+```
 
-Leaving `MAIL_PASSWORD` empty is supported. The reset screen detects it and says so, rather than claiming to have sent something. Nobody has to configure mail to work on the rest of the system.
+Then restart the app so it reads them, and send a test message:
+
+```bash
+docker compose restart app worker scheduler
+docker compose exec app php artisan atlas:mail-test
+```
+
+That sends one real message and, if the server refuses it, says which of the usual causes it probably is. The test suite fakes the mailer, so this command is the only check that mail works. A reset link goes to the account's own address, so an account needs a real address to receive one.
+
+**Keep the mail password in `.env` only.** `.env` is ignored by git; `.env.example` is not.
 
 ### Probe agents
 

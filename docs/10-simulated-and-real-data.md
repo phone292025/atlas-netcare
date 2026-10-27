@@ -32,7 +32,7 @@ That distinction matters because the two need different answers. Simulated telem
 
 In-app only. The one exception is shift reminders, which leave the system as a calendar file and are then handled by the phone's own alarm, working with the app closed. Unplanned events — an access point dropping — reach the bell only.
 
-Email is no longer a limitation: FR-102 sends password resets through Gmail SMTP and was confirmed arriving on a phone on 2026-08-29. Alarms *could* be emailed now. That is a decision nobody has taken, not a thing that cannot be done.
+Email is no longer a limitation: FR-102 sends password resets through whichever SMTP server `.env` names, and was confirmed arriving on a phone on 2026-08-29. Out of the box mail goes to the log. Alarms *could* be emailed. That is a decision nobody has taken, not a thing that cannot be done.
 
 ### 1.3 Operational history is thin, because it is genuine
 

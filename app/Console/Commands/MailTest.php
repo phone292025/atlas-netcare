@@ -11,15 +11,15 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
  *
  * The suite cannot: it fakes the mailer.
  *
- * The usual failure is MAIL_PASSWORD: a Google app password never pasted,
- * pasted with Google's display spaces, or since revoked. Laravel reports all
- * three as one line; this reads the exception and says which it probably is.
+ * The usual failure is MAIL_PASSWORD: never set, pasted with stray spaces,
+ * or since revoked. Laravel reports all of these as one line; this reads the
+ * exception and says which it probably is.
  *
  *   php artisan atlas:mail-test
  *   php artisan atlas:mail-test someone@example.com
  *
  * Run it after changing anything under MAIL_ in .env, and before relying on
- * password resets: an app password can be revoked without anything here
+ * password resets: a mail password can be revoked without anything here
  * changing.
  *
  * @see docs/02-open-questions.md Q11
@@ -63,10 +63,7 @@ class MailTest extends Command
         $this->line('');
 
         if (blank(config('mail.mailers.smtp.password'))) {
-            $this->error('  MAIL_PASSWORD is empty. Paste a Google app password into .env.');
-            $this->line('');
-            $this->line('  Google Account -> Security -> 2-Step Verification -> App passwords.');
-            $this->line('  Paste the 16 characters WITHOUT the spaces Google displays.');
+            $this->error('  MAIL_PASSWORD is empty. Set your mail provider\'s password in .env.');
             $this->line('');
 
             return self::FAILURE;
@@ -87,7 +84,7 @@ class MailTest extends Command
         }
 
         $this->info("  Sent. Check {$to} — including the spam folder, which is where");
-        $this->info('  the first message from a new app password usually lands.');
+        $this->info('  the first message from a new sender often lands.');
         $this->line('');
 
         return self::SUCCESS;
@@ -96,15 +93,15 @@ class MailTest extends Command
     /**
      * Turn the SMTP server's wording into something actionable.
      *
-     * Gmail answers a bad app password with a 535 and a support URL, which
-     * reads like a server problem and is almost always a pasting problem.
+     * A 535 with a support URL reads like a server problem and is almost
+     * always a wrong username or password.
      */
     private function hint(string $error): void
     {
         $hint = match (true) {
-            str_contains($error, '535') || str_contains($error, 'Username and Password not accepted') => 'That is a rejected login. Check MAIL_PASSWORD is a Google APP password '
-                    ."(not the account password), that you removed the spaces, and that\n"
-                    .'  MAIL_USERNAME is the full address including @gmail.com.',
+            str_contains($error, '535') || str_contains($error, 'Username and Password not accepted') => 'That is a rejected login. Check MAIL_USERNAME and MAIL_PASSWORD. Many '
+                    ."providers want an app password here rather than the account's own,\n"
+                    .'  and some want the full address as the username.',
 
             str_contains($error, 'Connection could not be established')
                 || str_contains($error, 'Connection timed out') => 'Nothing answered on that host and port. Campus and hotel networks '

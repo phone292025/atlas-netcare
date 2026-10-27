@@ -271,7 +271,7 @@ Two habits came out of building this.
 
 **Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only.
 
-Email is no longer on this list. FR-102 sends a password reset link through Gmail SMTP and it was confirmed arriving on a phone on 2026-08-29. Alarms could now be emailed too, since the account and the configuration exist — that is a choice nobody has made rather than a thing that cannot be done.
+Email is no longer on this list. FR-102 sends a password reset link through whichever SMTP server `.env` names, and through Gmail it was confirmed arriving on a phone on 2026-08-29. Out of the box mail goes to the log, and the reset screen shows the link on a local install. Alarms could be emailed too: that is a choice nobody has made rather than a thing that cannot be done.
 
 ---
 
