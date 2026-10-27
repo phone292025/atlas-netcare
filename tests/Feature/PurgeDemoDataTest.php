@@ -11,6 +11,7 @@ use App\Models\LabPc;
 use App\Models\Location;
 use App\Models\Shift;
 use App\Models\TelemetryHourly;
+use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,6 +166,36 @@ class PurgeDemoDataTest extends TestCase
         $this->assertDatabaseHas('network_devices', ['id' => $realAp->id]);
         $this->assertSame(0, TelemetryHourly::where('source', 'simulated')->count());
         $this->assertSame(1, TelemetryHourly::where('source', 'live')->count());
+    }
+
+    public function test_purging_simulated_readings_never_takes_a_live_one_from_another_day(): void
+    {
+        /*
+         * Readings live in a hypertable, one chunk per day. A DELETE with a
+         * LIMIT compiles to a lookup by ctid, a row's position in its own
+         * table, and the first row of yesterday's chunk has the same ctid as
+         * the first row of the day before's. Live readings sit in one chunk
+         * and simulated ones in another, at the same positions.
+         */
+        $realAp = AccessPoint::factory()->create();
+
+        foreach (range(0, 4) as $minute) {
+            TelemetryReading::factory()->create([
+                'network_device_id' => $realAp->id,
+                'recorded_at' => now()->subDays(3)->setTime(9, $minute),
+                'source' => 'live',
+            ]);
+            TelemetryReading::factory()->create([
+                'network_device_id' => $realAp->id,
+                'recorded_at' => now()->subDay()->setTime(9, $minute),
+                'source' => 'simulated',
+            ]);
+        }
+
+        $this->artisan('atlas:purge-demo-data', ['--force' => true])->assertExitCode(0);
+
+        $this->assertSame(0, TelemetryReading::where('source', 'simulated')->count());
+        $this->assertSame(5, TelemetryReading::where('source', 'live')->count(), 'The purge deleted live readings.');
     }
 
     public function test_it_refuses_to_orphan_a_real_ticket(): void

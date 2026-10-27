@@ -261,6 +261,21 @@ class PurgeDemoData extends Command
 
         $deleted = 0;
 
+        /*
+         * Raw readings in one statement. They live in a TimescaleDB
+         * hypertable, where a DELETE with a LIMIT compiles to a lookup by
+         * ctid, a row's position in its own chunk. Positions repeat from chunk
+         * to chunk, so the chunked loop took live readings from other days
+         * along with the simulated ones. TimescaleDB deletes chunk by chunk
+         * on its own.
+         */
+        if ($step['table'] === 'telemetry_readings') {
+            $deleted = $step['query']()->delete();
+            $this->line(sprintf('  removed %-24s %6d', $step['label'], $deleted));
+
+            return $deleted;
+        }
+
         do {
             $went = $step['query']()->limit(self::CHUNK)->delete();
             $deleted += $went;
