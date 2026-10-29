@@ -127,7 +127,7 @@ erDiagram
         string ip_address
         smallint client_capacity "access points only"
         date installed_at
-        string status "online|degraded|offline|maintenance"
+        string status "online|degraded|offline|unknown|maintenance"
         string simulation_scenario "nullable: congestion|outage|feed_interruption"
         datetime simulation_started_at "nullable"
         decimal risk_score
@@ -258,7 +258,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint shift_id FK "nullable"
-        string type "shift_start|inspection_round|handover|shift_removed|ticket_raised|ticket_assigned|ap_degraded|ap_offline|sla_breach"
+        string type "shift_start|inspection_round|handover|shift_removed|ticket_raised|ticket_assigned|ap_degraded|ap_offline|agent_silent|sla_breach"
         string title
         text message
         string related_type "nullable"
@@ -325,6 +325,8 @@ erDiagram
 Added 2026-10-28 (`2026_10_28_100001`, ADR-0017). A probe agent proves who it is with a token, `atl_` and 40 random characters. Only its SHA-256 hash is stored, unique, and `$hidden` on the model, so it never reaches JSON or the audit log; `token_hint` is its last four characters. The token is shown once, in the response to the request that made it, and never put in the session. `last_seen_at`, `last_address`, `version` and `clock_offset_ms` are written by the ingest endpoint on each authenticated request, quietly, because the readings are their history.
 
 Retiring is a soft delete: the token stops working, its devices are released (`network_devices.agent_id` set to null), and its readings keep pointing at it. A retired agent's name isn't reused. The simulator's virtual agent (task 1.5) has no token at all.
+
+`silent_since` (2026-10-29, `2026_10_29_090001`, task 1.6) is when Atlas noticed that the agent stopped reporting. Whether it is silent follows from `last_seen_at` and the clock; this column records that the silence was acted on, so one silence raises one alert. The collector sets it with a conditional update, so two rounds at once can't both claim it, and the agent's next request clears it. While an agent is silent or has never connected, its Online and Degraded devices have the status `unknown`.
 
 `network_devices.agent_id` is the one agent that may report a device's readings.
 
@@ -417,7 +419,7 @@ Nothing writes the column until then. This is the pattern to follow whenever a m
 
 **Built in M5.** `telemetry_readings` is the one table exempt from the `$table->timestamps()` convention: `recorded_at` is the only time that means anything, and two extra datetimes across ~1.7 million rows a month is real cost for nothing.
 
-**From agents since 2026-10-28** (`2026_10_28_110001`, ADR-0017). A reading from a probe agent carries `agent_id` and its `sequence`, and the unique key on agent, sequence and `recorded_at` stores a retried batch once; it includes `recorded_at` because every unique key on a hypertable must. `recorded_at` is when the agent measured it, and `received_at` when Atlas got it. Readings made inside Atlas have neither agent nor sequence, and nulls never collide. On SQLite `agent_id` has no foreign key, because adding one rebuilds the table and the rebuild fails on the `telemetry_hourly` view. `network_devices.last_reading_at` is the newest reading's time: only a newer reading moves a device's status, so a late one fills in history without turning a recovered device back to offline.
+**From agents since 2026-10-28** (`2026_10_28_110001`, ADR-0017). A reading from a probe agent carries `agent_id` and its `sequence`, and the unique key on agent, sequence and `recorded_at` stores a retried batch once; it includes `recorded_at` because every unique key on a hypertable must. `recorded_at` is when the agent measured it, and `received_at` when Atlas got it. The simulator's readings carry its virtual agent and a sequence too (task 1.5). Rows written before agents have neither, and nulls never collide. On SQLite `agent_id` has no foreign key, because adding one rebuilds the table and the rebuild fails on the `telemetry_hourly` view. `network_devices.last_reading_at` is the newest reading's time: only a newer reading moves a device's status, so a late one fills in history without turning a recovered device back to offline.
 
 **A TimescaleDB hypertable since 2026-10-28** (`2026_10_28_090002`, ADR-0011). Rows are stored in chunks of `retention.chunk_days` by `recorded_at`, and a chunk is compressed once it is `retention.compress_after_days` old, segmented by device and ordered newest first. So the table has **no `id`**: a unique key on a hypertable must include the time column, and no code looks a reading up by id. The newest reading per device is found by time, with a LATERAL lookup that stops at the newest chunk (`TelemetryService::latestReadings()`). On SQLite, which runs the quick local suite, it stays a plain table. The migration rebuilt the table and copied every row across, because SQLite can't drop a primary key column.
 

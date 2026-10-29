@@ -168,6 +168,7 @@
                                                    'bg-amber-500': health(ap) === 'slow',
                                                    'bg-red-500': health(ap) === 'down',
                                                    'bg-slate-400': health(ap) === 'maintenance',
+                                                   'border-2 border-dashed border-slate-400': health(ap) === 'unknown',
                                                }">
                                                 <span class="sr-only" x-text="ap.code + ': ' + label(ap)"></span>
                                             </a>
@@ -179,12 +180,13 @@
 
                         {{-- Every state always listed, at zero too: "0 down" is
                              news, and a legend that loses entries is harder to
-                             read. Two by two, so it never wraps one entry onto a
-                             line of its own. --}}
+                             read. Unknown is a dashed outline: nobody has heard
+                             from it, which is not the same as switched off. --}}
                         <p class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-muted">
                             <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-emerald-500"></span><span x-text="count('ok')"></span> healthy</span>
                             <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-amber-500"></span><span x-text="count('slow')"></span> slow or busy</span>
                             <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-red-500"></span><span x-text="count('down')"></span> down</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm border border-dashed border-slate-400"></span><span x-text="count('unknown')"></span> unknown</span>
                             <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-sm bg-slate-400"></span><span x-text="count('maintenance')"></span> maintenance</span>
                         </p>
                     </div>
@@ -228,16 +230,18 @@
     @push('scripts')
         <script>
             function apSummary(initial, intervalSeconds, tones) {
-                const rank = { down: 0, slow: 1 };
+                const rank = { down: 0, slow: 1, unknown: 2 };
 
                 return {
                     data: initial,
 
-                    // ok, slow, down or maintenance. Slow is degraded, or a
-                    // latest reading over the limits before the status, which
-                    // waits for several in a row, has turned Degraded.
+                    // ok, slow, down, unknown or maintenance. Slow is degraded,
+                    // or a latest reading over the limits before the status,
+                    // which waits for several in a row, has turned Degraded.
+                    // Unknown is a silent agent: its last numbers are not now.
                     health(ap) {
                         if (ap.status === 'offline') return 'down';
+                        if (ap.status === 'unknown') return 'unknown';
                         if (ap.status === 'maintenance') return 'maintenance';
                         if (ap.status === 'degraded' || ap.over_threshold) return 'slow';
                         return 'ok';
@@ -256,6 +260,8 @@
                     // The figure behind the label, so the line says why.
                     reading(ap) {
                         const room = ap.location_name ?? ap.location ?? 'No location';
+                        // Its numbers are from before its agent went quiet.
+                        if (ap.status === 'unknown') return ap.last_seen ? `${room}, last heard ${ap.last_seen}` : room;
                         if (ap.breach === 'busy') return `${room}, ${ap.clients} of ${ap.capacity} connected`;
                         if (ap.latency_ms === null) return room;
                         return `${room}, ${ap.latency_ms} ms, ${ap.packet_loss_pct}% loss`;

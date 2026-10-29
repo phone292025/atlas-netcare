@@ -20,6 +20,7 @@ An agent runs unattended on a machine Atlas doesn't control, buffers readings wh
 - The token is shown in the response to the request that made it, never put in the session, so it's never written to the sessions table.
 - **Rotating** replaces the token at once. **Retiring** an agent (a soft delete) stops its token working, and keeps its readings.
 - Each network device has at most one agent watching it (`network_devices.agent_id`). An agent may report only devices assigned to it.
+- **Heartbeat** (roadmap task 1.6, added 2026-10-29). Any accepted batch, an empty one included, counts as contact. After `ingest.silent_after_minutes` (3) without one, the agent is silent: its Online and Degraded devices become `unknown`, and the engineers and administrators get one `agent_silent` alert, recorded in `agents.silent_since` and cleared by the next request. Offline and Maintenance devices keep their status. Unknown changes only with a reading, so an agent back from a silence isn't taken for its devices being down.
 
 ### The ingest endpoint
 

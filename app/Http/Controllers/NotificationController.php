@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AlarmType;
 use App\Models\AccessPoint;
+use App\Models\Agent;
 use App\Models\Alarm;
 use App\Models\Ticket;
 use App\Models\User;
@@ -67,6 +68,9 @@ class NotificationController extends Controller
             // The engineer's own screen, with the assign and progress buttons.
             $related instanceof Ticket => route('engineer.tickets.show', $related),
             $related instanceof AccessPoint => route('engineer.aps.show', $related),
+            // Administrators manage agents. Engineers see the devices it left unknown.
+            $related instanceof Agent && $viewer->isAdmin() => route('admin.agents.show', $related),
+            $related instanceof Agent => route('engineer.monitor.index'),
             $alarm->shift_id !== null => route('assistant.shifts.today'),
             $alarm->type === AlarmType::ShiftRemoved => route('assistant.shifts.index'),
             default => route('notifications.index'),

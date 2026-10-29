@@ -13,6 +13,10 @@ use App\Enums\Contracts\HasTone;
  * Derived from telemetry by TelemetryService, not set by hand — except
  * Maintenance, which an engineer sets to suppress alarms during planned work.
  *
+ * Unknown means the agent watching the device has stopped reporting (task
+ * 1.6), so nobody can say how the device is. It is not a fault: it raises no
+ * ticket, and the next reading replaces it with whatever that reading says.
+ *
  * @see docs/02-open-questions.md Q1 for the thresholds
  */
 enum NetworkStatus: string implements HasLabel, HasTone
@@ -22,6 +26,7 @@ enum NetworkStatus: string implements HasLabel, HasTone
     case Online = 'online';
     case Degraded = 'degraded';
     case Offline = 'offline';
+    case Unknown = 'unknown';
     case Maintenance = 'maintenance';
 
     public function label(): string
@@ -30,6 +35,7 @@ enum NetworkStatus: string implements HasLabel, HasTone
             self::Online => 'Online',
             self::Degraded => 'Degraded',
             self::Offline => 'Offline',
+            self::Unknown => 'Unknown',
             self::Maintenance => 'Under maintenance',
         };
     }
@@ -40,7 +46,7 @@ enum NetworkStatus: string implements HasLabel, HasTone
             self::Online => 'healthy',
             self::Degraded => 'attention',
             self::Offline => 'urgent',
-            self::Maintenance => 'neutral',
+            self::Unknown, self::Maintenance => 'neutral',
         };
     }
 }

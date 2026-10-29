@@ -3,6 +3,7 @@
 namespace App\Services\Telemetry;
 
 use App\Models\Agent;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -80,7 +81,8 @@ class AgentService
     /**
      * Note that the agent was heard from: when, from where, which version,
      * and how far its clock is from Atlas's. Written quietly, because it
-     * changes on every batch and the readings are its history.
+     * changes on every batch and the readings are its history. Any silence
+     * is over, so the next one alerts again.
      */
     public function recordContact(Agent $agent, ?string $address, ?string $version, ?int $clockOffsetMs): void
     {
@@ -89,7 +91,40 @@ class AgentService
             'last_address' => $address,
             'version' => $version !== null ? Str::limit($version, 40, '') : null,
             'clock_offset_ms' => $clockOffsetMs,
-        ], fn ($value) => $value !== null))->saveQuietly();
+        ], fn ($value) => $value !== null) + ['silent_since' => null])->saveQuietly();
+    }
+
+    /**
+     * The agents that have gone silent since the last look (task 1.6): heard
+     * from once, nothing for `silent_after_minutes`, and not noticed yet.
+     * Each is marked as noticed, so it comes back from here once per silence.
+     *
+     * An agent that never connected isn't here. Nothing stopped: it hasn't
+     * started, and the agents screen says so. The simulator is never silent
+     * while the scheduler runs, and is left out.
+     *
+     * @return Collection<int, Agent>
+     */
+    public function noticeSilence(): Collection
+    {
+        $quietSince = now()->subMinutes((int) config('atlas.ingest.silent_after_minutes'));
+
+        return Agent::query()
+            ->where('is_virtual', false)
+            ->whereNull('silent_since')
+            ->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '<', $quietSince)
+            ->get()
+            // Claimed with a conditional update, so a sample taken from the
+            // browser while the scheduler runs can't alert twice, and a batch
+            // that arrived since the read above means no alert at all.
+            ->filter(fn (Agent $agent) => Agent::query()
+                ->whereKey($agent->id)
+                ->whereNull('silent_since')
+                ->where('last_seen_at', '<', $quietSince)
+                ->toBase()
+                ->update(['silent_since' => now()]) === 1)
+            ->values();
     }
 
     private static function hash(string $token): string

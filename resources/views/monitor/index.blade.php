@@ -66,12 +66,20 @@
             @endif
         </div>
 
-        {{-- Every reading is older than the offline window: nothing is being collected. --}}
-        <div x-show="data.counts.total > 0 && data.counts.stale === data.counts.total" x-cloak>
+        {{-- Every reading is older than the offline window: nothing is being
+             collected. Unless every one is unknown because its agent isn't
+             reporting, which the scheduler can't fix. --}}
+        <div x-show="data.counts.total > 0 && data.counts.stale === data.counts.total && data.counts.silent < data.counts.total" x-cloak>
             <x-alert type="warning" class="mb-6" title="Nothing is being collected">
                 No reading has arrived in the last {{ config('atlas.thresholds.offline_after_min') }} minutes, so every
                 status below is unknown. Start the collector with
                 <code class="kbd">php artisan schedule:work</code>{{ $canSimulate ? ', or take a sample now.' : '.' }}
+            </x-alert>
+        </div>
+        <div x-show="data.counts.total > 0 && data.counts.silent === data.counts.total" x-cloak>
+            <x-alert type="warning" class="mb-6" title="No agent is reporting">
+                The agents watching these access points are not reporting, so every status below is unknown.
+                Check that each agent is running and can reach Atlas.
             </x-alert>
         </div>
 
@@ -285,7 +293,8 @@
 
                     <div x-show="detail.state === 'stale'">
                         <x-alert type="warning" class="mb-4">
-                            No recent reading. This access point's status is unknown, which is not the same as offline.
+                            <span x-text="detail.silent ? 'Its agent is not reporting.' : 'No recent reading.'"></span>
+                            This access point's status is unknown, which is not the same as offline.
                         </x-alert>
                     </div>
 

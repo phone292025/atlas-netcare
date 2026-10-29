@@ -7,18 +7,22 @@ use App\Enums\NetworkStatus;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Enums\UserRole;
+use App\Models\Agent;
 use App\Models\NetworkDevice;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
 use App\Services\Tickets\TicketService;
 use Closure;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One collection round, and everything the system does about what it finds.
  *
  * Fill any gap since the last round, take the simulator's readings for the
  * devices it watches, sweep the silent ones, then act on each status change.
+ * A probe agent that has stopped reporting gets one alert, and its devices
+ * turn Unknown (task 1.6).
  * The scheduled command and the Network monitor's "Generate sample" button
  * both run this, so both raise the same tickets and alerts. Real agents send
  * their readings to the ingest API instead, and come to react() from there.
@@ -34,6 +38,7 @@ class TelemetryCollector
         private readonly AlarmService $alarms,
         private readonly TelemetryBackfill $backfill,
         private readonly Simulator $simulator,
+        private readonly AgentService $agents,
     ) {}
 
     /**
@@ -61,10 +66,21 @@ class TelemetryCollector
         // The simulator's readings, plus devices nobody heard from. The sweep
         // covers every agent's devices, not only the simulator's: an agent
         // still sending heartbeats can stop sending one device's readings.
+        // An agent that has stopped altogether leaves its devices Unknown.
         $transitions = $this->simulator->round()->transitions
-            ->concat($this->telemetry->markStaleOffline());
+            ->concat($this->telemetry->markStaleOffline())
+            ->concat($this->telemetry->markUnknown());
 
         $this->react($transitions, $report);
+
+        // Claimed last, and with its alert in one transaction: a round that
+        // fails before the alerts are stored leaves the silence unclaimed,
+        // so the next round still alerts.
+        DB::transaction(function () use ($report): void {
+            foreach ($this->agents->noticeSilence() as $agent) {
+                $this->alertSilentAgent($agent, $report);
+            }
+        });
 
         return $transitions;
     }
@@ -91,7 +107,8 @@ class TelemetryCollector
              * Engineers are alerted on the transition only, never on every
              * reading, or a six-hour outage rings the bell 360 times (FR-305).
              *
-             * Degraded alerts only from Online. An access point coming back
+             * Degraded alerts only from Online, or from Unknown, which
+             * nobody was told the truth behind. An access point coming back
              * from an outage passes through Degraded, because its unreachable
              * readings count as 100% packet loss; that is recovery, not a new
              * anomaly. And at most once per cooldown per access point: at peak
@@ -100,7 +117,8 @@ class TelemetryCollector
             if ($change['to'] === NetworkStatus::Offline) {
                 $this->raiseOfflineTicket($ap, $report);
                 $this->alertEngineers(AlarmType::ApOffline, $ap, "{$ap->code} is not responding", $ap->location?->label());
-            } elseif ($change['to'] === NetworkStatus::Degraded && $change['from'] === NetworkStatus::Online
+            } elseif ($change['to'] === NetworkStatus::Degraded
+                && in_array($change['from'], [NetworkStatus::Online, NetworkStatus::Unknown], true)
                 && ! $this->alarms->raisedRecently(AlarmType::ApDegraded, $ap, (int) config('atlas.thresholds.degraded_alert_cooldown_min'))) {
                 $why = 'Latency, packet loss or load has been over its threshold for '
                     .config('atlas.thresholds.consecutive_breach').' readings in a row.';
@@ -113,6 +131,25 @@ class TelemetryCollector
                 );
             }
         }
+    }
+
+    /**
+     * One alert per silence, to engineers and administrators: engineers look
+     * after the network it measures, and administrators look after agents.
+     *
+     * @param  Closure(string, string): void  $report
+     */
+    private function alertSilentAgent(Agent $agent, Closure $report): void
+    {
+        $title = "{$agent->name} has stopped reporting";
+        $message = 'Last heard from at '.$agent->last_seen_at->campus()->format('j M, H:i')
+            .'. Its devices show as unknown until it reports again.';
+
+        foreach ([UserRole::Engineer, UserRole::Admin] as $role) {
+            $this->alarms->raiseForRole(AlarmType::AgentSilent, $role, $title, $message, related: $agent);
+        }
+
+        $report('warn', "{$title}.");
     }
 
     /**
