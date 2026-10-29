@@ -26,6 +26,7 @@ use App\Services\Risk\RiskScoringService;
 use App\Services\Telemetry\Simulator;
 use App\Services\Telemetry\TelemetryStorage;
 use Illuminate\Database\Seeder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
@@ -608,7 +609,7 @@ class DemoDataSeeder extends Seeder
             for ($i = 0; $i < 8; $i++) {
                 $opened = now()->subDays(random_int(3, 80));
 
-                Ticket::factory()->demo()->create([
+                $this->demoTicket([
                     'title' => 'Repeated fault on '.$pc->asset_tag,
                     'category' => TicketCategory::Hardware,
                     'priority' => TicketPriority::Medium,
@@ -635,7 +636,7 @@ class DemoDataSeeder extends Seeder
         foreach ([TicketStatus::Open, TicketStatus::Acknowledged, TicketStatus::InProgress] as $status) {
             $opened = now()->subHours(random_int(2, 20));
 
-            Ticket::factory()->demo()->create([
+            $this->demoTicket([
                 'title' => 'Wi-Fi dropping in the lab',
                 'category' => TicketCategory::Network,
                 'priority' => TicketPriority::Critical,
@@ -668,6 +669,27 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->command?->line("  {$made} tickets");
+    }
+
+    /**
+     * One demo ticket, tried again once if its number was taken meanwhile.
+     *
+     * The stack's scheduler keeps running while this seeds, and since the
+     * demo administrator exists the collector can raise a ticket for an
+     * access point that drops. It may take a number between the factory
+     * choosing one and inserting it; the second try counts past it. That
+     * needs no transaction around the seeder, and db:seed opens none: on
+     * PostgreSQL a failed insert inside one would abort it.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function demoTicket(array $attributes): Ticket
+    {
+        try {
+            return Ticket::factory()->demo()->create($attributes);
+        } catch (UniqueConstraintViolationException) {
+            return Ticket::factory()->demo()->create($attributes);
+        }
     }
 
     /**

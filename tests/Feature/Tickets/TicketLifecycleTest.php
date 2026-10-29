@@ -468,11 +468,16 @@ class TicketLifecycleTest extends TestCase
 
         foreach ($numbers as $number) {
             $this->assertMatchesRegularExpression('/^TKT-\d{4}-\d{5}$/', $number);
-
-            // The old version could produce anything up to 99999 from five
-            // tickets. A counter cannot.
-            $this->assertLessThan(1000, (int) substr($number, -5), "{$number} is not a counted sequence.");
         }
+
+        // The old version could produce anything up to 99999 from five
+        // tickets. A counter hands out five in a row. In a row rather than
+        // small: the factory counts on from the database's highest, which an
+        // earlier test in the same run may have left anywhere.
+        $sequences = array_map(fn (string $number) => (int) substr($number, -5), $numbers);
+        sort($sequences);
+
+        $this->assertSame(range($sequences[0], $sequences[0] + 4), $sequences, 'Not a counted sequence.');
     }
 
     public function test_a_batch_does_not_hand_out_the_same_number_to_everyone(): void
@@ -501,6 +506,24 @@ class TicketLifecycleTest extends TestCase
 
         $this->assertNotContains($first->ticket_number, $seeded->pluck('ticket_number')->all());
         $this->assertSame(4, Ticket::count());
+    }
+
+    public function test_the_factory_counts_past_a_ticket_raised_in_between(): void
+    {
+        /*
+         * REGRESSION, from CI on 2026-10-29. While the demo seeds, the
+         * scheduler keeps collecting, and since the demo administrator exists
+         * the collector can raise a ticket. The factory read the highest
+         * number once and counted on in memory, so its next ticket took the
+         * collector's number and seeding failed on the unique index.
+         */
+        Ticket::factory()->create();
+        $raised = $this->service()->open($this->attributes(), $this->userWith(UserRole::Assistant));
+
+        $next = Ticket::factory()->create();
+
+        $this->assertNotSame($raised->ticket_number, $next->ticket_number);
+        $this->assertSame(3, Ticket::count());
     }
 
     public function test_the_service_and_the_factory_agree_on_the_format(): void

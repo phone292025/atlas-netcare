@@ -28,21 +28,24 @@ class TicketFactory extends Factory
     /**
      * The last sequence number this process has handed out.
      *
-     * IN MEMORY, NOT A QUERY PER TICKET, and that is the load-bearing part.
+     * COUNTED IN MEMORY, and that is the load-bearing part.
      * `Ticket::factory()->count(40)->create()` resolves every `definition()`
-     * BEFORE it inserts any of them, so a factory that asked the database for
-     * the highest number each time would read the same answer forty times and
-     * hand out forty identical references, every one but the first failing on
-     * the unique index.
+     * BEFORE it inserts any of them, so a factory that only asked the
+     * database for the highest number would read the same answer forty times
+     * and hand out forty identical references, every one but the first
+     * failing on the unique index.
      *
-     * Seeded once from the database so it does not collide with tickets that
-     * already exist — a real ticket raised before seeding would otherwise
-     * occupy TKT-YYYY-00001 and the first seeded one would try to take it.
+     * But it also takes the database's highest when that is higher, every
+     * time: tickets raised by something else since the last one, such as the
+     * collector while the demo is seeded, already hold the next numbers. Read
+     * once at the start, it reused a number the collector had just taken and
+     * seeding failed on the unique index.
      *
      * It is never reset. Across a test run the numbers climb past whatever the
      * database has been truncated back to, which keeps them unique and is
-     * harmless: no test asserts a factory-made reference, and the ones that
-     * check the sequence use TicketService on an empty database.
+     * harmless: the tests of factory numbers check that they are distinct
+     * and in a row, not what they start at, and the ones that check the
+     * sequence itself use TicketService on an empty database.
      */
     private static ?int $sequence = null;
 
@@ -57,7 +60,7 @@ class TicketFactory extends Factory
      */
     private function nextNumber(): string
     {
-        self::$sequence ??= Ticket::highestSequenceThisYear();
+        self::$sequence = max(self::$sequence ?? 0, Ticket::highestSequenceThisYear());
 
         return Ticket::formatNumber(++self::$sequence);
     }
