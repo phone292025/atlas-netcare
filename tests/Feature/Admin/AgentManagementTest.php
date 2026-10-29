@@ -78,7 +78,9 @@ class AgentManagementTest extends TestCase
 
         $this->assertNull($agents->authenticate(null));
         $this->assertNull($agents->authenticate(''));
-        $this->assertNull($agents->authenticate(substr($token, 0, -1).'x'));
+        // A different last character. Always 'x' failed whenever the token
+        // already ended in one, about one run in sixty-two.
+        $this->assertNull($agents->authenticate(substr($token, 0, -1).(str_ends_with($token, 'x') ? 'y' : 'x')));
         $this->assertNull($agents->authenticate(hash('sha256', $token)), 'The stored hash must not work as a token.');
     }
 
