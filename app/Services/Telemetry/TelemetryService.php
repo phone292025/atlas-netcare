@@ -331,7 +331,13 @@ class TelemetryService
             ->orderBy('code')
             ->get();
 
-        $latest = $this->latestReadings($accessPoints->pluck('id'));
+        // An unknown device's newest reading is from before its agent went
+        // quiet: not news about now, and no sign the collector has stopped.
+        // A plain collection: Eloquent's except() matches primary keys, and
+        // readings have none, so it would drop the device-id keys.
+        $latest = $this->latestReadings($accessPoints->pluck('id'))
+            ->toBase()
+            ->except($accessPoints->where('status', NetworkStatus::Unknown)->pluck('id')->all());
 
         /*
          * When the newest reading was taken, as well as when this payload was
@@ -375,7 +381,7 @@ class TelemetryService
                     'status' => $ap->status->value,
                     'status_label' => $ap->status->label(),
                     'tone' => $ap->status->tone(),
-                    'clients' => $reading?->client_count ?? 0,
+                    'clients' => $ap->status === NetworkStatus::Unknown ? null : ($reading?->client_count ?? 0),
                     'capacity' => $ap->client_capacity,
                     'latency_ms' => $reading?->latency_ms,
                     'packet_loss_pct' => $reading ? (float) $reading->packet_loss_pct : null,
@@ -459,7 +465,10 @@ class TelemetryService
             ->where(fn ($q) => $q
                 ->whereNull('simulation_scenario')
                 ->orWhere('simulation_scenario', '!=', SimulationScenario::FeedInterruption->value))
-            ->where('status', '!=', NetworkStatus::Offline->value)
+            // Unknown changes only with a reading. An agent back from a
+            // silence may send its heartbeat before the readings it kept, and
+            // its devices are not down for that.
+            ->whereNotIn('status', [NetworkStatus::Offline->value, NetworkStatus::Unknown->value])
             ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
             ->get();
 
@@ -481,5 +490,52 @@ class TelemetryService
         }
 
         return $transitions;
+    }
+
+    /**
+     * Devices whose agent has stopped reporting become Unknown (task 1.6):
+     * nobody can say how they are, so their last status would be a guess.
+     *
+     * Silent means not heard from for `silent_after_minutes`, or never heard
+     * from at all, as with a device given to an agent not yet installed.
+     * Only Online and Degraded change. Offline stays, because a ticket hangs
+     * on it, and Maintenance stays, because a person set it. The simulator's
+     * devices are never touched. A reading from the device changes it back.
+     *
+     * Returns transitions in the same shape as store(). They raise no ticket
+     * and no alert: the agent's own alert says what happened.
+     *
+     * @return Collection<int, array{device: NetworkDevice, from: NetworkStatus, to: NetworkStatus}>
+     */
+    public function markUnknown(): Collection
+    {
+        $quietSince = now()->subMinutes((int) config('atlas.ingest.silent_after_minutes'));
+
+        $silentAgent = fn ($agent) => $agent
+            ->where('is_virtual', false)
+            ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $quietSince));
+
+        $known = [NetworkStatus::Online->value, NetworkStatus::Degraded->value];
+
+        return NetworkDevice::query()
+            ->whereHas('agent', $silentAgent)
+            ->whereIn('status', $known)
+            ->get()
+            // Each one only if it still qualifies as it is written: a batch
+            // that arrived since the read above has the last word.
+            ->filter(fn (NetworkDevice $device) => NetworkDevice::query()
+                ->whereKey($device->id)
+                ->where('status', $device->status->value)
+                ->whereHas('agent', $silentAgent)
+                ->toBase()
+                ->update(['status' => NetworkStatus::Unknown->value]) === 1)
+            ->map(function (NetworkDevice $device): array {
+                $from = $device->status;
+                $device->status = NetworkStatus::Unknown;
+                $device->syncOriginalAttribute('status');
+
+                return ['device' => $device, 'from' => $from, 'to' => NetworkStatus::Unknown];
+            })
+            ->values();
     }
 }

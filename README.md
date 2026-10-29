@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,162 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
+The suite has 1,177 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
 
 ## Getting started
 
@@ -267,7 +267,7 @@ A batch looks like this:
 
 `sequence` counts up for each reading the agent takes, and a batch sent twice is stored once. `latency_ms`, `packet_loss_pct`, `client_count`, `channel_util_pct` and `throughput_mbps` are optional. An empty `readings` list is a heartbeat. The answer lists every sequence as `stored`, `duplicate` or `rejected` with a reason, and the agent can drop all of them. Atlas refuses a reading for a device the agent doesn't watch, one dated more than 5 minutes ahead, and one more than 7 days old.
 
-Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. **Over anything but this machine or a network you trust, put Atlas behind HTTPS before an agent sends to it:** the token travels in the header.
+Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. An agent that sends nothing for 3 minutes is **silent**: its devices show as Unknown instead of their last status, and the engineers and administrators get one alert. Its next reading for a device puts that device back. Until an agent first connects, its devices show as Unknown too, without an alert. **Over anything but this machine or a network you trust, put Atlas behind HTTPS before an agent sends to it:** the token travels in the header.
 
 ### Keeping the monitor live
 
@@ -275,7 +275,7 @@ The stack's `scheduler` service runs the scheduler for you, and restarts it if i
 
 | Job | When | What it does |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | Takes one reading per access point. One that has been silent for 5 minutes goes offline and gets a ticket |
+| `atlas:collect-telemetry` | every minute | Takes the simulator's readings. A device that has been silent for 5 minutes while its agent reports goes offline and gets a ticket. A silent agent's devices turn Unknown, and it raises one alert |
 | `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
 | `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
 | `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |

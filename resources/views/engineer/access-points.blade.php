@@ -35,7 +35,7 @@
                               :class="failing ? 'bg-red-500' : (data.stale ? 'bg-amber-500' : 'bg-emerald-500')"></span>
                     </span>
                     <span>
-                        Updated <span x-text="updatedAgo">just now</span><span x-show="data.readings_age">, readings from <span x-text="data.readings_age"></span></span><span x-show="! data.readings_age">, no readings yet</span>
+                        Updated <span x-text="updatedAgo">just now</span><span x-show="data.readings_age">, readings from <span x-text="data.readings_age"></span></span><span x-show="! data.readings_age">, no current readings</span>
                     </span>
                     <span x-show="failing" x-cloak class="font-medium text-red-700">Refresh failed</span>
                 </span>
@@ -138,7 +138,7 @@
                                                   :class="load(ap) > 90 ? 'bg-amber-500' : 'bg-brand-500'"
                                                   :style="`width: ${load(ap)}%`"></span>
                                         </span>
-                                        <span class="w-12 text-right text-xs tabular-nums text-fg-muted" x-text="ap.clients + '/' + ap.capacity"></span>
+                                        <span class="w-12 text-right text-xs tabular-nums text-fg-muted" x-text="(ap.clients ?? '-') + '/' + ap.capacity"></span>
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right tabular-nums"
@@ -191,8 +191,9 @@
                         return ap.breach === 'busy' ? 'Busy now' : 'Slow now';
                     },
 
+                    // Unknown too: nobody can say it is fine.
                     isProblem(ap) {
-                        return ['urgent', 'attention'].includes(this.toneOf(ap));
+                        return ap.status === 'unknown' || ['urgent', 'attention'].includes(this.toneOf(ap));
                     },
 
                     get problems() {

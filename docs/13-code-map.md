@@ -440,6 +440,7 @@ database that already ran it.
 | `2026_10_28_100001_create_agents_table.php` | Probe agents, and which one watches each network device (ADR-0010, |
 | `2026_10_28_110001_add_agent_and_sequence_to_telemetry_readings.php` | What the ingest API needs to store a reading once and in its place |
 | `2026_10_28_120001_hand_existing_devices_to_the_simulator.php` | The simulator becomes an agent (ADR-0010, roadmap task 1.5), so the devices |
+| `2026_10_29_090001_add_silent_since_to_agents_table.php` | When Atlas noticed that a probe agent stopped reporting (roadmap task 1.6) |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -718,6 +719,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Shifts/ShiftRemovalTest.php` | FR-408, taking shifts off the roster, one or a week at a time |
 | `Feature/Shifts/ShiftRosterTest.php` | M6, generating the roster, and working a shift |
 | `Feature/SlaLineTest.php` | <x-sla-line>: a ticket's time against its target, drawn as a line |
+| `Feature/Telemetry/AgentHeartbeatTest.php` | The agent heartbeat (roadmap task 1.6). A probe agent that stops reporting |
 | `Feature/Telemetry/CollectionGapTest.php` | The first collection round after the scheduler has been off |
 | `Feature/Telemetry/DashboardHealthTest.php` | The engineer's dashboard: access points by room, and a reading over the |
 | `Feature/Telemetry/NetworkDeviceTest.php` | Access points as one kind of network device (ADR-0016) |

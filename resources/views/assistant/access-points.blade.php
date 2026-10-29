@@ -106,13 +106,13 @@
                         <div class="hidden w-28 flex-none sm:block" x-show="ap.capacity">
                             <div class="flex justify-between text-2xs text-fg-subtle">
                                 <span>Clients</span>
-                                <span class="tabular-nums" x-text="ap.clients + ' / ' + ap.capacity"></span>
+                                <span class="tabular-nums" x-text="(ap.clients ?? '-') + ' / ' + ap.capacity"></span>
                             </div>
                             <div class="mt-1 h-1 overflow-hidden rounded-full bg-sunken">
                                 <div class="h-full rounded-full bg-brand-500" :style="`width: ${Math.min(100, Math.round(ap.clients / ap.capacity * 100))}%`"></div>
                             </div>
                         </div>
-                        <span class="text-xs tabular-nums text-fg-muted sm:hidden" x-text="ap.clients + ' on'"></span>
+                        <span class="text-xs tabular-nums text-fg-muted sm:hidden" x-text="(ap.clients ?? '-') + ' on'"></span>
 
                         <span class="inline-flex h-6 flex-none items-center rounded-md px-2 text-xs font-medium ring-1 ring-inset"
                               :class="tone(ap.tone).badge" x-text="ap.status_label"></span>

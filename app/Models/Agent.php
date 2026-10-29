@@ -26,7 +26,7 @@ class Agent extends Model
     use HasFactory, SoftDeletes;
 
     /** Contact columns change on every batch. Their history is the readings. */
-    public const AUDIT_EXCEPT = ['last_seen_at', 'clock_offset_ms', 'version', 'last_address'];
+    public const AUDIT_EXCEPT = ['last_seen_at', 'silent_since', 'clock_offset_ms', 'version', 'last_address'];
 
     /** @var list<string> */
     protected $fillable = ['name'];
@@ -41,6 +41,7 @@ class Agent extends Model
             'token_issued_at' => 'datetime',
             'is_virtual' => 'boolean',
             'last_seen_at' => 'datetime',
+            'silent_since' => 'datetime',
             'clock_offset_ms' => 'integer',
         ];
     }

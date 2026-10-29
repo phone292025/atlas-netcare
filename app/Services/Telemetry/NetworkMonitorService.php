@@ -79,6 +79,8 @@ class NetworkMonitorService
                 'offline' => $rows->where('state', 'offline')->count(),
                 'maintenance' => $rows->where('state', 'maintenance')->count(),
                 'stale' => $rows->where('state', 'stale')->count(),
+                // Of those, the ones whose agent isn't reporting.
+                'silent' => $rows->where('silent', true)->count(),
             ],
             'clients_now' => (int) $rows->sum('clients'),
             'access_points' => $rows->all(),
@@ -123,6 +125,7 @@ class NetworkMonitorService
             'location_name' => $ap->location?->name,
             'location_id' => $ap->location_id,
             'state' => $state,
+            'silent' => $ap->status === NetworkStatus::Unknown,
             'state_label' => $label,
             'badge' => Tone::badge($tone),
             'accent' => Tone::accent($tone),
@@ -148,6 +151,12 @@ class NetworkMonitorService
     {
         if (in_array($ap->status, [NetworkStatus::Maintenance, NetworkStatus::Offline], true)) {
             return $ap->status->value;
+        }
+
+        // Its agent stopped reporting. The same as stale, said by the system
+        // rather than worked out from the clock.
+        if ($ap->status === NetworkStatus::Unknown) {
+            return 'stale';
         }
 
         $window = now()->subMinutes((int) config('atlas.thresholds.offline_after_min'));
