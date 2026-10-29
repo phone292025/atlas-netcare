@@ -23,7 +23,7 @@ The browser tests use **Playwright**: `@playwright/test`, pinned to an exact ver
 - The tests live in `tests/Browser/`, written in JavaScript like the rest of the front end.
 - `npm run test:browser` builds the image from the working tree and starts a **separate Compose stack** for the run (project `atlas-browser`, image tag `browser-tests`, ports 8100 and 5433). Its `.env` is a fresh copy of `.env.example`, so mail goes to the log. The run seeds the demo data, creates the first administrator with `atlas:create-admin`, runs the tests, and removes the stack and its volume at the end.
 - The tests never run against a stack that holds real data. They raise tickets and submit inspections, and a developer's own `.env` may send real mail.
-- Each role signs in once, through the sign-in form, and the other tests reuse those sessions.
+- Each role signs in once, through the sign-in form, and the other tests reuse those sessions. So the tests run one at a time (`workers: 1`): two at once as the same role share one session, and one test's request can use up the other's flash message (2026-10-29).
 - A test fails if the page logs a JavaScript error or a failed request.
 - CI runs the browser tests as their own job, beside the PHPUnit runs.
 
