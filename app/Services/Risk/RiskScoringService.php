@@ -111,9 +111,13 @@ class RiskScoringService
             ]);
 
             // forceFill: the risk columns are system-written, never fillable.
+            // Nothing measurable leaves them empty: a stored 0 and Low ranked
+            // and counted a silent device as the healthiest on campus.
+            $measured = $result['factors'] !== [];
+
             $asset->forceFill([
-                'risk_score' => $result['score'],
-                'risk_band' => $result['band'],
+                'risk_score' => $measured ? $result['score'] : null,
+                'risk_band' => $measured ? $result['band'] : null,
             ])->save();
 
             return $assessment;

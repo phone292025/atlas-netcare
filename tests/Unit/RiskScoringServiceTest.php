@@ -237,6 +237,11 @@ class RiskScoringServiceTest extends TestCase
 
         $this->assertSame(0.0, $result['score']);
         $this->assertSame([], $result['factors']);
+
+        // And the ranking reads the asset's own columns, so they stay empty.
+        $this->service->assess($ap);
+        $this->assertNull($ap->fresh()->risk_score);
+        $this->assertNull($ap->fresh()->risk_band);
     }
 
     public function test_a_worsening_link_scores_above_a_steadily_bad_one(): void

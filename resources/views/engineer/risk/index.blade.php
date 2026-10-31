@@ -12,15 +12,6 @@
 
          @see docs/decisions/ADR-0007-weighted-risk-not-ml.md --}}
 
-    @php
-        $bars = [
-            'healthy' => 'bg-emerald-500',
-            'attention' => 'bg-amber-500',
-            'elevated' => 'bg-orange-500',
-            'urgent' => 'bg-red-500',
-        ];
-    @endphp
-
     <x-page-header title="Maintenance priority"
                    :subtitle="($lastRun
                        ? 'Scored '.\Illuminate\Support\Carbon::parse($lastRun)->diffForHumans().'. '
@@ -56,7 +47,7 @@
                ])>
                 <p class="flex items-center justify-between gap-2 text-sm text-fg-muted">
                     <span class="flex items-center gap-2">
-                        <span class="size-2 rounded-full {{ $bars[$case->tone()] ?? 'bg-slate-400' }}"></span>
+                        <span class="size-2 rounded-full {{ \App\Support\Tone::solid($case->tone()) }}"></span>
                         {{ $case->label() }}
                     </span>
                     @if ($on)
@@ -95,7 +86,7 @@
                            message="Clear the filters, or run php artisan atlas:recalculate-risk if nothing has been scored yet."
                            icon="wrench" />
         @else
-            <div class="overflow-x-auto">
+            <div class="relative overflow-x-auto">
                 <table class="min-w-full text-sm">
                     <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                         <tr>
@@ -133,7 +124,7 @@
                                         <span class="flex w-36 items-center gap-2.5">
                                             <span class="w-7 text-right font-semibold tabular-nums text-fg">{{ round($row['score']) }}</span>
                                             <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
-                                                <span class="block h-full rounded-full {{ $bars[$row['band']?->tone()] ?? 'bg-slate-400' }}"
+                                                <span class="block h-full rounded-full {{ \App\Support\Tone::solid($row['band']?->tone() ?? \App\Support\Tone::NEUTRAL) }}"
                                                       style="width: {{ (int) min(100, max(0, round($row['score']))) }}%"></span>
                                             </span>
                                         </span>
