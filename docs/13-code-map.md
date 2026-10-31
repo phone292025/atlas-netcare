@@ -327,6 +327,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 | `CampusClock.php` | The campus wall clock, and the one place the application asks what day it is |
 | `FormField.php` | Shared derivations for form controls |
 | `Icons.php` | The icon set: Phosphor glyphs under the app's own names |
+| `ResetLinkOnScreen.php` | Whether the forgot-password page may show the reset link itself |
 | `Tone.php` | The single source of truth for what a tone looks like |
 <!-- /code-map -->
 
@@ -441,6 +442,7 @@ database that already ran it.
 | `2026_10_28_110001_add_agent_and_sequence_to_telemetry_readings.php` | What the ingest API needs to store a reading once and in its place |
 | `2026_10_28_120001_hand_existing_devices_to_the_simulator.php` | The simulator becomes an agent (ADR-0010, roadmap task 1.5), so the devices |
 | `2026_10_29_090001_add_silent_since_to_agents_table.php` | When Atlas noticed that a probe agent stopped reporting (roadmap task 1.6) |
+| `2026_11_01_090001_add_is_system_to_ticket_comments_table.php` | Which ticket comments TicketService wrote itself: a status change or an |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -683,7 +685,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Auth/ForcedPasswordChangeTest.php` | Nobody uses Atlas NetCare on a password somebody else chose for them |
 | `Feature/Auth/PasswordResetDeliveryTest.php` | FR-102 delivery, which is the half that was actually broken |
 | `Feature/Auth/PasswordResetTest.php` | _no summary in the file_ |
-| `Feature/Auth/PasswordUpdateTest.php` | _no summary in the file_ |
+| `Feature/Auth/PasswordUpdateTest.php` | Changing your own password from the profile, and an administrator's reset: |
 | `Feature/Auth/RemovedAuthFeaturesTest.php` | Breeze features this system deliberately does not have |
 | `Feature/Auth/ResetWithoutMailTest.php` | Resetting a password on a machine that cannot send mail |
 | `Feature/AuthFormAccessibilityTest.php` | Sign-in and profile form errors are announced with the failing field |

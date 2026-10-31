@@ -37,6 +37,9 @@ export function compose(...args) {
             ATLAS_PORT: String(stack.port),
             ATLAS_DB_PORT: String(stack.dbPort),
             ATLAS_ENV_FILE: `./${stack.envFile}`,
+            // This machine only, whatever .env says. The stack has debug on
+            // and an administrator with the published demo password.
+            ATLAS_BIND: '127.0.0.1',
         },
     });
 }

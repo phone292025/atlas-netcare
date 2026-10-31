@@ -8,9 +8,11 @@
 /storage/pail
 /bootstrap/cache/*
 !/bootstrap/cache/.gitkeep
+# Every env file but the example: a second stack's copy (ATLAS_ENV_FILE)
+# holds the same secrets as .env.
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .phpunit.result.cache
 .phpunit.cache
 Homestead.json

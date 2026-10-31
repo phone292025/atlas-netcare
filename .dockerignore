@@ -9,6 +9,10 @@
 # Database backups, which hold every account's email and password hash.
 backups
 
+# Local SQLite databases, such as the UI preview, ignored by git for the same
+# reason: they hold accounts and password hashes. COPY . . took them along.
+database/*.sqlite*
+
 # Rebuilt inside the image from the lock files.
 vendor
 node_modules
