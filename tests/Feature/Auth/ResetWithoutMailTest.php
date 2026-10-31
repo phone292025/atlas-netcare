@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
@@ -25,6 +26,15 @@ use Tests\TestCase;
 class ResetWithoutMailTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The log mailer wrote every test's reset link into the developer's
+        // own storage/logs/laravel.log, where atlas:reset-link found it first.
+        config(['mail.mailers.log.channel' => 'null']);
+    }
 
     /** A machine with no mail account: local, debug on, nothing configured. */
     private function freshClone(): void
@@ -128,10 +138,14 @@ class ResetWithoutMailTest extends TestCase
             'atlas.mail_configured' => true,
         ]);
         $this->asLocal();
+        // Not sent: without this the test opened a connection to whatever
+        // MAIL_HOST the developer's .env names.
+        Notification::fake();
 
         $user = User::factory()->create();
 
         $this->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHas('status')
             ->assertSessionMissing('reset_link');
     }
 
@@ -149,6 +163,7 @@ class ResetWithoutMailTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHas('status')
             ->assertSessionMissing('reset_link');
     }
 
@@ -164,6 +179,7 @@ class ResetWithoutMailTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHas('status')
             ->assertSessionMissing('reset_link');
     }
 

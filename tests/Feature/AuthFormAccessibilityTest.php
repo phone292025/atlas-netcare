@@ -88,11 +88,18 @@ class AuthFormAccessibilityTest extends TestCase
     {
         // If one comes back, the system has two form vocabularies again and the
         // accessibility wiring quietly stops being universal.
-        foreach (glob(dirname(__DIR__, 2).'/resources/views/**/*.blade.php') as $file) {
-            $contents = file_get_contents($file);
+        // Every view at every depth. glob()'s ** is a single *, so it only
+        // saw one folder level and missed profile/partials, where these lived.
+        $files = collect(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 2).'/resources/views')))
+            ->filter(fn (\SplFileInfo $file) => str_ends_with($file->getFilename(), '.blade.php'));
+
+        $this->assertNotEmpty($files);
+
+        foreach ($files as $file) {
+            $contents = file_get_contents($file->getPathname());
 
             foreach (['<x-text-input', '<x-input-label', '<x-input-error', '<x-primary-button'] as $legacy) {
-                $this->assertStringNotContainsString($legacy, $contents, basename($file).' still uses '.$legacy);
+                $this->assertStringNotContainsString($legacy, $contents, $file->getFilename().' still uses '.$legacy);
             }
         }
     }
