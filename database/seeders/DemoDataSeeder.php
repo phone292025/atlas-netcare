@@ -413,7 +413,7 @@ class DemoDataSeeder extends Seeder
                     }
 
                     if (count($batch) === 1000) {
-                        TelemetryReading::insert($batch);
+                        TelemetryReading::insertOrIgnore($batch);
                         $readings += count($batch);
                         $batch = [];
                     }
@@ -421,8 +421,11 @@ class DemoDataSeeder extends Seeder
             }
         }
 
+        // OrIgnore: the scheduler keeps running while this seeds, and its
+        // gap fill can store the same simulated minute first. Same agent,
+        // sequence and time is the same reading.
         if ($batch !== []) {
-            TelemetryReading::insert($batch);
+            TelemetryReading::insertOrIgnore($batch);
             $readings += count($batch);
         }
 
