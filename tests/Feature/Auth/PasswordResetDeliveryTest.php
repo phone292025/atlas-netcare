@@ -38,6 +38,19 @@ class PasswordResetDeliveryTest extends TestCase
             ->assertSee('storage/logs/laravel.log');
     }
 
+    public function test_under_docker_the_screen_points_at_the_container_log(): void
+    {
+        // The stack logs to its output (LOG_CHANNEL=stderr): there is no
+        // laravel.log, and atlas:reset-link reads that file.
+        config(['app.debug' => true, 'atlas.mail_configured' => false, 'mail.default' => 'log', 'logging.default' => 'stderr']);
+
+        $this->get(route('password.request'))
+            ->assertOk()
+            ->assertSee('docker compose logs app | grep reset-password')
+            ->assertDontSee('storage/logs/laravel.log')
+            ->assertDontSee('atlas:reset-link');
+    }
+
     public function test_the_screen_names_the_missing_app_password(): void
     {
         /*

@@ -10,14 +10,26 @@
         : session('status')" />
 
     {{-- Say what will actually happen when this machine cannot send mail:
-         with MAIL_MAILER=log the link lands in storage/logs/laravel.log, and
-         with smtp but no password the send fails. Only while debug is on,
-         so it never appears on a configured deployment.
+         with MAIL_MAILER=log the link lands in the app's log, and with smtp
+         but no password the send fails. Where the log is depends on the
+         channel: the Docker stack sends it to the container's output
+         (LOG_CHANNEL=stderr), where the file and atlas:reset-link find
+         nothing. Only while debug is on, so it never appears on a configured
+         deployment.
 
          @see docs/02-open-questions.md Q11 --}}
     @if (config('app.debug') && ! config('atlas.mail_configured'))
         <x-alert type="warning" class="mb-4" title="No mail server is configured">
-            @if (config('mail.default') === 'log')
+            @if (config('mail.default') === 'log' && config('logging.default') === 'stderr')
+                Nothing will be sent. Laravel writes the reset link into the
+                app's log, which here is the container's output, instead of
+                delivering it.
+                <span class="mt-1 block">
+                    The link still works. Run
+                    <code class="font-mono text-xs">docker compose logs app | grep reset-password</code>
+                    to find it.
+                </span>
+            @elseif (config('mail.default') === 'log')
                 Nothing will be sent. Laravel writes the reset link into
                 <code class="font-mono text-xs">storage/logs/laravel.log</code>
                 instead of delivering it.
