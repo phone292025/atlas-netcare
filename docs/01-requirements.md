@@ -111,8 +111,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-501 |
- Collect one telemetry reading per active access point every minute. | Added |
+| FR-501 | Collect one telemetry reading per active access point every minute. | Added |
 | FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
 | FR-503 | Automatically raise a ticket when an access point goes offline. | Added |
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) |
