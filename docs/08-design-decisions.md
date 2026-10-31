@@ -1,8 +1,8 @@
 # What the proposal did not say
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-11-01
 >
-> Every decision here was made while building, because the code needed an answer and the proposal did not have one. None of them were agreed by the team.
+> Every decision here was made while building, because the code needed an answer and the proposal did not have one. They were made during the capstone, before Atlas became a solo project, and none of them were agreed by the team.
 
 ## Why this file exists
 
@@ -14,9 +14,9 @@ That matters. Ask "why 120 milliseconds?" and the true answer right now is "an A
 
 ## How to use this
 
-Sit down with the group once. Go through the list. For each one, say **keep** or **change**. Write the date and who was there at the bottom of this file.
+Go through the list once. For each one, say **keep** or **change**, and record the date at the bottom of this file.
 
-Twenty minutes of work turns forty invented answers into forty decisions you own.
+Twenty minutes of work turns forty invented answers into forty decisions you own. The 2.0 decisions are not here: each one has an ADR, listed in [roadmap.md](roadmap.md).
 
 Every entry says where to change it, because most are one line.
 
@@ -46,7 +46,7 @@ Every entry says where to change it, because most are one line.
 
 **I chose:** no reading for **5 minutes**.
 
-The collector polls every minute, so five minutes is five missed polls. Short enough to notice during a lecture. Long enough that one slow poll does not raise an alarm.
+The simulator measures every minute, and a probe agent sends about as often, so five minutes is five missed readings. Short enough to notice during a lecture. Long enough that one slow poll does not raise an alarm.
 
 **Where to change it:** `config/atlas.php`, `thresholds.offline_after_min`.
 
@@ -54,7 +54,7 @@ The collector polls every minute, so five minutes is five missed polls. Short en
 
 **I chose:** every **20 seconds**, by polling rather than WebSockets.
 
-Telemetry only arrives once a minute, so refreshing faster shows the same numbers again. A WebSocket server is infrastructure seven students would have to run, explain, and keep alive during a demo.
+Telemetry only arrives once a minute, so refreshing faster shows the same numbers again. A WebSocket server is infrastructure the capstone team would have had to run, explain, and keep alive during a demo. Phase 3 of the roadmap replaces polling with WebSockets.
 
 The page also stops polling when you switch tabs. A laptop left open overnight would otherwise make about four thousand pointless requests.
 
@@ -258,7 +258,7 @@ A status rather than an absence of one, so the roster can show it and a report c
 
 Mobile push needs a native app or service worker infrastructure this project does not have time for.
 
-The team has said it is willing to add email. **As of 2026-08-29 nothing stands in the way of it:** FR-102 needed a working mailer, so one exists, and every account now has a deliverable address. Emailing alarms is a decision nobody has taken rather than infrastructure nobody has. See [Q11](02-open-questions.md#q11).
+The team said it was willing to add email. **Nothing stands in the way of it:** FR-102 needed a working mailer, so one exists, configured in `.env` for any SMTP provider. Emailing alarms is a decision nobody has taken rather than infrastructure nobody has. Roadmap task 2.6 plans email, Telegram and phone push. See [Q11](02-open-questions.md#q11).
 
 
 ---
@@ -303,9 +303,9 @@ A log somebody can edit is not evidence of anything. Writing it automatically me
 
 **The proposal assumes** APU IT will grant access to real access points.
 
-**I chose** to build so that never mattering. Telemetry comes through a swappable driver. Simulated by default, real SNMP later, and switching is one line in `.env` plus one class. No screen, test, or migration changes.
+**I chose** to build so that never mattering. Telemetry came through a swappable driver, simulated by default, with real SNMP to follow. That was ADR-0002, and it answered "what if you never got network access?"
 
-This is ADR-0002 and it is the most defensible architectural decision in the project. Make sure whoever presents can explain it, because it directly answers "what if you never got network access?"
+*Since 2026-10-28 (roadmap task 1.5) there is no driver.* Probe agents push readings to `POST /api/v1/readings`, and the simulator is a virtual agent whose readings take the same path, through `TelemetryService::record()`. A device moves between the simulator and a real agent by its **Watched by** field. See [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), which superseded ADR-0002.
 
 ### The simulated data is a model, not random numbers
 
@@ -333,14 +333,14 @@ Forty access points at one reading a minute is about 1.7 million rows a month. K
 
 ## Still genuinely open
 
-**Q6, who creates user accounts**, is the only question with no answer built. In practice the code assumes administrators do, because nothing else was possible. It stays marked open because the team has never confirmed that only administrators should, or whether a supervisor should be able to as well.
+Nothing. **Q6, who creates user accounts**, was the last question with no answer built, and it was decided on 2026-09-04: administrators create every account, and a new account must change its password at first sign-in. See [Q6](02-open-questions.md#q6).
 
 ---
 
 ## Sign-off
 
-When the group has been through this list, record it here.
+When this list has been reviewed, record it here.
 
-| Date | Who was there | Decisions changed |
+| Date | Who | Decisions changed |
 |---|---|---|
 | *not yet done* | | |

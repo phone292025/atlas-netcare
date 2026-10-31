@@ -1,6 +1,6 @@
 # How the system works
 
-> **Last updated:** 2026-10-28 · **Covers:** all seven modules, built and tested.
+> **Last updated:** 2026-11-01 · **Covers:** all seven modules, and 2.0 through roadmap task 1.6: probe agents, the ingest API, network devices and the Unknown status.
 >
 > A walkthrough of everything that exists, why it is built that way, and where to find it. Written to be read start to finish by somebody who did not build it.
 
@@ -14,7 +14,7 @@ Three kinds of user sign in and see completely different systems.
 
 **Network engineers** watch Wi-Fi health and fix what the assistants report.
 
-**Administrators** own the reference data. Accounts, rooms, equipment, checklists, and the shift roster.
+**Administrators** own the reference data. Accounts, rooms, equipment, network devices and the agents that watch them, checklists, and the shift roster.
 
 Nobody sees a menu item they cannot use. The sidebar is built from one config file keyed by role, so an assistant never sees the ticket queue and an engineer never sees user management.
 
@@ -24,7 +24,7 @@ There is no sign-up page. Laravel ships with one and it has been deleted, with a
 
 That leaves the obvious problem of who creates the first administrator. `php artisan atlas:create-admin` does. It generates a random password, shows it once in the terminal, and flags the account to change it at the first sign-in. Nothing in the repository holds an admin password, because anything there is public.
 
-After sign-in, `DashboardRedirect` sends each role somewhere different. Assistants land on their shift screen, engineers on the AP dashboard, administrators on user management. Visiting `/` when signed out sends you to the login form. There is no public landing page at all, because a campus network tool has no public.
+After sign-in, `DashboardRedirect` sends each role somewhere different. Assistants land on their shift screen, engineers on their dashboard, administrators on user management. Visiting `/` when signed out sends you to the login form. There is no public landing page at all, because a campus network tool has no public.
 
 ---
 
@@ -58,15 +58,17 @@ A remark box appears only when you tap Issue, so a clean answer is one tap and a
 
 ## A day as an engineer
 
-**The dashboard.** Four tiles across the top, online, degraded, offline, and total clients connected. Below them every access point with its latest reading, latency, packet loss, and when it was last heard from.
+**The dashboard.** Four tiles across the top: tickets assigned to you, tickets past their target, tickets waiting for somebody, and what you resolved this week. Beside the ticket lists, an access point panel draws every access point as a square under its room, coloured by status, and lists the ones that need attention.
 
-The page refreshes itself every twenty seconds without reloading. It shows two times, because they answer different questions: when the page last fetched, and when the newest reading was actually taken. If the collector has stopped, the second one is old and a banner says so, because the statuses on the page are then the last known state rather than a measurement. If a refresh fails it keeps the last good numbers and says so rather than blanking. A dashboard that might be stale and does not admit it is worse than no dashboard, and until 2026-09-04 this one said "updated 1s ago" over readings two days old.
+**The Network monitor** is the full picture, the same page for all three roles. A tile per status, which also filters the list, then every access point with its latest reading, latency, packet loss, and when it was last heard from. A line above the tiles says where the numbers come from: the simulated feed, live probe agents, or both.
+
+The monitor and the dashboard panel refresh themselves every twenty seconds without reloading. It shows two times, because they answer different questions: when the page last fetched, and when the newest reading was actually taken. If the collector has stopped, the second one is old and a banner says so, because the statuses on the page are then the last known state rather than a measurement. If a refresh fails it keeps the last good numbers and says so rather than blanking. A dashboard that might be stale and does not admit it is worse than no dashboard, and until 2026-09-04 this one said "updated 1s ago" over readings two days old.
 
 It stops polling when you switch tabs.
 
 **Drilling in.** Clicking an access point opens 24 hours of history as a chart, peak clients and mean latency on two axes. The two lines track each other visibly, which is the point.
 
-That chart reads a summary table, not the raw readings. Twenty-four hours of raw data for one access point is 1,440 rows. The same period summarised is 24. NFR-02 asks for this under two seconds and scanning the raw table would be slow enough to notice during a demo.
+That chart reads the hourly summaries, not the raw readings. Twenty-four hours of raw data for one access point is 1,440 rows. The same period summarised is 24. The summaries are a TimescaleDB continuous aggregate the database derives from the readings, so no code writes them. NFR-02 asks for this under two seconds and scanning the raw table would be slow enough to notice during a demo.
 
 **The queue.** Tickets sorted by priority, then by what is due soonest. Anything past its target shows in red, and a counter in the header says how many.
 
@@ -76,15 +78,19 @@ Filters for status, priority, location, engineer, and a Mine toggle.
 
 Resolving opens a box and will not proceed without notes.
 
-**Being told about things.** When an access point drops, engineers get both a ticket and a notification. Once, on the transition. Not every minute for six hours.
+**Being told about things.** When a device drops, engineers get both a ticket and a notification. Once, on the transition. Not every minute for six hours.
+
+When a probe agent stops reporting, its devices turn **Unknown** rather than Offline, because nobody knows whether they are down. Engineers and administrators get one alert about the agent, and no ticket is raised. The next reading from a device sets its status again.
 
 ---
 
 ## A day as an administrator
 
-Reference data, mostly. Accounts, locations, lab PCs, access points, checklists, shift patterns, the roster, and a read-only audit log.
+Reference data, mostly. Accounts, locations, lab PCs, access points and other network devices, agents, checklists, shift patterns, the roster, and a read-only audit log.
 
-Two behaviours worth knowing.
+Three behaviours worth knowing.
+
+**An agent's token is shown once.** Registering a probe agent under **Agents** issues a token starting `atl_`, shown on the next screen and never again. Atlas stores only its SHA-256 hash. Rotating the token stops the old one at once, so a lost machine is locked out the moment somebody rotates it. Each device has a **Watched by** field naming the agent that measures it.
 
 **Retiring a machine writes two things at once.** The status becomes retired and the row is soft-deleted, together, always. Writing one without the other gives a machine that is retired according to a report and operational according to every list on screen. Retired machines stay reachable so their inspection history survives.
 
@@ -94,15 +100,17 @@ Two behaviours worth knowing.
 
 ## How it is put together
 
-Standard Laravel MVC with a thin service layer and exactly one abstraction. Seven students over eight weeks need an architecture each of them can explain under questioning, which rules out anything clever.
+Standard Laravel MVC with a thin service layer. It was built by a capstone team of seven, who each had to explain it under questioning, which ruled out anything clever. It is now a solo project, and the same plainness keeps it easy to change.
 
 ```
-Browser
-   |     Blade, Tailwind, Alpine for interactions, Chart.js for graphs
-Routes
-   |     grouped by role prefix
-Middleware
-   |     auth, then role. Nothing reaches a controller unverified
+Browser                                Probe agent
+   |   Blade, Tailwind, Alpine,           |   JSON batches, bearer token
+   |   Chart.js                           |
+Routes (web.php)                       Routes (api.php)
+   |   grouped by role prefix             |   one route, POST /api/v1/readings
+Middleware                             Middleware
+   |   auth, then role                    |   rate limit, body size, token, rate limit
+   +------------------+-------------------+
 Controller
    |     validate, hand decisions to a service, return a view
 Service
@@ -112,15 +120,17 @@ Model
 PostgreSQL
 ```
 
+Nothing reaches a controller unverified. A browser needs a session and the right role. An agent needs its token, and the token never becomes a signed-in user, so it opens no web screen.
+
 Scheduled commands enter at the service layer and skip the top three entirely. That is deliberate. A command and a browser request run the same logic. Retention and the hourly summaries are not commands at all: the database runs them as TimescaleDB jobs.
 
 Plain admin screens, such as editing a location or a lab PC, write the model straight from the controller once the form request has validated it and the admin role check has let it through. A few small rules sit there too, such as refusing to delete a location that still has equipment in it. See the architecture document.
 
 ### The rules live in services
 
-Eight of them, and each owns one thing.
+Each one owns one thing.
 
-`InspectionService` starts an inspection, saves answers, and derives the result. `ChecklistService` handles versioning and activation. `TicketService` owns the ticket state machine. `ShiftService` generates the roster and handles check-in and check-out. `AlarmService` is how anything in the system tells a person something. `TelemetryService` classifies a reading into a status. `RiskScoringService` turns measurements into a risk band. `ReportingService` builds the five report figures.
+`InspectionService` starts an inspection, saves answers, and derives the result. `ChecklistService` handles versioning and activation. `TicketService` owns the ticket state machine. `ShiftService` generates the roster and handles check-in and check-out. `AlarmService` is how anything in the system tells a person something. `TelemetryService` stores readings and classifies each into a status. `AgentService` registers agents and checks their tokens. `RiskScoringService` turns measurements into a risk band. `ReportingService` builds the five report figures.
 
 The pattern that matters: **a controller hands decisions to a service.** It validates the shape of a request, asks a service when there is something to decide, and renders the answer.
 
@@ -154,7 +164,7 @@ Nothing else in the system is allowed to write a match statement on a tone. That
 
 Every input is an `<x-form.*>` component with its label, help text, and error message wired together. Breeze's originals were deleted and a test asserts they never return.
 
-There are 23 shared components. `/dev/gallery` renders all of them and only exists when running locally.
+There are 31 shared components. `/dev/gallery` renders all of them and only exists when running locally.
 
 ---
 
@@ -170,7 +180,7 @@ The audit log is written by an observer rather than by controller code, so regis
 
 ### M2, locations and equipment
 
-Three tables. Rooms, lab PCs, access points.
+Three tables. Rooms, lab PCs, and network devices. Since 2.0 an access point is one kind of network device, beside switches, routers and servers, and each device can name a parent, such as the switch an access point plugs into.
 
 Asset tags and MAC addresses are unique in the database, not just in a validation rule. Duplicate asset tags are the classic inventory demo failure. MAC addresses are normalised to one format before storing, so the same device entered as `00-1b-44` and `00:1B:44` cannot slip past.
 
@@ -190,21 +200,23 @@ Starting an inspection twice resumes the first one. Tapping a button twice on a 
 
 Two tables. Tickets and comments.
 
-One ticket table serves both lab PCs and access points through a polymorphic column, and the asset is optional so a fault can belong to a room.
+One ticket table serves both lab PCs and network devices through a polymorphic column, and the asset is optional so a fault can belong to a room.
 
 Ticket numbers look like `TKT-2026-00001`. Readable, quotable over the phone, and reserved inside the same transaction that creates the ticket so two simultaneous requests cannot take the same number.
 
 ### M5, telemetry and the dashboard
 
-Two tables and the project's one real abstraction.
+Two tables, `agents` and `telemetry_readings`, plus `telemetry_hourly`, a continuous aggregate the database keeps.
 
-Everything else in the system is typed in by a user through our own screens and is real the moment it is typed. Telemetry is the only data arriving from outside, and the only data whose availability depends on a permission nobody controls. So it comes through an interface with two implementations chosen by config.
+Everything else in the system is typed in by a user through our own screens and is real the moment it is typed. Telemetry is the only data arriving from outside. Since 2.0 every reading comes from an agent. A **probe agent** runs on a machine inside the network, measures the devices it watches, and posts batches to `POST /api/v1/readings`. The **simulator** is a virtual agent inside Atlas that measures its devices once a minute.
 
-Going live is one line in `.env` plus writing one class. No screen, test, or migration moves.
+Both take one path into the database, `TelemetryService::record()`. It stores each reading once, under a unique key on agent, sequence number and time, so a batch sent twice adds nothing the second time. Then it classifies the reading and moves the device's status, and `TelemetryCollector::react()` raises the ticket and the alert. So the demonstration and a real network share one way in, and a test of one tests the other. Moving a device to a real agent is a change to its **Watched by** field.
 
-An unknown driver name throws rather than falling back to the simulator. A typo silently producing invented data on a system meant to be showing real readings is the worst outcome available.
+The ingest API refuses a reading for a device the agent does not watch, one measured more than five minutes in the future, and one older than seven days. It answers with what happened to each reading by sequence number: stored, a duplicate, or rejected with a reason.
 
 Classification lives in the service because it needs history. A single bad reading never changes anything.
+
+An agent that has not been heard from for three minutes is **silent**. Its devices turn Unknown, and one alert goes to engineers and administrators. A device that is Offline or under maintenance keeps that status.
 
 ### M6, shifts and alarms
 
@@ -218,7 +230,7 @@ Alarms are scheduled rather than written when they fire. A row with a trigger ti
 
 ## Running in the background
 
-Five commands, all prefixed `atlas:`. They do nothing unless the scheduler is running.
+Five scheduled commands, all prefixed `atlas:`. They do nothing unless the scheduler is running. Under Docker the `scheduler` service runs it. Without Docker:
 
 ```bash
 php artisan schedule:work
@@ -226,20 +238,23 @@ php artisan schedule:work
 
 | Command | When | What |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | one reading per access point |
+| `atlas:collect-telemetry` | every minute | the simulator's round, then the silence sweeps: devices nobody has heard from go Offline, a silent agent's devices go Unknown, and each newly silent agent raises one alert |
 | `atlas:dispatch-alarms` | every minute | raises SLA breaches, then sends anything due |
 | `atlas:mark-missed-shifts` | every five minutes | ended shifts nobody checked into become missed |
 | `atlas:generate-shifts` | Sunday evening | next week's roster from the patterns |
+| `atlas:recalculate-risk` | 02:00 daily | risk scores for every lab PC and access point |
 
-Two more you run yourself.
+Hourly summaries, compression and retention are TimescaleDB jobs. `atlas:telemetry-storage` sets them from `config/atlas.php` each time the app starts.
 
-`atlas:backfill-telemetry` invents plausible history so the charts have something to draw. Without it the 24-hour chart is empty until you have left the collector running for a day, which makes the headline feature undemonstrable.
+A few more you run yourself.
+
+`atlas:backfill-telemetry` invents plausible history for the simulator's devices so the charts have something to draw. A fresh demo install already has two weeks from the seeder, so this is for devices added later. It refuses devices a real agent watches, because a gap in real telemetry is a fact.
 
 `atlas:check-schema` audits the live database for problems the test suite cannot see. Run it after any migration.
 
-`atlas:mail-test` sends one real email. The suite fakes the mailer, so a fully green run says nothing whatsoever about whether SMTP works — the same blind spot as SQLite hiding the MariaDB timestamp bug. On failure it reads the server's wording and says which of the three usual causes it is. Run it before a demonstration, because a Google app password can be revoked without anything in the repository changing.
+`atlas:mail-test` sends one real email. The suite fakes the mailer, so a fully green run says nothing whatsoever about whether SMTP works, the same blind spot as SQLite hiding the MariaDB timestamp bug. On failure it reads the server's wording and says which of the three usual causes it is. Run it before relying on mail, because an app password can be revoked without anything in the repository changing.
 
-**Aggregation and roster generation are both safe to run twice.** They are scheduled and there are buttons for them, so they will be run twice. Aggregation corrects rows rather than doubling every point on a chart. Generation adds nothing rather than rostering everybody again.
+**A backfill and roster generation are both safe to run twice.** A backfill numbers its readings the way the simulator does, so the unique key turns a second run into duplicates that are not stored. Generation adds nothing rather than rostering everybody again.
 
 ---
 
@@ -267,11 +282,13 @@ Two habits came out of building this.
 
 **A demo dataset with anything in the top two risk bands.** Every seeded asset scores Low or Medium, because the demo data holds no old machines and no degrading links. The scoring is right; there is nothing dramatic to score. A maintenance ranking with no Critical row does not show what the screen is for, so this is worth fixing before the demonstration.
 
-**Real SNMP telemetry.** The driver is a deliberate stub that throws with instructions.
+**A real probe agent.** The ingest API is built and tested, but the Go agent that will call it is roadmap task 1.7. Until then every demo device is watched by the simulator.
 
-**Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, an access point dropping, still reach the bell only.
+**Incidents and on-call.** A device going offline raises a ticket directly. Phase 2 of the roadmap puts incidents between readings and tickets, and alerts whoever the roster says is on shift.
 
-Email is no longer on this list. FR-102 sends a password reset link through whichever SMTP server `.env` names, and through Gmail it was confirmed arriving on a phone on 2026-08-29. Out of the box mail goes to the log, and the reset screen shows the link on a local install. Alarms could be emailed too: that is a choice nobody has made rather than a thing that cannot be done.
+**Push notifications.** Alarms reach the notification bell inside the application and nothing else. Shift reminders are the exception and get out to the phone through its own calendar, which alarms with the app closed. Unplanned events, a device dropping, still reach the bell only.
+
+Email is no longer on this list. FR-102 sends a password reset link through whichever SMTP server `.env` names, and it was confirmed arriving on a phone on 2026-08-29. Out of the box mail goes to the log, and the reset screen shows the link on a local install. Alarms could be emailed too: that is a choice nobody has made rather than a thing that cannot be done.
 
 ---
 
@@ -280,7 +297,7 @@ Email is no longer on this list. FR-102 sends a password reset link through whic
 | Question | File |
 |---|---|
 | Why is it built this way? | `docs/decisions/` |
-| What did we assume rather than decide? | `docs/08-design-decisions.md` |
+| What was assumed rather than decided? | `docs/08-design-decisions.md` |
 | What is the schema? | `docs/04-database.md` |
 | What does this module do? | `docs/modules/` |
 | What changed and why? | `docs/progress/decision-log.md` |

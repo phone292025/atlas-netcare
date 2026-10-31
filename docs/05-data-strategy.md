@@ -3,7 +3,7 @@
 # Data Strategy
  — Mock, Real, or Both
 
-> **Last updated:** 2026-10-28 · **Decision:** [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) (which superseded ADR-0002), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
+> **Last updated:** 2026-11-01 · **Decision:** [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) (which superseded ADR-0002), [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md)
 >
 > **Read this before writing any seeder, factory, or anything that produces data.**
 
@@ -50,11 +50,11 @@ Register a probe agent under **Agents**, then set **Watched by** on the device. 
 
 ### Writing the simulator
 
-Write it with a little care and it becomes an asset rather than a liability. Roughly sixty lines:
+Write it with a little care and it becomes an asset rather than a liability. `SimulatedReadings` models:
 
 - A **daily curve** — quiet overnight, rising from 08:00, peaking mid-afternoon, falling after 18:00
 - A **weekday/weekend** difference
-- A configurable **exam-week multiplier** so you can demonstrate congestion on demand
+- **Forced scenarios** (congestion, outage, feed interruption) from the Network monitor, so you can demonstrate a fault on demand
 - Per-AP **baseline variation** so some access points are naturally busier than others
 - A small random chance an AP **drops offline** for a few minutes, so the auto-ticketing and alarm paths have something to fire on
 - Latency and packet loss that **rise with saturation**, so the numbers are internally consistent
@@ -68,7 +68,7 @@ That last point matters more than it sounds. If latency is random noise uncorrel
 | Seeder | Contains | Runs |
 |---|---|---|
 | `ReferenceSeeder` | Campus locations, checklist templates and items, shift templates. No account: `atlas:create-admin` makes the first administrator. The minimum a genuine deployment needs on day one. | **Always** |
-| `DemoDataSeeder` | ~40 access points, ~250 lab PCs, 90 days of telemetry, ~300 tickets across every state, inspection history, sample users. All tagged `is_demo = true`. | **Only when `ATLAS_DEMO_MODE=true`** |
+| `DemoDataSeeder` | 24 access points, a core router and one switch per location, 80 lab PCs, 14 days of telemetry, 43 tickets, 25 inspections, and one demo account per role plus a second assistant. All tagged `is_demo = true`, and every network device watched by the simulator. | **Only when `ATLAS_DEMO_MODE=true`** |
 
 ```php
 // database/seeders/DatabaseSeeder.php
@@ -84,12 +84,12 @@ public function run(): void
 
 ### Factories vs seeders
 
-- **Factories** produce demo data — `LabPc::factory()->count(250)->create()`. The same factories power feature tests, so there is only ever one set of fixtures to maintain.
+- **Factories** produce demo data, such as `AccessPoint::factory()->demo()->create()`. The same factories power feature tests, so there is only ever one set of fixtures to maintain.
 - **Seeders** produce reference data — explicit, readable, hand-written records. Never write a factory for reference data; a location called "Level 6 IT Lab 01" should appear literally in the seeder where anyone can read it.
 
-### Seeding 90 days of telemetry
+### Seeding 14 days of telemetry
 
-Do not loop and `create()` 1.7 million rows — it will take an hour. Build arrays and `insert()` in chunks of ~2,000, and let the simulator generate readings at a coarser interval (every 5 minutes rather than every minute) for historical backfill. Note the interval difference in the seeder comment so nobody is confused later.
+The seeder writes raw readings every 5 minutes rather than every minute, about 97,000 rows for 24 access points, bulk inserted in chunks of 1,000. Looping over `create()` would take minutes for nothing. It writes no hourly rows: the hourly summaries are a continuous aggregate the database derives from the readings, so the seeder refreshes it over the window it wrote. Two weeks is the window the access point risk trends read.
 
 ---
 
@@ -99,8 +99,8 @@ Two small columns do the work of an entire second environment:
 
 | Column | On | Values |
 |---|---|---|
-| `source` | `telemetry_readings`, `telemetry_hourly` | `simulated` · `live` |
-| `is_demo` | `users`, `lab_pcs`, `access_points`, `tickets` | boolean, set only by `DemoDataSeeder` |
+| `source` | `telemetry_readings`, and the `telemetry_hourly` aggregate groups by it | `simulated` · `live` |
+| `is_demo` | `users`, `lab_pcs`, `network_devices`, `tickets` | boolean, set only by `DemoDataSeeder` |
 
 Then one command answers "how do we get rid of the fake data?":
 
@@ -120,7 +120,7 @@ Five entry points. Know which one you are working on.
 
 | # | Entry point | Mechanism | Mock or real? |
 |---|---|---|---|
-| 1 | **AP telemetry** | Scheduled command → driver → `telemetry_readings` | **The only genuine question.** Simulated by default. |
+| 1 | **Network telemetry** | A probe agent's batch to `POST /api/v1/readings`, or the simulator's round each minute, both through `TelemetryService::record()` into `telemetry_readings` | **The only genuine question.** Simulated by default. |
 | 2 | **Inspections** | Assistant UI form | Real when a user types it; seeded for demo history |
 | 3 | **Tickets** | Assistant or engineer UI, or auto-raised by the system on AP offline | Real when a user types it; seeded for demo |
 | 4 | **Inventory, locations, users** | Admin UI | Real when a user types it; seeded for demo |
@@ -144,12 +144,12 @@ Five entry points. Know which one you are working on.
 **What this costs us**
 
 - An `is_demo` column on four tables that a production system would not need.
-- The simulator has to be written well enough to be plausible — sixty lines, but thought-through ones.
-- If live SNMP access ever arrives, credential storage becomes a new problem we have not solved.
+- The simulator has to be written well enough to be plausible.
+- The Go agent (roadmap task 1.7) will need SNMP community strings for the devices it checks. They go in the agent's own config file, so Atlas never holds them, and keeping that file safe is the agent machine owner's job.
 
 **What this buys us**
 
-- Switching to live data is a one-line `.env` change plus one class.
+- Moving a device to live data is a change to its **Watched by** field, once a probe agent is registered.
 - Every controller, service and view has a single code path, so there is no "works with mock data, breaks with real data" class of bug.
 - Demo data is removable with one command.
 - The demo is reproducible: `php artisan migrate:fresh --seed` gives the same rich dataset on any machine, every time.
@@ -158,4 +158,4 @@ Five entry points. Know which one you are working on.
 
 ## In one paragraph
 
-> "Only one data source in our system is external, so that is the only place we abstracted. Everything else is user-entered, so mock and real data are the same shape and share one code path. Switching to live telemetry is a config change and one new class, and our demo data is removable with a single artisan command."
+> Only one data source in Atlas is external, network telemetry, so that is the only place with two producers. Everything else is user-entered, so mock and real data are the same shape and share one code path. A probe agent and the simulator both send readings through `TelemetryService::record()`, a device moves between them by its **Watched by** field, and demo data is removable with a single artisan command.
