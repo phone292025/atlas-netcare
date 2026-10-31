@@ -46,7 +46,7 @@
         </x-alert>
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <div class="space-y-6">
             <x-card title="Machine">
                 <dl class="divide-y divide-line text-sm">
@@ -105,11 +105,7 @@
                     'action' => $e->action.' this machine',
                     'description' => $e->changes ? 'Changed: '.implode(', ', array_keys($e->changes)) : null,
                     'at' => $e->created_at,
-                    'tone' => match ($e->action) {
-                        'created', 'restored' => 'healthy',
-                        'deleted' => 'urgent',
-                        default => 'attention',
-                    },
+                    'tone' => $e->tone(),
                 ])" />
             </x-card>
         </div>

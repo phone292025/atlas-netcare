@@ -54,11 +54,7 @@
                     </span>
                 </td>
                 <td class="px-4 py-3">
-                    <x-badge :tone="match ($log->action) {
-                        'created', 'restored' => 'healthy',
-                        'archived', 'deleted' => 'urgent',
-                        default => 'attention',
-                    }">{{ ucfirst($log->action) }}</x-badge>
+                    <x-badge :tone="$log->tone()">{{ ucfirst($log->action) }}</x-badge>
                 </td>
                 <td class="px-4 py-3 text-fg-muted">
                     <span class="text-fg">{{ $log->subjectLabel() }}</span>

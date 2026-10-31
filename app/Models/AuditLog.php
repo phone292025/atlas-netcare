@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,20 @@ class AuditLog extends Model
             'previous' => 'array',
             'created_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The tone of this entry's action, for a badge or a timeline dot.
+     * The observer writes 'archived' for a soft delete and 'deleted' for a
+     * hard one, so both are urgent.
+     */
+    public function tone(): string
+    {
+        return match ($this->action) {
+            'created', 'restored' => Tone::HEALTHY,
+            'archived', 'deleted' => Tone::URGENT,
+            default => Tone::ATTENTION,
+        };
     }
 
     /** @return BelongsTo<User, $this> */

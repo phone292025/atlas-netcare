@@ -220,6 +220,20 @@ class LabPcInventoryTest extends TestCase
             ->assertSee($gone->asset_tag);
     }
 
+    public function test_a_retired_machine_offers_no_edit_link(): void
+    {
+        // Edit is not withTrashed, so the link was a 404.
+        $kept = LabPc::factory()->create();
+        $gone = LabPc::factory()->create();
+        $gone->delete();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.lab-pcs.index', ['retired' => 1]))
+            ->assertOk()
+            ->assertSee(route('admin.lab-pcs.edit', $kept))
+            ->assertDontSee(route('admin.lab-pcs.edit', $gone));
+    }
+
     public function test_a_retired_machine_keeps_its_history_reachable(): void
     {
         /*

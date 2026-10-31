@@ -96,10 +96,13 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <a href="{{ route('admin.devices.edit', $device) }}" onclick="event.stopPropagation()"
-                       class="btn btn-ghost btn-sm opacity-0 transition group-hover:opacity-100 focus:opacity-100">
-                        <x-icon name="edit" class="size-3.5" /> Edit
-                    </a>
+                    {{-- A retired one can't be edited, only restored from its page. --}}
+                    @unless ($device->trashed())
+                        <a href="{{ route('admin.devices.edit', $device) }}" onclick="event.stopPropagation()"
+                           class="btn btn-ghost btn-sm opacity-0 transition group-hover:opacity-100 focus:opacity-100">
+                            <x-icon name="edit" class="size-3.5" /> Edit
+                        </a>
+                    @endunless
                 </td>
             </tr>
         @endforeach

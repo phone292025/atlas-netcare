@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Location;
+use App\Models\NetworkDevice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -239,5 +241,21 @@ class AccessPointInventoryTest extends TestCase
             ->assertRedirect(route('admin.aps.show', $ap));
 
         $this->assertNotSoftDeleted('network_devices', ['id' => $ap->id]);
+    }
+
+    public function test_restoring_lets_go_of_a_switch_retired_meanwhile(): void
+    {
+        // Retire the access point, then its switch, then bring the access
+        // point back: it pointed at a switch no screen shows.
+        $switch = NetworkDevice::factory()->kind(DeviceKind::Switch)->create();
+        $ap = AccessPoint::factory()->create(['parent_id' => $switch->id]);
+        $ap->delete();
+        $switch->delete();
+
+        $this->actingAs($this->admin())
+            ->patch(route('admin.aps.restore', $ap))
+            ->assertRedirect(route('admin.aps.show', $ap));
+
+        $this->assertNull($ap->fresh()->parent_id);
     }
 }

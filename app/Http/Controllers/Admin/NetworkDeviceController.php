@@ -43,6 +43,7 @@ class NetworkDeviceController extends Controller
                 // tickets stay readable.
                 ->when($request->boolean('removed'), fn ($q) => $q->withTrashed())
                 ->orderBy($this->sortColumn($request), $request->string('direction')->value() === 'desc' ? 'desc' : 'asc')
+                ->orderBy('id')
                 ->paginate(25)
                 ->withQueryString(),
             'kinds' => DeviceKind::nonAccessPointOptions(),
@@ -72,7 +73,7 @@ class NetworkDeviceController extends Controller
             'device' => $networkDevice->load(['location', 'parent', 'agent']),
             // Access points included: they are what hangs from a switch.
             'children' => $networkDevice->children()->with('location')->orderBy('code')->get(),
-            'events' => AuditLog::forSubject($networkDevice)->with('user')->latest('created_at')->limit(20)->get(),
+            'events' => AuditLog::forSubject($networkDevice)->with('user')->latest('created_at')->latest('id')->limit(20)->get(),
             'tickets' => $networkDevice->tickets()->with('assignee')->latest('opened_at')->limit(10)->get(),
         ]);
     }

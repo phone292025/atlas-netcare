@@ -54,6 +54,18 @@ class Location extends Model
         return $this->hasMany(NetworkDevice::class);
     }
 
+    /** @return HasMany<ShiftTemplate, $this> */
+    public function shiftTemplates(): HasMany
+    {
+        return $this->hasMany(ShiftTemplate::class);
+    }
+
+    /** @return HasMany<Shift, $this> */
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Shift::class);
+    }
+
     /**
      * "L6-IT-01 — Level 6 IT Lab 01", for a select or a table cell.
      *

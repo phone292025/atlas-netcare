@@ -37,6 +37,7 @@ class UserController extends Controller
             ->when($request->filled('role'), fn ($q) => $q->where('role', $request->string('role')))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->string('status')->value() === 'active'))
             ->orderBy($this->sortColumn($request), $request->string('direction')->value() === 'desc' ? 'desc' : 'asc')
+            ->orderBy('id')
             ->paginate(20)
             // Without this, paging away from page 1 drops the filters the user
             // just chose and the list appears to reset itself.
@@ -92,7 +93,7 @@ class UserController extends Controller
 
         return view('admin.users.show', [
             'user' => $user,
-            'events' => AuditLog::forSubject($user)->with('user')->latest('created_at')->limit(30)->get(),
+            'events' => AuditLog::forSubject($user)->with('user')->latest('created_at')->latest('id')->limit(30)->get(),
         ]);
     }
 

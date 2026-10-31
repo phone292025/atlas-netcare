@@ -27,7 +27,9 @@ class AuditLogController extends Controller
             ->when($request->filled('action'), fn ($q) => $q->where('action', $request->string('action')))
             ->when($request->filled('type'), fn ($q) => $q->where('auditable_type', $request->string('type')))
             ->when($request->filled('user'), fn ($q) => $q->where('user_id', $request->integer('user')))
+            // created_at is to the second, and one request writes many rows.
             ->latest('created_at')
+            ->latest('id')
             ->paginate(50)
             ->withQueryString();
 

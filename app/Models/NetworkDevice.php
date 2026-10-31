@@ -120,6 +120,24 @@ class NetworkDevice extends Model
     }
 
     /**
+     * Back from retirement, it lets go of a parent or an agent that was
+     * retired meanwhile. Otherwise it pointed at a device or agent no screen
+     * shows, and the next edit dropped the link without a word.
+     */
+    protected static function booted(): void
+    {
+        static::restoring(function (NetworkDevice $device): void {
+            if ($device->parent_id !== null && ! NetworkDevice::query()->whereKey($device->parent_id)->exists()) {
+                $device->parent_id = null;
+            }
+
+            if ($device->agent_id !== null && ! Agent::query()->whereKey($device->agent_id)->exists()) {
+                $device->agent_id = null;
+            }
+        });
+    }
+
+    /**
      * The device this one hangs from, such as the switch an access point
      * plugs into. When both fail together, the fault is the parent's.
      *

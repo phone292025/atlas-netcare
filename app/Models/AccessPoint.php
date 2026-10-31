@@ -61,6 +61,8 @@ class AccessPoint extends NetworkDevice
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::addGlobalScope('access_points', function (Builder $query): void {
             $query->where($query->qualifyColumn('kind'), DeviceKind::AccessPoint->value);
         });

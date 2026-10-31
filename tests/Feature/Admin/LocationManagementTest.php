@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\ShiftTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -135,6 +136,19 @@ class LocationManagementTest extends TestCase
         $location = Location::factory()->create();
         $pc = LabPc::factory()->for($location)->create();
         $pc->delete();
+
+        $this->actingAs($this->admin())
+            ->delete(route('admin.locations.destroy', $location))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('locations', ['id' => $location->id]);
+    }
+
+    public function test_a_location_on_the_roster_cannot_be_deleted(): void
+    {
+        // Shift patterns and shifts hold it by a restricting foreign key too.
+        $location = Location::factory()->create();
+        ShiftTemplate::factory()->create(['location_id' => $location->id]);
 
         $this->actingAs($this->admin())
             ->delete(route('admin.locations.destroy', $location))

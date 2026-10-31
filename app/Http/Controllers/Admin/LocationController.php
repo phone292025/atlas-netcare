@@ -70,9 +70,9 @@ class LocationController extends Controller
     /**
      * Deleting is allowed only while nothing lives here.
      *
-     * The database enforces this too — restrictOnDelete on lab_pcs and
-     * network_devices — but a foreign key error is not an explanation. This
-     * turns it into one.
+     * The database enforces this too, with restrictOnDelete on lab_pcs,
+     * network_devices, shift_templates and shifts, but a foreign key error
+     * is not an explanation. This turns it into one.
      */
     public function destroy(Location $location): RedirectResponse
     {
@@ -84,13 +84,15 @@ class LocationController extends Controller
          * exists to prevent.
          */
         $held = $location->labPcs()->withTrashed()->count()
-            + $location->networkDevices()->withTrashed()->count();
+            + $location->networkDevices()->withTrashed()->count()
+            + $location->shiftTemplates()->count()
+            + $location->shifts()->count();
 
         if ($held > 0) {
             // Named "records", not "assets", because the count deliberately
             // includes retired ones — otherwise the message reads as nonsense
             // next to a list showing this location with nothing in it.
-            return back()->with('error', "{$location->code} still has {$held} ".str('record')->plural($held).' pointing at it, including any retired ones. Move them to another location first.');
+            return back()->with('error', "{$location->code} still has {$held} ".str('record')->plural($held).' pointing at it: machines, devices, shift patterns or shifts, including any retired ones. Move them to another location first.');
         }
 
         $location->delete();

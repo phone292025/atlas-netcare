@@ -73,6 +73,18 @@ class AuditObserverTest extends TestCase
         $this->assertSame(0, $this->updates());
     }
 
+    public function test_retiring_a_machine_reads_as_urgent_in_its_history(): void
+    {
+        // The observer writes 'archived' for a soft delete. The history views
+        // matched only 'deleted', so a retirement showed as a plain change.
+        $pc = LabPc::factory()->create();
+        $pc->delete();
+
+        $entry = AuditLog::forSubject($pc)->where('action', 'archived')->sole();
+
+        $this->assertSame('urgent', $entry->tone());
+    }
+
     public function test_a_status_the_collector_sets_is_not_audited(): void
     {
         // Every reading row records the status, and at peak an access point
