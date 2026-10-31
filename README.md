@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,178 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
+The suite has 1,179 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
 
 ## Getting started
 
@@ -216,10 +216,10 @@ For a forgotten password, use "Forgot password" on the sign-in page.
 
 ### Email
 
-Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead, and on your own machine the reset screen shows the link as well. To print the newest link:
+Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead, and on your own machine the reset screen shows the link as well. Under Docker the log is the container's output, so this shows the message:
 
 ```bash
-docker compose exec app php artisan atlas:reset-link
+docker compose logs app
 ```
 
 To send real mail, put your mail provider's SMTP settings in `.env`:
