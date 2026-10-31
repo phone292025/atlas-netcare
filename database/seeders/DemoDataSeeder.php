@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Services\Risk\RiskScoringService;
 use App\Services\Telemetry\Simulator;
 use App\Services\Telemetry\TelemetryStorage;
+use App\Support\CampusClock;
 use Illuminate\Database\Seeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -702,6 +703,9 @@ class DemoDataSeeder extends Seeder
      */
     private function busyness(Carbon $at): float
     {
+        // Campus time, as SimulatedReadings reads it. In UTC the seeded
+        // fortnight peaked eight hours late.
+        $at = $at->copy()->setTimezone(CampusClock::timezone());
         $hour = (int) $at->format('G');
 
         $curve = match (true) {

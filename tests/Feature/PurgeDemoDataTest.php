@@ -249,6 +249,29 @@ class PurgeDemoDataTest extends TestCase
         $this->assertDatabaseHas('lab_pcs', ['id' => $demoPc->id]);
     }
 
+    public function test_it_refuses_while_a_demo_account_reported_a_real_ticket(): void
+    {
+        // A real device dropping is ticketed in the first administrator's
+        // name, the demo one on a demo install. reported_by is RESTRICT, so
+        // the purge used to fail at its last step with the rest already gone.
+        $this->realAdmin();
+        $demo = $this->demoAssistant();
+        $demoPc = LabPc::factory()->demo()->create();
+
+        Ticket::factory()->create([
+            'ticket_number' => 'TKT-REAL-002',
+            'is_demo' => false,
+            'reported_by' => $demo->id,
+        ]);
+
+        $this->artisan('atlas:purge-demo-data', ['--force' => true])
+            ->expectsOutputToContain('TKT-REAL-002')
+            ->assertExitCode(1);
+
+        $this->assertDatabaseHas('lab_pcs', ['id' => $demoPc->id]);
+        $this->assertDatabaseHas('users', ['id' => $demo->id]);
+    }
+
     public function test_the_refusal_can_be_overridden_deliberately(): void
     {
         $reporter = $this->realAdmin();

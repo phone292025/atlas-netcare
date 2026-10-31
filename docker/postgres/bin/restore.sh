@@ -70,14 +70,14 @@ psql -U "$user" -d "$target" -v ON_ERROR_STOP=1 -qtAc "SELECT timescaledb_post_r
 # file. The restored database is dumped the way backup.sh dumps, and both
 # dumps are written out as SQL by the same command, so tables come out in the
 # same order. Comments and the random \restrict keys differ between any two
-# dumps, so they are left out. Only the public schema is compared: when phase
-# 1 adds hypertables, their chunks live in _timescaledb_internal and need
-# comparing too.
+# dumps, so they are left out. The hypertable's chunks and the hourly
+# aggregate's rows live in _timescaledb_internal, so that schema is compared
+# too: on public alone, the readings were never checked.
 if ! pg_dump -U "$user" -d "$target" --format=custom --file="$copy" 2> "$log"; then
     cat "$log" >&2
     exit 1
 fi
-data() { pg_restore --data-only --schema=public --file=- "$1" | grep -v -e '^--' -e '^\\restrict ' -e '^\\unrestrict '; }
+data() { pg_restore --data-only --schema=public --schema=_timescaledb_internal --file=- "$1" | grep -v -e '^--' -e '^\\restrict ' -e '^\\unrestrict '; }
 data "$file" > "$expected"
 data "$copy" > "$actual"
 
@@ -88,7 +88,7 @@ if ! cmp -s "$expected" "$actual"; then
 fi
 
 tables=$(psql -U "$user" -d "$target" -tAc \
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('public', '_timescaledb_internal') AND table_type = 'BASE TABLE'")
 rows=$(awk '/^COPY .* FROM stdin;$/ { inside = 1; next } /^\\\.$/ { inside = 0; next } inside { n++ } END { print n + 0 }' "$expected")
 
 echo "Restored $file into $target: $tables tables and $rows rows, identical to the backup."

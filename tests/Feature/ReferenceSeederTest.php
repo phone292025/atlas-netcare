@@ -156,4 +156,20 @@ class ReferenceSeederTest extends TestCase
 
         $this->assertSame($before, ShiftTemplate::count());
     }
+
+    public function test_seeding_again_keeps_what_an_administrator_changed(): void
+    {
+        // The README says to seed again to reset a demo password. That run
+        // must not undo an edited location or switch a pattern back on.
+        $this->seed(ReferenceSeeder::class);
+        $location = Location::query()->where('code', 'LIB-L3')->sole();
+        $location->update(['name' => 'Library, renamed']);
+        $pattern = ShiftTemplate::query()->first();
+        $pattern->update(['is_active' => false]);
+
+        $this->seed(ReferenceSeeder::class);
+
+        $this->assertSame('Library, renamed', $location->fresh()->name);
+        $this->assertFalse($pattern->fresh()->is_active);
+    }
 }

@@ -76,7 +76,7 @@ class PurgeDemoData extends Command
             return self::SUCCESS;
         }
 
-        if (! $this->orphanCheckPasses()) {
+        if (! $this->orphanCheckPasses() || ! $this->reporterCheckPasses()) {
             return self::FAILURE;
         }
 
@@ -93,11 +93,17 @@ class PurgeDemoData extends Command
             return self::SUCCESS;
         }
 
-        $deleted = 0;
+        // All or nothing. A step that failed halfway used to leave the
+        // earlier ones done and the demo accounts still there.
+        $deleted = DB::transaction(function () use ($plan): int {
+            $deleted = 0;
 
-        foreach ($plan as $step) {
-            $deleted += $this->purge($step);
-        }
+            foreach ($plan as $step) {
+                $deleted += $this->purge($step);
+            }
+
+            return $deleted;
+        });
 
         // The hourly summaries are derived from the readings, and the ones it
         // had already stored would outlive them without this.
@@ -210,6 +216,32 @@ class PurgeDemoData extends Command
             'query' => $s[2],
             'count' => $s[2]()->count(),
         ], $steps);
+    }
+
+    /**
+     * Refuse while a real ticket names a demo account as its reporter.
+     * `reported_by` is RESTRICT, so the accounts could not be deleted. It
+     * happens: an outage on a real device is attributed to the first
+     * administrator, which on a demo install is the default one.
+     */
+    private function reporterCheckPasses(): bool
+    {
+        $held = DB::table('tickets')
+            ->where('is_demo', false)
+            ->whereIn('reported_by', DB::table('users')->where('is_demo', true)->select('id'))
+            ->pluck('ticket_number');
+
+        if ($held->isEmpty()) {
+            return true;
+        }
+
+        $this->error("  {$held->count()} real ".str('ticket')->plural($held->count())
+            .' were reported by a demonstration account: '.$held->take(10)->implode(', ').'.');
+        // Closing one changes nothing: reported_by still names the account.
+        $this->line('  Nothing was deleted. Reassign those tickets to a real account, or keep the demo accounts.');
+        $this->line('');
+
+        return false;
     }
 
     /**

@@ -81,7 +81,8 @@ class ReferenceSeeder extends Seeder
         ];
 
         foreach ($locations as $location) {
-            Location::updateOrCreate(['code' => $location['code']], $location);
+            // Never overwrites: an administrator may have renamed or retyped it.
+            Location::firstOrCreate(['code' => $location['code']], $location);
         }
 
         $this->command?->info('  '.count($locations).' campus locations.');
@@ -164,7 +165,8 @@ class ReferenceSeeder extends Seeder
      * administrator edits, not demo data, so `shift_templates` has no
      * `is_demo` column.
      *
-     * Keyed on name, so running this twice changes nothing.
+     * Keyed on name, and an existing pattern is left as it is, so running
+     * this twice changes nothing.
      */
     private function shiftPatterns(): void
     {
@@ -194,7 +196,9 @@ class ReferenceSeeder extends Seeder
                 continue;
             }
 
-            ShiftTemplate::updateOrCreate(
+            // Never overwrites: an administrator may have changed its times
+            // or switched it off, and re-seeding resets demo passwords.
+            ShiftTemplate::firstOrCreate(
                 ['name' => $name],
                 [
                     'day_of_week' => $day,
