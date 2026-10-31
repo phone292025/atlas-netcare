@@ -328,6 +328,27 @@ class ChecklistTemplateTest extends TestCase
 
     // ------------------------------------------------------------ versioning maths
 
+    public function test_creating_a_template_names_its_version(): void
+    {
+        // version is a column default, so the model create() returns lacked it.
+        $this->actingAs($this->admin())
+            ->post(route('admin.checklists.store'), $this->payload())
+            ->assertSessionHas('success', fn (string $message) => str_contains($message, 'v1 created'));
+    }
+
+    public function test_the_edit_page_promises_the_version_saving_will_make(): void
+    {
+        // Editing v1 while v3 exists makes v4, not v2.
+        $v1 = $this->usedTemplate();
+        ChecklistTemplate::factory()->create(['name' => $v1->name, 'version' => 3]);
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.checklists.edit', $v1))
+            ->assertOk()
+            ->assertSee('Save as version 4')
+            ->assertDontSee('Save as version 2');
+    }
+
     public function test_a_new_version_never_collides_with_an_existing_one(): void
     {
         /*

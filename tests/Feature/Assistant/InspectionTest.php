@@ -199,10 +199,11 @@ class InspectionTest extends TestCase
         $this->assertCount(2, $completed->results);
     }
 
-    public function test_resubmitting_corrects_answers_rather_than_doubling_them(): void
+    public function test_a_second_submit_is_refused_and_doubles_nothing(): void
     {
         // A phone on bad campus Wi-Fi is the normal case here, so a double
-        // submit must not count the same issue twice.
+        // submit must not count the same issue twice, nor rewrite a record
+        // the policy treats as finished evidence.
         $template = $this->template();
         $inspection = Inspection::factory()->create([
             'checklist_template_id' => $template->id,
@@ -215,9 +216,16 @@ class InspectionTest extends TestCase
         )->all();
 
         $service->complete($inspection, $answers);
-        $service->complete($inspection->fresh(), $answers);
+        $finishedAt = $inspection->fresh()->completed_at;
+
+        try {
+            $service->complete($inspection->fresh(), $answers);
+            $this->fail('A second submit should be refused.');
+        } catch (DomainException) {
+        }
 
         $this->assertCount(2, $inspection->fresh()->results);
+        $this->assertTrue($finishedAt->eq($inspection->fresh()->completed_at));
     }
 
     // ------------------------------------------------- starting a round

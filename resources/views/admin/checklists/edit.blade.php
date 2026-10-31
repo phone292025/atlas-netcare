@@ -22,7 +22,7 @@
              before the edit rather than after it. --}}
         <x-alert type="warning" class="mb-4" title="This checklist has been used">
             Inspections point at these exact items, so saving will create
-            <strong>version {{ $template->version + 1 }}</strong> rather than change this one.
+            <strong>version {{ $nextVersion }}</strong> rather than change this one.
             Version {{ $template->version }} is kept so past inspections still read correctly.
         </x-alert>
     @endif
@@ -48,7 +48,7 @@
                            class="btn btn-secondary">Cancel</a>
                         <button type="submit"
                                 class="btn btn-primary">
-                            {{ $isLocked ? 'Save as version '.($template->version + 1) : 'Save changes' }}
+                            {{ $isLocked ? 'Save as version '.$nextVersion : 'Save changes' }}
                         </button>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
     </form>
 
     @unless ($isLocked || $template->is_active)
-        <x-modal name="delete-checklist" title="Delete {{ $template->label() }}?">
+        <x-modal name="delete-checklist" :title="'Delete '.$template->label().'?'">
             <p>No inspection has used this checklist, so nothing depends on it.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'delete-checklist')"

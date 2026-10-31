@@ -48,6 +48,7 @@ class InspectionController extends Controller
                 ->where('user_id', $request->user()->id)
                 ->completed()
                 ->latest('completed_at')
+                ->latest('id')
                 ->paginate(15),
 
             // Every room with machines in service, with how far its round

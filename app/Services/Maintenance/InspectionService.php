@@ -83,6 +83,14 @@ class InspectionService
     public function complete(Inspection $inspection, array $answers, ?string $notes = null): Inspection
     {
         return DB::transaction(function () use ($inspection, $answers, $notes) {
+            // Locked and re-read: a second tap on Submit waits for the first
+            // and is refused here, instead of rewriting a finished record.
+            $current = Inspection::query()->whereKey($inspection->id)->lockForUpdate()->first();
+
+            if ($current?->completed_at !== null) {
+                throw new DomainException('This inspection was already submitted.');
+            }
+
             $itemIds = $inspection->template->items->pluck('id');
 
             foreach ($answers as $itemId => $answer) {

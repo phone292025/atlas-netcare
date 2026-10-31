@@ -43,6 +43,12 @@ class ChecklistService
         return $this->newVersionOf($template, $attributes);
     }
 
+    /** The version a new copy under this name gets. */
+    public function nextVersion(string $name): int
+    {
+        return (int) ChecklistTemplate::query()->where('name', $name)->max('version') + 1;
+    }
+
     /**
      * Copy a template to the next version, carrying its items across.
      *
@@ -56,9 +62,7 @@ class ChecklistService
              * this name, not from $template->version + 1. Editing v2 while v3
              * exists would otherwise try to create a second v3.
              */
-            $nextVersion = ChecklistTemplate::query()
-                ->where('name', $attributes['name'] ?? $template->name)
-                ->max('version');
+            $nextVersion = $this->nextVersion($attributes['name'] ?? $template->name);
 
             $copy = ChecklistTemplate::create([
                 'name' => $attributes['name'] ?? $template->name,
@@ -66,7 +70,7 @@ class ChecklistService
             ]);
 
             $copy->forceFill([
-                'version' => (int) $nextVersion + 1,
+                'version' => $nextVersion,
                 'is_active' => false,
             ])->save();
 

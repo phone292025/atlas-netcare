@@ -36,6 +36,7 @@ class ChecklistTemplateController extends Controller
                 ->orderByDesc('is_active')
                 ->orderBy('name')
                 ->orderByDesc('version')
+                ->orderBy('id')
                 ->paginate(20),
         ]);
     }
@@ -50,7 +51,8 @@ class ChecklistTemplateController extends Controller
 
     public function store(ChecklistTemplateRequest $request): RedirectResponse
     {
-        $template = ChecklistTemplate::create($request->validated());
+        // refresh(): version is a column default, and the label quotes it.
+        $template = ChecklistTemplate::create($request->validated())->refresh();
         $this->checklists->replaceItems($template, $request->items());
 
         return redirect()
@@ -66,6 +68,9 @@ class ChecklistTemplateController extends Controller
             // Drives the warning on the form: editing this one will produce a
             // new version rather than changing what is on screen.
             'isLocked' => $checklist->isLocked(),
+            // What saving would create, from the highest version of this
+            // name, as newVersionOf() counts: not this one plus one.
+            'nextVersion' => $this->checklists->nextVersion($checklist->name),
         ]);
     }
 
