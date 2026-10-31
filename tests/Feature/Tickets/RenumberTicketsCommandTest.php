@@ -52,6 +52,26 @@ class RenumberTicketsCommandTest extends TestCase
         $this->assertStringContainsString('already numbered in sequence', Artisan::output());
     }
 
+    public function test_a_new_number_that_was_another_tickets_old_one_is_not_rewritten_twice(): void
+    {
+        // first takes 00001, which second carried, and second takes 00002.
+        $first = $this->ticket('TKT-2026-00003', '2026-02-01 09:00:00');
+        $this->ticket('TKT-2026-00001', '2026-03-01 09:00:00');
+        $this->ticket('TKT-2026-00002', '2026-04-01 09:00:00');
+
+        TicketComment::create([
+            'ticket_id' => $first->id,
+            'user_id' => $this->user()->id,
+            'body' => 'Raised as TKT-2026-00003.',
+            'is_internal' => true,
+        ]);
+
+        $this->assertSame(0, Artisan::call('atlas:renumber-tickets', ['--force' => true]));
+
+        $this->assertSame('TKT-2026-00001', $first->fresh()->ticket_number);
+        $this->assertSame('Raised as TKT-2026-00001.', TicketComment::first()->body);
+    }
+
     public function test_a_dry_run_changes_nothing(): void
     {
         $this->ticket('TKT-2026-96851', '2026-02-01 09:00:00');

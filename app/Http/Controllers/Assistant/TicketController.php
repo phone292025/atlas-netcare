@@ -54,6 +54,7 @@ class TicketController extends Controller
                 ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
                 ->when($request->boolean('outstanding'), fn ($q) => $q->outstanding())
                 ->latest('opened_at')
+                ->latest('id')
                 ->paginate(20)
                 ->withQueryString(),
             'statuses' => TicketStatus::options(),

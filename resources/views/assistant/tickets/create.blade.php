@@ -21,7 +21,9 @@
                  explains why the fields are already filled in, rather than
                  leaving the assistant wondering who typed it. --}}
             <x-alert type="info" class="mb-6">
-                Filled in from your inspection. Check it reads properly and change anything that is wrong.
+                {{-- A preventive ticket from the risk ranking carries no inspection. --}}
+                Filled in from {{ isset($prefill['inspection_id']) ? 'your inspection' : 'the maintenance ranking' }}.
+                Check it reads properly and change anything that is wrong.
             </x-alert>
         @endif
 

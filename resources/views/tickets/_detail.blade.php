@@ -90,7 +90,7 @@
     </x-alert>
 @endif
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-8">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-8">
     <div class="min-w-0 space-y-8">
 
         <section class="rounded-xl border border-line bg-surface p-5 shadow-xs sm:p-6">
@@ -229,6 +229,11 @@
                                     <select id="assign-{{ $ticket->id }}" name="assigned_to" onchange="this.form.submit()"
                                             class="h-8 w-full py-0 pl-2.5 text-xs">
                                         <option value="">Nobody, back to the queue</option>
+                                        {{-- A deactivated holder is not in the list. Without this the
+                                             select showed "Nobody" selected, and picking it changed nothing. --}}
+                                        @if ($ticket->assigned_to && ! collect($engineers)->has($ticket->assigned_to))
+                                            <option value="{{ $ticket->assigned_to }}" selected disabled>{{ $ticket->assignee?->name ?? 'Someone' }} (inactive)</option>
+                                        @endif
                                         @foreach ($engineers as $id => $name)
                                             <option value="{{ $id }}" @selected($ticket->assigned_to === $id)>{{ $name }}</option>
                                         @endforeach
@@ -263,12 +268,13 @@
 </div>
 
 @if ($canResolve)
-    <x-modal name="resolve-ticket" title="Resolve {{ $ticket->ticket_number }}">
+    {{-- Open again when the notes were refused, or the error sat in a closed dialog. --}}
+    <x-modal name="resolve-ticket" :title="'Resolve '.$ticket->ticket_number" :show="$errors->has('resolution_notes')">
         <form method="POST" action="{{ route('tickets.transition', $ticket) }}" id="resolve-form">
             @csrf
             @method('PATCH')
             <input type="hidden" name="status" value="resolved">
-            <x-form.textarea name="resolution_notes" label="What did you do to fix it?" rows="4" required
+            <x-form.textarea name="resolution_notes" label="What did you do to fix it?" rows="4" required maxlength="4000"
                              help="The next person reads this when the same fault comes back." />
         </form>
         <x-slot:footer>

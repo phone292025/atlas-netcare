@@ -79,6 +79,35 @@ class TicketAssignmentTest extends TestCase
         $this->assertNull($ticket->fresh()->assigned_to);
     }
 
+    public function test_a_ticket_held_by_a_deactivated_engineer_shows_who_holds_it(): void
+    {
+        // The select listed only active engineers, so it showed "Nobody" as
+        // chosen and choosing it did nothing.
+        $gone = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket(['assigned_to' => $gone->id, 'status' => TicketStatus::InProgress]);
+        $gone->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($this->user(UserRole::Engineer))
+            ->get(route('engineer.tickets.show', $ticket))
+            ->assertOk()
+            ->assertSee('<option value="'.$gone->id.'" selected disabled>', false);
+    }
+
+    public function test_a_refused_resolution_reopens_its_dialog(): void
+    {
+        $engineer = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket(['assigned_to' => $engineer->id, 'status' => TicketStatus::InProgress]);
+
+        $this->actingAs($engineer)
+            ->from(route('engineer.tickets.show', $ticket))
+            ->followingRedirects()
+            ->patch(route('tickets.transition', $ticket), ['status' => 'resolved', 'resolution_notes' => '   '])
+            ->assertOk()
+            ->assertSee('show: true', false);
+
+        $this->assertSame(TicketStatus::InProgress, $ticket->fresh()->status);
+    }
+
     public function test_work_cannot_be_given_to_a_deactivated_account(): void
     {
         $this->expectException(DomainException::class);

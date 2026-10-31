@@ -6,6 +6,7 @@ use App\Enums\AlarmType;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
+use App\Models\InspectionResult;
 use App\Models\LabPc;
 use App\Models\Ticket;
 use App\Models\TicketComment;
@@ -93,14 +94,6 @@ class TicketService
      */
     public function open(array $attributes, User $reporter, ?Model $subject = null, bool $isDemo = false): Ticket
     {
-        $existing = $this->raisedFromCheck(
-            isset($attributes['inspection_result_id']) ? (int) $attributes['inspection_result_id'] : null
-        );
-
-        if ($existing) {
-            throw new DomainException("That fault was already raised as {$existing->ticket_number}.");
-        }
-
         for ($attempt = 1; ; $attempt++) {
             try {
                 return DB::transaction(fn () => $this->insert($attributes, $reporter, $subject, $isDemo));
@@ -120,6 +113,8 @@ class TicketService
      */
     private function insert(array $attributes, User $reporter, ?Model $subject, bool $isDemo): Ticket
     {
+        $this->ensureNotRaisedYet(isset($attributes['inspection_result_id']) ? (int) $attributes['inspection_result_id'] : null);
+
         $priority = $attributes['priority'] instanceof TicketPriority
             ? $attributes['priority']
             : TicketPriority::from($attributes['priority']);
@@ -302,6 +297,24 @@ class TicketService
         }
 
         return $engineers->count();
+    }
+
+    /**
+     * FR-207 under concurrency: the answer's row is locked first, so a second
+     * tap on "Raise ticket" waits for the first and then finds its ticket,
+     * rather than both finding none and filing two.
+     */
+    private function ensureNotRaisedYet(?int $inspectionResultId): void
+    {
+        if ($inspectionResultId === null) {
+            return;
+        }
+
+        InspectionResult::query()->whereKey($inspectionResultId)->lockForUpdate()->first();
+
+        if ($existing = $this->raisedFromCheck($inspectionResultId)) {
+            throw new DomainException("That fault was already raised as {$existing->ticket_number}.");
+        }
     }
 
     /**

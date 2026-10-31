@@ -227,10 +227,15 @@ class MaintenancePriorityTest extends TestCase
         $pc = LabPc::factory()->create(['risk_score' => 91, 'risk_band' => RiskBand::Critical]);
         RiskAssessment::factory()->forAsset($pc)->score(91)->create();
 
-        $this->actingAs($this->engineer())
+        $page = $this->actingAs($this->engineer())
             ->get(route('assistant.tickets.create', ['asset' => 'lab-pc', 'asset_id' => $pc->id]))
             ->assertOk()
-            ->assertSee(TicketPriority::Critical->value);
+            // Not the inspection wording: this came from the risk ranking.
+            ->assertDontSee('Filled in from your inspection')
+            ->getContent();
+
+        // The checked radio, not just the word: every form has a "critical" option.
+        $this->assertMatchesRegularExpression('/value="'.TicketPriority::Critical->value.'"[^>]*\bchecked\b/', $page);
     }
 
     public function test_an_access_point_can_be_ticketed_this_way_though_not_through_the_normal_form(): void

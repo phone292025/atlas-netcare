@@ -128,7 +128,8 @@ class Ticket extends Model
             ->map(fn (TicketPriority $p) => "WHEN '{$p->value}' THEN {$p->weight()}")
             ->implode(' ');
 
-        $query->orderByRaw("CASE priority {$cases} ELSE 0 END DESC")->orderBy('due_at');
+        // id last: pages of the queue must not share or skip a ticket.
+        $query->orderByRaw("CASE priority {$cases} ELSE 0 END DESC")->orderBy('due_at')->orderBy('id');
     }
 
     /** @param  Builder<Ticket>  $query */

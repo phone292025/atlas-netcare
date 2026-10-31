@@ -255,9 +255,27 @@ class RenumberTickets extends Command
      * a validation two methods away staying correct. The table and column
      * names come from a constant in this file and never from data.
      *
+     * IN TWO PASSES, through a placeholder. A new number is often another
+     * ticket's old one, so renaming 3 to 1 and then 1 to 2 in one pass turned
+     * text about the first ticket into the second's number.
+     *
      * @param  array<string, string>  $renames
      */
     private function rewriteReferences(array $renames): void
+    {
+        $placeholders = [];
+        $i = 0;
+
+        foreach ($renames as $old => $new) {
+            $placeholders[$old] = '@@renumber:'.$i++.'@@';
+        }
+
+        $this->replaceEverywhere($placeholders);
+        $this->replaceEverywhere(array_combine($placeholders, $renames));
+    }
+
+    /** @param  array<string, string>  $renames */
+    private function replaceEverywhere(array $renames): void
     {
         $pgsql = DB::connection()->getDriverName() === 'pgsql';
 
