@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
 
-The suite has 1,178 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
+The suite has 1,179 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Three check TimescaleDB itself and skip on SQLite, and one checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs five core flows in a real browser against the Docker stack.
 
 ## Getting started
 
@@ -216,7 +216,7 @@ For a forgotten password, use "Forgot password" on the sign-in page.
 
 ### Email
 
-Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead. The reset screen shows the link as well, but only when you open Atlas at `localhost` on the machine running it: not with `ATLAS_BIND=0.0.0.0`, and not through a tunnel, where anybody could ask for an account's link. Otherwise, find the newest link in the app's log:
+Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead. The reset screen shows the link as well, but only when you open Atlas at `localhost` on the machine running it: not with `ATLAS_BIND=0.0.0.0`, and not through a tunnel, where anybody could ask for an account's link. Otherwise, find it in the app's log, which under Docker is the container's output:
 
 ```bash
 docker compose logs app | grep reset-password

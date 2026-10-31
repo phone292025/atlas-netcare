@@ -1,10 +1,10 @@
 # Requirements
 
-> **Last updated:** 2026-09-26 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions
+> **Last updated:** 2026-11-01 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions and by the 2.0 roadmap
 
-Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced, so it cannot be marked.
+Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced or tested.
 
-**Status key:** `Approved` (in the submitted proposal) · `Added` (design phase, needs supervisor awareness) · `Assumed` (depends on an open question). **The status column records how a requirement was AGREED, not whether it is finished** — that is what this next paragraph is for.
+**Status key:** `Approved` (in the submitted proposal) · `Added` (design phase, after the proposal) · `Assumed` (depends on an open question) · `2.0` (added by the [roadmap](roadmap.md), with the task that built it). **The status column records how a requirement was AGREED, not whether it is finished.** The next section says what is finished.
 
 ## Build status, as of 2026-09-02
 
@@ -12,8 +12,8 @@ Every requirement has an ID. Test cases reference these IDs; module specs list t
 
 Three carry a caveat worth stating rather than hiding:
 
-- **FR-102** (password reset by email) works, but delivery depends on a Google app password being pasted into `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
-- **FR-301, FR-303, FR-304, FR-305, FR-312** all read **simulated** telemetry, and FR-313 and FR-314 exist only while the simulated driver is active. The driver is swappable and the real one is a documented stub; see [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
+- **FR-102** (password reset by email) works, but delivery depends on an SMTP server being set in `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
+- **FR-301, FR-303, FR-304, FR-305, FR-312** read whatever the agents send. In the demo every device is watched by the simulator, so they read **simulated** telemetry. FR-313 and FR-314 work only on devices the simulator watches. The ingest API for real probe agents (FR-510) is built; the Go agent that will call it is roadmap task 1.7. See [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 - **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file.
 
 The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They remain outstanding.
@@ -32,7 +32,7 @@ The **non-functional** requirements are a different matter: NFR timings and the 
 
 ### Out of scope
 
-Stated in the proposal and not to be extended without supervisor agreement:
+Stated in the proposal:
 
 - Firewall configuration
 - Bandwidth throttling
@@ -50,7 +50,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A user can sign in with an email address and password. | Approved |
-| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery goes through whichever SMTP server `.env` names, checked with `php artisan atlas:mail-test`. Gmail with plus-addressed accounts did it from 2026-08-29 to 2026-10-28 (see [Q11](02-open-questions.md#q11)). Mail now goes to the log by default, and the reset screen shows the link on a local install instead of pretending to have sent it. The request form gives the same answer whether or not the address has an account, so it cannot be used to find out who has one (2026-09-23). |
+| FR-102 | A user can request a password reset link by email. | Approved — **built, but nothing is delivered yet.** The flow works end to end; the demonstration environment has no mail server and every demo account uses a reserved domain that can never receive mail, so the screen says so rather than claiming to have sent a link. Delivery goes through whichever SMTP server `.env` names, checked with `php artisan atlas:mail-test`. Gmail with plus-addressed accounts did it from 2026-08-29 to 2026-10-28 (see [Q11](02-open-questions.md#q11)). Mail now goes to the log by default, and the reset screen shows the link, when Atlas is opened at `localhost` on the machine running it, instead of pretending to have sent it. The request form gives the same answer whether or not the address has an account, so it cannot be used to find out who has one (2026-09-23). |
 | FR-103 | A user can sign out. | Approved |
 | FR-104 | The system denies access to any route not permitted for the user's role. | Approved |
 | FR-105 | Self-registration does not exist. Accounts are created by administrators only. | Assumed — [Q6](02-open-questions.md) |
@@ -81,7 +81,7 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-302 | The dashboard refreshes without a manual page reload. | Assumed — polling, ADR-0005 |
 | FR-303 | View historical network traffic and congestion logs. | Approved |
 | FR-304 | Drill into a single access point and view its recent telemetry as a chart. | Added |
-| FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved — an access point going offline raises a ticket and alerts the engineers; one going from Online to Degraded alerts them too (added 2026-09-23). Recovery from an outage passes through Degraded and does not alert. |
+| FR-305 | Receive automated alerts for network anomalies or offline access points. | Approved — a network device going offline raises a ticket and alerts the engineers; one going from Online or Unknown to Degraded alerts them too (added 2026-09-23), at most once per `degraded_alert_cooldown_min`. Recovery from an outage passes through Degraded and does not alert. |
 | FR-306 | View, filter and sort the full incident ticket queue. | Approved |
 | FR-307 | Acknowledge, assign, progress, resolve and close tickets. | Assumed — [Q3](02-open-questions.md) · **complete 2026-09-02.** Every verb but *assign* was built; ownership was implicit, so a ticket picked up by the wrong person could only be moved in the database. Assignment is deliberately **not** a transition — who is doing the work and how far along it is are different questions. |
 | FR-308 | Add comments to a ticket, optionally internal-only. | Added |
@@ -89,8 +89,8 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-310 | View the contributing factors behind any asset's risk score. | Added — **built 2026-08-30.** Stored as JSON at the time of scoring, so an old score still explains itself after the weights change. |
 | FR-311 | Raise a preventive ticket directly from a high-risk asset. | Added — **built 2026-08-30.** Pre-filled with the actual factors, asset locked. The only route by which an access point can be ticketed through the form. |
 | FR-312 | View every access point on one Network monitor, filtered by status, location or search, with campus clients and throughput over the last 1, 6 or 24 hours and a per-access-point drill-down. An access point with no recent reading is shown as unknown, not as its last status. | Added — **built 2026-09-19.** All three roles; read-only for assistants. |
-| FR-313 | Take a telemetry sample on demand, running the same collection round as the scheduler. | Added — **built 2026-09-19.** Engineer and administrator, simulated driver only. |
-| FR-314 | Force a congestion, outage or feed-interruption scenario onto one access point or all of them, and recover it, so the system's response to a network fault can be demonstrated. The scenario changes what the simulated driver reports; status, tickets and alarms follow from the ordinary rules. | Added — **built 2026-09-19.** Engineer and administrator, simulated driver only; every change is audited. |
+| FR-313 | Take a telemetry sample on demand, running the same collection round as the scheduler. | Added — **built 2026-09-19.** Engineer and administrator, only while the simulator watches a device. |
+| FR-314 | Force a congestion, outage or feed-interruption scenario onto one access point or all of them, and recover it, so the system's response to a network fault can be demonstrated. The scenario changes what the simulator reports; status, tickets and alarms follow from the ordinary rules. | Added — **built 2026-09-19.** Engineer and administrator, devices the simulator watches only; every change is audited. |
 
 ### FR-400 — System Administrator
 
@@ -106,20 +106,24 @@ Stated in the proposal and not to be extended without supervisor agreement:
 | FR-408 | Generate dated shifts from templates and override individual assignments. | Assumed — [Q4](02-open-questions.md) · **both halves built.** Generation in M6; the override built 2026-09-02, from the roster screen. Scheduled shifts only — a checked-in one has somebody in the room and `checked_in_at` says who — and not once it has ended. A shift can also be removed, singly or a week at a time, until it starts (2026-09-23). |
 | FR-409 | View a system audit log of significant actions. | Approved |
 | FR-410 | Generate and view operational reports and descriptive statistics. | Approved — **built 2026-08-30.** Five reports. Admin and engineer. |
+| FR-411 | Add, update and retire network devices other than access points (switches, routers, servers), each with an optional parent device. | 2.0. **Built in task 1.1** (ADR-0016). Access points are one kind of network device. |
+| FR-412 | Register a probe agent, see its token once, rotate the token, retire the agent, and choose which agent watches each device. | 2.0. **Built in task 1.2** (ADR-0017). The agents screen shows when each agent was last heard from, its version and address, and flags a clock more than `ingest.clock_drift_seconds` out. |
 
 ### FR-500 — System behaviour (no direct user action)
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-501 | Collect one telemetry reading per active access point every minute. | Added |
-| FR-502 | Classify an access point as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
-| FR-503 | Automatically raise a ticket when an access point goes offline. | Added |
-| FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) |
+| FR-501 | Collect one telemetry reading per active network device every minute. | Added · since task 1.5 the simulator does this for the devices it watches, and a probe agent for its own |
+| FR-502 | Classify a network device as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
+| FR-503 | Automatically raise a ticket when a network device goes offline. | Added |
+| FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) · since task 1.4 a TimescaleDB continuous aggregate |
 | FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |
 | FR-507 | Raise an alarm when a ticket passes its SLA due time. | Assumed — [Q3](02-open-questions.md) · since 2026-09-23 a Critical ticket also alerts the engineers when it is raised (`atlas.new_ticket_alert_from`) |
 | FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](02-open-questions.md) |
-| FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added · shifts audited too since 2026-09-23 |
+| FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added · shifts audited too since 2026-09-23, agents and network devices since 2.0 |
+| FR-510 | Accept batches of readings from probe agents at `POST /api/v1/readings`. Store each reading once by agent, sequence number and time, refuse readings for devices the agent does not watch, measured more than `ingest.future_minutes` ahead or more than `retention.late_reading_days` ago, and answer with what happened to each one. | 2.0. **Built in task 1.3** (ADR-0017). |
+| FR-511 | Mark the devices of an agent not heard from for `ingest.silent_after_minutes` as Unknown, and alert engineers and administrators once per silence. A reading from the device changes it back. | 2.0. **Built in task 1.6.** Offline and maintenance devices keep their status. |
 
 ---
 
@@ -131,14 +135,15 @@ Two of these come from the Meeting 2 minutes recorded in the proposal appendix b
 |---|---|---|---|
 | NFR-01 | **Availability** — annual downtime | < 30 minutes | Meeting 2 minutes, 07/08/2026 |
 | NFR-02 | **Response time** — page and API response under normal load | < 7 seconds | Meeting 2 minutes, 07/08/2026 |
-| NFR-03 | **Security** — privilege-based access; no public or student-facing entry point | All routes behind auth + role middleware | Proposal Keynote, §1.5.1 |
+| NFR-03 | **Security** — privilege-based access; no public or student-facing entry point | Every browser route behind auth + role middleware. The one machine route, the ingest API, is behind an agent token instead (NFR-11) | Proposal Keynote, §1.5.1 |
 | NFR-04 | **Security** — passwords stored hashed, never in plain text | Laravel default hashing | Added |
 | NFR-05 | **Usability** — the inspection checklist is fully operable on a mobile phone one-handed | Tested at 375 px width | Proposal §1.4.2 |
 | NFR-06 | **Auditability** — every significant state change is attributable to a user and a timestamp | `audit_logs` table | Proposal §Admin Module |
-| NFR-07 | **Maintainability** — all business thresholds configurable without code change | `config/atlas.php` | ADR-0002 |
+| NFR-07 | **Maintainability** — all business thresholds configurable without code change | `config/atlas.php` | ADR-0002 (since superseded by ADR-0010) |
 | NFR-08 | **Data integrity** — referential integrity enforced at database level, not only in application code | 24 foreign key constraints, one on every single-target relationship. The four polymorphic ones (`tickets.ticketable`, `alarms.related`, `risk_assessments.assessable`, `audit_logs.auditable`) **cannot carry one** — a column pointing at two tables has nothing to reference. Those are guarded in the application instead: the morph type is whitelisted in the Form Request, and assets are soft-deleted rather than removed. | Added |
 | NFR-09 | **Compatibility** — runs on the current stable Chrome, Edge and Firefox | Manual check during UAT | Added |
 | NFR-10 | **Accessibility** — all interactive elements keyboard-reachable with a visible focus state | Manual check during UAT | Added |
+| NFR-11 | **Security.** The ingest API accepts only a valid agent token, sent in the `Authorization` header | Tokens stored as SHA-256 hashes; a request limit per address and per agent; batches capped at `ingest.max_readings` readings and `ingest.max_kilobytes` | 2.0, ADR-0017 |
 
 > NFR-01 and NFR-02 are **test criteria**, not aspirations. They appear as pass conditions in [07-testing.md](07-testing.md).
 
@@ -149,9 +154,9 @@ Two of these come from the Meeting 2 minutes recorded in the proposal appendix b
 | Module | Requirements |
 |---|---|
 | M1 — Identity and audit | FR-101 to FR-106, FR-401, FR-402, FR-409, FR-509 |
-| M2 — Locations and assets | FR-403, FR-404, FR-405 |
+| M2 — Locations and assets | FR-403, FR-404, FR-405, FR-411 |
 | M3 — Checklists and inspections | FR-203, FR-204, FR-205, FR-406 |
 | M4 — Ticketing | FR-206, FR-207, FR-208, FR-306, FR-307, FR-308, FR-503, FR-507 |
-| M5 — Telemetry and dashboard | FR-209, FR-301 to FR-305, FR-501, FR-502, FR-504, FR-508 |
+| M5 — Telemetry and dashboard | FR-209, FR-301 to FR-305, FR-312 to FR-314, FR-412, FR-501, FR-502, FR-504, FR-508, FR-510, FR-511 |
 | M6 — Shifts and alarms | FR-201, FR-202, FR-210, FR-211, FR-212, FR-407, FR-408, FR-506 |
 | M7 — Predictive and reports | FR-309, FR-310, FR-311, FR-410, FR-505 |

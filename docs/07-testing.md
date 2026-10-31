@@ -1,8 +1,8 @@
 # Testing
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-11-01
 
-The test plan covers unit testing and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
+The test plan covers automated tests at three levels and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
 ---
 
@@ -13,7 +13,7 @@ The test plan covers unit testing and user acceptance testing, with **data sets 
 | **Unit** | Services with real logic | PHPUnit / Pest | As each service is written |
 | **Feature** | One happy path and one authorisation failure per controller | Laravel feature tests | As each module is finished |
 | **Browser** | Five core flows, end to end, against the Docker stack | Playwright ([ADR-0015](decisions/ADR-0015-browser-tests-with-playwright.md)) | Before committing a change to a screen or its JavaScript, and in CI |
-| **UAT** | Real users completing real tasks | Manual, documented | Week 12 |
+| **UAT** | Real users completing real tasks | Manual, documented | Before a release that changes a screen people use daily |
 
 Use the same factories that power `DemoDataSeeder`. Do not maintain a second set of fixtures.
 
@@ -54,7 +54,7 @@ Number cases as `TC-{module}-{seq}` so they trace back to modules and requiremen
 
 ## Coverage to aim for
 
-At minimum, one test case per functional requirement in [01-requirements.md](01-requirements.md). That is roughly 50 cases across seven modules — about 7 each.
+At minimum, one test case per functional requirement in [01-requirements.md](01-requirements.md). There are 55 of them.
 
 Include **negative cases**. A test plan that only proves things work when used correctly is a weak test plan.
 
@@ -86,11 +86,11 @@ The second needs the Docker stack's database running (`docker compose up -d db`)
 
 ## Browser tests
 
-Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows run in Chromium instead, in `tests/Browser/`:
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows run in Chromium instead, as ten tests in `tests/Browser/`:
 
 | Spec | Flow |
 |---|---|
-| `sign-in.spec.js` | A wrong password is refused. The assistant and the engineer land on their home screens. The first administrator, made by `atlas:create-admin`, has to choose a password before any other screen opens |
+| `sign-in.spec.js` | A wrong password is refused. The assistant, the engineer and the demo administrator land on their home screens. The first administrator, made by `atlas:create-admin`, has to choose a password before any other screen opens |
 | `tickets.spec.js` | An assistant raises a ticket, picking the machine on the room plan, and an engineer acknowledges, starts and resolves it. The plan warns about a machine that already has an open ticket |
 | `inspections.spec.js` | An assistant inspects the next machine in a room's round, and the round's count goes up by one |
 | `monitor.spec.js` | The Network Monitor lists every access point, draws its chart, refreshes, filters by status and opens an access point's details |
@@ -140,7 +140,7 @@ Choose participants who resemble real users. Ideal mix:
 | UAT-1 | A student who has worked as an IT assistant | Inspection flow on a phone |
 | UAT-2 | Another IT assistant or a peer | Ticket raising and shift check-in |
 | UAT-3 | Someone technically minded playing the engineer | Dashboard, ticket queue, resolution |
-| UAT-4 | Mr Dhason or a lecturer | Whole-system walkthrough |
+| UAT-4 | A network engineer or lecturer | Whole-system walkthrough |
 
 ### Protocol
 
@@ -154,7 +154,7 @@ Choose participants who resemble real users. Ideal mix:
 
 Date · participant role · tasks attempted · completion rate · verbatim feedback · **issues found** · **what we changed as a result**
 
-> The last one matters most. A UAT that produced no changes reads as a formality. Showing "participant could not find the handover form, so we moved it into the check-out flow" demonstrates the feedback loop the Agile methodology in your proposal claims.
+> The last one matters most. A UAT that produced no changes taught nothing. "The participant could not find the handover form, so it moved into the check-out flow" is the kind of result to write down.
 
 ---
 

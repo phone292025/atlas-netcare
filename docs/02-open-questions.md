@@ -1,6 +1,6 @@
 # Open Questions
 
-> **Last updated:** 2026-10-28
+> **Last updated:** 2026-11-01
 
 Eleven things the approved proposal leaves undefined, or that building it exposed. Ten are settled. Each has a working assumption so nothing is blocked, but assumptions are not decisions: until a question is marked `Decided`, the code built on it is at risk of rework.
 
@@ -12,7 +12,7 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 
 ## Summary
 
-> **Nine of these were built from their working assumption rather than agreed by the team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth ten minutes of the team's time, because the most code rests on them. Q6 is the one exception: it was put to the project lead and answered, on 2026-09-04.
+> **Nine of these were built from their working assumption rather than agreed by the capstone team.** Nothing is blocked and every one is cheap to change, but "settled" below means *implemented*, not *ratified*. Q1 (the degraded thresholds) and Q3 (the ticket lifecycle) are the two most worth confirming, because the most code rests on them. Q6 is the one exception: it was put to the project lead and answered, on 2026-09-04.
 
 | # | Question | Status | Built in | Where to change it |
 |---|---|---|---|---|
@@ -26,7 +26,7 @@ Eleven things the approved proposal leaves undefined, or that building it expose
 | [Q8](#q8) | Where do the NFRs live? | `Assumed` | Requirements | [01-requirements.md](01-requirements.md) → NFR-01, NFR-02 |
 | [Q9](#q9) | Per-AP history or campus-wide trends? | ✅ Settled | M5 | `TrafficLogController` |
 | [Q10](#q10) | How long is telemetry retained? | ✅ Settled | M5 | `config/atlas.php` → `retention` |
-| [Q11](#q11) | How does a password reset email reach anyone? | ✅ Settled | M1 | `.env` → `ATLAS_MAIL_ACCOUNT`, `MAIL_PASSWORD` |
+| [Q11](#q11) | How does a password reset email reach anyone? | ✅ Settled | M1 | `.env` → `MAIL_MAILER` and the SMTP settings |
 
 ---
 
@@ -210,7 +210,9 @@ The Meeting 2 minutes (07/08/2026) record an agreed annual downtime under 30 min
 
 **Status:** ✅ `Settled` — built on 2026-08-29 · **Blocks:** nothing further
 
-> **One manual step remains, and it is not optional.** Somebody has to paste a Google app password into `MAIL_PASSWORD` and run `php artisan atlas:mail-test`. Until that happens the reset screen says so instead of pretending. Nothing else in the system depends on it.
+> **Update 2026-10-28: the Gmail setup below is gone.** `ATLAS_MAIL_ACCOUNT` and the plus-addressed accounts were removed. Mail is off by default (`MAIL_MAILER=log`), the demo accounts are back on `@apu.test` and `@atlas.local`, and any SMTP provider works once its settings are in `.env`. Check it with `php artisan atlas:mail-test`. Until mail is set up the reset screen says so instead of pretending, and opened at `localhost` on the machine running it, it shows the link. The rest of this answer is the record of what was built on 2026-08-29.
+>
+> **Update 2026-09-23:** the request form now gives the same answer whether or not the address has an account. "Requesting a reset for an unknown address says so", below, no longer holds.
 
 Not in the original ten. Found when the reset screen was tried on a phone and said *"We have emailed your password reset link"* while sending nothing.
 

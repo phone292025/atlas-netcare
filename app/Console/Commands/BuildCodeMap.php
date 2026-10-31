@@ -186,9 +186,19 @@ class BuildCodeMap extends Command
     /**
      * Skips `@param`-only blocks, so a file whose first docblock is a tag list
      * still reports the sentence a person wrote.
+     *
+     * Only docblocks before the class, enum, interface or trait count. A file
+     * without a class docblock otherwise reported its first method's, and the
+     * map said Laravel's users migration did "Run the migrations."
      */
     private function firstDocblockLine(string $source): string
     {
+        $declaration = '/^\s*(?:(?:final|abstract|readonly)\s+)*(?:class|enum|interface|trait)\s+\w+|^\s*return\s+new\s+class\b/m';
+
+        if (preg_match($declaration, $source, $match, PREG_OFFSET_CAPTURE)) {
+            $source = substr($source, 0, $match[0][1]);
+        }
+
         if (! preg_match_all('~/\*\*(.*?)\*/~s', $source, $blocks)) {
             return '';
         }

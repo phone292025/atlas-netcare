@@ -1,6 +1,6 @@
 # Documentation index
 
-> **Last updated:** 2026-10-27 · **All seven modules are built.**
+> **Last updated:** 2026-11-01 · **All seven modules are built.** 2.0 is done through roadmap task 1.6: network devices, probe agents and the ingest API, and the Unknown status.
 
 This folder documents the system. Conversation history and memory do not survive, so anything that matters beyond today belongs here.
 
@@ -46,7 +46,7 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 
 | Folder | Contents |
 |---|---|
-| [decisions/](decisions/) | Eight architecture decision records. Each says what was chosen, what was rejected, and what it costs |
+| [decisions/](decisions/) | Seventeen architecture decision records, 0010 to 0017 for 2.0. Each says what was chosen, what was rejected, and what it costs |
 | [modules/](modules/) | One spec per module, M1 to M7. Components, screens, requirements covered, definition of done |
 | [progress/](progress/) | Build log, decision log, and what is still outstanding |
 

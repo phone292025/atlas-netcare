@@ -2,7 +2,7 @@
 
 **Depends on:** nothing · **Blocks:** everything
 
-> **Last updated:** 2026-10-22
+> **Last updated:** 2026-11-01
 
 > This module must be first and must be solid. Every other module has foreign keys into `users`.
 
@@ -47,14 +47,14 @@ Admin: user index, create, edit, show · Audit log with filters
 
 ## Open questions
 
-- [Q6](../02-open-questions.md) — who creates accounts, and is a forced password change on first login wanted? **Blocks Sprint 0.**
+- ✅ [Q6](../02-open-questions.md) — who creates accounts, and is a forced password change on first login wanted? **Decided 2026-09-04:** administrators create every account, and a new account must change its password at first sign-in.
 
 ## Definition of done
 
 - [x] All three roles can sign in and land on their own home page — `DashboardRedirect`, covered by `dashboard_redirect_uses_the_role_home_route_when_it_exists`
 - [x] A user of one role gets 403 on another role's route — `EnsureUserHasRole`; a deactivated user is refused at login, and an existing session is signed out on its next request to any route (`EnsureAccountIsActive`)
 - [x] Admin can create, edit, deactivate and reactivate a user
-- [x] **Password reset works end to end, by real email.** Not through the `log` mailer, which is what this line originally said and which turned out to be the problem: the screen claimed to have emailed a link while writing it into `storage/logs/laravel.log`. It now goes through Gmail SMTP to a deliverable address, and was confirmed arriving on a phone on 2026-08-29. The link also works in a browser that is already signed in, and a reset ends every session that account has open. See [Q11](../02-open-questions.md#q11).
+- [x] **Password reset works end to end, by real email.** Not through the `log` mailer, which is what this line originally said and which turned out to be the problem: the screen claimed to have emailed a link while writing it into `storage/logs/laravel.log`. It went through Gmail SMTP to a deliverable address, and was confirmed arriving on a phone on 2026-08-29. Since 2026-10-28 mail is off by default and goes through whichever SMTP server `.env` names. The link also works in a browser that is already signed in, and a reset ends every session that account has open. See [Q11](../02-open-questions.md#q11).
 - [x] Every create, update and delete of a user writes an audit entry with actor, action and IP
 - [x] Feature tests: login success, login failure, role denial, admin creates user
 

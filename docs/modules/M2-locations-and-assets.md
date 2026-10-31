@@ -2,15 +2,15 @@
 
 **Depends on:** M1 · **Blocks:** M3, M5
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-11-01
 
 ## Purpose
 
-Maintain the reference data every other module points at: campus locations, lab PC hardware records, and access point records.
+Maintain the reference data every other module points at: campus locations, lab PC hardware records, and network device records, of which access points are one kind.
 
 ## Requirements covered
 
-FR-403, FR-404, FR-405 · NFR-08
+FR-403, FR-404, FR-405, FR-411 · NFR-08
 
 ## Tables owned
 
@@ -20,16 +20,16 @@ FR-403, FR-404, FR-405 · NFR-08
 
 | Kind | Items |
 |---|---|
-| Models | `Location`, `LabPc`, `AccessPoint` |
-| Enums | `DeviceStatus`, `NetworkStatus` |
-| Controllers | `Admin\LocationController`, `Admin\LabPcController`, `Admin\AccessPointController` |
+| Models | `Location`, `LabPc`, `NetworkDevice`, and `AccessPoint`, the access point kind of it |
+| Enums | `DeviceStatus`, `NetworkStatus`, `DeviceKind` |
+| Controllers | `Admin\LocationController`, `Admin\LabPcController`, `Admin\AccessPointController`, `Admin\NetworkDeviceController` |
 | Services | — (standard CRUD) |
 | Policies | admin-only, enforced by middleware |
-| Seeders | Locations go in `ReferenceSeeder`; PCs and APs in `DemoDataSeeder` |
+| Seeders | Locations go in `ReferenceSeeder`; PCs, APs, a core router and a switch per location in `DemoDataSeeder` |
 
 ## Screens
 
-Admin: locations index/create/edit · lab PC inventory index/create/edit/show · access point inventory index/create/edit/show
+Admin: locations index/create/edit · lab PC inventory index/create/edit/show · access point inventory index/create/edit/show · network devices index/create/edit/show, for switches, routers, servers and other kit. Each device form has a **Connected to** field, for its parent device, and a **Watched by** field, for the agent that measures it.
 
 The lab PC and AP **show** pages are important — they are where M5, M4 and M7 surface their data (telemetry chart, ticket history, risk factors). Build them with slots the other modules can fill.
 
@@ -42,7 +42,7 @@ The lab PC and AP **show** pages are important — they are where M5, M4 and M7 
 
 ## Definition of done
 
-- [x] Admin can create, edit and retire a location, lab PC and access point
+- [x] Admin can create, edit and retire a location, lab PC, access point and other network device
 - [x] Duplicate asset tag or MAC address is rejected with a clear message
 - [x] Retiring a PC hides it from active lists but keeps its history reachable
 - [x] Show pages expose slots for telemetry, tickets and risk

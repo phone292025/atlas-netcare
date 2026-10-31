@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-10-28
+> **Last updated:** 2026-11-01
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 
@@ -131,7 +131,7 @@ The `scheduler` service runs `php artisan schedule:work`, and the `worker` servi
 
 | Command | When | What it does |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | One reading per access point, and marks silent ones offline |
+| `atlas:collect-telemetry` | every minute | One reading for each device the simulator watches. Devices nobody has heard from go offline, and a silent agent's devices go unknown |
 | `atlas:dispatch-alarms` | every minute | Sends alarms that have come due |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
@@ -149,7 +149,7 @@ Agents send readings from inside a network to `POST /api/v1/readings`. Register 
 
 ## 7. Optional: password reset by email
 
-FR-102 sends a reset link by email. `.env.example` sets `MAIL_MAILER=log`, so nothing is sent: the message goes into the app's log, and the reset screen shows the link only when Atlas is opened at `localhost` on the machine running it (not with `ATLAS_BIND=0.0.0.0` or through a tunnel). `docker compose logs app | grep reset-password` finds the newest link either way.
+FR-102 sends a reset link by email. `.env.example` sets `MAIL_MAILER=log`, so nothing is sent. The reset screen shows the link only when Atlas is opened at `localhost` on the machine running it, not with `ATLAS_BIND=0.0.0.0` or through a tunnel. The message also goes to the app's log, which under Docker is the container's output, so `docker compose logs app | grep reset-password` finds the newest link either way. `atlas:reset-link` reads `storage/logs/laravel.log`, so it finds a link only when Atlas runs without Docker; the stack sends its log to the container's output instead.
 
 To send real mail:
 
@@ -182,13 +182,13 @@ npm install
 php artisan test
 ```
 
-Expect **1,174 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
+Expect **1,175 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
 
 ```bash
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That is **1,176 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
+That is **1,177 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
 
 The browser tests run five core flows in Chromium against a stack of their own, on ports 8100 and 5433:
 
@@ -197,7 +197,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **9 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
+Expect **10 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
 
 ---
 
