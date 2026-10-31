@@ -184,4 +184,17 @@ class AgentManagementTest extends TestCase
             'agent_id' => $agent->id,
         ])->assertSessionHasErrors('agent_id');
     }
+
+    public function test_a_name_with_an_apostrophe_is_escaped_once_in_its_dialogs(): void
+    {
+        // title="Retire {{ $name }}?" was escaped by Blade and again by the
+        // component, so the heading read "O&#039;Brien".
+        ['agent' => $agent] = app(AgentService::class)->register("O'Brien lab probe");
+
+        $this->actingAs($this->userWith(UserRole::Admin))
+            ->get(route('admin.agents.show', $agent))
+            ->assertOk()
+            ->assertSee('Retire O&#039;Brien lab probe?', false)
+            ->assertDontSee('&amp;#039;', false);
+    }
 }

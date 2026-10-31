@@ -28,7 +28,7 @@
         </x-card>
     </form>
 
-    <x-modal name="confirm-remove-ap" title="Remove {{ $accessPoint->code }}?">
+    <x-modal name="confirm-remove-ap" :title="'Remove '.$accessPoint->code.'?'">
         <p>It stops being polled and drops off the dashboard. Its telemetry readings
            and alarm history are kept. This is not a deletion, and it can be brought back.</p>
         <p class="mt-2 text-fg-muted">If the unit is only coming down for planned work,

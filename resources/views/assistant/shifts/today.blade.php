@@ -43,7 +43,7 @@
     <x-page-header :title="$greeting.($firstName !== '' ? ', '.$firstName : '')"
                    :subtitle="$now->format('l j F Y')" />
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="min-w-0 space-y-6">
             @if (! $shift)
                 {{-- Most days for most assistants, so one line that says what

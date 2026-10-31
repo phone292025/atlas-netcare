@@ -15,7 +15,7 @@
 
          @see routes/auth.php for why `guest` is not on this route --}}
     @auth
-        <x-alert type="warning" class="mb-4" title="You are signed in as {{ auth()->user()->name }}">
+        <x-alert type="warning" class="mb-4" :title="'You are signed in as '.auth()->user()->name">
             This resets the password for the address below, which is the one
             the link was sent to. Everyone signed in to that account, on every
             device, is signed out.

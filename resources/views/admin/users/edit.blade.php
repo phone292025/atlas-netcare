@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Edit {{ $user->name }}</x-slot>
 
-    <x-page-header :title="'Edit '.$user->name" subtitle="{{ $user->email }}">
+    <x-page-header :title="'Edit '.$user->name" :subtitle="$user->email">
         <x-slot:actions>
             <a href="{{ route('admin.users.show', $user) }}"
                class="btn btn-secondary">

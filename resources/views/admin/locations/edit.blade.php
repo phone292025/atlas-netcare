@@ -21,7 +21,7 @@
         </x-card>
     </form>
 
-    <x-modal name="confirm-delete-location" title="Delete {{ $location->code }}?">
+    <x-modal name="confirm-delete-location" :title="'Delete '.$location->code.'?'">
         <p>A location can only be deleted while nothing lives in it. If it still
            holds machines or access points, move or retire those first.</p>
         <x-slot:footer>

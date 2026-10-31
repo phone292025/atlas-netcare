@@ -28,7 +28,7 @@
         </x-card>
     </form>
 
-    <x-modal name="confirm-retire-pc" title="Retire {{ $labPc->asset_tag }}?">
+    <x-modal name="confirm-retire-pc" :title="'Retire '.$labPc->asset_tag.'?'">
         <p>It drops out of inspection rounds and risk scoring. Its inspection history
            and tickets are kept. This is not a deletion, and it can be brought back.</p>
         <x-slot:footer>

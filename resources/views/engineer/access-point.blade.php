@@ -46,7 +46,7 @@
         </x-alert>
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div class="min-w-0 space-y-6">
             {{-- 24 hours from `telemetry_hourly`: 24 rows, not the 1,440 raw
                  readings the same period holds. NFR-02 asks for this under two

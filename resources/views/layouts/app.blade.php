@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    @include('layouts.partials.head')
+    @php
+        // The title slot arrives already escaped by Blade. Cast to a string
+        // and echoed again, "O'Brien" read "O&#039;Brien", so it is decoded
+        // back to the text once here and escaped once where it is printed.
+        $plainTitle = trim(html_entity_decode((string) ($title ?? ''), ENT_QUOTES | ENT_HTML5));
+    @endphp
+    @include('layouts.partials.head', ['title' => $plainTitle !== '' ? $plainTitle : null])
 </head>
 <body class="min-h-[100dvh]">
 
@@ -141,7 +147,7 @@
             @php
                 // Group, then the screen's menu entry when this page is below it
                 // (a ticket inside the queue), then the page itself.
-                $pageTitle = trim((string) ($title ?? ''));
+                $pageTitle = $plainTitle;
                 $trail = array_values(array_filter([
                     filled($section) ? ['label' => $section, 'url' => null] : null,
                     filled($sectionLabel) && $sectionLabel !== $pageTitle ? ['label' => $sectionLabel, 'url' => $sectionHome] : null,

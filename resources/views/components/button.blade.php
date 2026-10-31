@@ -12,7 +12,17 @@
 --}}
 
 @php
-    $classes = trim("btn btn-{$variant} ".($size ? "btn-{$size}" : ''));
+    // Written out in full: Tailwind only keeps a class it finds as a literal.
+    $classes = trim(match ($variant) {
+        'secondary' => 'btn btn-secondary',
+        'ghost' => 'btn btn-ghost',
+        'danger' => 'btn btn-danger',
+        default => 'btn btn-primary',
+    }.' '.match ($size) {
+        'sm' => 'btn-sm',
+        'lg' => 'btn-lg',
+        default => '',
+    });
     $glyph = $size === 'sm' ? 'size-3.5' : 'size-4';
 @endphp
 

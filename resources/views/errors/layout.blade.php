@@ -25,11 +25,10 @@
         <p class="mt-3 max-w-md text-sm leading-relaxed text-fg-muted">@yield('message')</p>
 
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-            @auth
-                <x-button icon="home" :href="route('home')">Go to your home screen</x-button>
-            @else
-                <x-button icon="login" :href="route('login')">Sign in</x-button>
-            @endauth
+            {{-- One link for everybody. A 404 is thrown before the session
+                 starts, so @auth offered a signed-in user "Sign in". Home
+                 sends a guest to the sign-in page anyway. --}}
+            <x-button icon="home" :href="route('home')">Go to your home screen</x-button>
             @hasSection('extra')
                 @yield('extra')
             @endif

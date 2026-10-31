@@ -162,7 +162,7 @@
     </div>
 
     @if ($removableCount > 0)
-        <x-modal name="confirm-clear-week" title="Clear the week of {{ $week->format('j M') }}?">
+        <x-modal name="confirm-clear-week" :title="'Clear the week of '.$week->format('j M').'?'">
             <p>
                 Removes the {{ $removableCount }} {{ Str::plural('shift', $removableCount) }} that
                 {{ $removableCount === 1 ? 'has' : 'have' }} not started. Each assistant is told.

@@ -25,7 +25,7 @@
         </x-card>
     </form>
 
-    <x-modal name="confirm-retire-device" title="Retire {{ $device->code }}?">
+    <x-modal name="confirm-retire-device" :title="'Retire '.$device->code.'?'">
         <p>It drops off the inventory and stops being watched. Its readings, tickets and
            history are kept, and it can be brought back.</p>
         <p class="mt-2 text-fg-muted">Anything still connected to it has to be connected to

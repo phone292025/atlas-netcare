@@ -29,7 +29,7 @@
     </form>
 
     @unless ($hasShifts)
-        <x-modal name="delete-template" title="Delete {{ $template->name }}?">
+        <x-modal name="delete-template" :title="'Delete '.$template->name.'?'">
             <p>No shifts have been generated from this pattern, so nothing depends on it.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'delete-template')"

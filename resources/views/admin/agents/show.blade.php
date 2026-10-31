@@ -40,7 +40,7 @@
         </x-alert>
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <x-card title="Agent" class="self-start">
             <dl class="divide-y divide-line text-sm">
                 @foreach ($details as $term => $value)
@@ -81,7 +81,7 @@
     </div>
 
     @unless ($agent->trashed())
-        <x-modal name="confirm-rotate" title="Make a new token for {{ $agent->name }}?">
+        <x-modal name="confirm-rotate" :title="'Make a new token for '.$agent->name.'?'">
             <p>The current token stops working at once. Until the new one is on the machine, its readings are refused and its devices go quiet.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'confirm-rotate')" class="btn btn-secondary">Cancel</button>
@@ -92,7 +92,7 @@
             </x-slot:footer>
         </x-modal>
 
-        <x-modal name="confirm-retire" title="Retire {{ $agent->name }}?">
+        <x-modal name="confirm-retire" :title="'Retire '.$agent->name.'?'">
             <p>Its token stops working and it can't be brought back. Its readings are kept. Devices it watched are left without an agent.</p>
             <x-slot:footer>
                 <button type="button" @click="$dispatch('close-modal', 'confirm-retire')" class="btn btn-secondary">Cancel</button>

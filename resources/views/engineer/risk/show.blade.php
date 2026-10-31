@@ -40,7 +40,7 @@
                            icon="wrench" />
         </x-card>
     @else
-        <div class="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
             <x-card title="Current risk" :subtitle="'Calculated '.$latest->calculated_at->diffForHumans()" class="self-start">
                 @if (empty($latest->factors))
                     {{-- An empty breakdown is how the scorer reports "nothing

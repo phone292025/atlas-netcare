@@ -88,8 +88,10 @@
     @endisset
 
     @if ($hasRows)
-        {{-- overflow-x-auto belongs here, on the table's own container. --}}
-        <div class="overflow-x-auto">
+        {{-- overflow-x-auto belongs here, on the table's own container. And
+             relative: an sr-only header label is absolutely positioned, and
+             with no positioned box here it widened the whole page on phones. --}}
+        <div class="relative overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                     <tr>

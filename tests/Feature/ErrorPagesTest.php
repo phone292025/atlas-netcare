@@ -34,7 +34,7 @@ class ErrorPagesTest extends TestCase
         $this->get('/no-such-page')
             ->assertNotFound()
             ->assertSee('That page does not exist')
-            ->assertSee('Sign in')
+            ->assertSee(route('home'), escape: false)
             ->assertDontSee('NOT FOUND');
     }
 

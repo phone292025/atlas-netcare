@@ -165,7 +165,7 @@
             </div>
 
             {{-- Desktop: a table. --}}
-            <div class="overflow-x-auto max-md:hidden" x-show="filtered.length">
+            <div class="relative overflow-x-auto max-md:hidden" x-show="filtered.length">
                 <table class="min-w-full text-sm">
                     <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                         <tr>
