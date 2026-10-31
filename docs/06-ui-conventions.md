@@ -1,8 +1,8 @@
 # UI Conventions
 
-> **Last updated:** 2026-09-26 · **Decisions:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md), [ADR-0009](decisions/ADR-0009-themed-design-system.md)
+> **Last updated:** 2026-11-01 · **Decisions:** [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md), [ADR-0009](decisions/ADR-0009-themed-design-system.md)
 >
-> Seven people building screens will produce seven different interfaces unless this file is followed. Consistency is a directly marked criterion.
+> Screens built months apart drift into different interfaces unless this file is followed.
 
 ---
 
@@ -52,7 +52,7 @@ Two, and only two.
 - **Assistants get a tab bar** along the bottom of a phone: their first four screens and "More", which opens the drawer.
 - **Toasts, not banners,** for flash messages. See Interaction conventions.
 
-**Build the sidebar once**, from a config array keyed by role. Seven people must never each invent their own navigation.
+**Build the sidebar once**, from a config array keyed by role. No screen invents its own navigation.
 
 ### Route names are fixed vocabulary
 
@@ -102,7 +102,7 @@ Below `lg` the sidebar becomes a drawer, opened from the menu button in the topb
 
 ## Blade components
 
-Live in `resources/views/components/`. Build these in Sprint 0, before any module screens.
+Live in `resources/views/components/`. They were built before any module screen. Use one before writing new markup.
 
 | Component | Props | Used by |
 |---|---|---|
@@ -273,11 +273,11 @@ Every admin resource follows the same four screens. Build one, copy the shape.
 
 ## The flow that matters most
 
-Get this one right and the demo carries itself:
+This one path shows the whole system:
 
 > An assistant opens the app on their phone mid-shift, sees today's round, taps into a lab, works down the PC list, marks a monitor as failing — and the system offers a pre-filled ticket with the machine, location, failed item and suggested priority already populated. They add one sentence and submit. On the engineer's dashboard the ticket appears in the queue within one poll cycle, and the machine's risk score rises overnight.
 
-That single path touches five of the seven modules and demonstrates the whole system in ninety seconds. **Build it end-to-end early and rehearse it.**
+That single path touches five of the seven modules in about ninety seconds. **A change that breaks any step of it is a regression,** and the browser tests cover it.
 
 ---
 

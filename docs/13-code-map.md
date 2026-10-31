@@ -1,6 +1,6 @@
 # Code map
 
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-11-01
 
 Every file in the project and what it does. Written for somebody who has just
 cloned the repository and wants to know where anything lives before changing
@@ -20,16 +20,20 @@ narrative.
 
 ## How a request travels
 
-Nothing here is clever, and that is deliberate. Seven people over eight weeks
-need an architecture each of them can explain under questioning.
+Nothing here is clever, and that is deliberate. The capstone team of seven
+each had to explain it under questioning, and it still has to be easy to
+change for the one person who works on it now.
 
 ```
-Browser
-  |     Blade, Tailwind, Alpine for interaction, Chart.js for graphs
-routes/
-  |     grouped by role prefix
-app/Http/Middleware/
-  |     auth, then role. Nothing reaches a controller unverified
+Browser                                  Probe agent
+  |   Blade, Tailwind, Alpine,             |   JSON batches, bearer token
+  |   Chart.js                             |
+routes/web.php                           routes/api.php
+  |   grouped by role prefix               |   POST /api/v1/readings only
+app/Http/Middleware/                     app/Http/Middleware/
+  |   auth, then role                      |   rate limit, LimitBodySize,
+  |                                        |   AuthenticateAgent, rate limit
+  +-------------------+--------------------+
 app/Http/Requests/
   |     is the request well formed?
 app/Policies/
@@ -70,8 +74,11 @@ Every URL the system answers.
 
 `web.php` is grouped by role, so an assistant's URLs sit under
 `/assistant`, an engineer's under `/engineer`, and an administrator's under
-`/admin`. The grouping is not decoration: the `role` middleware is applied to
-the group, so a new screen inherits its protection from where you put it.
+`/admin`. The `role` middleware is applied to the group, so a new screen
+inherits its protection from where you put it.
+
+`api.php` is for machines. It holds the one route probe agents call, with no
+session, cookies or CSRF, and an agent's token in their place.
 
 One route sits deliberately outside the `auth` group. The calendar feed is
 fetched by a phone's calendar app, which cannot sign in, so it authenticates
@@ -125,9 +132,8 @@ couple of hundred lines is one that has started deciding things.
 
 `ReportController` is worth a look if you want to see the rule enforced. It
 was 309 lines of aggregation until the query building moved into
-`ReportingService`. It is 34 lines now and every one of its eleven tests
-passed unchanged, which is the only evidence that a move like that preserved
-behaviour.
+`ReportingService`. The move cut it to 34 lines, and all eleven of its tests
+passed unchanged, which is the evidence that the move preserved behaviour.
 
 ---
 
@@ -146,10 +152,17 @@ They answer different questions.
 | `LimitBodySize.php` | Refuses a request body larger than `atlas.ingest.max_kilobytes` with 413, |
 <!-- /code-map -->
 
-`EnsureUserHasRole` is applied per route group: may this role reach this area
-at all? `EnsureAccountIsActive` and `EnsurePasswordIsChanged` are appended to
-the whole `web` group instead, because a control you have to remember to apply
-is one somebody will forget on the next screen they add.
+`EnsureUserHasRole` is applied per route group, and asks whether this role
+may reach this area at all. `EnsureAccountIsActive` and
+`EnsurePasswordIsChanged` are appended to the whole `web` group instead,
+because a control you have to remember to apply is one somebody will forget on
+the next screen they add. `IgnoreArrayQueryValues` runs on every request for
+the same reason.
+
+`AuthenticateAgent` and `LimitBodySize` guard the ingest API only.
+`LimitBodySize` refuses an oversized batch before it is parsed, and
+`AuthenticateAgent` puts the agent on the request without signing anybody in,
+so an agent's token opens no web screen.
 
 ---
 
@@ -339,8 +352,8 @@ which is why a grep for the class name finds nothing and proves nothing.
 
 Policies are matched to models by name: `User` finds `UserPolicy` with no
 registration anywhere. The two view components are found by tag, so
-`<x-app-layout>` in 44 views resolves to `AppLayout` without the class name
-appearing once.
+`<x-app-layout>` in every signed-in view resolves to `AppLayout` without the
+class name appearing once.
 
 ---
 
@@ -391,10 +404,11 @@ Nothing updates on its own unless `php artisan schedule:work` is running. That
 is the single most common reason the dashboard looks broken when it is not.
 `routes/console.php` holds the timings, with the reasoning for each next to it.
 
-`atlas:check-schema` is the one to run after any migration. It audits the live
-database for two things the test suite cannot see, because the suite runs on
-SQLite: columns MariaDB rewrites on every update, and rows whose own
-timestamps contradict each other.
+`atlas:check-schema` is the one to run after any migration. It checks the live
+database for rows whose own timestamps contradict each other, which no test
+can see because the suite runs on an empty database. Its other check, for
+columns MariaDB rewrites on every update, runs only on MariaDB, which Atlas
+left on 2026-10-22.
 
 ---
 
@@ -642,8 +656,8 @@ Blade files. Views receive data as props and never query.
 | `tickets/_detail.blade.php` |
 <!-- /code-map -->
 
-`components/` holds 23 shared components, all of them visible at `/dev/gallery`
-on a local machine. Check there before building a new one.
+`components/` holds the shared components, all of them visible at
+`/dev/gallery` on a local machine. Check there before building a new one.
 
 `assistant/inspections/edit.blade.php` is the screen the design is built
 around. It is used standing up, on a phone, one handed, thirty times an hour.
@@ -655,10 +669,10 @@ measured facts, not intentions.
 
 ## tests/
 
-The suite runs in under a minute. **The pass count lives in
-[progress/build-log.md](progress/build-log.md) and in the installation guide,
-and deliberately nowhere else** — it was in five documents once and three of
-them disagreed. Quoting it here would have made this the fourth.
+**The pass count lives in [progress/build-log.md](progress/build-log.md) and
+in the installation guide, and deliberately nowhere else.** It was in five
+documents once and three of them disagreed. Quoting it here would have made
+this the fourth.
 
 <!-- code-map:tests/ -->
 | File | What it does |
