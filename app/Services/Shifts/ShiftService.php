@@ -277,15 +277,26 @@ class ShiftService
         return $stale->count();
     }
 
-    /** Today's shift on campus for this person, if they have one. */
+    /**
+     * Today's shift on campus for this person, if they have one.
+     *
+     * With two in a day, the one that still needs them: the one they are
+     * checked into, else the next not yet over, else the last. The first by
+     * start time kept a finished morning shift on screen, and the afternoon
+     * one had no check-in button.
+     */
     public function todayFor(User $user): ?Shift
     {
-        return Shift::query()
+        $shifts = Shift::query()
             ->forUser($user)
             ->on(CampusClock::today())
             ->with(['location', 'template'])
             ->orderBy('start_time')
-            ->first();
+            ->get();
+
+        return $shifts->firstWhere('status', ShiftStatus::CheckedIn)
+            ?? $shifts->first(fn (Shift $shift) => $shift->status === ShiftStatus::Scheduled && ! $shift->endsAt()->isPast())
+            ?? $shifts->last();
     }
 
     /**

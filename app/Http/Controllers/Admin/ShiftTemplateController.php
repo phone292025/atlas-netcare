@@ -22,7 +22,7 @@ class ShiftTemplateController extends Controller
             'templates' => ShiftTemplate::query()
                 ->with('location')
                 ->withCount('shifts')
-                ->orderBy('day_of_week')->orderBy('start_time')
+                ->orderBy('day_of_week')->orderBy('start_time')->orderBy('id')
                 ->paginate(25),
         ]);
     }

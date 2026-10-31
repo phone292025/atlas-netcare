@@ -407,6 +407,9 @@ class ShiftRosterTest extends TestCase
         $shift = Shift::factory()->checkedIn()->create(['user_id' => $assistant->id]);
         $this->service()->checkOut($shift, $assistant);
 
+        // Past its end, so only the status rule keeps it from being missed.
+        // Before its end the sweep skipped it anyway, and the test proved nothing.
+        $this->travelTo($shift->fresh()->endsAt()->addHour());
         $this->service()->markMissed();
 
         $this->assertSame(ShiftStatus::Completed, $shift->fresh()->status);
@@ -425,6 +428,29 @@ class ShiftRosterTest extends TestCase
     }
 
     // ------------------------------------------------------------ the today screen
+
+    public function test_after_a_finished_morning_shift_today_is_the_afternoon_one(): void
+    {
+        $assistant = $this->userWith(UserRole::Assistant);
+        $location = Location::factory()->create();
+        $this->travelTo(CampusClock::today()->setTime(13, 0));
+
+        Shift::factory()->create([
+            'user_id' => $assistant->id, 'location_id' => $location->id,
+            'shift_date' => CampusClock::today()->toDateString(),
+            'start_time' => '09:00:00', 'end_time' => '12:00:00',
+            'status' => ShiftStatus::Completed,
+        ]);
+        $afternoon = Shift::factory()->create([
+            'user_id' => $assistant->id, 'location_id' => $location->id,
+            'shift_date' => CampusClock::today()->toDateString(),
+            'start_time' => '14:00:00', 'end_time' => '17:00:00',
+        ]);
+
+        // The first by start time kept the finished morning shift on screen,
+        // and the afternoon one had no check-in button anywhere.
+        $this->assertSame($afternoon->id, app(ShiftService::class)->todayFor($assistant)->id);
+    }
 
     public function test_todays_shift_is_not_repeated_under_coming_up(): void
     {
