@@ -66,7 +66,12 @@ class TelemetryService
             $devices = NetworkDevice::query()
                 ->whereIn('id', $readings->pluck('deviceId')->unique())
                 ->orderBy('id')
-                ->lockForUpdate()
+                // NO KEY UPDATE, not FOR UPDATE: it still queues two batches
+                // behind each other, but does not wait on readings being
+                // inserted for these devices, whose foreign key checks take a
+                // KEY SHARE lock. FOR UPDATE deadlocked with the demo seeder
+                // inserting readings while the scheduler's round ran.
+                ->lock('for no key update')
                 ->get()
                 ->keyBy('id');
 
