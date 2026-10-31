@@ -6,6 +6,7 @@ use App\Enums\AlarmType;
 use App\Models\AccessPoint;
 use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\NetworkDevice;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
@@ -38,8 +39,9 @@ class NotificationController extends Controller
          * stop looking at it.
          *
          * Read AFTER loading, so the page still shows which ones were new.
+         * Only the ones it shows: the list stops at fifty.
          */
-        $this->alarms->markAllRead($user);
+        $this->alarms->markAllRead($user, $alarms);
 
         return view('notifications.index', ['alarms' => $alarms]);
     }
@@ -68,6 +70,9 @@ class NotificationController extends Controller
             // The engineer's own screen, with the assign and progress buttons.
             $related instanceof Ticket => route('engineer.tickets.show', $related),
             $related instanceof AccessPoint => route('engineer.aps.show', $related),
+            // A switch, router or server: v2 watches those too.
+            $related instanceof NetworkDevice && $viewer->isAdmin() => route('admin.devices.show', $related),
+            $related instanceof NetworkDevice => route('engineer.monitor.index'),
             // Administrators manage agents. Engineers see the devices it left unknown.
             $related instanceof Agent && $viewer->isAdmin() => route('admin.agents.show', $related),
             $related instanceof Agent => route('engineer.monitor.index'),

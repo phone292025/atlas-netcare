@@ -40,14 +40,18 @@ use Illuminate\Support\Facades\DB;
 class SimulationService
 {
     public function __construct(
-        private readonly Simulator $simulator,
         private readonly TelemetryCollector $collector,
     ) {}
 
-    /** Whether the controls exist at all: only while the simulator watches something. */
+    /**
+     * Whether the controls exist at all: only while the simulator owns a device.
+     *
+     * Owns, not watches. A feed interruption on every access point leaves the
+     * simulator watching nothing, and Recovery is the control that undoes it.
+     */
     public function available(): bool
     {
-        return $this->simulator->watched()->exists();
+        return NetworkDevice::query()->simulated()->exists();
     }
 
     /**
@@ -128,7 +132,7 @@ class SimulationService
     {
         if (! $this->available()) {
             throw new DomainException(
-                'Simulation controls need devices the simulator watches. '
+                'Simulation controls need devices the simulator owns. '
                 .'Every device here is measured by a real agent.'
             );
         }

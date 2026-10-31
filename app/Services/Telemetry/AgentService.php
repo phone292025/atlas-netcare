@@ -90,7 +90,9 @@ class AgentService
             'last_seen_at' => now(),
             'last_address' => $address,
             'version' => $version !== null ? Str::limit($version, 40, '') : null,
-            'clock_offset_ms' => $clockOffsetMs,
+            // Held to the integer column. A clock 25 days out is as wrong as
+            // one 25 years out, and the screen flags both.
+            'clock_offset_ms' => $clockOffsetMs === null ? null : max(-2_147_483_648, min(2_147_483_647, $clockOffsetMs)),
         ], fn ($value) => $value !== null) + ['silent_since' => null])->saveQuietly();
     }
 

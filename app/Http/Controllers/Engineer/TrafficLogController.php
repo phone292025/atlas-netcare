@@ -36,7 +36,10 @@ class TrafficLogController extends Controller
             ->whereBetween('hour_bucket', [$from, $to])
             ->when($request->filled('access_point'), fn ($q) => $q->where('network_device_id', $request->integer('access_point')))
             ->when($request->filled('location'), fn ($q) => $q->whereHas('device', fn ($q) => $q->where('location_id', $request->integer('location'))))
+            // Every access point has a row for each hour, so the hour alone ties.
             ->orderByDesc('hour_bucket')
+            ->orderBy('network_device_id')
+            ->orderBy('source')
             ->paginate(50)
             ->withQueryString();
 
@@ -71,6 +74,9 @@ class TrafficLogController extends Controller
             ->selectRaw('AVG(avg_latency_ms) as latency')
             ->whereBetween('hour_bucket', [$from, $to])
             ->when($request->filled('access_point'), fn ($q) => $q->where('network_device_id', $request->integer('access_point')))
+            // The same filters as the table, or the chart and tiles showed the
+            // whole campus above a table scoped to one room.
+            ->when($request->filled('location'), fn ($q) => $q->whereHas('device', fn ($q) => $q->where('location_id', $request->integer('location'))))
             ->groupBy('hour_bucket')
             ->orderBy('hour_bucket')
             ->get();

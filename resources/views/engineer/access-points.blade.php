@@ -102,7 +102,7 @@
                                message="No access point matches that. Everything else is listed under All." />
             </template>
 
-            <div class="overflow-x-auto" x-show="rows.length > 0">
+            <div class="relative overflow-x-auto" x-show="rows.length > 0">
                 <table class="min-w-full text-sm">
                     <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                         <tr>
@@ -135,7 +135,7 @@
                                     <span class="flex w-32 items-center gap-2">
                                         <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
                                             <span class="block h-full rounded-full"
-                                                  :class="load(ap) > 90 ? 'bg-amber-500' : 'bg-brand-500'"
+                                                  :class="load(ap) >= {{ (int) round(config('atlas.thresholds.client_saturation') * 100) }} ? 'bg-amber-500' : 'bg-brand-500'"
                                                   :style="`width: ${load(ap)}%`"></span>
                                         </span>
                                         <span class="w-12 text-right text-xs tabular-nums text-fg-muted" x-text="(ap.clients ?? '-') + '/' + ap.capacity"></span>

@@ -170,7 +170,7 @@ class SimulatedReadings
         $congestion = 210 * ($saturation ** 3);
         $noise = $this->jitter(6);
 
-        return (int) max(1, min(65535, round($base + $congestion + $noise)));
+        return (int) max(1, min(32767, round($base + $congestion + $noise)));
     }
 
     /** Loss stays near zero until an access point is genuinely overloaded. */

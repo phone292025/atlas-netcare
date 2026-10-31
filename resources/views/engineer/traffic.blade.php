@@ -119,7 +119,7 @@
                            message="Try a wider date range, or check that the scheduler is running."
                            icon="chart" />
         @else
-            <div class="overflow-x-auto">
+            <div class="relative overflow-x-auto">
                 <table class="min-w-full text-sm">
                     <thead class="border-b border-line bg-sunken/60 text-left text-xs font-medium text-fg-muted">
                         <tr>
@@ -160,7 +160,7 @@
                                 <td class="px-4 py-3">
                                     <span class="flex w-28 items-center gap-2">
                                         <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
-                                            <span @class(['block h-full rounded-full', 'bg-amber-500' => $util >= 80, 'bg-brand-500' => $util < 80])
+                                            <span @class(['block h-full rounded-full', 'bg-amber-500' => $util >= config('atlas.thresholds.channel_util_pct'), 'bg-brand-500' => $util < config('atlas.thresholds.channel_util_pct')])
                                                   style="width: {{ (int) min(100, round($util)) }}%"></span>
                                         </span>
                                         <span class="w-9 text-right text-xs tabular-nums text-fg-muted">{{ number_format($util, 0) }}%</span>

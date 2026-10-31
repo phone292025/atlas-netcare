@@ -153,14 +153,22 @@ class AlarmService
     }
 
     /**
-     * Mark everything this person can see as read.
+     * Mark everything this person can see as read, or only the alarms given.
      *
      * Bulk update rather than a loop: a badge showing 40 should not be 40
-     * queries, and there is nothing per-row to decide.
+     * queries, and there is nothing per-row to decide. The notifications page
+     * passes the alarms it showed, so the 51st, or one that arrived while it
+     * loaded, stays unread until somebody has seen it.
+     *
+     * @param  Collection<int, Alarm>|null  $only
      */
-    public function markAllRead(User $user): int
+    public function markAllRead(User $user, ?Collection $only = null): int
     {
-        return Alarm::query()->visibleTo($user)->unread()->update(['read_at' => now()]);
+        return Alarm::query()
+            ->visibleTo($user)
+            ->unread()
+            ->when($only !== null, fn ($query) => $query->whereKey($only->pluck('id')->all()))
+            ->update(['read_at' => now()]);
     }
 
     public function markRead(Alarm $alarm): void

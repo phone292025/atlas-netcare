@@ -710,6 +710,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) |
 | `Feature/Risk/ReportsTest.php` | The five operational reports (FR-410) |
 | `Feature/RoleAccessMatrixTest.php` | Every readable screen, against every role, with data behind it |
+| `Feature/ScheduleTest.php` | The scheduler's locks. withoutOverlapping() defaults to a 24-hour lock in |
 | `Feature/SchemaIntegrityTest.php` | Schema traps that only exist on the database we actually ship on |
 | `Feature/Shifts/AlarmTest.php` | M6, alarms: the delivery mechanism for the whole system (FR-506, FR-212) |
 | `Feature/Shifts/GenerateShiftsCommandTest.php` | `atlas:generate-shifts`, the command wrapper, not the service behind it |

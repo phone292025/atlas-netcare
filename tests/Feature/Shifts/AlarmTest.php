@@ -165,6 +165,17 @@ class AlarmTest extends TestCase
         $this->assertSame(0, $this->service()->unreadCount($user));
     }
 
+    public function test_the_list_marks_read_only_what_it_shows(): void
+    {
+        // It shows fifty. The fifty-first was marked read unseen.
+        $user = $this->userWith(UserRole::Engineer);
+        Alarm::factory()->count(51)->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)->get(route('notifications.index'))->assertOk();
+
+        $this->assertSame(1, $this->service()->unreadCount($user));
+    }
+
     // ------------------------------------------- the seams M4 and M5 use
 
     public function test_an_overdue_ticket_alarms_the_engineers_once(): void

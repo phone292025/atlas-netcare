@@ -50,23 +50,31 @@ class TelemetryService
      * since recovered back to offline. `last_seen_at` moves only when the
      * device answered: it is what the silence sweep reads.
      *
+     * The devices are read inside the transaction and locked, in id order so
+     * two batches can't deadlock. A batch an agent resent while the first was
+     * still being stored then waits, and sees the first one's status and
+     * newest reading, rather than writing an older status over it and
+     * raising the same alert twice.
+     *
      * @param  Collection<int, ReadingData>  $readings
      */
     public function record(Collection $readings): StoredReadings
     {
-        $devices = NetworkDevice::query()
-            ->whereIn('id', $readings->pluck('deviceId')->unique())
-            ->get()
-            ->keyBy('id');
-
-        $ordered = $readings
-            ->filter(fn (ReadingData $reading) => $devices->has($reading->deviceId))
-            ->sortBy(fn (ReadingData $reading) => $reading->recordedAt->getTimestamp())
-            ->values();
-
         $window = (int) config('atlas.thresholds.consecutive_breach') - 1;
 
-        return DB::transaction(function () use ($ordered, $devices, $window): StoredReadings {
+        return DB::transaction(function () use ($readings, $window): StoredReadings {
+            $devices = NetworkDevice::query()
+                ->whereIn('id', $readings->pluck('deviceId')->unique())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $ordered = $readings
+                ->filter(fn (ReadingData $reading) => $devices->has($reading->deviceId))
+                ->sortBy(fn (ReadingData $reading) => $reading->recordedAt->getTimestamp())
+                ->values();
+
             $recent = [];
             $statuses = [];
             $rows = [];
@@ -470,6 +478,8 @@ class TelemetryService
             // its devices are not down for that.
             ->whereNotIn('status', [NetworkStatus::Offline->value, NetworkStatus::Unknown->value])
             ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $cutoff))
+            // In id order, as record() locks, so a round and a batch can't deadlock.
+            ->orderBy('id')
             ->get();
 
         $transitions = collect();
@@ -483,8 +493,22 @@ class TelemetryService
 
             $from = $ap->status;
 
-            // Quietly, as in store(). The ticket and the alert are the record.
-            $ap->forceFill(['status' => NetworkStatus::Offline])->saveQuietly();
+            // Only if it is still as read: a batch that arrived meanwhile has
+            // the last word, and must not be overwritten with Offline and a
+            // ticket. Quietly, as in store(): the ticket and alert are the record.
+            $claimed = NetworkDevice::query()
+                ->whereKey($ap->id)
+                ->where('status', $from->value)
+                ->where('last_seen_at', '<', $cutoff)
+                ->toBase()
+                ->update(['status' => NetworkStatus::Offline->value]);
+
+            if ($claimed !== 1) {
+                continue;
+            }
+
+            $ap->status = NetworkStatus::Offline;
+            $ap->syncOriginalAttribute('status');
 
             $transitions->push(['device' => $ap, 'from' => $from, 'to' => NetworkStatus::Offline]);
         }
@@ -497,8 +521,10 @@ class TelemetryService
      * nobody can say how they are, so their last status would be a guess.
      *
      * Silent means not heard from for `silent_after_minutes`, or never heard
-     * from at all, as with a device given to an agent not yet installed.
-     * Only Online and Degraded change. Offline stays, because a ticket hangs
+     * from at all, as with a device given to an agent not yet installed. A
+     * device with no agent is the same: its agent was retired, or it was
+     * added before one, and nobody measures it. Only Online and Degraded
+     * change. Offline stays, because a ticket hangs
      * on it, and Maintenance stays, because a person set it. The simulator's
      * devices are never touched. A reading from the device changes it back.
      *
@@ -517,16 +543,21 @@ class TelemetryService
 
         $known = [NetworkStatus::Online->value, NetworkStatus::Degraded->value];
 
+        $unmeasured = fn ($query) => $query
+            ->whereNull('agent_id')
+            ->orWhereHas('agent', $silentAgent);
+
         return NetworkDevice::query()
-            ->whereHas('agent', $silentAgent)
+            ->where($unmeasured)
             ->whereIn('status', $known)
+            ->orderBy('id')
             ->get()
             // Each one only if it still qualifies as it is written: a batch
             // that arrived since the read above has the last word.
             ->filter(fn (NetworkDevice $device) => NetworkDevice::query()
                 ->whereKey($device->id)
                 ->where('status', $device->status->value)
-                ->whereHas('agent', $silentAgent)
+                ->where($unmeasured)
                 ->toBase()
                 ->update(['status' => NetworkStatus::Unknown->value]) === 1)
             ->map(function (NetworkDevice $device): array {

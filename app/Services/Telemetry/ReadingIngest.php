@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\NetworkDevice;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One batch of readings from a probe agent (ADR-0017, roadmap task 1.3).
@@ -64,8 +65,16 @@ class ReadingIngest
             $accepted->push($this->toReading($agent, $device, $reading, $measuredAt, $receivedAt));
         }
 
-        $result = $this->telemetry->record($accepted);
-        $this->collector->react($result->transitions);
+        // One transaction: if the ticket or the alert fails, the readings go
+        // too, and the agent's retry raises them. Stored alone, the retry was
+        // all duplicates, the device was already Offline, and the outage was
+        // never ticketed.
+        $result = DB::transaction(function () use ($accepted): StoredReadings {
+            $result = $this->telemetry->record($accepted);
+            $this->collector->react($result->transitions);
+
+            return $result;
+        });
 
         $stored = $result->stored->map(fn (ReadingData $r) => $r->sequence)->values()->all();
 

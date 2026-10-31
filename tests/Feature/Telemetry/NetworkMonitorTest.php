@@ -401,6 +401,25 @@ class NetworkMonitorTest extends TestCase
         $this->assertNull($a->fresh()->simulation_started_at);
     }
 
+    public function test_recovery_still_works_after_every_access_point_lost_its_feed(): void
+    {
+        AccessPoint::factory()->count(2)->create();
+        $engineer = $this->userWith(UserRole::Engineer);
+
+        $this->actingAs($engineer)
+            ->post(route('monitor.simulate'), ['scenario' => 'feed_interruption', 'access_point_id' => '']);
+
+        // The simulator measures nothing now, but it still owns every device,
+        // so the controls that bring them back must still be there.
+        $this->actingAs($engineer)->get(route('engineer.monitor.index'))->assertSee('Run simulation');
+
+        $this->actingAs($engineer)
+            ->post(route('monitor.simulate'), ['scenario' => 'recovery', 'access_point_id' => ''])
+            ->assertSessionHas('success');
+
+        $this->assertSame(0, AccessPoint::query()->whereNotNull('simulation_scenario')->count());
+    }
+
     public function test_recovery_with_nothing_to_recover_says_so(): void
     {
         AccessPoint::factory()->create();

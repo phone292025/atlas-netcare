@@ -153,6 +153,8 @@ return [
         'latency_ms' => 120,
         'packet_loss_pct' => 5.0,
         'client_saturation' => 0.85,
+        // Channel utilisation the traffic log draws in amber, in per cent.
+        'channel_util_pct' => 80,
         'consecutive_breach' => 3,
         'offline_after_min' => 5,
         'degraded_alert_cooldown_min' => 60,

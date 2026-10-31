@@ -28,9 +28,10 @@ class IngestReadingsRequest extends FormRequest
             'readings.*.device' => ['required', 'string', 'max:40'],
             'readings.*.measured_at' => ['required', 'date'],
             'readings.*.reachable' => ['required', 'boolean'],
-            'readings.*.latency_ms' => ['nullable', 'numeric', 'min:0', 'max:65535'],
+            // smallint on PostgreSQL, which stops at 32767 whatever "unsigned" says.
+            'readings.*.latency_ms' => ['nullable', 'numeric', 'min:0', 'max:32767'],
             'readings.*.packet_loss_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'readings.*.client_count' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            'readings.*.client_count' => ['nullable', 'integer', 'min:0', 'max:32767'],
             'readings.*.channel_util_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'readings.*.throughput_mbps' => ['nullable', 'numeric', 'min:0', 'max:999999'],
         ];

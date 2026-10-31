@@ -67,11 +67,19 @@ class TelemetryCollector
         // covers every agent's devices, not only the simulator's: an agent
         // still sending heartbeats can stop sending one device's readings.
         // An agent that has stopped altogether leaves its devices Unknown.
-        $transitions = $this->simulator->round()->transitions
-            ->concat($this->telemetry->markStaleOffline())
-            ->concat($this->telemetry->markUnknown());
+        //
+        // With their tickets and alerts in one transaction. Committed alone,
+        // a failed alert left the device Offline, so the next round saw no
+        // change and the outage was never ticketed or alerted.
+        $transitions = DB::transaction(function () use ($report): Collection {
+            $transitions = $this->simulator->round()->transitions
+                ->concat($this->telemetry->markStaleOffline())
+                ->concat($this->telemetry->markUnknown());
 
-        $this->react($transitions, $report);
+            $this->react($transitions, $report);
+
+            return $transitions;
+        });
 
         // Claimed last, and with its alert in one transaction: a round that
         // fails before the alerts are stored leaves the silence unclaimed,

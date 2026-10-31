@@ -2,20 +2,26 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\AlarmType;
 use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Agent;
+use App\Models\Alarm;
 use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\AgentService;
 use App\Services\Telemetry\ReadingIngest;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Testing\TestResponse;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -133,6 +139,30 @@ class ReadingIngestTest extends TestCase
         $this->assertSame(0, TelemetryReading::count());
     }
 
+    public function test_a_number_too_big_for_its_column_is_refused_not_a_server_error(): void
+    {
+        // Both columns are smallint on PostgreSQL, which tops out at 32767.
+        // Accepting more failed the insert, and the agent resent the batch forever.
+        $this->send([$this->reading(1, ['latency_ms' => 40000])])->assertUnprocessable()->assertJsonValidationErrors('readings.0.latency_ms');
+        $this->send([$this->reading(1, ['client_count' => 40000])])->assertUnprocessable()->assertJsonValidationErrors('readings.0.client_count');
+
+        $this->send([$this->reading(1, ['latency_ms' => 32767, 'client_count' => 32767])])->assertOk();
+    }
+
+    public function test_a_clock_years_out_is_recorded_as_far_out_not_a_server_error(): void
+    {
+        // A Pi with no battery clock boots in 1970. The offset in milliseconds
+        // is far past what the integer column holds.
+        $this->send([], batch: ['sent_at' => '2000-01-01T00:00:00Z'])
+            ->assertOk()
+            ->assertJsonPath('clock_offset_ms', fn (int $offset) => $offset < -2_147_483_648);
+
+        $agent = $this->agent->fresh();
+        $this->assertSame(-2_147_483_648, $agent->clock_offset_ms);
+        $this->assertTrue($agent->clockIsOff());
+        $this->assertNotNull($agent->last_seen_at);
+    }
+
     public function test_a_batch_is_capped_in_readings_and_in_size(): void
     {
         config(['atlas.ingest.max_readings' => 2, 'atlas.ingest.max_kilobytes' => 1]);
@@ -235,6 +265,40 @@ class ReadingIngestTest extends TestCase
         $row = TelemetryReading::sole();
         $this->assertNull($row->latency_ms);
         $this->assertSame('100.00', (string) $row->packet_loss_pct);
+    }
+
+    public function test_an_outage_whose_alert_failed_is_alerted_on_the_retry(): void
+    {
+        $engineer = User::factory()->create();
+        $engineer->forceFill(['role' => UserRole::Engineer, 'is_active' => true])->save();
+
+        // The first alert fails, the way a dropped database connection would.
+        $this->app->instance(AlarmService::class, new class extends AlarmService
+        {
+            public bool $failed = false;
+
+            public function raiseForRole(AlarmType $type, UserRole $role, string $title, ?string $message = null, ?Model $related = null, ?Carbon $at = null): Collection
+            {
+                if (! $this->failed) {
+                    $this->failed = true;
+
+                    throw new RuntimeException('Lost the connection.');
+                }
+
+                return parent::raiseForRole($type, $role, $title, $message, $related, $at);
+            }
+        });
+
+        $offline = [$this->reading(1, ['reachable' => false, 'latency_ms' => null])];
+
+        $this->send($offline)->assertServerError();
+
+        // The agent keeps the batch and sends it again.
+        $this->send($offline)->assertOk()->assertJson(['stored' => [1]]);
+
+        $this->assertSame(NetworkStatus::Offline, $this->ap->fresh()->status);
+        $this->assertSame(1, Ticket::where('ticketable_id', $this->ap->id)->count());
+        $this->assertSame(1, Alarm::where('type', AlarmType::ApOffline)->where('user_id', $engineer->id)->count());
     }
 
     public function test_a_late_reading_fills_history_without_moving_the_status(): void

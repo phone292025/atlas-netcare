@@ -14,18 +14,24 @@ use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\ReadingData;
 use App\Services\Telemetry\SimulatedReadings;
 use App\Services\Telemetry\Simulator;
+use App\Services\Telemetry\TelemetryCollector;
 use App\Services\Telemetry\TelemetryService;
 use App\Services\Telemetry\TelemetryStorage;
 use App\Support\CampusClock;
 use Carbon\CarbonInterface;
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -399,6 +405,44 @@ class TelemetryPipelineTest extends TestCase
         // Still offline on the next round, and still one ticket.
         Artisan::call('atlas:collect-telemetry');
         $this->assertSame(1, Ticket::count());
+    }
+
+    public function test_an_outage_whose_alert_failed_is_alerted_by_the_next_round(): void
+    {
+        $this->userWith(UserRole::Admin);
+        $engineer = $this->userWith(UserRole::Engineer);
+        $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);
+        $this->simulatorWhereNothingAnswers();
+
+        // The first alert fails, the way a dropped database connection would.
+        $this->app->instance(AlarmService::class, new class extends AlarmService
+        {
+            public bool $failed = false;
+
+            public function raiseForRole(AlarmType $type, UserRole $role, string $title, ?string $message = null, ?Model $related = null, ?Carbon $at = null): Collection
+            {
+                if (! $this->failed) {
+                    $this->failed = true;
+
+                    throw new RuntimeException('Lost the connection.');
+                }
+
+                return parent::raiseForRole($type, $role, $title, $message, $related, $at);
+            }
+        });
+
+        try {
+            app(TelemetryCollector::class)->tick();
+            $this->fail('The failing alert should have stopped the round.');
+        } catch (RuntimeException) {
+        }
+
+        $this->travel(1)->minutes();
+        app(TelemetryCollector::class)->tick();
+
+        $this->assertSame(NetworkStatus::Offline, $ap->fresh()->status);
+        $this->assertSame(1, Ticket::count());
+        $this->assertSame(1, Alarm::where('type', AlarmType::ApOffline)->where('user_id', $engineer->id)->count());
     }
 
     public function test_an_access_point_turning_degraded_alerts_the_engineers_once(): void
@@ -775,6 +819,24 @@ class TelemetryPipelineTest extends TestCase
             ->get(route('engineer.traffic.index'))
             ->assertOk()
             ->assertSee($ap->code);
+    }
+
+    public function test_the_traffic_chart_follows_the_location_filter(): void
+    {
+        // The table was scoped to the room and the chart above it was not.
+        $here = AccessPoint::factory()->create();
+        $elsewhere = AccessPoint::factory()->create();
+        $this->hoursFor($here, 1);
+        $this->hoursFor($elsewhere, 1);
+        TelemetryReading::query()->where('network_device_id', $here->id)->update(['client_count' => 7]);
+        TelemetryReading::query()->where('network_device_id', $elsewhere->id)->update(['client_count' => 30]);
+
+        $trend = $this->actingAs($this->userWith(UserRole::Engineer))
+            ->get(route('engineer.traffic.index', ['location' => $here->location_id]))
+            ->assertOk()
+            ->viewData('trend');
+
+        $this->assertSame([7], $trend['clients']);
     }
 
     public function test_a_removed_access_point_keeps_its_name_in_the_traffic_log(): void

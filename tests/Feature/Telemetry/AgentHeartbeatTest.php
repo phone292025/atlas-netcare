@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
@@ -135,13 +136,29 @@ class AgentHeartbeatTest extends TestCase
         $connected = $this->watchedBy($this->agent, code: 'AP-01');
 
         $simulated = AccessPoint::factory()->create(['code' => 'AP-02', 'status' => NetworkStatus::Online]);
-        $unwatched = AccessPoint::factory()->create(['code' => 'AP-03', 'status' => NetworkStatus::Online, 'agent_id' => null]);
 
         $this->assertCount(0, app(TelemetryService::class)->markUnknown());
 
-        foreach ([$connected, $simulated, $unwatched] as $ap) {
+        foreach ([$connected, $simulated] as $ap) {
             $this->assertSame(NetworkStatus::Online, $ap->fresh()->status, "{$ap->code} changed.");
         }
+    }
+
+    public function test_a_device_nobody_measures_is_unknown(): void
+    {
+        // Added before its agent, or left behind when its agent was retired:
+        // either way an Online here would be a guess that never changes.
+        $added = AccessPoint::factory()->create(['code' => 'AP-03', 'status' => NetworkStatus::Online, 'agent_id' => null]);
+
+        $this->heardFrom($this->agent, now()->subMinute());
+        $left = $this->watchedBy($this->agent, NetworkStatus::Degraded, 'AP-04');
+        app(AgentService::class)->retire($this->agent);
+
+        $this->artisan('atlas:collect-telemetry')->assertSuccessful();
+
+        $this->assertSame(NetworkStatus::Unknown, $added->fresh()->status);
+        $this->assertSame(NetworkStatus::Unknown, $left->fresh()->status);
+        $this->assertNull($left->fresh()->agent_id);
     }
 
     public function test_a_device_given_to_an_agent_that_never_connected_is_unknown_without_an_alert(): void
@@ -307,6 +324,18 @@ class AgentHeartbeatTest extends TestCase
         $this->assertNull($row['clients']);
         $this->assertNull($row['latency_ms']);
         $this->assertFalse($row['over_threshold'], 'A reading from before the silence still counted as slow now.');
+    }
+
+    public function test_opening_a_switchs_alert_goes_to_the_switch(): void
+    {
+        // A switch loads as a plain NetworkDevice, and its alert used to
+        // bounce back to the notification list.
+        $switch = NetworkDevice::factory()->create();
+        $alarm = Alarm::factory()->create(['user_id' => $this->admin->id, 'related_type' => $switch->getMorphClass(), 'related_id' => $switch->id]);
+
+        $this->actingAs($this->admin)
+            ->get(route('notifications.show', $alarm))
+            ->assertRedirect(route('admin.devices.show', $switch));
     }
 
     public function test_opening_the_alert_takes_an_administrator_to_the_agent(): void
