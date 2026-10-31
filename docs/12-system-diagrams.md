@@ -1,8 +1,8 @@
 # System Diagrams
 
-> **Last updated:** 2026-10-28
+> **Last updated:** 2026-11-01
 >
-> **These four are the whole-system diagrams.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal — so they describe what Atlas NetCare *is*, not what it was going to be.
+> **These four are the whole-system diagrams.** Every one was derived from the code and the live schema on 2026-09-02, not drawn from the proposal, and brought up to 2.0 (roadmap task 1.6) on 2026-11-01. So they describe what Atlas NetCare *is*, not what it was going to be.
 
 ---
 
@@ -31,7 +31,7 @@ flowchart LR
 
     SYSTEM(("Atlas NetCare<br/>Campus Network Monitoring<br/>and IT Operations Portal"))
 
-    APS["Campus Access Points<br/><i>SNMP, stubbed</i>"]
+    APS["Probe agents<br/><i>measure the campus network</i>"]
     MAIL["Mail server<br/><i>optional</i>"]
     PHONE["Phone Calendar"]
 
@@ -44,7 +44,8 @@ flowchart LR
     ADMIN -->|"accounts, assets,<br/>templates"| SYSTEM
     SYSTEM -->|"audit log,<br/>reports"| ADMIN
 
-    APS -->|"latency, loss,<br/>clients, uptime"| SYSTEM
+    APS -->|"batches of readings<br/>POST /api/v1/readings"| SYSTEM
+    SYSTEM -->|"stored, duplicate<br/>or rejected"| APS
     SYSTEM -->|"reset link"| MAIL
     SYSTEM -->|"shift events<br/>(.ics)"| PHONE
 
@@ -58,7 +59,7 @@ flowchart LR
 
 **Two things to be able to say about this diagram.**
 
-The access points are dashed because the connection is real in design and simulated in fact. Their readings come from the simulator, a virtual agent inside Atlas, through the same path a probe agent's would take — see [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) and [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
+The probe agents are dashed because the ingest API they call is built and tested, but the Go agent itself is roadmap task 1.7. Until then every reading comes from the simulator, a virtual agent inside Atlas, through the same path a probe agent's takes. The simulator is inside the system, so it is not on this diagram. See [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md) and [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
 
 The phone calendar is an external system rather than a feature, and that is the point. Rather than build push notifications, the system hands a shift to the phone as an `.ics` file and the phone's own alarm does the reminding — with the app closed and no internet. See [Q5](02-open-questions.md#q5).
 
@@ -75,7 +76,7 @@ flowchart TB
     ASSISTANT["Student IT Assistant"]
     ENGINEER["Network Engineer"]
     ADMIN["System Administrator"]
-    APS["Campus Access Points"]
+    APS["Probe agents"]
 
     P1["1. Identity<br/>and Audit"]
     P2["2. Locations<br/>and Assets"]
@@ -90,7 +91,7 @@ flowchart TB
     D3[("D3 checklists")]
     D4[("D4 inspections")]
     D5[("D5 tickets")]
-    D6[("D6 telemetry")]
+    D6[("D6 agents<br/>and telemetry")]
     D7[("D7 shifts<br/>and alarms")]
     D8[("D8 risk and audit")]
 
@@ -138,8 +139,8 @@ flowchart TB
 |---|---|---|
 | 3 → 4 | A failed **critical** checklist item pre-fills a ticket, so the assistant does not retype the asset, location and fault |
 | 4 → 6 | An **SLA breach** raises an alarm — once per ticket ever, not once per sweep |
-| 5 → 4 | An access point going **offline** opens a ticket automatically, on the transition only |
-| 5 → 6 | The same transition rings the notification bell for every engineer |
+| 5 → 4 | A network device going **offline** opens a ticket automatically, on the transition only |
+| 5 → 6 | The same transition rings the notification bell for every engineer. A probe agent going **silent** alerts engineers and administrators once, with no ticket |
 | 7 → D2 | The risk score is **cached back** onto the asset so a list of 200 machines needs no subquery |
 
 Process 7 reads from four stores and writes to two. That is what makes it analytics rather than another screen: it is the only process whose inputs are entirely other processes' outputs.
@@ -148,7 +149,7 @@ Process 7 reads from four stores and writes to two. That is what makes it analyt
 
 ## Figure 3 — Consolidated Entity Relationship Diagram
 
-All sixteen domain tables. Laravel's framework tables — `migrations`, `sessions`, `cache`, `jobs`, `password_reset_tokens` — are deliberately excluded: they are infrastructure, not the domain.
+All seventeen domain tables, plus `telemetry_hourly`, a TimescaleDB continuous aggregate over `telemetry_readings` that no code writes. Laravel's framework tables, such as `migrations`, `sessions`, `cache`, `jobs` and `password_reset_tokens`, are left out because they are infrastructure, not the domain.
 
 ```mermaid
 erDiagram
@@ -174,8 +175,10 @@ erDiagram
     INSPECTIONS ||--o| TICKETS : raises
 
     TICKETS ||--o{ TICKET_COMMENTS : has
+    AGENTS ||--o{ NETWORK_DEVICES : watches
+    AGENTS ||--o{ TELEMETRY_READINGS : sends
     NETWORK_DEVICES ||--o{ TELEMETRY_READINGS : emits
-    NETWORK_DEVICES ||--o{ TELEMETRY_HOURLY : rolls_up_to
+    TELEMETRY_READINGS }o--|| TELEMETRY_HOURLY : aggregated_into
 
     SHIFT_TEMPLATES ||--o{ SHIFTS : generates
     SHIFTS ||--o{ ALARMS : triggers
@@ -224,12 +227,26 @@ erDiagram
         string mac_address UK "nullable"
         string ip_address
         int client_capacity "access points only"
-        string status "online|degraded|offline|maintenance"
+        bigint agent_id FK "nullable, the agent that watches it"
+        string status "online|degraded|offline|unknown|maintenance"
+        string simulation_scenario "nullable, simulator only"
         decimal risk_score
         string risk_band
-        datetime last_seen_at "drives stale detection"
+        datetime last_seen_at "last answer, drives the offline sweep"
+        datetime last_reading_at "newest reading, answered or not"
         boolean is_demo
         timestamp deleted_at "soft delete"
+    }
+    AGENTS {
+        bigint id PK
+        string name UK
+        char token_hash UK "SHA-256, nullable for the simulator"
+        string token_hint "last 4 characters"
+        boolean is_virtual "true only for the simulator"
+        datetime last_seen_at
+        datetime silent_since "nullable, set once per silence"
+        int clock_offset_ms
+        timestamp deleted_at "soft delete, retired"
     }
     CHECKLIST_TEMPLATES {
         bigint id PK
@@ -289,9 +306,11 @@ erDiagram
         boolean is_internal "hidden from the reporter"
     }
     TELEMETRY_READINGS {
-        bigint id PK
-        bigint network_device_id FK
-        datetime recorded_at
+        bigint network_device_id FK "hypertable, no id"
+        datetime recorded_at "measured, on the agent's clock"
+        bigint agent_id FK "nullable"
+        bigint sequence UK "unique with agent_id and recorded_at"
+        datetime received_at "on Atlas's clock"
         int latency_ms
         int client_count
         decimal packet_loss_pct
@@ -299,14 +318,13 @@ erDiagram
         string source "simulated|live"
     }
     TELEMETRY_HOURLY {
-        bigint id PK
-        bigint network_device_id FK
-        datetime hour_bucket UK "unique with network_device_id"
+        bigint network_device_id "continuous aggregate, not a table"
+        datetime hour_bucket
+        string source
         decimal avg_latency_ms
         int peak_client_count
         decimal uptime_pct
         int reading_count
-        string source
     }
     SHIFT_TEMPLATES {
         bigint id PK
@@ -370,7 +388,7 @@ erDiagram
 
 **Three relationships are polymorphic and therefore have no foreign key**: `tickets.ticketable`, `alarms.related`, `risk_assessments.assessable`. That is a real trade-off, not an oversight — it is why `atlas:purge-demo-data` has to refuse when a genuine ticket points at a demonstration asset, because the database will not stop it.
 
-**Event timestamps are `dateTime`, never `timestamp`.** MariaDB gives the first `timestamp` column in a table an implicit `ON UPDATE CURRENT_TIMESTAMP`, which silently destroyed the SLA baseline on `tickets.opened_at` before it was caught. `created_at` and `updated_at` stay `timestamp`, because being touched automatically is their job.
+**Event timestamps are `dateTime`, never `timestamp`.** MariaDB, which Atlas ran on until 2026-10-22, gave the first `timestamp` column in a table an implicit `ON UPDATE CURRENT_TIMESTAMP`, which silently destroyed the SLA baseline on `tickets.opened_at` before it was caught. `created_at` and `updated_at` stay `timestamp`, because being touched automatically is their job.
 
 ---
 
@@ -400,7 +418,7 @@ flowchart LR
     ASSIST --> B4["AP Status<br/><i>read-only</i>"]
     ASSIST --> B5["Network Monitor<br/><i>read-only, no controls</i>"]
 
-    ENG --> C1["Dashboard<br/><i>AP health, polling</i>"]
+    ENG --> C1["Dashboard<br/><i>tickets, AP health panel</i>"]
     ENG --> C2["Access Points<br/><i>list, detail chart</i>"]
     ENG --> C3["Traffic Logs"]
     ENG --> C4["Ticket Queue<br/><i>transition, assign</i>"]
@@ -412,6 +430,8 @@ flowchart LR
     ADM --> D2["Locations"]
     ADM --> D3["Lab PCs"]
     ADM --> D4["Access Points"]
+    ADM --> D10["Network Devices"]
+    ADM --> D11["Agents<br/><i>register, rotate token, retire</i>"]
     ADM --> D5["Checklist Templates"]
     ADM --> D6["Shift Templates"]
     ADM --> D7["Roster<br/><i>generate, reassign, remove</i>"]
@@ -422,35 +442,38 @@ flowchart LR
     SHARED --> E2["Profile"]
     SHARED --> E3["Calendar export"]
 
+    AUTOM --> F0["Ingest API<br/><i>POST /api/v1/readings</i>"]
     AUTOM --> F1["collect-telemetry<br/><i>every minute</i>"]
     AUTOM --> F2["dispatch-alarms<br/><i>every minute</i>"]
     AUTOM --> F4["recalculate-risk<br/><i>daily 02:00</i>"]
     AUTOM --> F5["generate-shifts<br/><i>weekly</i>"]
     AUTOM --> F7["mark-missed-shifts<br/><i>every 5 minutes</i>"]
+    AUTOM --> F8["telemetry-storage<br/><i>at app start</i>"]
 
     classDef root fill:#4f46e5,stroke:#3730a3,color:#fff
     classDef grp fill:#eef2ff,stroke:#4f46e5,color:#1e1b4b
     classDef leaf fill:#f8fafc,stroke:#cbd5e1,color:#334155
     class ROOT root
     class AUTH,ASSIST,ENG,ADM,SHARED,AUTOM grp
-    class A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,C5,D1,D2,D3,D4,D5,D6,D7,D8,D9,E1,E2,E3,F1,F2,F4,F5,F7 leaf
+    class A1,A2,A3,A4,B1,B2,B3,B4,B5,C1,C2,C3,C4,C5,C6,D0,D1,D2,D3,D4,D5,D6,D7,D8,D9,D10,D11,E1,E2,E3,F0,F1,F2,F4,F5,F7,F8 leaf
 ```
 
-**Why Automation is on the chart at all.** Six of the system's behaviours have no screen: telemetry collection, alarm dispatch, aggregation, risk scoring, roster generation and retention pruning. A hierarchy chart showing only screens would leave out the half of the system that runs on its own, including the module the project's case-study category depends on.
+**Why Automation is on the chart at all.** Much of the system has no screen: the ingest API that probe agents call, the simulator's round and the silence sweeps, alarm dispatch, risk scoring and roster generation. Hourly summaries, compression and retention are TimescaleDB jobs, which `telemetry-storage` sets up when the app starts. A hierarchy chart showing only screens would leave out the half of the system that runs on its own.
 
 ---
 
 ## What Figure 2 leaves out
 
-`AuditObserver` watches seven models across five of the seven modules, so five processes write to `audit_logs` in D8:
+`AuditObserver` watches ten models across six of the seven modules, so six processes write to `audit_logs` in D8:
 
 | Writes audit rows | Through |
 |---|---|
 | M1 | `User` |
-| M2 | `Location`, `LabPc`, `AccessPoint` |
+| M2 | `Location`, `LabPc`, `AccessPoint`, `NetworkDevice` |
 | M3 | `ChecklistTemplate` |
 | M4 | `Ticket` |
-| M6 | `ShiftTemplate` |
-| *M5 and M7 do not* | no audited model |
+| M5 | `Agent` |
+| M6 | `ShiftTemplate`, `Shift` |
+| *M7 does not* | no audited model |
 
-Figure 2 draws only `P7 → D8`. Five more arrows into one store would make a Level 0 unreadable. A more detailed diagram of any module in the table should show the write.
+Readings and status changes are not audited: the reading rows are their own record. Figure 2 draws only `P7 → D8`. Six more arrows into one store would make a Level 0 unreadable. A more detailed diagram of any module in the table should show the write.

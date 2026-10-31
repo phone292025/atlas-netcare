@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-10-27 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0002](decisions/ADR-0002-telemetry-source-driver.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-11-01 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), [ADR-0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -8,7 +8,7 @@
 
 **A modular monolith on standard Laravel MVC, with a thin service layer and exactly one abstraction.**
 
-Seven students over eight weeks need an architecture each of them can explain under questioning. That rules out anything clever. Eloquent is already a data-access layer, so there are no repositories. The single genuine abstraction is the agent, because telemetry is the only data that comes from outside the system: every reading comes from an agent watching the device, either a probe agent on a real network or the simulator inside Atlas, and both take the same path in (ADR-0010).
+It was built by a capstone team of seven, each of whom had to explain it under questioning, which ruled out anything clever. It is now a solo project, and the plainness still pays. Eloquent is already a data-access layer, so there are no repositories. The single genuine abstraction is the agent, because telemetry is the only data that comes from outside the system: every reading comes from an agent watching the device, either a probe agent on a real network or the simulator inside Atlas, and both take the same path in (ADR-0010).
 
 ## Request lifecycle
 
@@ -37,11 +37,28 @@ PostgreSQL        One database, one schema. Real and demo data coexist,
                   distinguished by a column.
 ```
 
+### The machine API
+
+Probe agents come in through `routes/api.php`, a separate stack with no session, cookies or CSRF. It has one route, `POST /api/v1/readings` (ADR-0017), and its middleware runs in this order:
+
+```
+throttle:agent-address   a limit per IP address, before anything is checked,
+                         so a caller without a token can't keep the app busy
+LimitBodySize            413 for a body over `ingest.max_kilobytes`, before
+                         it is parsed
+AuthenticateAgent        401 without a valid bearer token. The agent is put on
+                         the request, and never becomes a signed-in user, so
+                         the token opens no web screen
+throttle:agent           a limit per agent
+```
+
+Both rate limiters are defined in `AppServiceProvider`, from `config('atlas.ingest')`. `ReadingIngestController` then validates the batch with `IngestReadingsRequest`, records the agent's contact and clock offset through `AgentService`, and hands the readings to `ReadingIngest`. The browser's own JSON endpoints stay in `web.php`, behind a signed-in session.
+
 ### Two kinds of controller
 
-Decisions go to a service: ticket transitions and assignment, inspection outcomes, the roster and shift check-in, checklist versioning, telemetry and the Network monitor's controls, risk scoring and the reports. An assistant raising a ticket and the collector raising one for an offline access point both call `TicketService::open()`, so both get a reference number and an SLA due time the same way.
+Decisions go to a service: ticket transitions and assignment, inspection outcomes, the roster and shift check-in, checklist versioning, telemetry and the Network monitor's controls, agent registration and tokens, risk scoring and the reports. An assistant raising a ticket and the collector raising one for an offline device both call `TicketService::open()`, so both get a reference number and an SLA due time the same way.
 
-Simpler writes stay in the controller, after the Form Request and the route's role check, plus a policy where one exists. The admin CRUD screens for users, locations, lab PCs, access points and shift templates write the model directly. So do a few smaller actions elsewhere: creating a checklist template before `ChecklistService` writes its items, adding a ticket comment, abandoning an unfinished inspection, and creating or revoking a calendar link. This is hard rule 1's test in `AGENTS.md`: logic becomes a service when a second caller needs it, and none of these has one. The same test lets every `index` action build its own filtered query, and lets two read-only engineer screens query directly: Maintenance priority lists the scores `RiskScoringService` already stored, and Traffic logs sums hourly buckets for its one chart.
+Simpler writes stay in the controller, after the Form Request and the route's role check, plus a policy where one exists. The admin CRUD screens for users, locations, lab PCs, access points, network devices and shift templates write the model directly. So do a few smaller actions elsewhere: creating a checklist template before `ChecklistService` writes its items, adding a ticket comment, abandoning an unfinished inspection, and creating or revoking a calendar link. This is hard rule 1's test in `AGENTS.md`: logic becomes a service when a second caller needs it, and none of these has one. The same test lets every `index` action build its own filtered query, and lets two read-only engineer screens query directly: Maintenance priority lists the scores `RiskScoringService` already stored, and Traffic logs sums hourly buckets for its one chart.
 
 A few rules do sit in those controllers, each with one caller:
 
@@ -56,7 +73,8 @@ They are the first to move into a service if a second caller appears.
 Raw SQL is rare, and none of it takes request input. Most of it is aggregates in `selectRaw` (sums, averages, counts and maxima), mainly in `ReportingService`. The rest:
 
 - a `CASE` sort in `Ticket::scopeMostUrgentFirst()`, built from `TicketPriority` weights
-- timestamp bucket expressions (`SUBSTR`, `DATE_FORMAT`, `strftime`) in `NetworkMonitorService`, built from constants
+- timestamp bucket expressions (`SUBSTR` over `to_char` on PostgreSQL, over the column on SQLite) in `NetworkMonitorService`, built from constants
+- the `INSERT … ON CONFLICT DO NOTHING RETURNING` in `TelemetryService::record()` that stores each agent reading once. Its column names come from `ReadingData::toRow()` and every value is bound
 - the LATERAL lookup for each device's newest reading in `TelemetryService::latestReadings()`, which binds the ids as an array
 - TimescaleDB calls in `TelemetryStorage`: job settings built from integers in `config/atlas.php`, and a refresh whose window is bound
 - an `information_schema` query in `atlas:check-schema` and a `REPLACE()` update in `atlas:renumber-tickets`, both run by hand. The update takes its table and column names from a class constant and binds the values.
@@ -106,21 +124,27 @@ app/
 │   ├── ShiftStatus.php
 │   ├── AlarmType.php
 │   ├── RiskBand.php
-│   └── SimulationScenario.php           demo tooling: what the simulated driver forces on an AP
+│   ├── SimulationScenario.php           demo tooling: what the simulator forces on a device
+│   └── AgentContact.php                 how recently an agent was heard from
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Admin/       users, locations, inventory, checklists, rosters, audit
 │   │   ├── Engineer/    dashboard, tickets, traffic, risk
 │   │   ├── Assistant/   shifts, inspections, tickets
-│   │   ├── Api/         DashboardDataController — the polling endpoint
+│   │   ├── Api/         DashboardDataController — the polling endpoint;
+│   │   │                ReadingIngestController, the agents' ingest API
 │   │   └── Auth/        Breeze, with register removed
 │   ├── Middleware/
 │   │   ├── EnsureUserHasRole.php         ← NEW: the `role` alias
 │   │   ├── EnsureAccountIsActive.php     on the web GROUP: signs out a
 │   │   │                                 deactivated account
-│   │   └── EnsurePasswordIsChanged.php   on the web GROUP, not an alias
+│   │   ├── EnsurePasswordIsChanged.php   on the web GROUP, not an alias
+│   │   ├── IgnoreArrayQueryValues.php    GLOBAL: drops ?a[]= query values
+│   │   ├── AuthenticateAgent.php         ← NEW: an agent's bearer token, on
+│   │   │                                 the ingest route only
+│   │   └── LimitBodySize.php             ← NEW: 413 for an oversized batch
 │   └── Requests/                         one Form Request per write action
-├── Models/                               18 Eloquent models
+├── Models/                               19 Eloquent models
 ├── Observers/
 │   └── AuditObserver.php                 ← NEW: writes audit_logs
 ├── Policies/                             per-record authorisation
@@ -139,9 +163,13 @@ app/
     │   ├── Simulator.php                 the simulator's virtual agent: one round of readings
     │   ├── SimulatedReadings.php         the model the simulator's numbers come from
     │   ├── ReadingIngest.php             one batch from a probe agent
+    │   ├── AgentService.php              registration, tokens, contact, silence
     │   ├── ReadingData.php               simple DTO
-    │   ├── TelemetryService.php
+    │   ├── StoredReadings.php            what record() stored, and the status changes
+    │   ├── TelemetryService.php          record(): the one way readings get in
     │   ├── TelemetryCollector.php        one collection round, with its tickets and alarms
+    │   ├── TelemetryBackfill.php         simulated history, and filling a collection gap
+    │   ├── TelemetryStorage.php          TimescaleDB's jobs, from config
     │   ├── NetworkMonitorService.php     the Network monitor snapshot
     │   └── SimulationService.php         take a sample, force a scenario (simulated devices only)
     ├── Maintenance/
@@ -174,12 +202,13 @@ resources/views/
 ├── admin/  engineer/  assistant/  auth/
 routes/
 ├── web.php  auth.php  console.php
+└── api.php                               the agents' ingest API
 tests/
 ├── Feature/                              one folder per module
 └── Unit/                                 services, especially RiskScoringService
 ```
 
-Keep the tree **shallow**. Deep nesting is where student projects lose people.
+Keep the tree **shallow**. Deep nesting is where a reader gets lost.
 
 ---
 
@@ -197,14 +226,14 @@ Dependencies point inward, towards the business rules. Each part of `app/` may u
 
 Nothing in `app/` uses a controller or a command. They are entry points, and logic that two of them need goes into a service they both call.
 
-Business code, meaning the services, models, enums and support classes, never reads the request, the session or the signed-in user. The scheduler and the queue worker have none of them, and neither will the agents' ingest API in Phase 1, so a service that asked `auth()` for the user would get `null` there. The caller passes the user in.
+Business code, meaning the services, models, enums and support classes, never reads the request, the session or the signed-in user. The scheduler, the queue worker and the agents' ingest API have none of them, so a service that asked `auth()` for the user would get `null` there. The caller passes the user in.
 
 The service modules use each other along three edges, which form no cycle:
 
 | From | To | Why |
 |---|---|---|
-| Telemetry | Tickets | `TelemetryCollector` opens a ticket for an access point that goes offline |
-| Telemetry | Shifts | `TelemetryCollector` alarms the engineers when an access point goes offline or degrades |
+| Telemetry | Tickets | `TelemetryCollector` opens a ticket for a device that goes offline |
+| Telemetry | Shifts | `TelemetryCollector` alarms the engineers when a device goes offline or degrades, and engineers and administrators when an agent goes silent |
 | Tickets | Shifts | `TicketService` alarms engineers about a new critical ticket, a ticket assigned to them and a missed SLA |
 
 Maintenance, Reports, Risk and Shifts use no other module. Every module shares the models, so these rules cover the services only. Phase 2.1 of the [roadmap](roadmap.md) replaces the two Telemetry edges with domain events ([ADR-0014](decisions/ADR-0014-incidents-and-domain-events.md)).
@@ -217,7 +246,7 @@ Maintenance, Reports, Risk and Shifts use no other module. Every module shares t
 
 1. **No business logic in controllers.** Anything that decides, computes or changes state belongs in a service: state machines, scoring, SLA arithmetic, report aggregation. A controller validates via a Form Request, calls the service, and returns a view or JSON. **Assembling a filtered list for one screen is not business logic** and may stay in the action. The test is whether a second caller would need the same answer. The same test lets a plain admin create or edit, where validation and the role or policy check are the whole rule, write the model from the controller. `ReportController` failed it at 309 lines and became `ReportingService` on 2026-09-04.
 
-2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or traverse a relationship that triggers a query. This is the single most common cause of N+1 problems in student projects, and it will be visible to anyone who opens the debug bar during your demo.
+2. **No database queries in Blade.** Views receive data as props. They never call `::all()`, `::where()`, or traverse a relationship that triggers a query. It is the most common cause of N+1 queries, and `ListScreensDoNotNPlusOneTest` counts the queries on the list screens.
 
 3. **No magic numbers.** Every threshold, weight, SLA hour and interval lives in `config/atlas.php`. If you are about to type a number that represents a business rule, put it in config instead. When somebody asks "where did 120 ms come from?", the answer should be one file.
 
@@ -238,6 +267,8 @@ Two layers, and they do different jobs:
 
 Never use middleware for record-level checks, and never scatter `if ($user->role === ...)` through controllers. If you find yourself writing that condition, it belongs in a Policy.
 
+The ingest API has no users and no roles. An agent is authorised by its token, and `ReadingIngest` accepts a reading only for a device whose `agent_id` is that agent. An unknown device and another agent's device get the same refusal, so a token can't be used to list device codes.
+
 ```php
 Route::middleware(['auth'])->group(function () {
     Route::get('/', DashboardRedirect::class);          // role → correct home
@@ -256,13 +287,17 @@ Route::middleware(['auth'])->group(function () {
 `config/atlas.php` is the project's single tuning surface. Every business rule that is a number lives here.
 
 > Formatting note: write these as `'key' => value` with a single space. Laravel
-> Pint's default preset normalises aligned `=>` arrows, and this is the file the
-> whole team edits — do not fight the formatter on it. Run `vendor/bin/pint`
-> before committing.
+> Pint's default preset normalises aligned `=>` arrows, so do not fight the
+> formatter on it. Run `vendor/bin/pint` before committing.
+
+An excerpt. The file itself explains every value.
 
 ```php
 return [
+    'gap_fill_hours' => 24,
     'demo_mode' => (bool) env('ATLAS_DEMO_MODE', true),
+    'first_admin' => [/* name, email: atlas:create-admin's defaults */],
+    'demo_users' => [/* password, and one account per role */],
     'poll_interval' => (int) env('ATLAS_POLL_INTERVAL', 20),          // seconds
 
     'thresholds' => [
@@ -271,20 +306,44 @@ return [
         'client_saturation' => 0.85,
         'consecutive_breach' => 3,
         'offline_after_min' => 5,
+        'degraded_alert_cooldown_min' => 60,
     ],
 
+    // One set per asset kind, each summing to 1.0.
     'risk_weights' => [
-        'age' => 0.25,
-        'fault_frequency' => 0.30,
-        'critical_fail_rate' => 0.25,
-        'days_since_inspect' => 0.20,
+        'lab_pc' => ['age' => 0.25, 'fault_frequency' => 0.30, 'critical_fail_rate' => 0.25, 'days_since_inspect' => 0.20],
+        'access_point' => ['latency_trend' => 0.30, 'packet_loss_trend' => 0.25, 'offline_events' => 0.30, 'client_saturation' => 0.15],
     ],
+    'risk_inputs' => [/* the ceilings that turn a measurement into 0..1 */],
 
     'risk_bands' => ['low' => 0, 'medium' => 40, 'high' => 65, 'critical' => 85],
 
     'sla_hours' => ['critical' => 4, 'medium' => 24, 'low' => 72],
+    'new_ticket_alert_from' => env('ATLAS_NEW_TICKET_ALERT_FROM', 'critical'),
 
-    'retention' => ['raw_days' => 90, 'aggregate_months' => 12],
+    // The ingest API (ADR-0017).
+    'ingest' => [
+        'silent_after_minutes' => 3,
+        'max_readings' => 500,
+        'max_kilobytes' => 256,
+        'per_agent_per_minute' => 60,
+        'per_address_per_minute' => 120,
+        'future_minutes' => 5,
+        'clock_drift_seconds' => 30,
+    ],
+
+    // Applied as TimescaleDB policies by atlas:telemetry-storage.
+    'retention' => [
+        'raw_days' => 90,
+        'aggregate_months' => 12,
+        'chunk_days' => 1,
+        'compress_after_days' => 7,
+        'late_reading_days' => 7,
+        'hourly_refresh_minutes' => 30,
+    ],
+
+    'shifts' => [/* check-in grace, reminder lead, round interval */],
+    'calendar' => [/* campus timezone, reminder, subscription toggle */],
 
     // Sidebar entries per role, built once and filtered by the signed-in
     // user's role. See docs/06-ui-conventions.md.
@@ -304,7 +363,7 @@ return [
 
 | Command | Frequency | Does |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | One reading per active AP through the current driver; a ticket and an alert when one goes offline, an alert when one degrades |
+| `atlas:collect-telemetry` | every minute | The simulator's round: one reading per device it watches. Then the silence sweeps: a device nobody has heard from for `offline_after_min` goes Offline, and a silent agent's devices go Unknown. A ticket and an alert when a device goes offline, an alert when one degrades, and one alert per silent agent |
 | `atlas:dispatch-alarms` | every minute | Sends alarms past their trigger time; raises SLA breaches |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Out of hours, so the ranking doesn't reorder under somebody reading it |
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
@@ -312,7 +371,9 @@ return [
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed, so the roster stops offering to reassign them |
 | `atlas:generate-shifts` | weekly, Sunday 18:00 | Materialises next week's shifts from templates |
 
-Times are on the campus clock. Locally, one Windows Task Scheduler entry running `php artisan schedule:run` every minute drives all five scheduled commands; `php artisan schedule:work` does the same in a terminal.
+Times are on the campus clock. Under Docker the `scheduler` service runs `php artisan schedule:work` and drives all five scheduled commands. Without Docker, run the same command in a terminal.
+
+`atlas:telemetry-storage` is not scheduled. The app container runs it on every start, after the migrations, to set TimescaleDB's compression, retention and hourly refresh jobs from `config/atlas.php`.
 
 ---
 
@@ -337,7 +398,7 @@ Recorded here so nobody re-proposes them.
 |---|---|
 | Repository pattern over Eloquent | 34 extra files so that one of them could be swapped. Abstract what varies. [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md) |
 | WebSockets / Laravel Reverb | A persistent server process and a real debugging burden, for a dashboard whose data changes once a minute. [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md) |
-| Livewire or Inertia | A second mental model on top of Laravel, for seven people learning Laravel. [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md) |
+| Livewire or Inertia | A second mental model on top of Laravel, for a capstone team of seven learning Laravel. [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md) |
 | Separate mock database | Doubles migrations, breaks foreign keys across the boundary, schemas drift. [ADR-0003](decisions/ADR-0003-single-database-demo-flag.md) |
 | Machine learning for risk scoring | Nobody can say why a model scored an asset the way it did. Weighted factors show their working. [ADR-0007](decisions/ADR-0007-weighted-risk-not-ml.md) |
 | Microservices, event sourcing, CQRS | Not appropriate at this scale by any measure. |
