@@ -384,11 +384,13 @@ class TicketService
      */
     private function recordTransition(Ticket $ticket, TicketStatus $from, TicketStatus $to, User $actor): void
     {
-        $ticket->comments()->create([
+        // forceFill: is_system is the service's alone, never fillable.
+        $ticket->comments()->make()->forceFill([
             'user_id' => $actor->id,
             'body' => "Moved this ticket from {$from->label()} to {$to->label()}.",
             'is_internal' => true,
-        ]);
+            'is_system' => true,
+        ])->save();
     }
 
     /**
@@ -433,14 +435,15 @@ class TicketService
 
             // On the ticket as well as in the audit log, and internal: the
             // reporter does not need to watch work being reshuffled.
-            TicketComment::create([
+            (new TicketComment)->forceFill([
                 'ticket_id' => $ticket->id,
                 'user_id' => $actor->id,
                 'body' => $engineer
                     ? "Assigned to {$engineer->name}."
                     : 'Unassigned and returned to the queue.',
                 'is_internal' => true,
-            ]);
+                'is_system' => true,
+            ])->save();
 
             if ($engineer && $engineer->id !== $actor->id) {
                 // An absolute campus time, because the message is saved.

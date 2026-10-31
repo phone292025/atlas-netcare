@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 /**
  * A note on a ticket (FR-308).
@@ -32,21 +31,22 @@ class TicketComment extends Model
     {
         return [
             'is_internal' => 'boolean',
+            'is_system' => 'boolean',
         ];
     }
 
     /**
-     * How the entries TicketService writes itself begin: a status change or
-     * an assignment. The timeline shows them as something that happened, not
-     * as a note somebody wrote.
+     * An entry TicketService wrote itself: a status change or an assignment.
+     * The timeline shows it as something that happened, not as a note.
+     *
+     * The service's own flag, never how the text begins: an engineer could
+     * type "Assigned to ..." into a note. is_system is not fillable.
      *
      * @see App\Services\Tickets\TicketService
      */
-    private const RECORDED_ACTIONS = ['Moved this ticket from ', 'Assigned to ', 'Unassigned and returned to the queue.'];
-
     public function isRecordedAction(): bool
     {
-        return $this->is_internal && Str::startsWith($this->body, self::RECORDED_ACTIONS);
+        return $this->is_system;
     }
 
     /** @return BelongsTo<Ticket, $this> */

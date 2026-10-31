@@ -287,6 +287,7 @@ erDiagram
         bigint user_id FK
         text body
         boolean is_internal "hidden from the reporter"
+        boolean is_system "written by TicketService"
     }
     TELEMETRY_READINGS {
         bigint id PK

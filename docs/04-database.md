@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-10-27 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
+> **Last updated:** 2026-11-01 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -230,6 +230,7 @@ erDiagram
         bigint user_id FK
         text body
         boolean is_internal
+        boolean is_system "written by TicketService"
     }
     SHIFT_TEMPLATES {
         bigint id PK

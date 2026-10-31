@@ -232,7 +232,9 @@ class TicketController extends Controller
      */
     private function prefillFromRiskyAsset(Request $request): array
     {
-        if (! $request->filled('asset') || ! $request->filled('asset_id')) {
+        // The ranking is for engineers and administrators. Through this
+        // form an assistant could read any asset's score and factors.
+        if ($request->user()->isAssistant() || ! $request->filled('asset') || ! $request->filled('asset_id')) {
             return [];
         }
 

@@ -277,4 +277,20 @@ class MaintenancePriorityTest extends TestCase
 
         $this->assertSame($pc->fresh()->risk_score, $assessment->fresh()->score);
     }
+
+    public function test_an_assistant_gets_a_blank_form_not_the_risk_score(): void
+    {
+        // The ranking is engineers' and administrators'. The pre-fill handed
+        // an assistant any asset's score, band and factors.
+        $pc = LabPc::factory()->create(['risk_score' => 91, 'risk_band' => RiskBand::Critical]);
+        RiskAssessment::factory()->forAsset($pc)->score(91)->create();
+        $assistant = User::factory()->create();
+        $assistant->forceFill(['role' => UserRole::Assistant, 'is_active' => true])->save();
+
+        $this->actingAs($assistant)
+            ->get(route('assistant.tickets.create', ['asset' => 'lab-pc', 'asset_id' => $pc->id]))
+            ->assertOk()
+            ->assertDontSee('Risk score')
+            ->assertDontSee('Preventive maintenance');
+    }
 }

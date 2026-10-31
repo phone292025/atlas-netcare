@@ -442,6 +442,23 @@ class TicketAccessTest extends TestCase
             ->assertDontSee('Raise ticket');
     }
 
+    public function test_another_assistants_inspection_cannot_be_ticketed(): void
+    {
+        // Their own pair, posted by somebody else: the fault was marked as
+        // ticketed and the refusal told the poster its ticket number.
+        [, $inspection, $result] = $this->failedInspection();
+        $intruder = $this->userWith(UserRole::Assistant);
+
+        $this->actingAs($intruder)
+            ->post(route('assistant.tickets.store'), $this->payload([
+                'inspection_id' => $inspection->id,
+                'inspection_result_id' => $result->id,
+            ]))
+            ->assertSessionHasErrors('inspection_id');
+
+        $this->assertSame(0, Ticket::where('inspection_result_id', $result->id)->count());
+    }
+
     public function test_a_check_from_another_inspection_is_refused(): void
     {
         // The answer must belong to the inspection the ticket names, or a

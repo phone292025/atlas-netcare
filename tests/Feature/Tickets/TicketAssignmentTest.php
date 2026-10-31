@@ -209,4 +209,22 @@ class TicketAssignmentTest extends TestCase
 
         $this->assertSame(0, Alarm::where('type', AlarmType::TicketAssigned)->count());
     }
+
+    public function test_a_note_that_reads_like_a_recorded_event_stays_a_note(): void
+    {
+        // The timeline used to judge by the text, so a typed note could pass
+        // as something the system recorded.
+        $engineer = $this->user(UserRole::Engineer);
+        $ticket = $this->ticket(['assigned_to' => $engineer->id]);
+
+        $this->actingAs($engineer)
+            ->post(route('tickets.comments.store', $ticket), ['body' => 'Assigned to Somebody Else.', 'is_internal' => '1'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertFalse($ticket->comments()->sole()->isRecordedAction());
+
+        // A real assignment still is one.
+        app(TicketService::class)->assign($ticket, $this->user(UserRole::Engineer), $engineer);
+        $this->assertTrue($ticket->comments()->latest('id')->first()->isRecordedAction());
+    }
 }

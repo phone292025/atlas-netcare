@@ -42,7 +42,10 @@ class StoreTicketRequest extends FormRequest
             'ticketable_id' => ['nullable', 'required_with:ticketable_type', 'integer'],
 
             'location_id' => ['nullable', 'exists:locations,id'],
-            'inspection_id' => ['nullable', 'exists:inspections,id'],
+            // Only one's own, as the pre-fill already requires. Anybody's
+            // let one assistant mark another's fault as ticketed and read
+            // its ticket number back from the refusal.
+            'inspection_id' => ['nullable', Rule::exists('inspections', 'id')->where('user_id', $this->user()?->id)],
 
             // The failed answer it came from, which must belong to that
             // inspection. It is what stops the same fault being raised twice.
