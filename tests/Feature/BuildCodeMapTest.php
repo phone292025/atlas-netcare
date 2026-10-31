@@ -139,6 +139,21 @@ class BuildCodeMapTest extends TestCase
         $this->assertStringNotContainsString(' , ', file_get_contents($this->page));
     }
 
+    public function test_a_class_without_a_docblock_is_not_described_by_its_first_method(): void
+    {
+        // A method's docblock says what the method does, not the file. Read
+        // as the file's summary, every migration Laravel ships read "Run the
+        // migrations."
+        $firstLine = new ReflectionMethod(BuildCodeMap::class, 'firstDocblockLine');
+        $command = app(BuildCodeMap::class);
+
+        $bare = "<?php\n\nclass Thing\n{\n    /**\n     * Run the migrations.\n     */\n    public function up(): void {}\n}\n";
+        $described = "<?php\n\n/**\n * @see Elsewhere\n *\n * What the file is for.\n */\nreturn new class\n{\n    /** Run the migrations. */\n    public function up(): void {}\n};\n";
+
+        $this->assertSame('', $firstLine->invoke($command, $bare));
+        $this->assertSame('What the file is for.', $firstLine->invoke($command, $described));
+    }
+
     public function test_a_missing_marker_fails_rather_than_dropping_a_section(): void
     {
         /*

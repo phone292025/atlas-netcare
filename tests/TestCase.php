@@ -5,6 +5,9 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use RuntimeException;
 
+/**
+ * The base of every PHP test. It refuses to run against anything but a test database.
+ */
 abstract class TestCase extends BaseTestCase
 {
     /**

@@ -105,9 +105,9 @@ couple of hundred lines is one that has started deciding things.
 | `Assistant/InspectionController.php` | An assistant working down a rack of machines (FR-203, FR-204, FR-205) |
 | `Assistant/ShiftController.php` | An assistant's own shift (FR-201, FR-210, FR-211) |
 | `Assistant/TicketController.php` | An assistant raising and following their own tickets (FR-206, FR-207, |
-| `Auth/AuthenticatedSessionController.php` | Display the login view |
-| `Auth/NewPasswordController.php` | Display the password reset view |
-| `Auth/PasswordController.php` | Update the user's password |
+| `Auth/AuthenticatedSessionController.php` | _no summary in the file_ |
+| `Auth/NewPasswordController.php` | _no summary in the file_ |
+| `Auth/PasswordController.php` | _no summary in the file_ |
 | `Auth/PasswordResetLinkController.php` | FR-102, step one: ask for a link |
 | `Controller.php` | Laravel 12 ships this class empty. AuthorizesRequests is added here so every |
 | `DashboardRedirect.php` | Sends a signed-in user to the home screen for their role |
@@ -117,7 +117,7 @@ couple of hundred lines is one that has started deciding things.
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) |
 | `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): every access point on one screen, |
 | `NotificationController.php` | The notification bell and its list (FR-212) |
-| `ProfileController.php` | Display the user's profile form |
+| `ProfileController.php` | _no summary in the file_ |
 | `ReportController.php` | Operational reports and descriptive statistics (FR-410) |
 | `ShiftCalendarController.php` | Handing shifts to the assistant's own phone calendar |
 | `TicketCommentController.php` | Comments on a ticket (FR-308) |
@@ -172,8 +172,8 @@ authorise it through a policy.
 | `Admin/UpdateUserRequest.php` | Editing an account |
 | `Api/IngestReadingsRequest.php` | The shape of a batch from a probe agent (ADR-0017) |
 | `Assistant/InspectionRequest.php` | A completed inspection: one answer per checklist item |
-| `Auth/LoginRequest.php` | Determine if the user is authorized to make this request |
-| `ProfileUpdateRequest.php` | Get the validation rules that apply to the request |
+| `Auth/LoginRequest.php` | _no summary in the file_ |
+| `ProfileUpdateRequest.php` | _no summary in the file_ |
 | `Telemetry/RunSimulationRequest.php` | A scenario for the Network monitor's simulation controls |
 | `Tickets/AssignTicketRequest.php` | Handing a ticket to an engineer, or taking the name off it (FR-307) |
 | `Tickets/StoreCommentRequest.php` | A comment on a ticket (FR-308) |
@@ -334,7 +334,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 | File | What it does |
 |---|---|
 | `AppLayout.php` | The signed-in shell, and everything it shows on every page: the grouped |
-| `GuestLayout.php` | Get the view / contents that represents the component |
+| `GuestLayout.php` | _no summary in the file_ |
 <!-- /code-map -->
 
 Policies are matched to models by name: `User` finds `UserPolicy` with no
@@ -351,7 +351,7 @@ Small, and more of the system passes through it than its size suggests.
 <!-- code-map:app/Providers/ -->
 | File | What it does |
 |---|---|
-| `AppServiceProvider.php` | Models whose every write is recorded in audit_logs. Add a model here and |
+| `AppServiceProvider.php` | Boot-time wiring: audited models, ingest rate limits, the campus clock, reset email |
 <!-- /code-map -->
 
 Three things happen here. `AUDITED` lists every model the audit observer
@@ -406,9 +406,9 @@ database that already ran it.
 <!-- code-map:database/migrations/ -->
 | File | What it does |
 |---|---|
-| `0001_01_01_000000_create_users_table.php` | Run the migrations |
-| `0001_01_01_000001_create_cache_table.php` | Run the migrations |
-| `0001_01_01_000002_create_jobs_table.php` | Run the migrations |
+| `0001_01_01_000000_create_users_table.php` | _no summary in the file_ |
+| `0001_01_01_000001_create_cache_table.php` | _no summary in the file_ |
+| `0001_01_01_000002_create_jobs_table.php` | _no summary in the file_ |
 | `2026_08_28_070108_add_atlas_columns_to_users_table.php` | Adds the Atlas NetCare columns to Laravel's stock users table |
 | `2026_08_28_070109_create_locations_table.php` | Campus places that house assets: labs, the library, the cafeteria |
 | `2026_08_28_070111_create_lab_pcs_table.php` | University-owned lab workstations |
@@ -469,7 +469,7 @@ for tests.
 | `AccessPointFactory.php` | Access points for tests and for M5's demo data |
 | `AgentFactory.php` | Agents for tests. These carry no working token: use AgentService::issue() |
 | `AlarmFactory.php` | Defaults to an alarm already sent and not yet read, the state the unread |
-| `ChecklistItemFactory.php` | A critical item failing turns the whole inspection into a `fail` |
+| `ChecklistItemFactory.php` | _no summary in the file_ |
 | `ChecklistTemplateFactory.php` | Checklist templates for tests |
 | `InspectionFactory.php` | Inspections for tests and for M7's risk-scoring input |
 | `InspectionResultFactory.php` | _no summary in the file_ |
@@ -479,10 +479,10 @@ for tests.
 | `RiskAssessmentFactory.php` | A stored risk score |
 | `ShiftFactory.php` | Defaults to a shift scheduled for today that has not been started |
 | `ShiftTemplateFactory.php` | _no summary in the file_ |
-| `TelemetryReadingFactory.php` | Over the latency threshold |
-| `TicketCommentFactory.php` | Engineer-to-engineer. Never shown to the assistant who reported it |
+| `TelemetryReadingFactory.php` | _no summary in the file_ |
+| `TicketCommentFactory.php` | _no summary in the file_ |
 | `TicketFactory.php` | Tickets for tests and demo data |
-| `UserFactory.php` | The current password being used by the factory |
+| `UserFactory.php` | _no summary in the file_ |
 <!-- /code-map -->
 
 One database holds both kinds of row, tagged with `is_demo` rather than split
@@ -704,7 +704,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/FoundationSchemaTest.php` | The four foundation tables every other module has a foreign key into |
 | `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row |
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
-| `Feature/ProfileTest.php` | Atlas NetCare is an internal, privilege-based system. Users cannot delete |
+| `Feature/ProfileTest.php` | _no summary in the file_ |
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable |
 | `Feature/ReferenceSeederTest.php` | ReferenceSeeder, the data every fresh install gets from `db:seed` |
 | `Feature/Risk/MaintenancePriorityTest.php` | The maintenance priority screens (FR-309, FR-310, FR-311) |
@@ -736,7 +736,7 @@ them disagreed. Quoting it here would have made this the fourth.
 | `Feature/Tickets/TicketAssignmentTest.php` | FR-307's "assign": handing a ticket to an engineer, or back to the queue |
 | `Feature/Tickets/TicketLifecycleTest.php` | M4, the ticket state machine and its SLA |
 | `Feature/Tickets/TicketQueueTest.php` | The engineer's ticket queue: taking a ticket from the list, and seeing |
-| `TestCase.php` | Refuse to run against anything but a test database |
+| `TestCase.php` | The base of every PHP test. It refuses to run against anything but a test database |
 | `Unit/ArchitectureTest.php` | The dependency rules of the modular monolith, checked against the source |
 | `Unit/AtlasConfigTest.php` | config/atlas.php is the project's single tuning surface and a shared file |
 | `Unit/Enums/EnumContractTest.php` | Contract tests every enum in the system must satisfy |

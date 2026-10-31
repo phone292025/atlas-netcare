@@ -22,6 +22,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Boot-time wiring: audited models, ingest rate limits, the campus clock, reset email.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**
