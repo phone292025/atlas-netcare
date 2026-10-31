@@ -1,6 +1,6 @@
 # Build Log
 
-> **Last updated:** 2026-10-29
+> **Last updated:** 2026-11-01
 >
 > **Read this first in any new development session.** It is the handover between sessions: what exists, what is half-done, and what is next. Conversation history does not survive; this file does.
 
@@ -11,9 +11,9 @@
 | | |
 |---|---|
 | **Phase** | 2.0, Phase 0 done, Phase 1 up to task 1.6: network devices, probe agents and the ingest API, readings in a TimescaleDB hypertable, the simulator as a virtual agent, and the agent heartbeat. See `docs/roadmap.md` |
-| **Last session** | 2026-10-29 (roadmap task 1.6, the agent heartbeat) |
+| **Last session** | 2026-11-01: the docs in `docs/` brought in line with the 2.0 code. Before that, 2026-10-29: roadmap task 1.6, the agent heartbeat |
 | **Modules done** | **7 of 7** — M1 identity · M2 assets · M3 inspections · M4 ticketing · M5 telemetry · M6 shifts and alarms · M7 predictive risk and reports |
-| **Tests** | **1,178**: 1,174 passing and 4 skipped on SQLite, 1,176 passing and 2 skipped on PostgreSQL with TimescaleDB. Zero deprecations. `SchemaIntegrityTest` checks a MariaDB trap and skips on both; three TimescaleDB tests skip on SQLite, and one test of the SQLite path skips on PostgreSQL. **10 browser tests** pass against the Docker stack (`npm run test:browser`). The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. The README quotes it too, because the README has to stand on its own |
+| **Tests** | **1,179**: 1,175 passing and 4 skipped on SQLite, 1,177 passing and 2 skipped on PostgreSQL with TimescaleDB. Zero deprecations. `SchemaIntegrityTest` checks a MariaDB trap and skips on both; three TimescaleDB tests skip on SQLite, and one test of the SQLite path skips on PostgreSQL. **10 browser tests** pass against the Docker stack (`npm run test:browser`). The assertion count is deliberately not quoted: it moves between runs, because `isOutage()` keys on a 20-minute window, so which access points the simulator makes unreachable changes with the clock, and the loops that skip them assert a different number of times. The test count is stable. Stated here and, as a target to check an install against, in `11-installation-guide.md`. The README quotes it too, because the README has to stand on its own |
 | **Mail** | **Off by default** (`MAIL_MAILER=log`) since 2026-10-28, when the Gmail account was taken out. Reset links go to the log, and onto the reset screen on a local install. Any SMTP server works once it is in `.env`; check it with `docker compose exec app php artisan atlas:mail-test`. |
 | **Environment** | Laravel 12.70.1 + Breeze · PostgreSQL 16 + TimescaleDB 2.31 · one Docker Compose stack: `app`, `worker`, `scheduler`, `db` |
 | **Next action** | Roadmap task 1.7, the Go agent, then running it against a home network (1.8). |
@@ -254,6 +254,8 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 
 ### What M5 delivered
 
+*This is the 1.0 record, from 2026-08-28. Phase 1 of the 2.0 roadmap rebuilt M5, so several lines below no longer describe the code. Since 2026-10-28 there is no telemetry driver: probe agents push readings to `POST /api/v1/readings`, the simulator is a virtual agent, and both go through `TelemetryService::record()`. `telemetry_readings` is a TimescaleDB hypertable and `telemetry_hourly` a continuous aggregate, so `atlas:aggregate-telemetry` and `atlas:prune-telemetry` are gone and TimescaleDB's own jobs do their work. The engineer dashboard is now about tickets, with an access point panel, and the Network monitor is the full view. Read [../modules/M5-telemetry-and-dashboard.md](../modules/M5-telemetry-and-dashboard.md) for the current design.*
+
 | | |
 |---|---|
 | Tables | `telemetry_readings`, `telemetry_hourly` — two new migrations |
@@ -264,7 +266,7 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 | Tests | 37 across two classes |
 | Settled | **Q1**, **Q9**, **Q10** — all three built as assumed |
 
-**The driver swap is the design, and it is tested.** `TelemetrySource` has two implementations chosen by `config('atlas.telemetry_driver')`; going live is an `.env` change and one class. An unknown driver name **throws** rather than falling back — a typo silently producing invented data on a system meant to show real readings is the worst outcome available.
+**The driver swap was the design, and it was tested.** *Removed in task 1.5, see the note above.* `TelemetrySource` had two implementations chosen by `config('atlas.telemetry_driver')`; going live was an `.env` change and one class. An unknown driver name **threw** rather than falling back, because a typo silently producing invented data on a system meant to show real readings is the worst outcome available.
 
 **The simulator is a model, not `rand()`.** Fixed per-AP personalities, a two-humped daily curve, weekends at 28%, and latency rising with the cube of saturation. Generated data measures 3–4 clients / ~21 ms overnight against 31–33 clients / ~210 ms at the 11:00 peak, and the correlation is visible on the chart. Without that correlation M7 has nothing real to detect, so there are tests asserting both the curve and the correlation.
 
@@ -272,7 +274,7 @@ Access points have no equivalent status case: `ApStatus::Maintenance` means "tem
 
 **An access point going offline raises exactly one ticket**, guarded twice: only on the transition, and only if nothing is already open for that asset.
 
-**No backfill is needed before demonstrating.** Seeding writes the last day as readings, and since 2026-10-03 the scheduler fills any gap when it starts again.
+**No backfill is needed before demonstrating.** Seeding writes 14 days of readings, one every five minutes, and since 2026-10-03 the scheduler fills any gap when it starts again.
 
 ### What M6 delivered
 
@@ -310,37 +312,40 @@ Scaffolding, finished 2026-08-28. Kept for the record; nothing here is outstandi
 | 3 | Layouts, role-filtered sidebar, 23 shared Blade components | ✅ 2026-08-28 |
 | 4 | Foundation migrations, `ReferenceSeeder`, empty `DemoDataSeeder` | ✅ 2026-08-28 |
 
-> One Sprint 0 exit condition is still open: **all seven members have run the app successfully.** Until that happens the setup steps in `README.md` are unverified by anyone but the author.
+> One Sprint 0 exit condition, **all seven members have run the app successfully**, was never met, and lapsed when Atlas became a solo project. A clean start is checked instead by CI's Docker job, which builds the image and starts the stack on every pull request.
 
 ---
 
-## Not code, and on a deadline
+## Not code
 
 These do not move when modules get built.
 
 | | Status |
 |---|---|
-| **Q3 — ticket lifecycle** | 🟠 Adopted as proposed and built in M4, but **never actually agreed by the team.** Confirm it or change it — the code is written to make either cheap. |
+| **Q3, the ticket lifecycle** | 🟠 Adopted as proposed and built in M4, and **never confirmed.** Confirm it or change it. The code is written to make either cheap. |
 
 ---
 
 ## Environment on the development machine
 
-**Re-verified 2026-08-28. Everything below is installed and working — nothing needs installing.**
+**Re-verified 2026-11-01.** The app runs in Docker. PHP, Composer and Node on the host run the test suite, Pint and the front-end build.
 
 | Tool | Status | Notes |
 |---|---|---|
-| PHP | ✅ 8.2.12 | XAMPP, at `C:\xampp\php\php.exe`. Laravel 12 needs `^8.2`, so this is fine. |
-| MariaDB | ✅ 10.4.32 | XAMPP, at `C:\xampp\mysql\bin\mysql.exe`. **Start it from the XAMPP Control Panel** before any `migrate` command. |
-| Node | ✅ 24.15.0 | For Vite |
+| Docker | ✅ Engine 29.4.1, Compose 5.1.3 | Docker Desktop on WSL 2. Runs `app`, `worker`, `scheduler` and `db`, and the browser tests' own stack. |
+| PostgreSQL | ✅ 16 with TimescaleDB 2.31.0 | The `db` service, image `timescale/timescaledb:2.31.0-pg16`. Not installed on the host. |
+| PHP | ✅ 8.2.12 | XAMPP, at `C:\xampp\php\php.exe`, with `pdo_pgsql` and `pdo_sqlite` enabled. Runs the suite; the image has PHP 8.3. |
+| Node | ✅ 24.15.0 | For Vite and Playwright |
 | npm | ✅ 11.12.1 | |
 | Git | ✅ 2.54.0 | |
-| **Composer** | ✅ **2.10.2** | Installed 2026-08-27 to `C:\xampp\php\composer.phar`, with a `composer.bat` wrapper and a POSIX shim so `composer` works in cmd and Git Bash alike. |
-| **GitHub CLI** | ✅ **2.98.0** | Installed and authenticated as `phone292025`. |
+| **Composer** | ✅ **2.10.2** | At `C:\xampp\php\composer.phar`, with a `composer.bat` wrapper and a POSIX shim so `composer` works in cmd and Git Bash alike. |
+| **GitHub CLI** | ✅ **2.98.0** | Authenticated as `phone292025`. |
+
+MariaDB in XAMPP was the database until 2026-10-22, when Atlas moved to PostgreSQL (ADR-0011).
 
 > This table was left saying "Composer ❌ Missing" for a day after Composer was installed — the session log recorded the install, the summary at the top did not. Someone read the table and set out to install it again. **If you change the environment, change this table in the same session.** A summary that contradicts the log below it is worse than no summary.
 >
-> Other team members will still need PHP, MariaDB, Node and Composer. The verified setup steps are in `README.md`.
+> The verified setup steps are in `README.md`.
 
 ---
 
