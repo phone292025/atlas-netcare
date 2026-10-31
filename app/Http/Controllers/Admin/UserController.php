@@ -124,6 +124,13 @@ class UserController extends Controller
 
         $user->save();
 
+        // A reset by an administrator usually follows a suspected takeover,
+        // so whoever holds a session as this account loses it. Not the
+        // administrator's own, when they reset themselves.
+        if ($request->filled('password')) {
+            $user->endSessions(except: $user->is($request->user()) ? $request->session()->getId() : null);
+        }
+
         return redirect()
             ->route('admin.users.show', $user)
             ->with('success', 'Account updated.');

@@ -14,6 +14,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use App\Support\CampusClock;
+use App\Support\ResetLinkOnScreen;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -120,13 +121,10 @@ class AppServiceProvider extends ServiceProvider
              * so a fresh clone can still use the flow. The token is real,
              * single-use and still expires.
              *
-             * All three conditions: local, debug on, and no working mailer. A
-             * deployment fails the first two, and a machine that can send mail
-             * has no reason to print a reset token on a page.
+             * Local, debug on, no working mailer, and somebody at this
+             * machine: see ResetLinkOnScreen.
              */
-            if (app()->environment('local')
-                && config('app.debug')
-                && ! config('atlas.mail_configured')) {
+            if (self::resetLinkOnScreen(request())) {
                 session()->flash('reset_link', $url);
             }
 
@@ -139,5 +137,18 @@ class AppServiceProvider extends ServiceProvider
                 ->line('If that was not you, your password has not changed and nothing has happened yet. Tell an administrator, because on this system only an administrator can create an account, so somebody knows your address.')
                 ->salutation('Atlas NetCare, Asia Pacific University');
         });
+    }
+
+    /**
+     * ResetLinkOnScreen, asked about a live request: who sent it, to which
+     * host, and whether a proxy forwarded it. The view asks the same.
+     */
+    public static function resetLinkOnScreen(Request $request): bool
+    {
+        return ResetLinkOnScreen::allowed(
+            $request->server('REMOTE_ADDR'),
+            $request->getHost(),
+            $request->headers->has('X-Forwarded-For') || $request->headers->has('Forwarded') || $request->headers->has('Via'),
+        );
     }
 }

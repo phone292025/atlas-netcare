@@ -117,6 +117,11 @@ return [
     'mail_configured' => env('MAIL_MAILER', 'log') !== 'log'
         && filled(env('MAIL_PASSWORD')),
 
+    // True only inside a Docker stack published on this machine alone:
+    // compose passes ATLAS_BIND in. Unset everywhere else. The reset page
+    // shows its link only to somebody at this machine (ResetLinkOnScreen).
+    'published_on_loopback' => in_array(env('ATLAS_BIND'), ['127.0.0.1', 'localhost', '::1'], true),
+
     /*
     |--------------------------------------------------------------------------
     | Dashboard refresh

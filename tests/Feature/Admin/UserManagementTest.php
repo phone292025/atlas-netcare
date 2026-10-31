@@ -342,8 +342,10 @@ class UserManagementTest extends TestCase
         $log = AuditLog::where('action', 'updated')->latest('id')->firstOrFail();
 
         $this->assertSame(array_keys($log->changes), array_keys($log->previous));
-        $this->assertArrayNotHasKey('password', $log->previous);
-        $this->assertArrayNotHasKey('password', $log->changes);
+        // That it changed, never what it was or became.
+        $this->assertSame(AuditLog::SECRET_CHANGED, $log->previous['password']);
+        $this->assertSame(AuditLog::SECRET_CHANGED, $log->changes['password']);
+        $this->assertStringNotContainsString('$2y$', json_encode([$log->changes, $log->previous]));
     }
 
     public function test_a_calendar_token_never_reaches_the_audit_log(): void
@@ -383,7 +385,7 @@ class UserManagementTest extends TestCase
         $this->assertStringContainsString('Rotated Their Calendar Link', $written, 'The row should exist.');
         $this->assertStringNotContainsString('the-new-token-value', $written, 'The new token reached the audit log.');
         $this->assertStringNotContainsString('the-old-token-value', $written, 'The old token reached the audit log.');
-        $this->assertArrayNotHasKey('calendar_token', $row->changes);
+        $this->assertSame(AuditLog::SECRET_CHANGED, $row->changes['calendar_token']);
     }
 
     public function test_no_hidden_attribute_of_any_kind_is_logged(): void
@@ -391,8 +393,9 @@ class UserManagementTest extends TestCase
         /*
          * The general form, so the next secret column is covered without
          * anybody editing the observer. Changing every hidden attribute at
-         * once must produce no audit row at all, because after the exclusions
-         * nothing is left to report.
+         * once writes one row that says each changed, and holds none of the
+         * values. remember_token turns over at every remembered login, so it
+         * is left out entirely.
          */
         $target = $this->userWith(UserRole::Assistant);
         AuditLog::query()->delete();
@@ -405,11 +408,15 @@ class UserManagementTest extends TestCase
 
         $target->forceFill($secrets)->save();
 
-        $this->assertSame(
-            0,
-            AuditLog::where('action', 'updated')->count(),
-            'A save touching only hidden attributes must write nothing.',
-        );
+        $row = AuditLog::where('action', 'updated')->sole();
+        $written = json_encode([$row->changes, $row->previous]);
+
+        foreach ($secrets as $attribute => $value) {
+            $this->assertStringNotContainsString($value, $written, "{$attribute}'s value reached the audit log.");
+        }
+
+        $this->assertArrayNotHasKey('remember_token', $row->changes);
+        $this->assertSame(AuditLog::SECRET_CHANGED, $row->changes['password']);
     }
 
     public function test_the_summary_reads_as_a_sentence(): void

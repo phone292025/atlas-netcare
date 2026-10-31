@@ -125,6 +125,62 @@ class ResetWithoutMailTest extends TestCase
         $this->assertAuthenticated();
     }
 
+    public function test_no_link_is_shown_to_somebody_on_another_machine(): void
+    {
+        // The .env.example defaults meet every other condition, so anybody
+        // who could reach the app could read admin@atlas.local's link.
+        $this->freshClone();
+        config(['atlas.published_on_loopback' => false]);
+        $user = User::factory()->create();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.50'])
+            ->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHas('status')
+            ->assertSessionMissing('reset_link');
+    }
+
+    public function test_a_stack_published_on_this_machine_alone_still_shows_it(): void
+    {
+        // Inside the container every request comes from Docker's gateway.
+        $this->freshClone();
+        config(['atlas.published_on_loopback' => true]);
+        $user = User::factory()->create();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '172.18.0.1'])
+            ->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionHas('reset_link');
+    }
+
+    public function test_no_link_is_shown_through_a_tunnel_to_this_machine(): void
+    {
+        // ngrok or a local proxy reaches a loopback-bound stack too. Its
+        // requests carry a public host or a forwarding header.
+        $this->freshClone();
+        config(['atlas.published_on_loopback' => true]);
+        $user = User::factory()->create();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '172.18.0.1', 'HTTP_HOST' => 'abc.ngrok.app'])
+            ->post('http://abc.ngrok.app/forgot-password', ['email' => $user->email])
+            ->assertSessionMissing('reset_link');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '172.18.0.1'])
+            ->withHeader('X-Forwarded-For', '203.0.113.7')
+            ->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionMissing('reset_link');
+
+        // Outside Docker a tunnel connects from 127.0.0.1 itself.
+        config(['atlas.published_on_loopback' => false]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'abc.ngrok.app'])
+            ->post('http://abc.ngrok.app/forgot-password', ['email' => $user->email])
+            ->assertSessionMissing('reset_link');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1'])
+            ->withHeader('X-Forwarded-For', '203.0.113.7')
+            ->post(route('password.email'), ['email' => $user->email])
+            ->assertSessionMissing('reset_link');
+    }
+
     public function test_no_link_is_shown_once_mail_is_configured(): void
     {
         /*

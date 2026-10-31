@@ -34,7 +34,16 @@ class AuditObserver
             ->except($this->neverLog($model))
             ->all();
 
-        if ($changes === []) {
+        // A secret that changed is recorded as having changed, never its
+        // value. Dropped whole, a password reset left no trace of who did it.
+        // remember_token is left out: it turns over at every remembered login.
+        $secrets = collect($model->getChanges())
+            ->only($model->getHidden())
+            ->except(['remember_token'])
+            ->map(fn () => AuditLog::SECRET_CHANGED)
+            ->all();
+
+        if ($changes === [] && $secrets === []) {
             return;
         }
 
@@ -53,7 +62,7 @@ class AuditObserver
             ->map(fn ($value, string $key) => $model->getRawOriginal($key))
             ->all();
 
-        $this->record($model, 'updated', $changes, $previous);
+        $this->record($model, 'updated', $changes + $secrets, $previous + $secrets);
     }
 
     public function deleted(Model $model): void

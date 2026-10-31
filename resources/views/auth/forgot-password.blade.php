@@ -5,7 +5,7 @@
     {{-- With no mail server the usual "a reset link is on its way" sat just
          above "Nothing will be sent", which contradicted itself. Only on a
          development install: a configured one never shows the warning. --}}
-    <x-auth-session-status class="mb-4" :status="session('status') && config('app.debug') && ! config('atlas.mail_configured')
+    <x-auth-session-status class="mb-4" :status="session('status') && \App\Providers\AppServiceProvider::resetLinkOnScreen(request())
         ? 'If that address has an account, its reset link is below. Nothing is emailed until a mail server is set up.'
         : session('status')" />
 
@@ -44,7 +44,8 @@
 
          The token behind it is real, single-use and still expires. Only where
          the link appears changes. AppServiceProvider flashes it, and only when
-         the environment is local, debug is on, and no mailer is configured.
+         the environment is local, debug is on, no mailer is configured, and
+         the request comes from this machine (App\Support\ResetLinkOnScreen).
 
          @see docs/02-open-questions.md Q11 --}}
     @if (session('reset_link'))

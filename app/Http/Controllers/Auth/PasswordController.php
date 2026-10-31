@@ -26,13 +26,19 @@ class PasswordController extends Controller
     {
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            // A forced change is because somebody else knows the old one,
+            // so typing it back in must not count.
+            'password' => ['required', Password::defaults(), 'confirmed', 'different:current_password'],
         ]);
 
         $user = $request->user();
         $user->password = Hash::make($validated['password']);
         $user->must_change_password = false;
         $user->save();
+
+        // Anybody else signed in as this account is signed out. This
+        // session, which just proved the old password, stays.
+        $user->endSessions(except: $request->session()->getId());
 
         return back()->with('success', 'Password changed.');
     }

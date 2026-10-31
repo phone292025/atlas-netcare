@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -123,6 +124,30 @@ class User extends Authenticatable
     public function scopeRole(Builder $query, UserRole $role): void
     {
         $query->where('role', $role);
+    }
+
+    /**
+     * End this account's sessions, all but the one named.
+     *
+     * After a password change, whoever had a session keeps it unless it is
+     * ended: rotating remember_token, all Breeze does, leaves live sessions
+     * alone. The emailed reset ends every one; a change from the profile
+     * keeps the session that made it.
+     *
+     * Needs the `database` session driver, whose table carries user_id. On
+     * other drivers there is nothing to query and nothing happens.
+     */
+    public function endSessions(?string $except = null): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::connection(config('session.connection'))
+            ->table(config('session.table', 'sessions'))
+            ->where('user_id', $this->getKey())
+            ->when($except !== null, fn ($query) => $query->where('id', '!=', $except))
+            ->delete();
     }
 
     public function isAdmin(): bool

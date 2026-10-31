@@ -188,7 +188,7 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder
 
 > **Changing an address in `.env` on a database that is already seeded gives you a second account, not a renamed one.** The seeder matches on email, so the old row keeps its tickets and shifts and you sign in to an empty copy. Rename the existing row instead.
 
-The default accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never created, and a production install (`APP_ENV=production`) never gets the default administrator. `atlas:purge-demo-data` removes them, the default administrator included, so create your own administrator first. It takes `--dry-run` to show what would go, and refuses if a real record points at a demonstration asset rather than leaving it dangling.
+The default accounts are tagged `is_demo`. With `ATLAS_DEMO_MODE=false` they are never created, and a production install (`APP_ENV=production`) gets none of them, because their password is printed here. `atlas:purge-demo-data` removes them, the default administrator included, so create your own administrator first. It takes `--dry-run` to show what would go, and refuses if a real record points at a demonstration asset rather than leaving it dangling.
 
 ### Creating an administrator account
 
@@ -216,10 +216,10 @@ For a forgotten password, use "Forgot password" on the sign-in page.
 
 ### Email
 
-Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead, and on your own machine the reset screen shows the link as well. To print the newest link:
+Atlas sends one kind of email: the password reset link. Out of the box nothing is sent. `MAIL_MAILER=log` writes each message into the app's log instead. The reset screen shows the link as well, but only when you open Atlas at `localhost` on the machine running it: not with `ATLAS_BIND=0.0.0.0`, and not through a tunnel, where anybody could ask for an account's link. Otherwise, find the newest link in the app's log:
 
 ```bash
-docker compose exec app php artisan atlas:reset-link
+docker compose logs app | grep reset-password
 ```
 
 To send real mail, put your mail provider's SMTP settings in `.env`:

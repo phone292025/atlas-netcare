@@ -97,7 +97,7 @@ Open **http://localhost:8000**.
 | Student IT Assistant | `assistant.one@atlas.local` | `AtlasDemo!2026` |
 | Student IT Assistant | `assistant.two@atlas.local` | `AtlasDemo!2026` |
 
-These are the default accounts, tagged `is_demo`. Re-running `db:seed` resets their passwords, and never touches a real account at the same address. A production install (`APP_ENV=production`) gets no default administrator.
+These are the default accounts, tagged `is_demo`. Re-running `db:seed` resets their passwords, and never touches a real account at the same address. A production install (`APP_ENV=production`) gets none of the default accounts, because their password is public.
 
 **These addresses are login identifiers, not mailboxes.** Nothing is sent to them, so signing in needs no mail account.
 
@@ -149,7 +149,7 @@ Agents send readings from inside a network to `POST /api/v1/readings`. Register 
 
 ## 7. Optional: password reset by email
 
-FR-102 sends a reset link by email. `.env.example` sets `MAIL_MAILER=log`, so nothing is sent: the message goes into the app's log, the reset screen shows the link on a local install, and `docker compose exec app php artisan atlas:reset-link` prints the newest one.
+FR-102 sends a reset link by email. `.env.example` sets `MAIL_MAILER=log`, so nothing is sent: the message goes into the app's log, and the reset screen shows the link only when Atlas is opened at `localhost` on the machine running it (not with `ATLAS_BIND=0.0.0.0` or through a tunnel). `docker compose logs app | grep reset-password` finds the newest link either way.
 
 To send real mail:
 

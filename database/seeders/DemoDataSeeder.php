@@ -103,6 +103,20 @@ class DemoDataSeeder extends Seeder
      */
     private function demoAccounts(): void
     {
+        // A published password must not open any account on a reachable
+        // install. Only the administrator used to be held back, and the
+        // engineer and both assistants were still made with it.
+        if (app()->isProduction()) {
+            $this->command?->warn('  No demo accounts in production. Run atlas:create-admin, then add users from the Users screen.');
+
+            // One made by an earlier seed still has the published password.
+            if (User::query()->where('is_demo', true)->exists()) {
+                $this->command?->warn('  Demo accounts from an earlier seed are still here. Remove them with atlas:purge-demo-data.');
+            }
+
+            return;
+        }
+
         $password = config('atlas.demo_users.password');
 
         $accounts = [
@@ -113,15 +127,6 @@ class DemoDataSeeder extends Seeder
         ];
 
         foreach ($accounts as [$account, $role]) {
-            // An administrator with a published password owns a reachable
-            // system, so a production install makes its own with
-            // atlas:create-admin instead.
-            if ($role === UserRole::Admin && app()->isProduction()) {
-                $this->command?->warn('  No demo administrator in production. Run atlas:create-admin.');
-
-                continue;
-            }
-
             /*
              * A REAL ACCOUNT KEEPS ITS PASSWORD. Without this check, re-seeding
              * gave whichever account held one of these addresses the public

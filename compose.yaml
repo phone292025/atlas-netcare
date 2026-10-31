@@ -30,6 +30,9 @@ x-atlas: &atlas
     # To the container's output, so `docker compose logs` shows them.
     LOG_CHANNEL: stderr
     QUEUE_CONNECTION: database
+    # Where the stack is published, so the app knows whether only this
+    # machine can reach it (config atlas.published_on_loopback).
+    ATLAS_BIND: ${ATLAS_BIND:-127.0.0.1}
     APP_URL: http://localhost:${ATLAS_PORT:-8000}
     # Caddy refuses an API request body over 512 KB before PHP reads any of
     # it, including one sent without a length. The ingest endpoint's own

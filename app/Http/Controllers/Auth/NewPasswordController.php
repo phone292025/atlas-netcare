@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -58,7 +57,7 @@ class NewPasswordController extends Controller
                     'must_change_password' => false,
                 ])->save();
 
-                $this->signOutEverywhere($user);
+                $user->endSessions();
 
                 event(new PasswordReset($user));
             }
@@ -71,31 +70,5 @@ class NewPasswordController extends Controller
                     ? redirect()->route('login')->with('status', __($status))
                     : back()->withInput($request->only('email'))
                         ->withErrors(['email' => __($status)]);
-    }
-
-    /**
-     * End every session belonging to this account.
-     *
-     * Rotating remember_token, which is all Breeze does, leaves active
-     * sessions alive, so somebody who took over the account would stay signed
-     * in while the owner believed they had locked them out.
-     *
-     * Needs the `database` session driver, whose table carries user_id; on
-     * other drivers there is nothing to query, and the reset still succeeds.
-     * The person resetting is signed out too, and lands on the login screen
-     * either way.
-     *
-     * @see docs/02-open-questions.md Q11
-     */
-    private function signOutEverywhere(User $user): void
-    {
-        if (config('session.driver') !== 'database') {
-            return;
-        }
-
-        DB::connection(config('session.connection'))
-            ->table(config('session.table', 'sessions'))
-            ->where('user_id', $user->getAuthIdentifier())
-            ->delete();
     }
 }

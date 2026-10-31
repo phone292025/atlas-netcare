@@ -84,18 +84,18 @@ class DemoDataSeederTest extends TestCase
         $this->assertFalse(Hash::check(config('atlas.demo_users.password'), $admin->password));
     }
 
-    public function test_production_gets_no_default_administrator(): void
+    public function test_production_gets_no_account_with_the_published_password(): void
     {
-        // A published password must never guard a real install's administrator.
+        // Not the administrator, and not the engineer or the assistants
+        // either: each could sign in with a password printed in the README.
         $this->app['env'] = 'production';
 
         // --force, as in production db:seed asks first.
         $this->artisan('db:seed', ['--class' => DemoDataSeeder::class, '--force' => true])
-            ->expectsOutputToContain('No demo administrator in production')
+            ->expectsOutputToContain('No demo accounts in production')
             ->assertSuccessful();
 
-        $this->assertSame(0, User::where('role', UserRole::Admin)->count());
-        $this->assertSame(1, User::where('role', UserRole::Engineer)->count());
+        $this->assertSame(0, User::count());
     }
 
     public function test_two_assistants_so_ownership_rules_can_be_demonstrated(): void

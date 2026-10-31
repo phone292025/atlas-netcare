@@ -21,6 +21,9 @@ use Illuminate\Support\Carbon;
  */
 class AuditLog extends Model
 {
+    /** What a secret's value is recorded as, in both halves: it changed, never to what. */
+    public const SECRET_CHANGED = '[changed]';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -169,6 +172,11 @@ class AuditLog extends Model
                 $label = str($field)->replace('_', ' ')->toString();
 
                 $show = fn (mixed $value) => $this->readable($labels[$field][$value] ?? $value, $casts[$field] ?? null);
+
+                // A secret says only that it changed.
+                if ($new === self::SECRET_CHANGED) {
+                    return $label.': changed';
+                }
 
                 if (! array_key_exists($field, $previous)) {
                     return $label.': '.$show($new);
