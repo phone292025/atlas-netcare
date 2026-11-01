@@ -53,11 +53,13 @@ devices:
   - code: SW-L6
     host: 10.0.0.1
     ping: false
+  - code: A-DEVICE-CODE-MUCH-LONGER-THAN-FORTY-CHARACTERS
+    host: 10.0.0.2
 `))
 	if err == nil {
 		t.Fatal("a broken config loaded")
 	}
-	for _, want := range []string{"must be https://", "no token", "host is required", "listed twice", "no checks"} {
+	for _, want := range []string{"must be https://", "no token", "host is required", "listed twice", "no checks", "longer than"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("the error does not mention %q:\n%s", want, err)
 		}

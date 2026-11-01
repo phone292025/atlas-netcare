@@ -150,6 +150,8 @@ func (c *Config) check() error {
 		where := fmt.Sprintf("devices[%d]", i)
 		if d.Code == "" {
 			problems = append(problems, where+": code is required, the device's code in Atlas")
+		} else if len(d.Code) > 40 {
+			problems = append(problems, where+": code is longer than Atlas's 40 characters")
 		} else if seen[d.Code] {
 			problems = append(problems, where+": "+d.Code+" is listed twice")
 		}

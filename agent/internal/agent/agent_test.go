@@ -49,6 +49,9 @@ type atlas struct {
 	mu      sync.Mutex
 	batches []sender.Batch
 	status  int
+	// refuse answers 422 to any batch holding a reading for this device,
+	// as Atlas does when one reading breaks a rule.
+	refuse string
 }
 
 func (a *atlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +70,13 @@ func (a *atlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	var b sender.Batch
 	_ = json.Unmarshal(body, &b)
+	for _, item := range b.Readings {
+		if a.refuse != "" && item.Device == a.refuse {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"message":"The readings.3.latency_ms field must not be greater than 32767."}`))
+			return
+		}
+	}
 	a.batches = append(a.batches, b)
 
 	stored := []int64{}
@@ -217,5 +227,46 @@ func TestAnEmptyBufferSendsAHeartbeat(t *testing.T) {
 	defer fake.mu.Unlock()
 	if len(fake.batches) != 1 || len(fake.batches[0].Readings) != 0 || fake.batches[0].AgentVersion != "test" {
 		t.Fatalf("batches = %+v, want one empty heartbeat with the version", fake.batches)
+	}
+}
+
+func TestAReadingAtlasRefusesIsFoundDroppedAndDoesNotHoldUpTheRest(t *testing.T) {
+	fake := &atlas{refuse: "BAD"}
+	server := httptest.NewServer(fake)
+	defer server.Close()
+	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "BAD", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
+	a.Config.Interval = time.Hour // one round, then just sending
+	a.MinBackoff, a.MaxBackoff = 5*time.Millisecond, 10*time.Millisecond
+	if err := a.Round(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { _ = a.Run(ctx); close(done) }()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if n, _ := a.Buffer.Len(); n == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	cancel()
+	<-done
+
+	if n, _ := a.Buffer.Len(); n != 0 {
+		t.Fatalf("%d readings still buffered: a refused reading held up the rest", n)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	got := map[string]bool{}
+	for _, b := range fake.batches {
+		for _, item := range b.Readings {
+			got[item.Device] = true
+		}
+	}
+	if !got["SW"] || !got["AP"] || got["BAD"] {
+		t.Fatalf("Atlas stored %v, want SW and AP and not BAD", got)
 	}
 }
