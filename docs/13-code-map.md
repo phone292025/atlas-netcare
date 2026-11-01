@@ -482,6 +482,7 @@ for tests.
 |---|---|
 | `DatabaseSeeder.php` | Two seeders, deliberately |
 | `DemoDataSeeder.php` | Everything needed to demonstrate the system, and nothing it needs to run |
+| `LoadTestSeeder.php` | A campus-sized estate for measuring response times (NFR-02) |
 | `ReferenceSeeder.php` | The minimum a real deployment needs on day one |
 <!-- /code-map -->
 
