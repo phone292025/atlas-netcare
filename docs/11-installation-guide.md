@@ -156,7 +156,7 @@ Agents send readings from inside a network to `POST /api/v1/readings`. Register 
 
 ### HTTPS for remote agents
 
-An agent sends its token in every request. Over plain HTTP anyone on the network between the agent and Atlas can read it and send readings as that agent, so **Atlas refuses an agent request over plain HTTP from another machine**, with 403 and a message saying why. Plain HTTP is accepted only from this machine: a stack published on `127.0.0.1` (the default), or a client on loopback with no proxy header. `ATLAS_AGENTS_ALLOW_PLAIN_HTTP=true` turns the check off, for a closed lab network whose owner accepts the risk. `atlas:check-deployment` refuses that setting in production.
+An agent sends its token in every request. Over plain HTTP anyone on the network between the agent and Atlas can read it and send readings as that agent, so **Atlas refuses an agent request over plain HTTP**, with 403 and a message saying why. The one exception is Atlas run without Docker, with the agent on the same machine: a loopback client, addressed to localhost, with no proxy header. A Docker stack sees every request arrive from its gateway, a reverse proxy's on the host included, so an agent beside the stack uses HTTPS as well. While testing, `ATLAS_AGENTS_ALLOW_PLAIN_HTTP=true` turns the check off; `atlas:check-deployment` refuses that setting in production and on a stack reachable from the network.
 
 The image's web server, Caddy, serves HTTPS itself once the stack has a name. In `.env`:
 
@@ -185,7 +185,7 @@ docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt
 
 and install `atlas-root.crt` as a trusted root on the agent machine, or point the agent's CA setting at it. The certificates live in the `caddy-data` volume, so a restart keeps the same authority and agents keep trusting it. Removing the volume (`docker compose down --volumes`) makes a new authority, and every agent needs the new root.
 
-Behind a reverse proxy that terminates TLS instead, Atlas sees plain HTTP from the proxy with a forwarding header, and refuses agents. Laravel's trusted-proxy setting would have to name the proxy first. Caddy in the image is the supported way.
+Behind a reverse proxy that terminates TLS instead, Atlas sees plain HTTP from the proxy and refuses agents, with or without a forwarding header. Laravel's trusted-proxy setting would have to name the proxy first. Caddy in the image is the supported way. If you put a proxy in front anyway, make it send `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`): without it, a request through the proxy looks as if it came from this machine, and on a development stack the forgot-password screen would show the reset link to it.
 
 ## 7. Optional: password reset by email
 

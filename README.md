@@ -273,7 +273,7 @@ A batch looks like this:
 
 Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. An agent that sends nothing for 3 minutes is **silent**: its devices show as Unknown instead of their last status, and the engineers and administrators get one alert. Its next reading for a device puts that device back. Until an agent first connects, its devices show as Unknown too, without an alert.
 
-The token travels in every request, so **Atlas refuses an agent on another machine that connects over plain HTTP**, with 403. An agent on the same machine as the stack may use plain HTTP. For the others, give the stack a name and HTTPS first, in `.env`:
+The token travels in every request, so **Atlas refuses an agent that connects over plain HTTP**, with 403. That includes an agent on the same machine as the Docker stack, because every request reaches the stack through Docker's gateway, a reverse proxy's on the host included; while testing, `ATLAS_AGENTS_ALLOW_PLAIN_HTTP=true` allows it. Give the stack a name and HTTPS first, in `.env`:
 
 ```dotenv
 ATLAS_BIND=0.0.0.0

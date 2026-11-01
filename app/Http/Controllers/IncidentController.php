@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\IncidentRule;
 use App\Enums\IncidentStatus;
+use App\Http\Requests\ResolveIncidentRequest;
 use App\Models\Incident;
 use App\Services\Incidents\IncidentService;
 use DomainException;
@@ -79,14 +80,10 @@ class IncidentController extends Controller
         return back()->with('success', 'Acknowledged. Nobody else will be told about it unless it gets worse.');
     }
 
-    public function resolve(Request $request, Incident $incident): RedirectResponse
+    public function resolve(ResolveIncidentRequest $request, Incident $incident): RedirectResponse
     {
-        $this->authorize('resolve', $incident);
-
-        $note = $request->validate(['note' => ['required', 'string', 'max:500']])['note'];
-
         try {
-            $this->incidents->resolveByHand($incident, $request->user(), $note);
+            $this->incidents->resolveByHand($incident, $request->user(), $request->validated('note'));
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         }

@@ -73,9 +73,7 @@ class InspectionService
         $shift = $this->activeShiftFor($user);
 
         if (! $shift) {
-            throw new DomainException(
-                'Check in to your shift before starting an inspection. Every inspection is recorded against the shift it happens in.'
-            );
+            throw new DomainException($this->whyNoShift($user));
         }
 
         $template ??= ChecklistTemplate::current();
@@ -94,6 +92,20 @@ class InspectionService
                 'started_at' => now(),
             ],
         );
+    }
+
+    /**
+     * Why a new inspection can't start: still checked in to a shift that
+     * ended, or not checked in at all.
+     */
+    private function whyNoShift(User $user): string
+    {
+        $ended = Shift::query()->forUser($user)->on(CampusClock::today())
+            ->where('status', ShiftStatus::CheckedIn)->latest('checked_in_at')->first();
+
+        return $ended
+            ? 'Your shift ended at '.substr((string) $ended->end_time, 0, 5).'. Check out of it, and check in to the next one, before starting another inspection.'
+            : 'Check in to your shift before starting an inspection. Every inspection is recorded against the shift it happens in.';
     }
 
     /**
