@@ -41,6 +41,9 @@ type Agent struct {
 	MinBackoff, MaxBackoff time.Duration
 
 	wake chan struct{}
+	// isolating is true while the agent sends one reading at a time, after
+	// Atlas refused a batch's contents, to find the reading it refused.
+	isolating bool
 }
 
 // Run checks and sends until ctx ends.
@@ -130,9 +133,21 @@ func (a *Agent) sendLoop(ctx context.Context) {
 		var refused *sender.Refused
 		wait := time.Duration(0)
 
+		var invalid *sender.Invalid
+
 		switch {
 		case err == nil && sent > 0:
 			backoff = a.MinBackoff
+			if !a.isolating {
+				batch = a.Config.BatchSize
+			}
+			continue
+		case errors.As(err, &invalid):
+			// SendOnce dropped the reading when the batch was one; any
+			// larger and the bad one is somewhere in it.
+			a.isolating = true
+			batch = 1
+			a.Log.Warn("Atlas refused a reading in the batch; sending one at a time to find it", "message", invalid.Message)
 			continue
 		case err == nil:
 			backoff = a.MinBackoff
@@ -190,6 +205,15 @@ func (a *Agent) SendOnce(ctx context.Context, n int) (int, error) {
 	}
 
 	answer, err := a.Sender.Send(ctx, items)
+
+	var invalid *sender.Invalid
+	if errors.As(err, &invalid) && len(items) == 1 {
+		// Found it. It would be refused for ever, and everything behind it
+		// would wait for ever, so it goes, with the reason in the log.
+		a.Log.Error("dropped a reading Atlas refuses", "sequence", items[0].Sequence, "device", items[0].Device, "message", invalid.Message)
+		a.isolating = false
+		return 1, a.Buffer.Drop([]int64{items[0].Sequence})
+	}
 	if err != nil {
 		return 0, err
 	}
