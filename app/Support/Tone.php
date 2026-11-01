@@ -79,15 +79,19 @@ final class Tone
     }
 
     /**
-     * Foreground-only tint, for an icon or a rule sitting on a tinted surface.
+     * Foreground-only tint, for an icon, a rule or small text sitting on a
+     * page or a tinted surface. The 700 shades: the 600s fell under 4.5:1 for
+     * small text, amber at 3.2:1 on white and red at 4.4:1 on dark mode's
+     * black (axe, ADR-0018). The palette is themed, so 700 is a deep shade in
+     * the light theme and a pale one in the dark.
      */
     public static function accent(?string $tone): string
     {
         return match ($tone) {
-            self::HEALTHY => 'text-emerald-600',
-            self::ATTENTION => 'text-amber-600',
-            self::ELEVATED => 'text-orange-600',
-            self::URGENT => 'text-red-600',
+            self::HEALTHY => 'text-emerald-700',
+            self::ATTENTION => 'text-amber-700',
+            self::ELEVATED => 'text-orange-700',
+            self::URGENT => 'text-red-700',
             self::NEUTRAL => 'text-slate-500',
             default => 'text-fuchsia-600',
         };

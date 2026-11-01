@@ -51,7 +51,7 @@
                          see all at once beat a list that has to be opened. --}}
                     <fieldset>
                         <legend class="text-sm font-medium text-fg">
-                            Category <span class="text-red-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>
+                            Category <span class="text-red-700" aria-hidden="true">*</span><span class="sr-only">(required)</span>
                         </legend>
                         <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                             @foreach ($categories as $value => $label)
@@ -80,7 +80,7 @@
                          checklist does. --}}
                     <fieldset>
                         <legend class="text-sm font-medium text-fg">
-                            How urgent? <span class="text-red-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>
+                            How urgent? <span class="text-red-700" aria-hidden="true">*</span><span class="sr-only">(required)</span>
                         </legend>
                         <div class="mt-2 grid gap-2 sm:grid-cols-3">
                             @foreach ($priorities as $value => $label)

@@ -45,8 +45,8 @@ class DisplayComponentsTest extends TestCase
         $bad = Blade::render('<x-stat-tile label="Latency" value="142" delta="+18" trend="up" tone="urgent" />');
         $good = Blade::render('<x-stat-tile label="Uptime" value="99.9" delta="+0.2" trend="up" tone="healthy" />');
 
-        $this->assertStringContainsString('text-red-600', $bad);
-        $this->assertStringContainsString('text-emerald-600', $good);
+        $this->assertStringContainsString('text-red-700', $bad);
+        $this->assertStringContainsString('text-emerald-700', $good);
 
         // Same trend, so the same arrow in both.
         $arrow = Icons::markup('trend-up');

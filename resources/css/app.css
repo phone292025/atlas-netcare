@@ -29,7 +29,10 @@
         --line-strong: 206 211 219;
         --fg: 15 20 27;
         --fg-muted: 90 99 114;
-        --fg-subtle: 138 147 162;
+        /* 4.8:1 on --sunken, the darkest surface text sits on. It was
+           138 147 162, 2.8 to 3.1:1, under WCAG AA for the small labels it
+           is used for (axe, ADR-0018). */
+        --fg-subtle: 100 107 124;
         --accent-fg: 255 255 255;
         --shadow: 16 24 40;
 
@@ -118,7 +121,7 @@
      | apart by their borders. Only what floats above the page (menus, modals)
      | and what reacts to the pointer (hover, insets) is lifted off black. The
      | greys are neutral, with no blue in them, and the faintest text keeps
-     | 4.7:1 against black.
+     | 5:1 against the lifted surfaces as well as black.
      */
     :root[data-theme='dark'] {
         color-scheme: dark;
@@ -131,7 +134,7 @@
         --line-strong: 56 56 56;
         --fg: 237 237 237;
         --fg-muted: 161 161 161;
-        --fg-subtle: 122 122 122;
+        --fg-subtle: 135 135 135;
         --accent-fg: 255 255 255;
         --shadow: 0 0 0;
 
