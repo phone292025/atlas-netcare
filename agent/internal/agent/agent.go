@@ -203,12 +203,29 @@ func (a *Agent) SendOnce(ctx context.Context, n int) (int, error) {
 		a.Log.Warn("this machine's clock is out from Atlas's", "offset_ms", answer.ClockOffsetMs)
 	}
 
-	// Stored, duplicate and rejected alike: Atlas has answered for every
-	// reading in the batch, and none would be stored if sent again.
-	sequences := make([]int64, len(items))
-	for i, item := range items {
-		sequences[i] = item.Sequence
+	// Stored, duplicate and rejected alike: none would be stored if sent
+	// again. Only those Atlas answered for, though: a reading the answer
+	// doesn't mention stays, and goes again with the next batch.
+	answered := map[int64]bool{}
+	for _, s := range answer.Stored {
+		answered[s] = true
+	}
+	for _, s := range answer.Duplicate {
+		answered[s] = true
+	}
+	for _, r := range answer.Rejected {
+		answered[r.Sequence] = true
 	}
 
-	return len(items), a.Buffer.Drop(sequences)
+	var drop []int64
+	for _, item := range items {
+		if answered[item.Sequence] {
+			drop = append(drop, item.Sequence)
+		}
+	}
+	if missing := len(items) - len(drop); missing > 0 {
+		a.Log.Warn("Atlas did not answer for some readings; they stay in the buffer", "missing", missing)
+	}
+
+	return len(drop), a.Buffer.Drop(drop)
 }

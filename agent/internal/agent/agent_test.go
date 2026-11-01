@@ -299,3 +299,34 @@ func TestARefusedHeartbeatWaitsInsteadOfAskingAgainAtOnce(t *testing.T) {
 		t.Fatalf("%d requests in 300 ms: a refused heartbeat was sent again at once", fake.requests)
 	}
 }
+
+// partialAtlas answers for the first reading of each batch only.
+type partialAtlas struct{}
+
+func (partialAtlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	var b sender.Batch
+	_ = json.Unmarshal(body, &b)
+	answer := sender.Answer{Stored: []int64{}}
+	if len(b.Readings) > 0 {
+		answer.Stored = append(answer.Stored, b.Readings[0].Sequence)
+	}
+	_ = json.NewEncoder(w).Encode(answer)
+}
+
+func TestAReadingTheAnswerDoesNotMentionStaysInTheBuffer(t *testing.T) {
+	server := httptest.NewServer(partialAtlas{})
+	defer server.Close()
+	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
+	ctx := context.Background()
+
+	if err := a.Round(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if sent, err := a.SendOnce(ctx, 500); err != nil || sent != 1 {
+		t.Fatalf("dropped %d (%v), want only the 1 Atlas answered for", sent, err)
+	}
+	if n, _ := a.Buffer.Len(); n != 1 {
+		t.Fatalf("the buffer holds %d, want the 1 unanswered reading kept", n)
+	}
+}

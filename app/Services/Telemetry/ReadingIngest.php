@@ -118,15 +118,15 @@ class ReadingIngest
     /**
      * Why this reading's values can't be stored, or null.
      *
+     * A field Atlas doesn't know is ignored, not refused: a newer agent that
+     * measures something more must still be heard by an older Atlas, and
+     * refusing the reading would lose it. Only FIELDS are ever read.
+     *
      * @param  array<string, mixed>  $reading
      */
     private function invalid(array $reading): ?string
     {
-        if ($unknown = array_diff(array_keys($reading), self::FIELDS)) {
-            return 'Unknown field: '.implode(', ', $unknown).'.';
-        }
-
-        $validator = Validator::make($reading, self::READING_RULES);
+        $validator = Validator::make(array_intersect_key($reading, array_flip(self::FIELDS)), self::READING_RULES);
 
         return $validator->fails() ? $validator->errors()->first() : null;
     }
