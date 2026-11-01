@@ -4,7 +4,9 @@
 #
 # Copies the program and its config to C:\ProgramData\AtlasAgent, registers
 # a service that starts with Windows and restarts after a crash, and starts
-# it. The service runs as LocalSystem, which raw ICMP ping needs on Windows.
+# it. atlas-agent answers the Service Control Manager itself
+# (cmd/atlas-agent/service_windows.go), so the service runs the program
+# directly. It runs as LocalSystem, which raw ICMP ping needs on Windows.
 # In atlas-agent.yaml give token_file, ca_file and buffer as full paths
 # under C:\ProgramData\AtlasAgent. Logs go to C:\ProgramData\AtlasAgent\agent.log.
 #
@@ -25,8 +27,8 @@ Copy-Item $Config "$home_\atlas-agent.yaml" -Force
 # Only administrators and SYSTEM may read the folder: it holds the token.
 icacls $home_ /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' | Out-Null
 
-# A service gets no console, so stderr goes to a file through cmd.
-$command = "cmd.exe /c `"`"$home_\atlas-agent.exe`" -config `"$home_\atlas-agent.yaml`" 2>> `"$home_\agent.log`"`""
+# A service gets no console, so the log goes to a file.
+$command = "`"$home_\atlas-agent.exe`" -config `"$home_\atlas-agent.yaml`" -log `"$home_\agent.log`""
 
 if (Get-Service AtlasAgent -ErrorAction SilentlyContinue) {
     Stop-Service AtlasAgent

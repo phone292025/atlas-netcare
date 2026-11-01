@@ -301,6 +301,27 @@ jobs:
           path: agent/dist
           retention-days: 30
 
+  agent-windows:
+    name: Agent on Windows
+    # The Windows service handler (cmd/atlas-agent/service_windows.go) only
+    # builds on Windows, so the Linux job never runs its tests.
+    runs-on: windows-2025
+    defaults:
+      run:
+        working-directory: agent
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Test
+        run: go test ./...
+
   style:
     name: Pint
     runs-on: ubuntu-24.04
