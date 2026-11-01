@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\AccessPoint;
 use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\Incident;
 use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
@@ -191,7 +192,10 @@ class AgentHeartbeatTest extends TestCase
         $this->assertFalse($alarms->contains('user_id', $assistant->id));
         $this->assertSame('Level 6 probe has stopped reporting', $alarms->first()->title);
         $this->assertStringContainsString('Last heard from at 29 Oct, 17:50', $alarms->first()->message);
-        $this->assertTrue($alarms->first()->related->is($this->agent));
+        // The alert is about the agent's incident, which is about the agent.
+        $this->assertInstanceOf(Incident::class, $alarms->first()->related);
+        $this->assertTrue($alarms->first()->related->agent->is($this->agent));
+        $this->assertSame(1, Incident::where('agent_id', $this->agent->id)->count());
     }
 
     public function test_it_waits_for_the_silence_to_last(): void
@@ -338,7 +342,7 @@ class AgentHeartbeatTest extends TestCase
             ->assertRedirect(route('admin.devices.show', $switch));
     }
 
-    public function test_opening_the_alert_takes_an_administrator_to_the_agent(): void
+    public function test_opening_the_alert_goes_to_the_agents_incident(): void
     {
         $this->heardFrom($this->agent, now()->subMinutes(10));
         $this->artisan('atlas:collect-telemetry');
@@ -346,12 +350,14 @@ class AgentHeartbeatTest extends TestCase
         $forAdmin = Alarm::where('type', AlarmType::AgentSilent)->where('user_id', $this->admin->id)->sole();
         $forEngineer = Alarm::where('type', AlarmType::AgentSilent)->where('user_id', $this->engineer->id)->sole();
 
+        $incident = Incident::where('agent_id', $this->agent->id)->sole();
+
         $this->actingAs($this->admin)
             ->get(route('notifications.show', $forAdmin))
-            ->assertRedirect(route('admin.agents.show', $this->agent));
+            ->assertRedirect(route('admin.incidents.show', $incident));
 
         $this->actingAs($this->engineer)
             ->get(route('notifications.show', $forEngineer))
-            ->assertRedirect(route('engineer.monitor.index'));
+            ->assertRedirect(route('engineer.incidents.show', $incident));
     }
 }

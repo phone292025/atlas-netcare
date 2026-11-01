@@ -87,7 +87,7 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         return view('engineer.tickets.show', [
-            'ticket' => $ticket->load(['ticketable', 'location', 'reporter', 'assignee', 'inspection']),
+            'ticket' => $ticket->load(['ticketable', 'location', 'reporter', 'assignee', 'inspection', 'incidents']),
             'comments' => $ticket->comments()->visibleTo(request()->user())->with('author')->get(),
             // Buttons render from the machine itself, so the UI can never
             // offer a move the service would then refuse.

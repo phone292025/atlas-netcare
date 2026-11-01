@@ -2,6 +2,7 @@
 
 namespace App\Services\Telemetry;
 
+use App\Events\AgentSilenceChanged;
 use App\Models\Agent;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,10 @@ class AgentService
      */
     public function recordContact(Agent $agent, ?string $address, ?string $version, ?int $clockOffsetMs): void
     {
+        if ($agent->silent_since !== null) {
+            AgentSilenceChanged::dispatch($agent->id, false);
+        }
+
         $agent->forceFill(array_filter([
             'last_seen_at' => now(),
             'last_address' => $address,

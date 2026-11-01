@@ -253,6 +253,19 @@
                         </span>
                     </dd>
                 </div>
+                @if ($ticket->relationLoaded('incidents') && $ticket->incidents->isNotEmpty())
+                    <div class="flex gap-3 px-5 py-3">
+                        <dt class="w-24 flex-none text-fg-muted">Incidents</dt>
+                        <dd class="min-w-0 space-y-1">
+                            {{-- M8: the outages this ticket is the work for, newest first. --}}
+                            @foreach ($ticket->incidents as $incident)
+                                <a href="{{ $incident->urlFor(request()->user()) }}" class="link block">
+                                    #{{ $incident->id }}, {{ $incident->opened_at->campus()->format('j M, H:i') }}{{ $incident->isResolved() ? ', resolved' : '' }}
+                                </a>
+                            @endforeach
+                        </dd>
+                    </div>
+                @endif
                 @if ($ticket->inspection_id && Route::has('assistant.inspections.show'))
                     <div class="flex gap-3 px-5 py-3">
                         <dt class="w-24 flex-none text-fg-muted">Came from</dt>

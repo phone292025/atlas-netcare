@@ -66,12 +66,12 @@ Same features as 1.0, on a base that 2.0 can build on.
 
 | # | Task |
 |---|---|
-| 2.1 | Telemetry publishes domain events. An architecture test stops Telemetry importing Tickets or Shifts |
-| 2.2 | Detection rules and incidents: over a limit for N readings, flapping, silent. One open incident per rule and device, enforced by a partial unique index. Incidents resolve themselves when the device recovers |
-| 2.3 | Grouping by parent: when a switch and the devices behind it fail together, one incident opens, on the switch |
-| 2.4 | Tickets created from incidents, one per incident. The old auto-ticket code is removed |
-| 2.5 | On-call from the roster: the assistant on shift first, then engineers if nobody acknowledges in time |
-| 2.6 | Alert channels: in-app, email, Telegram bot, phone push. Each alert has a unique key, so retries never alert anyone twice |
+| 2.1 | Telemetry publishes domain events. An architecture test stops Telemetry importing Tickets or Shifts. Done 2026-11-02: `DeviceStatusesChanged`, `AgentSilenceChanged` |
+| 2.2 | Detection rules and incidents: over a limit for N readings, flapping, silent. One open incident per rule and device, enforced by a partial unique index. Incidents resolve themselves when the device recovers. Done, with a sweep every minute that opens and resolves whatever an event missed |
+| 2.3 | Grouping by parent: when a switch and the devices behind it fail together, one incident opens, on the switch. Done, whichever fails first |
+| 2.4 | Tickets created from incidents, one per incident. The old auto-ticket code is removed. Done |
+| 2.5 | On-call from the roster: the assistant on shift first, then engineers if nobody acknowledges in time. Done, then administrators |
+| 2.6 | Alert channels: in-app, email, Telegram bot, phone push. Each alert has a unique key, so retries never alert anyone twice. Done for in-app, email and Telegram. Phone push waits for Phase 4's installable web app |
 
 ## Later
 

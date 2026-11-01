@@ -18,15 +18,15 @@ const screens = {
     admin: [
         '/admin/monitor', '/admin/lab-pcs', '/admin/aps', '/admin/devices', '/admin/agents', '/admin/locations',
         '/admin/users', '/admin/audit', '/admin/roster', '/admin/shift-templates', '/admin/checklists', '/admin/reports',
-        '/admin/lab-pcs/create', '/admin/users/create', '/notifications', '/profile',
+        '/admin/lab-pcs/create', '/admin/users/create', '/admin/incidents', '/notifications', '/profile',
     ],
     engineer: [
         '/engineer/dashboard', '/engineer/monitor', '/engineer/aps', '/engineer/traffic', '/engineer/tickets',
-        '/engineer/risk', '/admin/reports', '/notifications', '/profile',
+        '/engineer/risk', '/engineer/incidents', '/admin/reports', '/notifications', '/profile',
     ],
     assistant: [
         '/assistant/shifts/today', '/assistant/shifts', '/assistant/inspections', '/assistant/tickets',
-        '/assistant/tickets/create', '/assistant/aps', '/assistant/monitor', '/notifications', '/profile',
+        '/assistant/tickets/create', '/assistant/aps', '/assistant/monitor', '/assistant/incidents', '/notifications', '/profile',
     ],
 };
 

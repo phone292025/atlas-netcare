@@ -328,6 +328,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Incidents and on-call
+    |--------------------------------------------------------------------------
+    |
+    | `escalate_after_min`  how long an open incident waits for somebody to
+    |                       acknowledge it before the next people are told:
+    |                       the assistant on shift, then the engineers, then
+    |                       the administrators
+    | `flapping_changes`    status changes within `flapping_window_min` that
+    |                       make a device flapping, one incident instead of
+    |                       an alert each time
+    | `history_days`        how long status changes are kept for that count
+    |
+    | Telegram alerts go out when `telegram_bot_token` is set and a person
+    | has a chat id on their profile.
+    |
+    | See docs/modules/M8-incidents.md
+    |
+    */
+
+    'incidents' => [
+        'escalate_after_min' => 10,
+        'flapping_changes' => 6,
+        'flapping_window_min' => 30,
+        'history_days' => 7,
+        'telegram_bot_token' => env('ATLAS_TELEGRAM_BOT_TOKEN'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Shifts and reminders
     |--------------------------------------------------------------------------
     |
@@ -397,12 +426,14 @@ return [
             ['label' => 'Inspections',     'route' => 'assistant.inspections.index', 'icon' => 'list-checks',    'group' => 'My work'],
             ['label' => 'My tickets',      'route' => 'assistant.tickets.index',     'icon' => 'ticket',         'group' => 'My work'],
             ['label' => 'Network monitor', 'route' => 'assistant.monitor.index',     'icon' => 'broadcast',      'group' => 'Network', 'short' => 'Network'],
+            ['label' => 'Incidents',       'route' => 'assistant.incidents.index',             'icon' => 'siren',          'group' => 'Network'],
             ['label' => 'Access points',   'route' => 'assistant.aps.index',         'icon' => 'wifi',           'group' => 'Network'],
         ],
 
         'engineer' => [
             ['label' => 'Dashboard',       'route' => 'engineer.dashboard',     'icon' => 'dashboard',  'group' => 'Overview'],
             ['label' => 'Network monitor', 'route' => 'engineer.monitor.index', 'icon' => 'broadcast',  'group' => 'Network'],
+            ['label' => 'Incidents',       'route' => 'engineer.incidents.index',        'icon' => 'siren',      'group' => 'Network'],
             ['label' => 'Access points',   'route' => 'engineer.aps.index',     'icon' => 'wifi',       'group' => 'Network'],
             ['label' => 'Traffic',         'route' => 'engineer.traffic.index', 'icon' => 'chart-line', 'group' => 'Network'],
             ['label' => 'Ticket queue',    'route' => 'engineer.tickets.index', 'icon' => 'ticket',     'group' => 'Operations'],
@@ -411,6 +442,7 @@ return [
 
         'admin' => [
             ['label' => 'Network monitor', 'route' => 'admin.monitor.index',         'icon' => 'broadcast',   'group' => 'Overview'],
+            ['label' => 'Incidents',       'route' => 'admin.incidents.index',             'icon' => 'siren',       'group' => 'Overview'],
             ['label' => 'Reports',         'route' => 'admin.reports.index',         'icon' => 'chart',       'group' => 'Overview'],
             ['label' => 'Users',           'route' => 'admin.users.index',           'icon' => 'users',       'group' => 'People'],
             ['label' => 'Roster',          'route' => 'admin.roster.index',          'icon' => 'calendar',    'group' => 'People'],

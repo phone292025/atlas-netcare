@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Models\ChecklistTemplate;
 use App\Models\InspectionResult;
+use App\Models\NetworkDevice;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Incidents\IncidentService;
 use App\Services\Maintenance\ChecklistService;
 use App\Services\Shifts\ShiftService;
 use App\Support\CampusClock;
@@ -94,6 +97,18 @@ class ConcurrentWritesTest extends TestCase
         $this->assertCount(2, app(ShiftService::class)->generateWeek($this->nextWeek()));
         $this->assertCount(0, app(ShiftService::class)->generateWeek($this->nextWeek()));
         $this->assertSame(2, Shift::count());
+    }
+
+    // ------------------------------------------------- incidents
+
+    public function test_an_incident_decision_waits_before_reading_any_incident(): void
+    {
+        $device = NetworkDevice::factory()->create(['status' => NetworkStatus::Offline->value]);
+
+        $this->assertWaitsFor('incidents', fn () => app(IncidentService::class)->statusesChanged(
+            [['device_id' => $device->id, 'from' => NetworkStatus::Online->value, 'to' => NetworkStatus::Offline->value]],
+            now(),
+        ));
     }
 
     // ------------------------------------------------- one ticket per failed answer

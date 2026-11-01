@@ -20,6 +20,10 @@
 
             <x-form.input name="email" label="Email" type="email" required
                           autocomplete="username" :value="$user->email" />
+
+            <x-form.input name="telegram_chat_id" label="Telegram chat id" inputmode="numeric"
+                          help="Optional. Incident alerts also go to this Telegram chat, when the server has a bot. Send /start to the bot, then ask it for your chat id."
+                          :value="$user->telegram_chat_id" />
         </div>
 
         <div class="flex items-center justify-end gap-3 border-t border-line px-5 py-3">

@@ -6,6 +6,7 @@ use App\Enums\AlarmType;
 use App\Models\AccessPoint;
 use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\Incident;
 use App\Models\NetworkDevice;
 use App\Models\Ticket;
 use App\Models\User;
@@ -66,6 +67,7 @@ class NotificationController extends Controller
         $related = $alarm->related;
 
         return match (true) {
+            $related instanceof Incident => $related->urlFor($viewer),
             $related instanceof Ticket && $viewer->isAssistant() => route('assistant.tickets.show', $related),
             // The engineer's own screen, with the assign and progress buttons.
             $related instanceof Ticket => route('engineer.tickets.show', $related),

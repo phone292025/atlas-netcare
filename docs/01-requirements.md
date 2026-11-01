@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-11-01 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions and by the 2.0 roadmap
+> **Last updated:** 2026-11-02 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions and by the 2.0 roadmap
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced or tested.
 
@@ -115,7 +115,7 @@ Stated in the proposal:
 |---|---|---|
 | FR-501 | Collect one telemetry reading per active network device every minute. | Added · since task 1.5 the simulator does this for the devices it watches, and a probe agent for its own |
 | FR-502 | Classify a network device as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
-| FR-503 | Automatically raise a ticket when a network device goes offline. | Added |
+| FR-503 | Automatically raise a ticket when a network device goes offline. | Added · since 2026-11-02 through its incident (FR-512, FR-514): one ticket per outage, and a device that fails again while its ticket is open reuses it |
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) · since task 1.4 a TimescaleDB continuous aggregate |
 | FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |
@@ -123,7 +123,13 @@ Stated in the proposal:
 | FR-508 | Prune raw telemetry older than the configured retention period. | Assumed — [Q10](02-open-questions.md) |
 | FR-509 | Record an audit log entry for every create, update and delete of a user, asset or configuration record. | Added · shifts audited too since 2026-09-23, agents and network devices since 2.0 |
 | FR-510 | Accept batches of readings from probe agents at `POST /api/v1/readings`. Store each reading once by agent, sequence number and time, refuse readings for devices the agent does not watch, measured more than `ingest.future_minutes` ahead or more than `retention.late_reading_days` ago, and answer with what happened to each one. | 2.0. **Built in task 1.3** (ADR-0017). |
-| FR-511 | Mark the devices of an agent not heard from for `ingest.silent_after_minutes` as Unknown, and alert engineers and administrators once per silence. A reading from the device changes it back. | 2.0. **Built in task 1.6.** Offline and maintenance devices keep their status. |
+| FR-511 | Mark the devices of an agent not heard from for `ingest.silent_after_minutes` as Unknown, and alert engineers and administrators once per silence. A reading from the device changes it back. | 2.0. **Built in task 1.6.** Offline and maintenance devices keep their status. Since 2.5 the alert comes from the silence's incident |
+| FR-512 | Open an incident when a device goes offline, degrades, or changes status `incidents.flapping_changes` times in `incidents.flapping_window_min`, and when an agent goes silent. At most one open incident per rule and device or agent, held by the database. Resolve it when the device or agent recovers, or a flapping device settles. | 2.0. **Built in tasks 2.1 and 2.2** (ADR-0014). Degraded at most once per `thresholds.degraded_alert_cooldown_min` |
+| FR-513 | When a device and the device it hangs from are offline together, keep one incident, on the higher device, covering both. When that device recovers, a device still down behind it gets an incident of its own. | 2.0. **Built in task 2.3** |
+| FR-514 | Raise one ticket from an offline incident, or reuse the device's open ticket. An engineer or administrator can raise one from any other incident on a device. | 2.0. **Built in task 2.4** |
+| FR-515 | Alert an incident to the assistants checked in to a shift, those in the device's location first; if nobody acknowledges it within `incidents.escalate_after_min`, to the engineers; then to the administrators. Anybody alerted can acknowledge it, which stops the escalation. | 2.0. **Built in task 2.5** |
+| FR-516 | Send each alert in the app, by email when mail is set up, and on Telegram when the server has a bot token and the person a chat id. Send each alert to each person, step and channel once, through the queue with retries, and record a failure. | 2.0. **Built in task 2.6.** Phone push is not built |
+| FR-517 | Every minute, compare the incidents with each device's and agent's current status and open or resolve what differs, so an event lost by the queue delays an incident and never loses it. | 2.0. **Built in task 2.2** (`atlas:watch-incidents`) |
 
 ---
 
@@ -160,3 +166,4 @@ Two of these come from the Meeting 2 minutes recorded in the proposal appendix b
 | M5 — Telemetry and dashboard | FR-209, FR-301 to FR-305, FR-312 to FR-314, FR-412, FR-501, FR-502, FR-504, FR-508, FR-510, FR-511 |
 | M6 — Shifts and alarms | FR-201, FR-202, FR-210, FR-211, FR-212, FR-407, FR-408, FR-506 |
 | M7 — Predictive and reports | FR-309, FR-310, FR-311, FR-410, FR-505 |
+| M8 — Incidents and on-call | FR-503, FR-511 to FR-517 |

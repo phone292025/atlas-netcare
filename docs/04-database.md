@@ -41,6 +41,8 @@ Rules of the form "at most one of these at a time". A unique index over only the
 | `inspections_one_unfinished_unique` on `inspections (lab_pc_id, user_id) WHERE completed_at IS NULL` | One unfinished inspection per machine and person | `InspectionService::start()` uses `createOrFirst()`, so the losing tap gets the winner's record |
 | `checklist_templates_one_active_unique` on `checklist_templates (is_active) WHERE is_active` | One active checklist | `ChecklistService::activate()` takes a table lock first, so it queues rather than fires |
 | `tickets_one_per_failed_answer_unique` on `tickets (inspection_result_id) WHERE inspection_result_id IS NOT NULL AND deleted_at IS NULL` | One live ticket per failed checklist answer (FR-207) | `TicketService` locks the answer row first, so it queues rather than fires |
+| `incidents_one_open_per_device_unique` on `incidents (network_device_id, rule) WHERE resolved_at IS NULL AND network_device_id IS NOT NULL` | One open incident per rule and device (FR-512) | `IncidentService` locks `incidents` first, so it queues rather than fires |
+| `incidents_one_open_per_agent_unique` on `incidents (agent_id, rule) WHERE resolved_at IS NULL AND agent_id IS NOT NULL` | One open silent incident per agent | The same |
 
 Rules a unique index cannot say ("fill each roster slot up to its count", "the next version of this name") take `App\Support\TableLock` instead: `LOCK TABLE ... IN SHARE ROW EXCLUSIVE MODE` on PostgreSQL, so a second roster run or checklist edit waits for the first to commit, then reads what it wrote. Only on tables people write rarely: `shifts` during generation and `checklist_templates`.
 
@@ -421,6 +423,20 @@ An inspection stores `checklist_template_id`, so it is permanently tied to the t
 The shift an inspection happened in (FR-203). M3 created the column before `shifts` existed, and M6's migration added the foreign key, `nullOnDelete`. That is the pattern to follow whenever a module needs a column pointing at a table nobody has built yet: add the column, not the other module's table.
 
 Since 2026-11-02 `InspectionService::start()` writes it: a new inspection needs the assistant checked in to a shift today, and records that shift. Inspections from before then, and the seeded history, have it null.
+
+### Incidents (2026-11-03, M8)
+
+Five tables, all written by `App\Services\Incidents` only ([M8](modules/M8-incidents.md), ADR-0014):
+
+| Table | One row is | Notes |
+|---|---|---|
+| `incidents` | A fault: a rule on a device, or `silent` on an agent | `status` open, acknowledged or resolved; `resolution` recovered, grouped, settled or retired. `grouped_into_id` points at the parent's incident that took this one in. `escalation_step` and `next_escalation_at` drive on-call. `ticket_id` is not unique: repeat outages of one device share its open ticket |
+| `incident_devices` | A device covered by an incident, the incident's own device included | Unique on the pair. `recovered_at` when that device came back |
+| `incident_events` | A line of the timeline | Never edited |
+| `incident_alerts` | One alert, to one person, at one step, on one channel | Unique on all four: the claim that makes a retry send nothing. `sent_at`, or `failed_at` and `error` |
+| `device_status_changes` | A device's status changing | For the flapping rule. Pruned after `incidents.history_days` |
+
+`users.telegram_chat_id` (nullable) is where a person's Telegram alerts go, set on their profile.
 
 ### `telemetry_readings.source`
 

@@ -36,6 +36,12 @@ Schedule::command('atlas:dispatch-alarms')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Incidents: the sweep that catches what an event missed, and on-call
+// escalation for anything nobody has acknowledged (ADR-0014).
+Schedule::command('atlas:watch-incidents')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 // Next week's roster on Sunday evening. Idempotent.
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00')

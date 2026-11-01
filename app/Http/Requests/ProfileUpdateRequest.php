@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            // A Telegram chat id: a user's is a number, a group's a negative one.
+            'telegram_chat_id' => ['nullable', 'string', 'max:32', 'regex:/^-?[0-9]+$/'],
         ];
     }
 }

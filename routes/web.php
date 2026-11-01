@@ -20,6 +20,7 @@ use App\Http\Controllers\Engineer\DashboardController;
 use App\Http\Controllers\Engineer\RiskController;
 use App\Http\Controllers\Engineer\TicketController as EngineerTicketController;
 use App\Http\Controllers\Engineer\TrafficLogController;
+use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\NetworkMonitorController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
@@ -186,6 +187,20 @@ Route::middleware('auth')->group(function () {
     // M6: notifications for everybody. Alarm::scopeVisibleTo() decides which.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/{alarm}', [NotificationController::class, 'show'])->name('notifications.show');
+
+    // Incidents for every role (ADR-0014), one screen under each role's
+    // prefix like the monitor. Anybody on call may acknowledge one;
+    // IncidentPolicy keeps raising a ticket to engineers and administrators.
+    foreach (['engineer' => 'role:engineer,admin', 'admin' => 'role:admin', 'assistant' => 'role:assistant'] as $role => $middleware) {
+        Route::middleware($middleware)->prefix("{$role}/incidents")->name("{$role}.incidents.")->group(function () {
+            Route::get('/', [IncidentController::class, 'index'])->name('index');
+            Route::get('{incident}', [IncidentController::class, 'show'])->name('show');
+        });
+    }
+    Route::middleware('role:admin,engineer,assistant')->prefix('incidents')->name('incidents.')->group(function () {
+        Route::post('{incident}/acknowledge', [IncidentController::class, 'acknowledge'])->name('acknowledge');
+        Route::post('{incident}/ticket', [IncidentController::class, 'ticket'])->name('ticket');
+    });
 
     // The dashboards' polling endpoint (FR-302, ADR-0005). Behind `auth`: a
     // campus network's layout is not public information.

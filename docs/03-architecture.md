@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-11-01 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), [ADR-0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-11-02 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), [ADR-0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 
@@ -219,10 +219,11 @@ Dependencies point inward, towards the business rules. Each part of `app/` may u
 | Part | May use |
 |---|---|
 | `Enums`, `Support` | Nothing else in `app/` |
+| `Events` | Enums. A domain event carries ids and statuses, never models, so a queued listener reads the database as it is when it runs |
 | `Models` | Enums and Support |
 | `Observers`, `Policies` | Models, Enums and Support |
-| `Services` | Models, Enums and Support, and another service module only along an edge below |
-| `Http`, `Console`, `View`, `Providers` | Anything above |
+| `Services` | Models, Enums, Support and Events, and another service module only along an edge below |
+| `Http`, `Console`, `Listeners`, `View`, `Providers` | Anything above |
 
 Nothing in `app/` uses a controller or a command. They are entry points, and logic that two of them need goes into a service they both call.
 
@@ -232,11 +233,11 @@ The service modules use each other along three edges, which form no cycle:
 
 | From | To | Why |
 |---|---|---|
-| Telemetry | Tickets | `TelemetryCollector` opens a ticket for a device that goes offline |
-| Telemetry | Shifts | `TelemetryCollector` alarms the engineers when a device goes offline or degrades, and engineers and administrators when an agent goes silent |
+| Incidents | Tickets | `IncidentTickets` raises an offline incident's ticket |
+| Incidents | Shifts | `IncidentAlerts` raises an incident's in-app alarms |
 | Tickets | Shifts | `TicketService` alarms engineers about a new critical ticket, a ticket assigned to them and a missed SLA |
 
-Maintenance, Reports, Risk and Shifts use no other module. Every module shares the models, so these rules cover the services only. Phase 2.1 of the [roadmap](roadmap.md) replaces the two Telemetry edges with domain events ([ADR-0014](decisions/ADR-0014-incidents-and-domain-events.md)).
+Telemetry uses no other module. Since roadmap 2.1 it publishes domain events, `DeviceStatusesChanged` and `AgentSilenceChanged`, after its transaction commits, and knows nothing of who listens ([ADR-0014](decisions/ADR-0014-incidents-and-domain-events.md)). `App\Listeners\OpenAndResolveIncidents` is the only listener, on the queue, so the whole reaction to a fault is read in one place: [M8](modules/M8-incidents.md). Maintenance, Reports, Risk and Shifts use no other module either. Every module shares the models, so these rules cover the services only. `ArchitectureTest` fails the build on an edge not in this table.
 
 `tests/Unit/ArchitectureTest.php` checks all of this on every test run. A new edge between modules fails it until the edge is added to the test's list with its reason, and a listed edge that the code no longer uses fails it until it is deleted.
 
@@ -365,6 +366,7 @@ return [
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | The simulator's round: one reading per device it watches. Then the silence sweeps: a device nobody has heard from for `offline_after_min` goes Offline, and a silent agent's devices go Unknown. A ticket and an alert when a device goes offline, an alert when one degrades, and one alert per silent agent |
 | `atlas:dispatch-alarms` | every minute | Sends alarms past their trigger time; raises SLA breaches |
+| `atlas:watch-incidents` | every minute | The incident sweep, then on-call escalation |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, writes a `risk_assessments` row. Out of hours, so the ranking doesn't reorder under somebody reading it |
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
 | `atlas:renumber-tickets` | never — run by hand | Repairs a database seeded with random ticket references: sequential per year, references rewritten, `--dry-run` first |

@@ -138,6 +138,7 @@ The `scheduler` service runs `php artisan schedule:work`, and the `worker` servi
 |---|---|---|
 | `atlas:collect-telemetry` | every minute | One reading for each device the simulator watches. Devices nobody has heard from go offline, and a silent agent's devices go unknown |
 | `atlas:dispatch-alarms` | every minute | Sends alarms that have come due |
+| `atlas:watch-incidents` | every minute | Opens and resolves incidents from current statuses, and escalates any nobody has acknowledged ([M8](modules/M8-incidents.md)) |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
 | `atlas:generate-shifts` | Sunday 18:00 | Next week's roster |

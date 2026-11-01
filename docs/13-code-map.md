@@ -122,6 +122,7 @@ couple of hundred lines is one that has started deciding things.
 | `Engineer/RiskController.php` | Maintenance priority (FR-309, FR-310) |
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along |
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) |
+| `IncidentController.php` | The incidents screen, for every role (roadmap 2.2 to 2.5) |
 | `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): every access point on one screen, |
 | `NotificationController.php` | The notification bell and its list (FR-212) |
 | `ProfileController.php` | _no summary in the file_ |
@@ -211,6 +212,11 @@ the same answer, it belongs here.
 <!-- code-map:app/Services/ -->
 | File | What it does |
 |---|---|
+| `Incidents/IncidentAlerts.php` | Alerts about incidents, through every channel a person can get (roadmap |
+| `Incidents/IncidentLog.php` | Writes an incident's timeline. The only writer of `incident_events` |
+| `Incidents/IncidentService.php` | Turning status changes into incidents, and incidents into tickets and |
+| `Incidents/IncidentTickets.php` | The ticket for an incident: at most one (roadmap 2.4). It replaces the |
+| `Incidents/OnCall.php` | Who is told about an incident, and when the next people are (roadmap 2.5) |
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates |
 | `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection |
 | `Reports/ReportingService.php` | The five operational reports (FR-410) |
@@ -227,7 +233,7 @@ the same answer, it belongs here.
 | `Telemetry/Simulator.php` | Atlas's virtual agent: the simulator, sending readings from inside Atlas |
 | `Telemetry/StoredReadings.php` | What TelemetryService::record() did with a set of readings: which it stored, |
 | `Telemetry/TelemetryBackfill.php` | Simulated history written behind the clock: by `atlas:backfill-telemetry`, |
-| `Telemetry/TelemetryCollector.php` | One collection round, and everything the system does about what it finds |
+| `Telemetry/TelemetryCollector.php` | One collection round, and the news of what it found |
 | `Telemetry/TelemetryService.php` | Storing readings, deciding what they mean, and answering the dashboard |
 | `Telemetry/TelemetryStorage.php` | The TimescaleDB jobs that look after telemetry (ADR-0011) |
 | `Tickets/TicketService.php` | Opening tickets and moving them through their lifecycle |
@@ -259,6 +265,10 @@ read better on the model than in a service.
 | `AuditLog.php` | One recorded fact: who changed what, when, from where |
 | `ChecklistItem.php` | One question on a checklist template |
 | `ChecklistTemplate.php` | A named, versioned set of checks for inspecting a lab PC |
+| `DeviceStatusChange.php` | A device's status changing, kept for the flapping rule |
+| `Incident.php` | A fault the system noticed (ADR-0014). Nothing here is fillable: every |
+| `IncidentAlert.php` | One alert about one incident, to one person, at one escalation step, on |
+| `IncidentEvent.php` | One line of an incident's timeline, written by IncidentService |
 | `Inspection.php` | One assistant completing one checklist against one lab PC |
 | `InspectionResult.php` | One answer to one checklist item within one inspection |
 | `LabPc.php` | A university-owned lab workstation |
@@ -292,6 +302,7 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 |---|---|
 | `AgentContact.php` | Whether a probe agent is being heard from (ADR-0017) |
 | `AlarmType.php` | Why an alarm was raised |
+| `AlertChannel.php` | The ways an incident alert reaches a person (roadmap 2.6). In-app always; |
 | `ChecklistCategory.php` | What part of a machine a checklist item is about |
 | `ChecklistResult.php` | The answer to one checklist item during an inspection |
 | `Concerns/HasValues.php` | Shared helpers for every backed enum in the system |
@@ -299,6 +310,8 @@ in the database is a string cast to one of these, never a MySQL `ENUM`.
 | `Contracts/HasTone.php` | A status that carries semantic colour |
 | `DeviceKind.php` | What a network device is (ADR-0016) |
 | `DeviceStatus.php` | Operational state of a lab PC |
+| `IncidentRule.php` | What opened an incident (ADR-0014, roadmap 2.2) |
+| `IncidentStatus.php` | Where an incident has got to. Open until somebody acknowledges it or it |
 | `InspectionOutcome.php` | The overall outcome of one inspection |
 | `NetworkStatus.php` | Operational state of a network device: an access point, a switch, a router |
 | `RiskBand.php` | The band a predictive risk score falls into |
@@ -316,7 +329,7 @@ owns the mapping, so `urgent` cannot become two different reds.
 
 ---
 
-## app/Policies/, app/Observers/, app/Support/, app/View/Components/
+## app/Policies/, app/Observers/, app/Events/, app/Listeners/, app/Support/, app/View/Components/
 
 The small pieces. Laravel finds all of them by convention rather than by name,
 which is why a grep for the class name finds nothing and proves nothing.
@@ -324,6 +337,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 <!-- code-map:app/Policies/ -->
 | File | What it does |
 |---|---|
+| `IncidentPolicy.php` | Incidents are the network's state, which every role sees on the monitor |
 | `InspectionPolicy.php` | Who may act on which inspection |
 | `TicketPolicy.php` | Who may do what to a ticket |
 | `UserPolicy.php` | Who may act on which account |
@@ -333,6 +347,19 @@ which is why a grep for the class name finds nothing and proves nothing.
 | File | What it does |
 |---|---|
 | `AuditObserver.php` | Writes an audit row whenever an auditable model is created, changed or |
+<!-- /code-map -->
+
+<!-- code-map:app/Events/ -->
+| File | What it does |
+|---|---|
+| `AgentSilenceChanged.php` | An agent went silent, or was heard from again after a silence (roadmap |
+| `DeviceStatusesChanged.php` | Some devices' statuses changed (ADR-0014, roadmap 2.1) |
+<!-- /code-map -->
+
+<!-- code-map:app/Listeners/ -->
+| File | What it does |
+|---|---|
+| `OpenAndResolveIncidents.php` | Telemetry's events, turned into incidents (ADR-0014, roadmap 2.1) |
 <!-- /code-map -->
 
 <!-- code-map:app/Support/ -->
@@ -402,6 +429,7 @@ and why each runs when it does.
 | `RenumberTickets.php` | Give every ticket a sequential reference in the order it was opened |
 | `ShowResetLink.php` | Print the most recent password reset link out of the log |
 | `TelemetryStorage.php` | Set TimescaleDB's telemetry jobs from config, and bring the hourly |
+| `WatchIncidents.php` | The incident sweep and the on-call escalation, every minute |
 <!-- /code-map -->
 
 Nothing updates on its own unless `php artisan schedule:work` is running. That
@@ -463,6 +491,12 @@ database that already ran it.
 | `2026_11_02_090001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
 | `2026_11_02_090002_allow_one_active_checklist_template.php` | At most one active checklist template, held by the database |
 | `2026_11_02_090003_allow_one_ticket_per_failed_answer.php` | One live ticket per failed checklist answer (FR-207), held by the database |
+| `2026_11_03_090001_create_incidents_table.php` | A fault the system has noticed (ADR-0014, roadmap 2.2) |
+| `2026_11_03_090002_create_incident_devices_table.php` | The devices one incident covers (roadmap 2.3) |
+| `2026_11_03_090003_create_incident_events_table.php` | An incident's timeline: opened, devices joining, alerts, escalation, |
+| `2026_11_03_090004_create_incident_alerts_table.php` | Every alert an incident sends: one row per incident, person, escalation |
+| `2026_11_03_090005_create_device_status_changes_table.php` | Each time a device's status changed, from the DeviceStatusesChanged event |
+| `2026_11_03_090006_add_telegram_chat_id_to_users_table.php` | Where a person's Telegram alerts go (roadmap 2.6). Set on their profile |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -650,6 +684,8 @@ Blade files. Views receive data as props and never query.
 | `errors/500.blade.php` |
 | `errors/503.blade.php` |
 | `errors/layout.blade.php` |
+| `incidents/index.blade.php` |
+| `incidents/show.blade.php` |
 | `layouts/app.blade.php` |
 | `layouts/guest.blade.php` |
 | `layouts/partials/command-menu.blade.php` |
@@ -727,6 +763,7 @@ this the fourth.
 | `Feature/EveryScreenRendersTest.php` | Every screen, loaded, on a database with nothing in it |
 | `Feature/FormComponentsTest.php` | The form controls are the most reused components in the system, every admin |
 | `Feature/FoundationSchemaTest.php` | The four foundation tables every other module has a foreign key into |
+| `Feature/Incidents/IncidentTest.php` | Phase 2: incidents between readings and tickets (ADR-0014) |
 | `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row |
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
 | `Feature/ProfileTest.php` | _no summary in the file_ |
