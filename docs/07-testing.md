@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-11-01
+> **Last updated:** 2026-11-02
 
 The test plan covers automated tests at three levels and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -86,15 +86,16 @@ The second needs the Docker stack's database running (`docker compose up -d db`)
 
 ## Browser tests
 
-Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows run in Chromium instead, as ten tests in `tests/Browser/`:
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in Chromium instead, as eighteen tests in `tests/Browser/`:
 
 | Spec | Flow |
 |---|---|
 | `sign-in.spec.js` | A wrong password is refused. The assistant, the engineer and the demo administrator land on their home screens. The first administrator, made by `atlas:create-admin`, has to choose a password before any other screen opens |
 | `tickets.spec.js` | An assistant raises a ticket, picking the machine on the room plan, and an engineer acknowledges, starts and resolves it. The plan warns about a machine that already has an open ticket |
-| `inspections.spec.js` | An assistant inspects the next machine in a room's round, and the round's count goes up by one |
+| `inspections.spec.js` | An assistant is asked to check in, checks in to their shift (FR-203), inspects the next machine in a room's round, and the round's count goes up by one |
 | `monitor.spec.js` | The Network Monitor lists every access point, draws its chart, refreshes, filters by status and opens an access point's details |
 | `report.spec.js` | The report's Print button calls the browser's print, and on paper the page has its title block and the light palette, even from dark mode |
+| `accessibility.spec.js` | NFR-05 and NFR-10 on every screen of every role: nothing scrolls sideways at 375 px; the keyboard alone signs in and the first Tab offers "Skip to content"; Tab, at 1440 and 375 px, shows a visible change on every control it reaches, never gets stuck, and never lands on anything hidden or off screen; the phone drawer opens and closes from the keyboard |
 
 ```bash
 npx playwright install chromium   # once
@@ -106,7 +107,7 @@ Four rules keep them honest:
 - **They get a stack of their own.** `tests/Browser/global-setup.js` builds the image from the working tree, starts the Compose project `atlas-browser` on ports 8100 and 5433 with a copy of `.env.example` and its own image tag, seeds demo data and creates the administrator. The teardown deletes the stack. They never run against a stack with real data: they raise tickets, and a developer's `.env` may send real mail.
 - **A console error fails the test.** The fixtures in `fixtures.js` collect JavaScript errors and failed requests from every page a test opens.
 - **Compare the screen with itself, not with the seed.** The scheduler keeps simulating readings during a run, so an access point's status can change between two looks. The monitor test checks that the "Online" filter shows as many rows as its button counts, never that a given access point is online.
-- **Each was watched failing.** Scoping the dark palette to all media instead of screens fails `report.spec.js` (text luminance 0.85 on paper), and renaming the room plan's script fails both ticket tests with console errors.
+- **Each was watched failing.** Scoping the dark palette to all media instead of screens fails `report.spec.js` (text luminance 0.85 on paper), and renaming the room plan's script fails both ticket tests with console errors. The keyboard sweep's first run found the closed phone drawer's sixteen links taking focus off screen on every page, now fixed.
 
 ---
 
@@ -118,9 +119,9 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 | ID | Criterion | How to test |
 |---|---|---|
 | NFR-02 | Page and API response under 7 seconds | Browser network tab on the heaviest screens — AP dashboard, traffic logs, ticket queue with 300 tickets, risk ranking. Record actual milliseconds. |
-| NFR-05 | Checklist operable one-handed at 375 px | Chrome device emulation at 375 px, plus one real phone. Record a screenshot. |
+| NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. One real phone as well, with a screenshot. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
-| NFR-10 | Keyboard reachable with visible focus | Tab through every form and the ticket queue. Record any element that traps focus or shows none. |
+| NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. |
 | NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. It is a design target with the mitigations that support it, not a measured result. |
 
 > Do not claim to have measured NFR-01. Claiming an unverifiable result is worse than acknowledging the limit.
