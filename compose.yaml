@@ -42,6 +42,10 @@ x-atlas: &atlas
     # port 80 there: its own certificate authority for an internal name, Let's
     # Encrypt for a public one. Set ATLAS_URL to the https:// address with it.
     SERVER_NAME: ${ATLAS_SERVER_NAME:-:80}
+    # The certificate for a client that names no host. Clients send no name
+    # when they connect to an IP address, so with ATLAS_SERVER_NAME set to
+    # one, Caddy had no certificate to offer and the handshake failed.
+    CADDY_GLOBAL_OPTIONS: default_sni ${ATLAS_SERVER_NAME:-localhost}
     # Caddy refuses an API request body over 512 KB before PHP reads any of
     # it, including one sent without a length. The ingest endpoint's own
     # limit, atlas.ingest.max_kilobytes, is smaller (ADR-0017).

@@ -198,10 +198,19 @@ jobs:
           curl -fsS http://127.0.0.1:8000/login > /dev/null
           docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT count(*) FROM users" | grep -qv '^0$'
 
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
       - name: Agents over HTTPS through Caddy, and never over plain HTTP
         # Restarts the app with ATLAS_SERVER_NAME set: a batch over HTTPS is
-        # stored, and plain HTTP gets 403 from Atlas or 308 from Caddy.
-        run: bash tests/Stack/agent-https.sh
+        # stored, plain HTTP gets 403 from Atlas or 308 from Caddy, and the
+        # real agent stores readings only with Caddy's root as its ca_file.
+        run: |
+          (cd agent && CGO_ENABLED=0 go build -o ../atlas-agent ./cmd/atlas-agent)
+          ATLAS_AGENT_BIN="$PWD/atlas-agent" bash tests/Stack/agent-https.sh
 
       - name: Show the logs
         if: failure()
