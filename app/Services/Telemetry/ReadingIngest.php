@@ -7,6 +7,7 @@ use App\Models\NetworkDevice;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * One batch of readings from a probe agent (ADR-0017, roadmap task 1.3).
@@ -24,6 +25,28 @@ class ReadingIngest
 {
     /** One reason for an unknown device and another agent's, so a token can't list device codes. */
     public const NOT_WATCHED = 'Not a device this agent watches.';
+
+    /**
+     * One reading's values. Every number has a range, so nothing an agent
+     * sends can overflow a column or claim a loss of 300 per cent. A reading
+     * that breaks these is rejected on its own (IngestReadingsRequest says
+     * why not the whole batch).
+     *
+     * @var array<string, list<string>>
+     */
+    private const READING_RULES = [
+        'device' => ['required', 'string', 'max:40'],
+        'measured_at' => ['required', 'date'],
+        'reachable' => ['required', 'boolean'],
+        // smallint on PostgreSQL, which stops at 32767 whatever "unsigned" says.
+        'latency_ms' => ['nullable', 'numeric', 'min:0', 'max:32767'],
+        'packet_loss_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        'client_count' => ['nullable', 'integer', 'min:0', 'max:32767'],
+        'channel_util_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        'throughput_mbps' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+    ];
+
+    private const FIELDS = ['sequence', 'device', 'measured_at', 'reachable', 'latency_ms', 'packet_loss_pct', 'client_count', 'channel_util_pct', 'throughput_mbps'];
 
     public function __construct(
         private readonly TelemetryService $telemetry,
@@ -46,6 +69,13 @@ class ReadingIngest
 
         foreach ($readings as $reading) {
             $sequence = (int) $reading['sequence'];
+
+            if ($invalid = $this->invalid($reading)) {
+                $rejected[] = ['sequence' => $sequence, 'reason' => $invalid];
+
+                continue;
+            }
+
             $device = $devices->get(strtoupper(trim((string) $reading['device'])));
             $measuredAt = Carbon::parse($reading['measured_at'])->utc();
 
@@ -83,6 +113,22 @@ class ReadingIngest
             'duplicate' => $accepted->map(fn (ReadingData $r) => $r->sequence)->diff($stored)->values()->all(),
             'rejected' => $rejected,
         ];
+    }
+
+    /**
+     * Why this reading's values can't be stored, or null.
+     *
+     * @param  array<string, mixed>  $reading
+     */
+    private function invalid(array $reading): ?string
+    {
+        if ($unknown = array_diff(array_keys($reading), self::FIELDS)) {
+            return 'Unknown field: '.implode(', ', $unknown).'.';
+        }
+
+        $validator = Validator::make($reading, self::READING_RULES);
+
+        return $validator->fails() ? $validator->errors()->first() : null;
     }
 
     /** @param  array<string, mixed>  $reading */

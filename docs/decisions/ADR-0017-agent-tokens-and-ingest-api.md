@@ -40,7 +40,7 @@ An agent runs unattended on a machine Atlas doesn't control, buffers readings wh
 - `Authorization: Bearer <token>`. A missing, wrong or retired token gets 401.
 - At most 500 readings and 256 KB per batch. An empty `readings` array is a heartbeat.
 - Each reading has a `sequence`, unique per agent and counting up. Atlas stores it under a unique key on agent, sequence and measured time, so a batch sent twice is stored once.
-- A malformed batch is refused whole, with 422. Otherwise each reading gets its own outcome: **stored**, **duplicate** (already stored), or **rejected** with a reason. The agent drops every sequence the response lists, so a reading that can never be stored isn't retried forever.
+- A batch broken as a whole is refused with 422: no `sent_at`, an `agent_version` too long, too many readings, a reading with no sequence or a repeated one. The agent keeps everything and waits, since resending wouldn't help. Otherwise each reading gets its own outcome: **stored**, **duplicate** (already stored), or **rejected** with a reason, including for its own values: an out-of-range number, an unknown field. The agent drops every sequence the response lists, so a reading that can never be stored isn't retried forever, and one bad reading never holds up the others. (Until 2026-11-02 a bad value refused the whole batch, and the agent had to guess which reading; a review found that guessing could empty its buffer.)
 - A reading is rejected if its device isn't one the agent watches, if it was measured more than 5 minutes in the future, or if it is older than `late_reading_days`. Unknown devices and other agents' devices get the same reason, so a token can't be used to list device codes.
 - Each reading keeps the agent's `measured_at` (as `recorded_at`) and Atlas's `received_at`. Atlas records the agent's clock offset, `sent_at` minus the time it received the batch, and flags the agent when it is more than `clock_drift_seconds` out.
 - Only the newest reading per device decides its status, so a late reading fills in history without moving the status backwards.
@@ -70,7 +70,7 @@ Checked as built, before it shipped. Each control has a test in `tests/Feature/A
 
 - A request without a valid token, with the token in the query string, or from a retired agent is refused with 401, and nothing is stored. The token opens no web screen, and the API sets no session cookie.
 - The token never reaches the session, the audit log or the agent's page after it is shown, and the stored hash doesn't work as a token.
-- A malformed batch, an extra field, a repeated sequence or an out-of-range number is refused whole with 422. Over the reading cap gets 422, and over the size cap 413. Caddy also refuses any API body over 512 KB, sent with or without a length, before PHP reads it.
+- A malformed batch or a repeated sequence is refused whole with 422; an extra field or an out-of-range number rejects that reading alone. Over the reading cap gets 422, and over the size cap 413. Caddy also refuses any API body over 512 KB, sent with or without a length, before PHP reads it.
 - A reading for another agent's device and for an unknown one get the same reason.
 - A resent batch is stored once. A late reading doesn't move a status. Readings in one batch are judged in the order they were measured.
 - An agent over its rate gets 429.

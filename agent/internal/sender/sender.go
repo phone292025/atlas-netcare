@@ -44,17 +44,11 @@ type Rejected struct {
 // ErrTooLarge means the batch was over Atlas's size limit: send fewer.
 var ErrTooLarge = errors.New("the batch was too large for Atlas")
 
-// Invalid means Atlas refused the batch's contents (422): a reading in it
-// breaks a rule, and Atlas refuses the whole batch for it. Sending it again
-// would be refused again, so the agent finds the reading and drops it.
-type Invalid struct {
-	Message string
-}
-
-func (e *Invalid) Error() string { return "Atlas refused the batch's contents: " + e.Message }
-
 // Refused is an answer that sending again won't change, such as a revoked
-// token. The agent keeps its readings and waits for a person to fix it.
+// token, or a 422 for a batch that is broken as a whole (a version string
+// too long). The agent keeps its readings and waits for a person to fix it.
+// A single bad reading is not a 422: Atlas rejects it alone, in the 200
+// answer, and the agent drops it with the rest.
 type Refused struct {
 	Status  int
 	Message string
@@ -143,8 +137,6 @@ func (s *Sender) Send(ctx context.Context, items []buffer.Item) (*Answer, error)
 		return &a, nil
 	case resp.StatusCode == http.StatusRequestEntityTooLarge:
 		return nil, ErrTooLarge
-	case resp.StatusCode == http.StatusUnprocessableEntity:
-		return nil, &Invalid{Message: message(reply)}
 	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
 		return nil, &Retry{Err: fmt.Errorf("Atlas answered %d", resp.StatusCode), After: retryAfter(resp.Header.Get("Retry-After"))}
 	default:

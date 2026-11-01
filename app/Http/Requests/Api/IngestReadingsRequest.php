@@ -7,12 +7,15 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * The shape of a batch from a probe agent (ADR-0017).
  *
- * A batch that breaks these is refused whole, with 422: it means the agent
- * itself is broken. A well-formed reading can still be refused on its own,
- * for its device or its time, by ReadingIngest.
+ * A batch that breaks these is refused whole, with 422, and the agent keeps
+ * every reading and waits: what is wrong is the request or the agent, a
+ * version string too long, more readings than Atlas takes, a reading with
+ * no sequence, and sending the readings again one by one would not help.
  *
- * Every number has a range, so nothing an agent sends can overflow a column
- * or claim a loss of 300 per cent.
+ * Each reading's own values are judged by ReadingIngest instead, and a bad
+ * one is rejected on its own, in the 200 answer, with its reason. One
+ * reading with a latency over the column's limit must not hold up the 499
+ * beside it.
  */
 class IngestReadingsRequest extends FormRequest
 {
@@ -23,17 +26,10 @@ class IngestReadingsRequest extends FormRequest
             'sent_at' => ['required', 'date'],
             'agent_version' => ['nullable', 'string', 'max:40'],
             'readings' => ['present', 'array', 'list', 'max:'.(int) config('atlas.ingest.max_readings')],
-            'readings.*' => ['array:sequence,device,measured_at,reachable,latency_ms,packet_loss_pct,client_count,channel_util_pct,throughput_mbps'],
+            'readings.*' => ['array'],
+            // The agent numbers every reading itself; a missing or repeated
+            // sequence is the agent broken, and the answer is by sequence.
             'readings.*.sequence' => ['required', 'integer', 'min:1', 'max:9007199254740991', 'distinct'],
-            'readings.*.device' => ['required', 'string', 'max:40'],
-            'readings.*.measured_at' => ['required', 'date'],
-            'readings.*.reachable' => ['required', 'boolean'],
-            // smallint on PostgreSQL, which stops at 32767 whatever "unsigned" says.
-            'readings.*.latency_ms' => ['nullable', 'numeric', 'min:0', 'max:32767'],
-            'readings.*.packet_loss_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'readings.*.client_count' => ['nullable', 'integer', 'min:0', 'max:32767'],
-            'readings.*.channel_util_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'readings.*.throughput_mbps' => ['nullable', 'numeric', 'min:0', 'max:999999'],
         ];
     }
 }

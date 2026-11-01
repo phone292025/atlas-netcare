@@ -49,8 +49,8 @@ type atlas struct {
 	mu      sync.Mutex
 	batches []sender.Batch
 	status  int
-	// refuse answers 422 to any batch holding a reading for this device,
-	// as Atlas does when one reading breaks a rule.
+	// refuse rejects this device's readings alone, in a 200, as Atlas does
+	// when one reading's values break a rule.
 	refuse string
 	// refuseAll answers 422 to any batch, as a rule about the whole request
 	// would: a version string too long, or more readings than Atlas takes.
@@ -81,20 +81,18 @@ func (a *atlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	var b sender.Batch
 	_ = json.Unmarshal(body, &b)
-	for _, item := range b.Readings {
-		if a.refuse != "" && item.Device == a.refuse {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			_, _ = w.Write([]byte(`{"message":"The readings.3.latency_ms field must not be greater than 32767."}`))
-			return
-		}
-	}
 	a.batches = append(a.batches, b)
 
-	stored := []int64{}
+	// A reading Atlas won't store comes back rejected, alone, in the 200.
+	answer := sender.Answer{Stored: []int64{}}
 	for _, item := range b.Readings {
-		stored = append(stored, item.Sequence)
+		if a.refuse != "" && item.Device == a.refuse {
+			answer.Rejected = append(answer.Rejected, sender.Rejected{Sequence: item.Sequence, Reason: "The latency ms field must not be greater than 32767."})
+			continue
+		}
+		answer.Stored = append(answer.Stored, item.Sequence)
 	}
-	_ = json.NewEncoder(w).Encode(sender.Answer{Stored: stored})
+	_ = json.NewEncoder(w).Encode(answer)
 }
 
 func (a *atlas) set(status int) { a.mu.Lock(); a.status = status; a.mu.Unlock() }
@@ -241,44 +239,44 @@ func TestAnEmptyBufferSendsAHeartbeat(t *testing.T) {
 	}
 }
 
-func TestAReadingAtlasRefusesIsFoundDroppedAndDoesNotHoldUpTheRest(t *testing.T) {
+func TestAReadingAtlasRejectsIsDroppedWithTheRestOfItsBatch(t *testing.T) {
 	fake := &atlas{refuse: "BAD"}
 	server := httptest.NewServer(fake)
 	defer server.Close()
 	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "BAD", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
-	a.Config.Interval = time.Hour // one round, then just sending
-	a.MinBackoff, a.MaxBackoff = 5*time.Millisecond, 10*time.Millisecond
+
 	if err := a.Round(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() { _ = a.Run(ctx); close(done) }()
-
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		if n, _ := a.Buffer.Len(); n == 0 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
+	if sent, err := a.SendOnce(context.Background(), 500); err != nil || sent != 3 {
+		t.Fatalf("sent %d (%v), want all 3 in one batch", sent, err)
 	}
-	cancel()
-	<-done
-
 	if n, _ := a.Buffer.Len(); n != 0 {
-		t.Fatalf("%d readings still buffered: a refused reading held up the rest", n)
+		t.Fatalf("%d readings still buffered: Atlas answered for all three", n)
 	}
-	fake.mu.Lock()
-	defer fake.mu.Unlock()
-	got := map[string]bool{}
-	for _, b := range fake.batches {
-		for _, item := range b.Readings {
-			got[item.Device] = true
+}
+
+func TestABatchRefusedWholeKeepsEveryReading(t *testing.T) {
+	// A 422 is about the request or the agent, not one reading: nothing in
+	// the buffer may go, however often it is refused.
+	fake := &atlas{refuseAll: true}
+	server := httptest.NewServer(fake)
+	defer server.Close()
+	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
+	ctx := context.Background()
+
+	if err := a.Round(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 3; i++ {
+		_, err := a.SendOnce(ctx, 1)
+		var refused *sender.Refused
+		if !errors.As(err, &refused) || refused.Status != http.StatusUnprocessableEntity {
+			t.Fatalf("send %d: err = %v, want a 422 refusal", i, err)
 		}
 	}
-	if !got["SW"] || !got["AP"] || got["BAD"] {
-		t.Fatalf("Atlas stored %v, want SW and AP and not BAD", got)
+	if n, _ := a.Buffer.Len(); n != 2 {
+		t.Fatalf("the buffer holds %d readings after refusals, want both", n)
 	}
 }
 
@@ -299,31 +297,5 @@ func TestARefusedHeartbeatWaitsInsteadOfAskingAgainAtOnce(t *testing.T) {
 	defer fake.mu.Unlock()
 	if fake.requests > 2 {
 		t.Fatalf("%d requests in 300 ms: a refused heartbeat was sent again at once", fake.requests)
-	}
-}
-
-func TestIsolationEndsOnceTheRefusedBatchHasGoneThrough(t *testing.T) {
-	fake := &atlas{refuse: "BAD"}
-	server := httptest.NewServer(fake)
-	defer server.Close()
-	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "BAD", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
-	ctx := context.Background()
-
-	if err := a.Round(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := a.SendOnce(ctx, 500); err == nil {
-		t.Fatal("the batch with the bad reading was accepted")
-	}
-	if a.isolateLeft != 3 {
-		t.Fatalf("isolateLeft = %d, want the refused batch's 3", a.isolateLeft)
-	}
-	for i := 0; i < 3; i++ {
-		if _, err := a.SendOnce(ctx, 1); err != nil {
-			t.Fatalf("send %d: %v", i, err)
-		}
-	}
-	if a.isolateLeft != 0 {
-		t.Fatalf("isolateLeft = %d after the batch went through, want 0", a.isolateLeft)
 	}
 }

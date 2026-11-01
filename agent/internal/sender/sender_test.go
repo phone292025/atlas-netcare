@@ -35,6 +35,7 @@ func TestEachAnswerMeansWhatTheAgentShouldDo(t *testing.T) {
 			return errors.As(err, &r) && r.Message == "Agents must connect over HTTPS."
 		}},
 		"token not accepted": {401, nil, func(err error) bool { var r *Refused; return errors.As(err, &r) && r.Status == 401 }},
+		"batch broken whole": {422, nil, func(err error) bool { var r *Refused; return errors.As(err, &r) && r.Status == 422 }},
 	}
 
 	for name, c := range cases {

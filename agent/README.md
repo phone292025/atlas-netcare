@@ -51,7 +51,8 @@ Readings wait in a SQLite file (`buffer`, by default `atlas-agent.db`) and go to
 - Atlas down, busy or rate-limiting: the agent waits 2 seconds, doubling up to 5 minutes, with jitter.
 - Atlas refuses the token or the address (401, 403): the agent keeps the readings, logs why, and tries again every 5 minutes, until somebody fixes the config.
 - Batch too large (413): it halves the batch.
-- A reading Atlas refuses (422, which refuses the whole batch for it): the agent sends the batch one reading at a time, drops the one Atlas refuses with the reason in its log, and goes back to full batches. Without that, one bad reading would hold up everything behind it for ever.
+- A reading Atlas won't store, for a value out of range or a device the agent doesn't watch, comes back rejected, alone, in the 200 answer: the agent logs the reason and drops it with the rest of the batch.
+- A batch refused whole (422: the agent's version string too long, a reading with no sequence): the agent keeps every reading and waits, like any refusal, since sending them again one by one wouldn't help.
 - Every 30 seconds with nothing to send, it sends an empty batch as a heartbeat, so Atlas knows the agent is alive.
 
 The buffer holds at most a million readings, a week of 50 devices, and drops the oldest beyond that. Atlas refuses readings more than 7 days old anyway.

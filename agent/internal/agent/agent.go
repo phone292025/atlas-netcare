@@ -11,7 +11,6 @@ import (
 	"errors"
 	"log/slog"
 	"math/rand/v2"
-	"net/http"
 	"sync"
 	"time"
 
@@ -42,10 +41,6 @@ type Agent struct {
 	MinBackoff, MaxBackoff time.Duration
 
 	wake chan struct{}
-	// isolateLeft is how many readings are still to go one at a time, after
-	// Atlas refused a batch's contents: the refused batch's size. Isolation
-	// ends when they have all gone, the bad one dropped, or when it is 0.
-	isolateLeft int
 }
 
 // Run checks and sends until ctx ends.
@@ -135,20 +130,9 @@ func (a *Agent) sendLoop(ctx context.Context) {
 		var refused *sender.Refused
 		wait := time.Duration(0)
 
-		var invalid *sender.Invalid
-
 		switch {
 		case err == nil && sent > 0:
 			backoff = a.MinBackoff
-			if a.isolateLeft == 0 {
-				batch = a.Config.BatchSize
-			}
-			continue
-		case errors.As(err, &invalid):
-			// SendOnce dropped the reading when the batch was one; any
-			// larger and the bad one is somewhere in it.
-			batch = 1
-			a.Log.Warn("Atlas refused a reading in the batch; sending one at a time to find it", "message", invalid.Message)
 			continue
 		case err == nil:
 			backoff = a.MinBackoff
@@ -205,25 +189,10 @@ func (a *Agent) SendOnce(ctx context.Context, n int) (int, error) {
 		return 0, err
 	}
 
+	// Nothing is dropped unless Atlas answered 200: a refusal of any kind,
+	// a 422 included, keeps every reading for later.
 	answer, err := a.Sender.Send(ctx, items)
-
-	var invalid *sender.Invalid
-	switch {
-	case errors.As(err, &invalid) && len(items) == 0:
-		// A heartbeat refused: nothing in the buffer is at fault, so it is
-		// the agent itself, a version string too long, say. Wait like any
-		// refusal instead of asking again at once.
-		return 0, &sender.Refused{Status: http.StatusUnprocessableEntity, Message: invalid.Message}
-	case errors.As(err, &invalid) && len(items) == 1:
-		// Found it. It would be refused for ever, and everything behind it
-		// would wait for ever, so it goes, with the reason in the log.
-		a.Log.Error("dropped a reading Atlas refuses", "sequence", items[0].Sequence, "device", items[0].Device, "message", invalid.Message)
-		a.isolateLeft = max(0, a.isolateLeft-1)
-		return 1, a.Buffer.Drop([]int64{items[0].Sequence})
-	case errors.As(err, &invalid):
-		a.isolateLeft = len(items)
-		return 0, err
-	case err != nil:
+	if err != nil {
 		return 0, err
 	}
 
@@ -240,7 +209,6 @@ func (a *Agent) SendOnce(ctx context.Context, n int) (int, error) {
 	for i, item := range items {
 		sequences[i] = item.Sequence
 	}
-	a.isolateLeft = max(0, a.isolateLeft-len(items))
 
 	return len(items), a.Buffer.Drop(sequences)
 }
