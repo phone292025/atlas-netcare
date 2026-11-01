@@ -6,7 +6,7 @@
         $device = $incident->device;
         $details = array_filter([
             'Kind' => $incident->rule->label(),
-            'Device' => $device ? $device->code.' · '.$device->name : null,
+            'Device' => $device ? collect([$device->code, $device->name])->filter()->implode(' · ') : null,
             'Agent' => $incident->agent?->name,
             'Where' => $device?->location?->label(),
             'Behind' => $device?->parent?->code,

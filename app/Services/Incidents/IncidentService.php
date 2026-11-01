@@ -203,7 +203,7 @@ class IncidentService
             ->update(['recovered_at' => null, 'updated_at' => now()]);
 
         if ($joined && ! $quiet) {
-            $this->log($incident, 'device_joined', "{$device->code} is down behind ".$incident->subjectLabel().'.', at: $at);
+            $this->log($incident, 'device_joined', "added {$device->code}, down behind ".$incident->subjectLabel().'.', at: $at);
         }
     }
 
@@ -247,7 +247,7 @@ class IncidentService
         }
 
         $incident = $this->open($device, IncidentRule::Flapping, "{$device->code} keeps changing status", $at);
-        $this->log($incident, 'note', "{$changes} status changes in ".config('atlas.incidents.flapping_window_min').' minutes.', at: $at);
+        $this->log($incident, 'note', "counted {$changes} status changes in ".config('atlas.incidents.flapping_window_min').' minutes.', at: $at);
         $this->onCall->start($incident);
     }
 
@@ -282,7 +282,7 @@ class IncidentService
             'opened_at' => $at,
         ])->save();
 
-        $this->log($incident, 'opened', 'Last heard from at '.($agent->last_seen_at?->campus()->format('j M, H:i') ?? 'never')
+        $this->log($incident, 'opened', 'opened it. Last heard from at '.($agent->last_seen_at?->campus()->format('j M, H:i') ?? 'never')
             .'. Its devices show as unknown until it reports again.', at: $at);
         $this->onCall->start($incident);
     }
@@ -374,7 +374,7 @@ class IncidentService
                 'next_escalation_at' => null,
             ])->save();
 
-            $this->log($incident, 'acknowledged', "{$user->name} is on it.", $user);
+            $this->log($incident, 'acknowledged', 'acknowledged it.', $user);
 
             return $incident;
         });
@@ -401,7 +401,7 @@ class IncidentService
             }
 
             $this->resolve($incident, 'by_hand', now());
-            $this->log($incident, 'note', "Resolved by hand: {$note}", $user);
+            $this->log($incident, 'note', "noted: {$note}", $user);
 
             return $incident;
         });
@@ -441,7 +441,7 @@ class IncidentService
             'is_demo' => (bool) $device->is_demo,
         ])->save();
 
-        $this->log($incident, 'opened', $rule->label().($device->location ? ' in '.$device->location->label() : '').'.', at: $at);
+        $this->log($incident, 'opened', 'opened it: '.mb_strtolower($rule->label()).($device->location ? ' in '.$device->location->label() : '').'.', at: $at);
 
         return $incident;
     }
@@ -457,11 +457,11 @@ class IncidentService
         ])->save();
 
         $this->log($incident, 'resolved', match ($resolution) {
-            'grouped' => 'Grouped into the incident on '.$groupedInto?->subjectLabel().', which failed too.',
-            'retired' => 'The device was retired.',
-            'settled' => 'The device has kept one status for '.config('atlas.incidents.flapping_window_min').' minutes.',
-            'by_hand' => 'Resolved by hand.',
-            default => $incident->rule === IncidentRule::Silent ? 'The agent is reporting again.' : 'The device has recovered.',
+            'grouped' => 'grouped it into the incident on '.$groupedInto?->subjectLabel().', which failed too.',
+            'retired' => 'resolved it: the device was retired.',
+            'settled' => 'resolved it: the device has kept one status for '.config('atlas.incidents.flapping_window_min').' minutes.',
+            'by_hand' => 'resolved it by hand.',
+            default => $incident->rule === IncidentRule::Silent ? 'resolved it: the agent is reporting again.' : 'resolved it: the device has recovered.',
         }, at: $at);
     }
 
