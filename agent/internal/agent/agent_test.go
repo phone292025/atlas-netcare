@@ -213,6 +213,8 @@ func TestAnEmptyBufferSendsAHeartbeat(t *testing.T) {
 	if _, err := a.SendOnce(context.Background(), 10); err != nil {
 		t.Fatal(err)
 	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
 	if len(fake.batches) != 1 || len(fake.batches[0].Readings) != 0 || fake.batches[0].AgentVersion != "test" {
 		t.Fatalf("batches = %+v, want one empty heartbeat with the version", fake.batches)
 	}
