@@ -240,11 +240,19 @@ test('the resolve dialog passes axe, and opens again with focus after a refused 
     await page.goto('/engineer/incidents');
     await page.getByRole('link', { name: /SW-BROWSER is degraded/ }).click();
 
-    await page.getByRole('button', { name: 'Resolve' }).click();
+    // The page's own button; the dialog's submit has the same name.
+    const opener = page.getByRole('button', { name: 'Resolve' }).first();
+    await opener.click();
     const note = page.getByLabel(/Why it can be closed/);
     await expect(note).toBeFocused();
     await withoutTransitions(page);
     expect(await axeViolations(page, 'resolve dialog')).toEqual([]);
+
+    // Closed with Escape, focus goes back to the button that opened it.
+    await page.keyboard.press('Escape');
+    await expect(opener).toBeFocused();
+    await opener.click();
+    await expect(note).toBeFocused();
 
     // Too long for the server, past the browser's own limit.
     await note.evaluate((el) => { el.removeAttribute('maxlength'); el.value = 'x'.repeat(501); });
