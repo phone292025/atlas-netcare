@@ -71,13 +71,13 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 2.3 | Grouping by parent: when a switch and the devices behind it fail together, one incident opens, on the switch. Done, whichever fails first |
 | 2.4 | Tickets created from incidents, one per incident. The old auto-ticket code is removed. Done |
 | 2.5 | On-call from the roster: the assistant on shift first, then engineers if nobody acknowledges in time. Done, then administrators |
-| 2.6 | Alert channels: in-app, email, Telegram bot, phone push. Each alert has a unique key, so retries never alert anyone twice. Done for in-app, email and Telegram. Phone push waits for Phase 4's installable web app |
+| 2.6 | Alert channels: in-app, email and a Telegram bot. Each alert has a unique key, so retries never alert anyone twice. Done. Phone push moved to Phase 4 on purpose: it needs the installable web app and its service worker, which Phase 4 builds |
 
 ## Later
 
 **Phase 3: live screens and maps.** WebSocket updates replace polling (a new ADR supersedes ADR-0005). A network map shows devices and their parents. Floor plans get live access point markers and a client heatmap.
 
-**Phase 4: rounds on a phone.** An installable web app keeps checklist drafts offline. Each submission carries a key the server accepts once, and QR stickers on lab PCs and access points open the right form.
+**Phase 4: rounds on a phone.** An installable web app keeps checklist drafts offline, and adds phone push as a fourth alert channel (moved from 2.6). Each submission carries a key the server accepts once, and QR stickers on lab PCs and access points open the right form.
 
 **Phase 5, in any order:**
 - Normal-traffic baselines and anomaly alerts.
