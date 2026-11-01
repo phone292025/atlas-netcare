@@ -47,6 +47,7 @@ const screens = {
 const details = {
     admin: [
         ['/admin/users', /^\/admin\/users\/\d+\/edit$/],
+        ['/admin/users', /^\/admin\/users\/\d+$/],
         ['/admin/lab-pcs', /^\/admin\/lab-pcs\/\d+$/],
         ['/admin/lab-pcs', /^\/admin\/lab-pcs\/\d+\/edit$/],
         ['/admin/aps', /^\/admin\/aps\/\d+$/],
@@ -57,20 +58,21 @@ const details = {
         ['/admin/checklists', /^\/admin\/checklists\/\d+\/edit$/],
         ['/admin/locations', /^\/admin\/locations\/\d+\/edit$/],
         ['/admin/shift-templates', /^\/admin\/shift-templates\/\d+\/edit$/],
+        ['/admin/incidents', /^\/admin\/incidents\/\d+$/],
         ['/admin/incidents?view=resolved', /^\/admin\/incidents\/\d+$/, 'optional'],
-        ['/admin/incidents', /^\/admin\/incidents\/\d+$/, 'optional'],
     ],
     engineer: [
         ['/engineer/tickets', /^\/engineer\/tickets\/\d+$/],
         ['/engineer/aps', /^\/engineer\/aps\/\d+$/],
         ['/engineer/risk', /^\/engineer\/risk\/[a-z-]+\/\d+$/],
-        ['/engineer/incidents', /^\/engineer\/incidents\/\d+$/, 'optional'],
+        ['/engineer/incidents', /^\/engineer\/incidents\/\d+$/],
         ['/engineer/incidents?view=resolved', /^\/engineer\/incidents\/\d+$/, 'optional'],
     ],
     assistant: [
         ['/assistant/tickets', /^\/assistant\/tickets\/\d+$/],
         ['/assistant/inspections', /^\/assistant\/inspections\/create\?location=\d+$/],
-        ['/assistant/incidents', /^\/assistant\/incidents\/\d+$/, 'optional'],
+        ['/assistant/inspections', /^\/inspections\/\d+$/],
+        ['/assistant/incidents', /^\/assistant\/incidents\/\d+$/],
         ['/assistant/incidents?view=resolved', /^\/assistant\/incidents\/\d+$/, 'optional'],
     ],
 };
@@ -231,6 +233,28 @@ test('on a phone the navigation drawer opens and closes from the keyboard', asyn
 
     await page.keyboard.press('Escape');
     await expect(link).toBeHidden();
+});
+
+test('the resolve dialog passes axe, and opens again with focus after a refused note', async ({ signedIn }) => {
+    const page = await signedIn('engineer');
+    await page.goto('/engineer/incidents');
+    await page.getByRole('link', { name: /SW-BROWSER is degraded/ }).click();
+
+    await page.getByRole('button', { name: 'Resolve' }).click();
+    const note = page.getByLabel(/Why it can be closed/);
+    await expect(note).toBeFocused();
+    await withoutTransitions(page);
+    expect(await axeViolations(page, 'resolve dialog')).toEqual([]);
+
+    // Too long for the server, past the browser's own limit.
+    await note.evaluate((el) => { el.removeAttribute('maxlength'); el.value = 'x'.repeat(501); });
+    await page.getByRole('dialog').getByRole('button', { name: 'Resolve' }).click();
+
+    // Back from the server: the dialog is open, the error shown, the field focused.
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toContainText('500');
+    await expect(page.getByLabel(/Why it can be closed/)).toBeFocused();
+    expect(await page.evaluate(() => document.body.classList.contains('overflow-y-hidden'))).toBe(true);
 });
 
 for (const role of Object.keys(screens)) {

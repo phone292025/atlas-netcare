@@ -59,11 +59,17 @@
         nextFocusableIndex() { return (this.focusables().indexOf(document.activeElement) + 1) % (this.focusables().length + 1) },
         prevFocusableIndex() { return Math.max(0, this.focusables().indexOf(document.activeElement)) - 1 },
     }"
-    x-init="$watch('show', value => {
-        // The page behind a dialog must not scroll under it.
-        document.body.classList.toggle('overflow-y-hidden', value)
-        if (value) setTimeout(() => initialFocus()?.focus(), 100)
-    })"
+    x-init="
+        const opened = value => {
+            // The page behind a dialog must not scroll under it.
+            document.body.classList.toggle('overflow-y-hidden', value)
+            if (value) setTimeout(() => initialFocus()?.focus(), 100)
+        }
+        $watch('show', opened)
+        // Opened from the server, after a refused form: $watch only sees
+        // changes, so without this it got no focus and no scroll lock.
+        if (show) opened(true)
+    "
     x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
     x-on:close-modal.window="$event.detail == '{{ $name }}' ? show = false : null"
     x-on:close.stop="show = false"
