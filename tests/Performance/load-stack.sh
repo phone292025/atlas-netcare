@@ -17,6 +17,8 @@ cd "$(dirname "$0")/../.."
 export COMPOSE_PROJECT_NAME=atlas-load ATLAS_IMAGE_TAG=load-test
 export ATLAS_PORT=8300 ATLAS_HTTPS_PORT=8743 ATLAS_DB_PORT=5436 ATLAS_BIND=127.0.0.1
 export ATLAS_ENV_FILE=./tests/Performance/.stack.env ATLAS_SERVER_NAME= ATLAS_URL=
+# No backup service: a throwaway database must not fill ./backups.
+export COMPOSE_PROFILES=
 export DB_PASSWORD="$(node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")"
 DAYS="${DAYS:-30}"
 DEVICES="${DEVICES:-150}"

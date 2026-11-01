@@ -94,7 +94,7 @@ services:
       # hold every account's email and password hash: backups/ is ignored by
       # git and kept out of the image.
       - ./docker/postgres/bin:/atlas:ro
-      - ./backups:/backups
+      - ${ATLAS_BACKUP_DIR:-./backups}:/backups
     healthcheck:
       # Over TCP, the way the app connects. On a new volume the image first
       # runs its init scripts on a server that listens only on a socket, and
@@ -172,6 +172,37 @@ services:
         read_only: true
     depends_on:
       app:
+        condition: service_healthy
+
+  # Daily backups into ./backups, kept 14 days (docker/postgres/bin/backup-loop.sh).
+  # The same image as the database, so pg_dump matches the server. A copy
+  # off this machine is still yours to make: see the README's Backups.
+  # Behind the `backup` profile, which .env.example turns on: the browser and
+  # load-test stacks run from this folder too, and their throwaway databases
+  # must not fill ./backups.
+  backup:
+    profiles: [backup]
+    image: timescale/timescaledb:2.31.0-pg16
+    restart: unless-stopped
+    entrypoint: ["sh", "/atlas/backup-loop.sh"]
+    environment:
+      PGHOST: db
+      PGPASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env to a long random password}
+      POSTGRES_USER: atlas
+      ATLAS_BACKUP_EVERY_HOURS: ${ATLAS_BACKUP_EVERY_HOURS:-24}
+      ATLAS_BACKUP_KEEP_DAYS: ${ATLAS_BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./docker/postgres/bin:/atlas:ro
+      - ${ATLAS_BACKUP_DIR:-./backups}:/backups
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "backup-loop"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
+    depends_on:
+      db:
         condition: service_healthy
 
 volumes:
