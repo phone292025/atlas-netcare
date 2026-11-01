@@ -483,7 +483,8 @@ class TicketAccessTest extends TestCase
     {
         $assistant = $this->userWith(UserRole::Assistant);
 
-        $template = ChecklistTemplate::factory()->active()->create();
+        // Not active: tests call this twice, and only one can be.
+        $template = ChecklistTemplate::factory()->create();
         $item = ChecklistItem::factory()->critical()->create([
             'checklist_template_id' => $template->id,
             'label' => 'Machine powers on',

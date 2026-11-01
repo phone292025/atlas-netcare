@@ -341,6 +341,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 | `FormField.php` | Shared derivations for form controls |
 | `Icons.php` | The icon set: Phosphor glyphs under the app's own names |
 | `ResetLinkOnScreen.php` | Whether the forgot-password page may show the reset link itself |
+| `TableLock.php` | One writer at a time on a small table, until the transaction ends |
 | `Tone.php` | The single source of truth for what a tone looks like |
 <!-- /code-map -->
 
@@ -458,6 +459,8 @@ database that already ran it.
 | `2026_10_29_090001_add_silent_since_to_agents_table.php` | When Atlas noticed that a probe agent stopped reporting (roadmap task 1.6) |
 | `2026_11_01_090001_add_is_system_to_ticket_comments_table.php` | Which ticket comments TicketService wrote itself: a status change or an |
 | `2026_11_02_090001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
+| `2026_11_02_090002_allow_one_active_checklist_template.php` | At most one active checklist template, held by the database |
+| `2026_11_02_090003_allow_one_ticket_per_failed_answer.php` | One live ticket per failed checklist answer (FR-207), held by the database |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
@@ -708,6 +711,7 @@ this the fourth.
 | `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant |
 | `Feature/ComponentLibraryTest.php` | The shared component library. Every screen is built from these, so a fault |
+| `Feature/ConcurrentWritesTest.php` | The rules two requests at once could break, held where a second request |
 | `Feature/CreateAdminCommandTest.php` | `atlas:create-admin`, the only way the first administrator comes to exist |
 | `Feature/DataInvariantsTest.php` | Damage the schema audit cannot see, and the history that explains it |
 | `Feature/DemoDataSeederTest.php` | Demo accounts, one sign-in per role, the administrator included |

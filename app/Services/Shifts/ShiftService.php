@@ -9,6 +9,7 @@ use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
 use App\Support\CampusClock;
+use App\Support\TableLock;
 use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -35,6 +36,10 @@ class ShiftService
      * Assistants are picked by how few shifts they already have that week; not
      * a fairness algorithm, but it stops one person being given every slot.
      *
+     * Two runs at once (the Sunday schedule and an administrator's button)
+     * queue on a table lock. Each counts what a slot holds before filling it,
+     * and two counting the same empty slot would fill it twice.
+     *
      * @return Collection<int, Shift>
      */
     public function generateWeek(Carbon $weekStart): Collection
@@ -55,6 +60,8 @@ class ShiftService
         $created = collect();
 
         DB::transaction(function () use ($templates, $assistants, $weekStart, &$created) {
+            TableLock::forWriting('shifts');
+
             // Existing shifts count towards each person's load, so a re-run
             // does not pile more work on the same people.
             $load = Shift::query()

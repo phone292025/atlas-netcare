@@ -39,6 +39,10 @@ Rules of the form "at most one of these at a time". A unique index over only the
 | Index | Rule | What the service does when it fires |
 |---|---|---|
 | `inspections_one_unfinished_unique` on `inspections (lab_pc_id, user_id) WHERE completed_at IS NULL` | One unfinished inspection per machine and person | `InspectionService::start()` uses `createOrFirst()`, so the losing tap gets the winner's record |
+| `checklist_templates_one_active_unique` on `checklist_templates (is_active) WHERE is_active` | One active checklist | `ChecklistService::activate()` takes a table lock first, so it queues rather than fires |
+| `tickets_one_per_failed_answer_unique` on `tickets (inspection_result_id) WHERE inspection_result_id IS NOT NULL AND deleted_at IS NULL` | One live ticket per failed checklist answer (FR-207) | `TicketService` locks the answer row first, so it queues rather than fires |
+
+Rules a unique index cannot say ("fill each roster slot up to its count", "the next version of this name") take `App\Support\TableLock` instead: `LOCK TABLE ... IN SHARE ROW EXCLUSIVE MODE` on PostgreSQL, so a second roster run or checklist edit waits for the first to commit, then reads what it wrote. Only on tables people write rarely: `shifts` during generation and `checklist_templates`.
 
 ### Required indexes
 
@@ -410,7 +414,7 @@ The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `network_
 
 An inspection stores `checklist_template_id`, so it is permanently tied to the template version it was completed against. Editing an active template creates a new version rather than mutating the existing one — otherwise historical inspections reference items that no longer exist.
 
-**Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a plain boolean with a plain index, *not* a unique constraint: "only one active" is a rule the service enforces, because a unique index on the column would forbid a second **inactive** template, which is precisely what versioning produces. MariaDB has no partial unique index to express it properly.
+**Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a boolean, and since 2026-11-02 a partial unique index over the active rows holds "only one active" (see Partial unique keys). A plain unique index would forbid a second **inactive** template, which is precisely what versioning produces, and MariaDB, which Atlas ran on until 2026-10-22, had no partial index to say it.
 
 ### `inspections.shift_id`
 
