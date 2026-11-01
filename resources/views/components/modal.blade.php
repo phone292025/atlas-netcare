@@ -42,6 +42,8 @@
 <div
     x-data="{
         show: @js($show),
+        // What had focus when it opened, to give focus back on close.
+        returnTo: null,
         focusables() {
             let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])'
             return [...$el.querySelectorAll(selector)].filter(el => ! el.hasAttribute('disabled'))
@@ -63,7 +65,14 @@
         const opened = value => {
             // The page behind a dialog must not scroll under it.
             document.body.classList.toggle('overflow-y-hidden', value)
-            if (value) setTimeout(() => initialFocus()?.focus(), 100)
+            if (value) {
+                returnTo = document.activeElement
+                setTimeout(() => initialFocus()?.focus(), 100)
+            } else if (returnTo?.isConnected) {
+                // Back to the button that opened it, not the top of the page.
+                returnTo.focus()
+                returnTo = null
+            }
         }
         $watch('show', opened)
         // Opened from the server, after a refused form: $watch only sees
