@@ -118,7 +118,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 | ID | Criterion | How to test |
 |---|---|---|
-| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once and an agent, for 60 s, on a campus-sized dataset. Measured: slowest request 416 ms. See [Response times](#response-times). |
+| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 40-device outage storm. Measured: slowest request 460 ms; storm 3.5 s. See [Response times](#response-times). |
 | NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. One real phone as well, with a screenshot. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
 | NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. A screen reader pass stays manual. |
@@ -135,29 +135,40 @@ bash tests/Performance/load-stack.sh            # build, seed, measure, remove
 KEEP=1 bash tests/Performance/load-stack.sh     # leave the stack running on port 8300
 ```
 
-The script builds a throwaway Compose project, `atlas-load`, on ports 8300 and 5436, from the working tree. It seeds the demo data, then `LoadTestSeeder`: 250 lab PCs, 150 access points, 3,000 tickets in every status and 4,000 finished inspections over 90 days. `atlas:backfill-telemetry` adds 30 days of readings every five minutes for each simulated device, and risk is recalculated. It then registers an agent watching 40 access points. `tests/Performance/response-times.mjs` signs in 12 people at once, a third each as administrator, engineer and assistant, each in their own session. For 60 seconds they open their role's heaviest screens in turn, as fast as the server answers, while the agent posts a batch of 40 readings a second. A time runs from sending the request to the last byte of the body. The script fails if any request fails or takes longer than 7 seconds.
+The script builds a throwaway Compose project, `atlas-load`, on ports 8300 and 5436, from the working tree. It seeds the demo data, then `LoadTestSeeder`: 250 lab PCs, 150 access points, 3,000 tickets in every status and 4,000 finished inspections over 90 days. `atlas:backfill-telemetry` adds 30 days of readings every five minutes for each simulated device, and risk is recalculated. It then registers an agent watching 40 access points.
 
-Measured 2026-11-01 on a Windows 11 laptop under Docker Desktop, with 1,358,521 readings, 3,001 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
+`tests/Performance/response-times.mjs` signs in 12 people at once, a third each as administrator, engineer and assistant, each in their own session. For five minutes they open their role's heaviest screens in turn, as fast as the server answers. Every fourth step an assistant raises a ticket through the form instead, so writes, ticket numbering and the alerts a ticket raises run under the load too. Meanwhile the agent posts a batch of 40 readings a second. A time runs from sending the request to the last byte of the body. The script fails if any request fails or takes longer than 7 seconds.
+
+Then comes the **outage storm**: the agent reports all 40 of its access points unreachable, in three batches, because a device goes offline after three unreachable readings in a row. The clock starts before the first batch and stops when all 40 are offline and in open incidents and every alert those incidents raised has been sent, through the queue worker. The script fails if that takes more than a minute.
+
+Measured 2026-11-02 on a Windows 11 laptop under Docker Desktop, with 1,358,512 readings, 3,003 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
 
 | Request | n | p50 ms | p95 ms | max ms |
 |---|---:|---:|---:|---:|
-| Engineer: Network monitor | 135 | 299 | 330 | 352 |
-| Engineer: monitor data (polled JSON) | 132 | 275 | 308 | 332 |
-| Engineer: dashboard | 135 | 152 | 182 | 198 |
-| Engineer: access points | 132 | 124 | 154 | 184 |
-| Engineer: traffic logs | 132 | 125 | 153 | 233 |
-| Engineer: ticket queue | 132 | 120 | 155 | 212 |
-| Engineer: risk ranking | 132 | 157 | 193 | 226 |
-| Engineer: reports | 132 | 283 | 341 | 389 |
-| Administrator: monitor | 352 | 297 | 337 | 403 |
-| Administrator: audit log | 348 | 73 | 97 | 142 |
-| Administrator: lab PCs, access points, devices, users, roster | 1,743 | 52 to 67 | 69 to 86 | 92 to 140 |
-| Assistant: monitor | 353 | 289 | 338 | 416 |
-| Assistant: raise a ticket (250-machine room plan) | 354 | 151 | 178 | 197 |
-| Assistant: today's shift, inspections, tickets | 1,066 | 64 to 78 | 87 to 101 | 102 to 123 |
-| Agent: POST a batch of 40 readings | 48 | 233 | 301 | 352 |
+| Engineer: Network monitor | 680 | 298 | 331 | 381 |
+| Engineer: monitor data (polled JSON) | 680 | 273 | 304 | 375 |
+| Engineer: dashboard | 680 | 149 | 174 | 242 |
+| Engineer: access points | 680 | 120 | 139 | 182 |
+| Engineer: traffic logs | 679 | 125 | 144 | 198 |
+| Engineer: ticket queue | 679 | 119 | 142 | 198 |
+| Engineer: risk ranking | 676 | 154 | 183 | 338 |
+| Engineer: reports | 676 | 277 | 318 | 405 |
+| Administrator: monitor | 1,799 | 296 | 333 | 460 |
+| Administrator: audit log | 1,797 | 72 | 88 | 132 |
+| Administrator: lab PCs, access points, devices, users, roster | 8,984 | 50 to 65 | 64 to 80 | 89 to 118 |
+| Assistant: monitor | 1,171 | 288 | 332 | 450 |
+| Assistant: raise a ticket, the form (250-machine room plan) | 1,169 | 162 | 184 | 246 |
+| Assistant: raise a ticket, the POST | 1,950 | 52 | 65 | 90 |
+| Assistant: today's shift, inspections, tickets | 3,515 | 61 to 74 | 77 to 89 | 123 to 148 |
+| Agent: POST a batch of 40 readings | 244 | 222 | 272 | 364 |
 
-No request failed, and the slowest took 416 ms, 6% of the target. The monitor screens are the heaviest, because they read every device's latest reading and its last day of hourly figures. Each was rendered about 350 times a minute without slowing down. This is one machine's measurement: a server with less memory than this laptop's Docker allowance will be slower, and the numbers to compare against are these, taken the same way.
+No request failed, and the slowest took 460 ms, under 7% of the target. The monitor screens are the heaviest, because they read every device's latest reading and its last day of hourly figures.
+
+An earlier run found a real fault: one ticket raise in 1,973 failed, because four assistants raising tickets at once all read the same highest ticket number and used up the three retries. Ticket numbers are now handed out under an advisory lock (`TableLock::named`), and the two runs since raised 1,980 and 1,950 with none failing.
+
+**Outage storm:** all 40 access points offline, in open incidents, and every alert sent, 3.5 seconds after the first of the three batches was sent. That covers the three requests, the listener on the queue, the incidents, the tickets and the alerts.
+
+This is one machine's measurement: a server with less memory than this laptop's Docker allowance will be slower, and the numbers to compare against are these, taken the same way.
 
 ---
 

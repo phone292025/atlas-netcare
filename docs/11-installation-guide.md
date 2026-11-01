@@ -222,13 +222,13 @@ npm install
 php artisan test
 ```
 
-Expect **1,175 passing, 4 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB, and three tests check TimescaleDB itself. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
+Expect **1,285 passing, 12 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB; three tests check TimescaleDB itself; five hold a lock from a second PostgreSQL connection; and three check the database password, which SQLite doesn't have. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
 
 ```bash
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That is **1,177 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
+That is **1,295 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
 
 The browser tests run five core flows in Chromium against a stack of their own, on ports 8100 and 5433:
 
@@ -237,7 +237,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **10 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
+Expect **22 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
 
 ---
 
