@@ -41,3 +41,14 @@ The agent is written in **Go**, in its own folder (`agent/`) in this repository,
 **Python.** It's the fastest to write, and it has the best SNMP libraries. But every machine that runs the agent would need Python installed and kept up to date. Its main advantage was that the rest of the team works in Python, and that no longer applies.
 
 **PHP.** Same language as Atlas. It's weak for long-running concurrent network work, and heavy to install on a Raspberry Pi.
+
+## Packages (2026-11-02)
+
+The first version, task 1.7, uses four packages beyond the standard library, pinned in `agent/go.mod` with checksums in `agent/go.sum`:
+
+| Package | Why this one |
+|---|---|
+| `github.com/gosnmp/gosnmp` | SNMP, as decided above |
+| `github.com/prometheus-community/pro-bing` | ICMP ping on Windows and Linux, raw or through Linux's unprivileged ping sockets. The standard library has no ICMP, and calling the system's `ping` would mean parsing its output in every language Windows ships |
+| `modernc.org/sqlite` | The buffer. A translation of SQLite to Go, so every release target still builds with `CGO_ENABLED=0` and no C cross-compiler |
+| `gopkg.in/yaml.v3` | The config file. Its strict mode turns a misspelt key into an error at start |
