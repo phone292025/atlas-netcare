@@ -50,3 +50,27 @@ func TestALogFileOverTheLimitFromALastRunRotatesOnTheFirstWrite(t *testing.T) {
 		t.Fatalf("current log = %q, want only the new line", got)
 	}
 }
+
+func TestARotationThatCannotRenameKeepsLogging(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "agent.log")
+	r, err := openRotating(path, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	// A directory where the old file would go makes the rename fail.
+	if err := os.Mkdir(path+".1", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(path+".1", "keep"), []byte("x"), 0o600)
+
+	for i := 0; i < 5; i++ {
+		if _, err := r.Write([]byte("0123456789\n")); err != nil {
+			t.Fatalf("write %d after a failed rotation: %v", i, err)
+		}
+	}
+	if got, _ := os.ReadFile(path); len(got) == 0 {
+		t.Fatal("nothing logged after the rotation failed")
+	}
+}

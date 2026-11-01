@@ -38,7 +38,7 @@ One reading per device per round. The device is reachable if any of its checks a
 .\packaging\install-windows-service.ps1 -Binary .\atlas-agent-windows-amd64.exe -Config .\atlas-agent.yaml
 ```
 
-It copies both to `C:\ProgramData\AtlasAgent`, readable by administrators and SYSTEM only because the folder holds the token, and registers the `AtlasAgent` service: automatic start, restart after a crash, log in `agent.log` beside it (the `-log` flag). The agent answers the Service Control Manager itself, so Stop, restart and a Windows shutdown stop it cleanly. It runs as LocalSystem, which raw ICMP needs on Windows. The service handler's tests run on Windows in CI; the script itself parses cleanly but has not yet been run as a real install.
+It copies both to `C:\ProgramData\AtlasAgent`, readable by administrators and SYSTEM only because the folder holds the token, and registers the `AtlasAgent` service: automatic start, restart after a crash, log in `agent.log` beside it (the `-log` flag). The agent answers the Service Control Manager itself, so Stop, restart and a Windows shutdown stop it cleanly. It runs as its own virtual account, `NT SERVICE\AtlasAgent`, not LocalSystem: ping needs no administrator rights on Windows, and the account can change files only in its own folder. The service handler's tests run on Windows in CI; the script itself parses cleanly but has not yet been run as a real install.
 
 Both files come with every release build.
 
