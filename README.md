@@ -52,6 +52,8 @@ cd CP-Project
 cp .env.example .env      # in cmd: copy .env.example .env
 ```
 
+Then open `.env` and set `DB_PASSWORD` to a long random password of your own, 16 characters or more. The stack refuses to start without one. A password manager can make one, or Git Bash: `openssl rand -hex 16`.
+
 **2. Start the stack.**
 
 ```bash
@@ -114,6 +116,8 @@ CI runs all of this on every pull request: it backs up a seeded database, restor
 - **`docker compose` can't connect.** Docker Desktop isn't running. Start it, wait until it says the engine is running, and try again.
 - **Port 8000 is already in use.** Add `ATLAS_PORT=8080` to `.env`, or any free port, and run `docker compose up -d` again.
 - **`bind source path does not exist` mentioning `.env`.** Step 1 was skipped. Copy `.env.example` to `.env` and start again.
+- **`required variable DB_PASSWORD is missing a value`.** Set `DB_PASSWORD` in `.env`, as step 1 says.
+- **`password authentication failed for user "atlas"` after updating.** Before 2026-11-02 `compose.yaml` set the password to `atlas` itself, and the database keeps the password it was created with. Put `DB_PASSWORD=atlas` in `.env`, or change it in the database first: `docker compose exec db psql -U atlas -c "ALTER USER atlas PASSWORD '<new password>'"`, then put the new one in `.env`.
 - **Docker Desktop closes on start with "The file cannot be accessed by the system".** It left socket files behind after a crash, and Windows won't delete them until it restarts. Restart Windows.
 
 ### Working on the code
@@ -148,7 +152,7 @@ docker compose up -d db
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That uses a separate `atlas_test` database, which the stack creates the first time it starts. Never run the tests inside the app container: it caches its settings, which point at the real database.
+That uses a separate `atlas_test` database, which the stack creates the first time it starts. It signs in with the password `atlas`; if your stack has its own, pass it in: `DB_PASSWORD=<yours> php artisan test -c phpunit.pgsql.xml`. Never run the tests inside the app container: it caches its settings, which point at the real database.
 
 ### Running the browser tests
 
@@ -267,7 +271,9 @@ A batch looks like this:
 
 `sequence` counts up for each reading the agent takes, and a batch sent twice is stored once. `latency_ms`, `packet_loss_pct`, `client_count`, `channel_util_pct` and `throughput_mbps` are optional. An empty `readings` list is a heartbeat. The answer lists every sequence as `stored`, `duplicate` or `rejected` with a reason, and the agent can drop all of them. Atlas refuses a reading for a device the agent doesn't watch, one dated more than 5 minutes ahead, and one more than 7 days old.
 
-Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. An agent that sends nothing for 3 minutes is **silent**: its devices show as Unknown instead of their last status, and the engineers and administrators get one alert. Its next reading for a device puts that device back. Until an agent first connects, its devices show as Unknown too, without an alert. **Over anything but this machine or a network you trust, put Atlas behind HTTPS before an agent sends to it:** the token travels in the header.
+Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. An agent that sends nothing for 3 minutes is **silent**: its devices show as Unknown instead of their last status, and the engineers and administrators get one alert. Its next reading for a device puts that device back. Until an agent first connects, its devices show as Unknown too, without an alert.
+
+The token travels in every request, so **Atlas refuses an agent on another machine that connects over plain HTTP**, with 403. Give the stack a name and HTTPS first: set `ATLAS_SERVER_NAME` and an `https://` `ATLAS_URL` in `.env`, and Caddy, the web server inside the image, issues the certificate. The installation guide's "HTTPS for remote agents" has the steps and how an agent trusts the certificate. An agent on the same machine as the stack may use plain HTTP.
 
 ### Keeping the monitor live
 

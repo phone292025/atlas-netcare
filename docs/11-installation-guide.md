@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-11-01
+> **Last updated:** 2026-11-02
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 
@@ -42,17 +42,22 @@ cd atlas-netcare
 cp .env.example .env
 ```
 
-The stack mounts this file into its containers, and refuses to start without it. `compose.yaml` sets the database login, the log channel, the queue and `APP_URL` itself, and those win over the same names in `.env`. The app generates `APP_KEY` into `.env` on its first start.
+Then set `DB_PASSWORD` in `.env` to a long random password of your own, 16 characters or more (`openssl rand -hex 16` in Git Bash makes one). The stack refuses to start without one, and the database keeps the password it was first created with: to change it later, run `ALTER USER atlas PASSWORD '...'` in the database before changing `.env`.
+
+The stack mounts this file into its containers, and refuses to start without it. `compose.yaml` sets the database host, name and user, the log channel, the queue and `APP_URL` itself, and those win over the same names in `.env`. The app generates `APP_KEY` into `.env` on its first start.
 
 Keys worth checking:
 
 | Key | What it does |
 |---|---|
 | `ATLAS_PORT` | The port Atlas answers on. Not in the file, so 8000. Add it if 8000 is taken |
+| `DB_PASSWORD` | The database password. Empty in the example, and required |
 | `ATLAS_BIND` | The address the port listens on. Not in the file, so `127.0.0.1`, this machine only. See [Reaching it from a phone](#reaching-it-from-a-phone) |
+| `ATLAS_SERVER_NAME`, `ATLAS_URL` | Not in the file. A host name and its `https://` address turn on HTTPS. See [HTTPS for remote agents](#https-for-remote-agents) |
 | `ATLAS_ADMIN_EMAIL` | The administrator's address: the default administrator on a demo install, and `atlas:create-admin`'s default |
 | `ATLAS_DEMO_PASSWORD` | One shared password for the default accounts, the administrator's included |
 | `APP_DEBUG` | `true` shows error details in the browser. Turn it off before anyone else can reach the app |
+| `ATLAS_DEMO_MODE` | `true` in the example, so seeding creates the demonstration data. Off when the line is missing |
 
 **There is no separate administrator password.** On a demo install the default administrator uses `ATLAS_DEMO_PASSWORD`, which is public. Your own administrator comes from `atlas:create-admin`, which prints a random password once, in your terminal.
 
@@ -119,7 +124,7 @@ An administrator adds every other account, other administrators included, under 
 
 The stack listens on this machine only. To open it from a phone on the same Wi-Fi, add `ATLAS_BIND=0.0.0.0` to `.env` and run `docker compose up -d`. Then browse to `http://<your-machine-ip>:8000`, where `ipconfig` gives the IP. Windows asks once whether to let Docker through the firewall. It has to be allowed on public networks too, because most Wi-Fi networks are classified public.
 
-Anyone on that Wi-Fi can then reach the sign-in page, and the default accounts' password is public. Create your own administrator and remove the default accounts first, or at least set your own `ATLAS_DEMO_PASSWORD` and seed again, and set `APP_DEBUG=false`.
+Anyone on that Wi-Fi can then reach the sign-in page, over plain HTTP, and the default accounts' password is public. Create your own administrator and remove the default accounts first, or at least set your own `ATLAS_DEMO_PASSWORD` and seed again, and set `APP_DEBUG=false`. For anything longer than a demonstration, turn on HTTPS as [HTTPS for remote agents](#https-for-remote-agents) shows: passwords then cross the Wi-Fi encrypted too.
 
 Switching `ATLAS_BIND` can fail with "ports are not available" while Docker Desktop is still letting go of the old address. Run `docker compose up -d` again a few seconds later.
 
@@ -145,7 +150,40 @@ Hourly summaries, compression and retention aren't on this list. They are Timesc
 
 ## Probe agents
 
-Agents send readings from inside a network to `POST /api/v1/readings`. Register one under **Agents** as the administrator, copy its token into its config, and set **Watched by** on each device it measures. The README's "Probe agents" section shows the batch format. Over anything but a trusted network, put Atlas behind HTTPS first.
+Agents send readings from inside a network to `POST /api/v1/readings`. Register one under **Agents** as the administrator, copy its token into its config, and set **Watched by** on each device it measures. The README's "Probe agents" section shows the batch format.
+
+### HTTPS for remote agents
+
+An agent sends its token in every request. Over plain HTTP anyone on the network between the agent and Atlas can read it and send readings as that agent, so **Atlas refuses an agent request over plain HTTP from another machine**, with 403 and a message saying why. Plain HTTP is accepted only from this machine: a stack published on `127.0.0.1` (the default), or a client on loopback with no proxy header. `ATLAS_AGENTS_ALLOW_PLAIN_HTTP=true` turns the check off, for a closed lab network whose owner accepts the risk. `atlas:check-deployment` refuses that setting in production.
+
+The image's web server, Caddy, serves HTTPS itself once the stack has a name. In `.env`:
+
+```dotenv
+ATLAS_BIND=0.0.0.0
+ATLAS_SERVER_NAME=atlas.lab.internal
+ATLAS_URL=https://atlas.lab.internal
+ATLAS_PORT=80
+ATLAS_HTTPS_PORT=443
+```
+
+Then `docker compose up -d`. Port 80 answers with a redirect to HTTPS on 443, so publish them as 80 and 443, as above: on other ports the redirect points at the wrong one. The name has to reach this machine from the agent, through the network's DNS or the agent machine's hosts file.
+
+Which certificate Caddy uses depends on the name:
+
+| Name | Certificate |
+|---|---|
+| Ends in `.internal`, `.local`, `.home.arpa` or `.localhost`, or an IP address | From Caddy's own certificate authority, made on the first start |
+| A public DNS name that resolves to this machine, with ports 80 and 443 open to the internet | From Let's Encrypt, renewed automatically |
+
+With Caddy's own authority, each agent machine must trust its root certificate once. Copy it out of the stack:
+
+```bash
+docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt
+```
+
+and install `atlas-root.crt` as a trusted root on the agent machine, or point the agent's CA setting at it. The certificates live in the `caddy-data` volume, so a restart keeps the same authority and agents keep trusting it. Removing the volume (`docker compose down --volumes`) makes a new authority, and every agent needs the new root.
+
+Behind a reverse proxy that terminates TLS instead, Atlas sees plain HTTP from the proxy with a forwarding header, and refuses agents. Laravel's trusted-proxy setting would have to name the proxy first. Caddy in the image is the supported way.
 
 ## 7. Optional: password reset by email
 
@@ -225,6 +263,19 @@ docker compose exec app php artisan atlas:purge-demo-data
 ```
 
 Removes every demonstration row and leaves the reference data, the administrator and anything real. It **refuses** if a genuine record points at a demonstration asset, rather than leaving it dangling. Pass `--allow-orphans` only if that is genuinely what you want. Then set `ATLAS_DEMO_MODE=false` so a future seed doesn't put it back.
+
+### Before anyone else can reach it
+
+Set `APP_ENV=production` in `.env`. On every start the app container then runs `php artisan atlas:check-deployment`, and **refuses to start** while any of these is true:
+
+- `APP_DEBUG` is on
+- `APP_KEY` is empty
+- `DB_PASSWORD` is empty, `atlas` or another well-known password, or shorter than 12 characters
+- `ATLAS_DEMO_MODE` is on, or demo accounts exist
+- the stack is published beyond this machine and `ATLAS_URL` is not `https://`
+- `ATLAS_AGENTS_ALLOW_PLAIN_HTTP` is on
+
+The container exits, Docker restarts it, and `docker compose logs app` lists what to change. Outside production the same findings print as warnings and the app starts. Run the command yourself to check before switching: `docker compose exec app php artisan atlas:check-deployment`.
 
 Backups and restores are in the README, under "Backups".
 

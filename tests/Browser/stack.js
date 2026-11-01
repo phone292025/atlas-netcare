@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 
 /**
  * The Docker stack the browser tests run against.
@@ -18,6 +19,7 @@ export const stack = {
 };
 
 stack.url = `http://127.0.0.1:${stack.port}`;
+stack.dbPassword = process.env.ATLAS_BROWSER_DB_PASSWORD ??= randomBytes(16).toString('hex');
 
 /**
  * Runs `docker compose` against this stack and returns what it printed.
@@ -40,6 +42,11 @@ export function compose(...args) {
             // This machine only, whatever .env says. The stack has debug on
             // and an administrator with the published demo password.
             ATLAS_BIND: '127.0.0.1',
+            ATLAS_SERVER_NAME: '',
+            ATLAS_URL: '',
+            // compose.yaml requires one. A throwaway stack gets a throwaway
+            // password, fixed for the run so every compose call agrees.
+            DB_PASSWORD: stack.dbPassword,
         },
     });
 }

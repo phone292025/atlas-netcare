@@ -48,7 +48,9 @@
         <env name="DB_PORT" value="5432" force="true"/>
         <env name="DB_DATABASE" value="atlas_test" force="true"/>
         <env name="DB_USERNAME" value="atlas" force="true"/>
-        <env name="DB_PASSWORD" value="atlas" force="true"/>
+        <!-- Not forced, so a stack with its own password can pass it in:
+             DB_PASSWORD=... php artisan test -c phpunit.pgsql.xml -->
+        <env name="DB_PASSWORD" value="atlas"/>
         <env name="DB_URL" value="" force="true"/>
 
         <env name="MAIL_MAILER" value="array"/>

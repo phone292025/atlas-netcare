@@ -7,9 +7,12 @@
 #
 #   docker compose logs -f app
 #
-# Every service restarts itself after a crash. Everything here is set up for
-# one machine: before the stack runs anywhere else, change the database login
-# and turn APP_DEBUG off.
+# Every service restarts itself after a crash. The database password comes
+# from DB_PASSWORD in .env, and compose refuses to start without one. Out of
+# the box the stack listens on this machine only, over plain HTTP. To open it
+# to other machines, give it a name and HTTPS first (ATLAS_SERVER_NAME below,
+# docs/11-installation-guide.md). With APP_ENV=production the app refuses to
+# start on unsafe settings (php artisan atlas:check-deployment).
 
 # Shared by the three services that run Atlas itself: one image, three jobs.
 x-atlas: &atlas
@@ -26,14 +29,19 @@ x-atlas: &atlas
     DB_PORT: "5432"
     DB_DATABASE: atlas
     DB_USERNAME: atlas
-    DB_PASSWORD: atlas
+    DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env to a long random password}
     # To the container's output, so `docker compose logs` shows them.
     LOG_CHANNEL: stderr
     QUEUE_CONNECTION: database
     # Where the stack is published, so the app knows whether only this
     # machine can reach it (config atlas.published_on_loopback).
     ATLAS_BIND: ${ATLAS_BIND:-127.0.0.1}
-    APP_URL: http://localhost:${ATLAS_PORT:-8000}
+    APP_URL: ${ATLAS_URL:-http://localhost:${ATLAS_PORT:-8000}}
+    # Empty serves plain HTTP on port 80. A host name (atlas.lab.internal,
+    # or a public one) makes Caddy serve HTTPS for it on 443 and redirect
+    # port 80 there: its own certificate authority for an internal name, Let's
+    # Encrypt for a public one. Set ATLAS_URL to the https:// address with it.
+    SERVER_NAME: ${ATLAS_SERVER_NAME:-:80}
     # Caddy refuses an API request body over 512 KB before PHP reads any of
     # it, including one sent without a length. The ingest endpoint's own
     # limit, atlas.ingest.max_kilobytes, is smaller (ADR-0017).
@@ -64,10 +72,11 @@ services:
     # the setting goes on the command line instead.
     command: ["postgres", "-c", "timescaledb.telemetry_level=off"]
     environment:
-      # A local login for a database only this machine can reach.
+      # Only read when the volume is new. Changing DB_PASSWORD later also
+      # needs ALTER USER inside the database (docs/11-installation-guide.md).
       POSTGRES_DB: atlas
       POSTGRES_USER: atlas
-      POSTGRES_PASSWORD: atlas
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env to a long random password}
     ports:
       # Bound to localhost only, so nothing else on the network can reach it.
       # It is published at all so the test suite, run on this machine, can
@@ -98,16 +107,21 @@ services:
       # This machine only, unless ATLAS_BIND=0.0.0.0 opens it to the network,
       # for a phone on the same Wi-Fi (docs/11-installation-guide.md).
       - "${ATLAS_BIND:-127.0.0.1}:${ATLAS_PORT:-8000}:80"
+      # HTTPS, served only once ATLAS_SERVER_NAME is set.
+      - "${ATLAS_BIND:-127.0.0.1}:${ATLAS_HTTPS_PORT:-8443}:443"
     volumes:
       # Writable, so the first start can add an app key to .env.
       - *env-file
+      # Caddy's certificates and its own certificate authority, kept so a
+      # restart doesn't issue new ones that agents don't trust yet.
+      - caddy-data:/data
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
       # Laravel's /up route. There is no curl or wget in the image, so PHP
-      # makes the request.
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"]
+      # makes the request, over HTTPS once ATLAS_SERVER_NAME is set.
+      test: ["CMD", "php", "docker/app/healthcheck.php"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -158,3 +172,4 @@ services:
 
 volumes:
   db-data:
+  caddy-data:
