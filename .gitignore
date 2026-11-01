@@ -48,3 +48,11 @@ desktop.ini
 # Local tooling
 /.phpactor.json
 /.claude/launch.json
+
+# The Go agent's builds, and the config, token and buffer of a local run.
+/agent/dist/
+/agent/atlas-agent
+/agent/atlas-agent.exe
+/agent/atlas-agent.yaml
+/agent/token.txt
+/agent/*.db*

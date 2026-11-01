@@ -1,6 +1,6 @@
 # Roadmap to Atlas 2.0
 
-> **Last updated:** 2026-10-27 · **Current phase:** 1
+> **Last updated:** 2026-11-02 · **Current phase:** 2
 
 Atlas 1.0 was a capstone project, and its network was simulated. 2.0 watches a real one. Small probe agents on the network measure devices and push readings to Atlas. Atlas turns failures into incidents, alerts whoever the roster says is on shift, and shows it all live. Everything can be tried on a home network first.
 
@@ -59,8 +59,8 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 1.4 | Readings as a TimescaleDB hypertable. Continuous aggregates replace `telemetry_hourly`. Compression after 7 days, retention by dropping chunks. Done, before 1.2: the ingest API writes into this table |
 | 1.5 | The simulator as a virtual agent on the ingest path. The pull driver and the SNMP stub are removed, and ADR-0002 is superseded. Done: `Simulator`, and a migration hands existing devices to it |
 | 1.6 | Agent heartbeat: when an agent goes silent, its devices read Unknown and the agent raises an alert. Done: `NetworkStatus::Unknown`, `agents.silent_since`, one `agent_silent` alert per silence |
-| 1.7 | Go agent, first version: config file, ping, HTTP and SNMP v2c checks run concurrently, a SQLite buffer for when Atlas is unreachable, batch sends with retries, and release builds for Windows, Linux and Raspberry Pi |
-| 1.8 | Run it against a home network |
+| 1.7 | Go agent, first version: config file, ping, HTTP and SNMP v2c checks run concurrently, a SQLite buffer for when Atlas is unreachable, batch sends with retries, and release builds for Windows, Linux and Raspberry Pi. Done: `agent/`, built and tested by CI's Agent job |
+| 1.8 | Run it against a home network. Done 2026-11-02: from a Windows laptop on home Wi-Fi, against a throwaway stack. The router read Online by ping (2 ms, 0% loss) and HTTP; an address nothing answers on read Offline at 100% loss and got its ticket. With Atlas stopped for 40 seconds the agent buffered its readings and sent them, in order, when it came back. SNMP has not met a real device yet: the home router doesn't speak it, as the risks below expected |
 
 ## Phase 2: incidents and on-call
 

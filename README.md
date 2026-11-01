@@ -273,7 +273,19 @@ A batch looks like this:
 
 Atlas also records each agent's version, address and clock, and flags a clock more than 30 seconds out. An agent that sends nothing for 3 minutes is **silent**: its devices show as Unknown instead of their last status, and the engineers and administrators get one alert. Its next reading for a device puts that device back. Until an agent first connects, its devices show as Unknown too, without an alert.
 
-The token travels in every request, so **Atlas refuses an agent on another machine that connects over plain HTTP**, with 403. Give the stack a name and HTTPS first: set `ATLAS_SERVER_NAME` and an `https://` `ATLAS_URL` in `.env`, and Caddy, the web server inside the image, issues the certificate. The installation guide's "HTTPS for remote agents" has the steps and how an agent trusts the certificate. An agent on the same machine as the stack may use plain HTTP.
+The token travels in every request, so **Atlas refuses an agent on another machine that connects over plain HTTP**, with 403. An agent on the same machine as the stack may use plain HTTP. For the others, give the stack a name and HTTPS first, in `.env`:
+
+```dotenv
+ATLAS_BIND=0.0.0.0
+ATLAS_SERVER_NAME=atlas.lab.internal
+ATLAS_URL=https://atlas.lab.internal
+ATLAS_PORT=80
+ATLAS_HTTPS_PORT=443
+```
+
+Then `docker compose up -d`. Caddy, the web server inside the image, serves HTTPS and redirects port 80 to it. For a name ending in `.internal`, `.local` or `.home.arpa`, or an IP address, the certificate comes from Caddy's own authority, which each agent machine must trust: `docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt` copies its root out. A public name that resolves to this machine, with ports 80 and 443 open, gets a Let's Encrypt certificate instead. The name must reach this machine from the agent, through DNS or the agent machine's hosts file.
+
+The agent itself is in `agent/`, written in Go: one file per platform, for Windows, Linux and Raspberry Pi. It pings, fetches a URL and asks SNMP v2c, all at once, and keeps readings in a local SQLite file while Atlas is unreachable. `agent/README.md` shows how to set it up.
 
 ### Keeping the monitor live
 

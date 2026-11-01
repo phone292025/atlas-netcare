@@ -13,6 +13,9 @@ backups
 # reason: they hold accounts and password hashes. COPY . . took them along.
 database/*.sqlite*
 
+# The Go probe agent runs on other machines, never in this image.
+agent
+
 # Rebuilt inside the image from the lock files.
 vendor
 node_modules

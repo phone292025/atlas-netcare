@@ -1,0 +1,47 @@
+# atlas-agent's config. Copy it to atlas-agent.yaml next to the program and
+# change the address, the token and the devices. A misspelt key stops the
+# agent at start, with the line it didn't understand.
+
+# Where Atlas answers. https:// unless Atlas runs on this same machine:
+# Atlas refuses plain HTTP from other machines, because the token travels in
+# every request.
+atlas_url: https://atlas.lab.internal
+
+# The token Atlas showed once, when the agent was added under Agents. Keep it
+# out of this file with token_file, or the ATLAS_AGENT_TOKEN variable.
+token_file: token.txt
+
+# Atlas's own certificate authority, when its name is an internal one. Copy it
+# from the stack with
+#   docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt
+ca_file: atlas-root.crt
+
+# A round of checks every interval. Each check gets timeout to answer.
+interval: 30s
+timeout: 5s
+
+# Readings wait here while Atlas is unreachable, and are sent in order later.
+buffer: atlas-agent.db
+
+# Raw ICMP ping. Needs administrator rights on Windows, root or CAP_NET_RAW on
+# Linux. Without it Linux uses unprivileged ping sockets.
+privileged_ping: true
+
+# Each device by its code in Atlas, and the checks to run on it. Ping is on
+# unless set to false. A device is reachable if any check answers.
+devices:
+  - code: RT-CORE
+    host: 10.20.0.1
+    http: http://10.20.0.1/
+
+  - code: SW-L6-IT-01
+    host: 10.20.1.2
+    snmp:
+      community: public
+
+  - code: AP-01
+    host: 10.20.1.10
+    snmp:
+      community: public
+      # An integer OID that counts connected clients, from the vendor's MIB.
+      clients_oid: .1.3.6.1.4.1.14179.2.1.1.1.38.1

@@ -244,6 +244,54 @@ jobs:
             test-results
           retention-days: 7
 
+  agent:
+    name: Agent
+    # The Go probe agent in agent/ (ADR-0013): vet, tests, then one binary
+    # per platform an agent runs on, kept as this run's artifacts. No C
+    # dependencies, so each target is GOOS and GOARCH and nothing else.
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: agent
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build the releases
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          version="0.1.0+${GITHUB_SHA::7}"
+          for target in windows/amd64 linux/amd64 linux/arm64 linux/arm; do
+            os="${target%/*}"; arch="${target#*/}"
+            out="dist/atlas-agent-${os}-${arch}"; [ "$os" = windows ] && out="$out.exe"
+            GOOS=$os GOARCH=$arch GOARM=7 go build -trimpath -ldflags "-s -w -X main.version=$version" -o "$out" ./cmd/atlas-agent
+          done
+          cp atlas-agent.example.yaml dist/
+          ls -l dist
+
+      - name: Keep the binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: atlas-agent
+          path: agent/dist
+          retention-days: 30
+
   style:
     name: Pint
     runs-on: ubuntu-24.04
