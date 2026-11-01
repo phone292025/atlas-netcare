@@ -1,0 +1,22 @@
+{
+  "sent_at": "2026-10-28T10:00:00Z",
+  "agent_version": "0.1.0",
+  "readings": [
+    {
+      "sequence": 1,
+      "device": "AP-06",
+      "measured_at": "2026-10-28T09:59:30Z",
+      "reachable": true,
+      "latency_ms": 12.4,
+      "packet_loss_pct": 0,
+      "client_count": 9
+    },
+    {
+      "sequence": 2,
+      "device": "AP-06",
+      "measured_at": "2026-10-28T09:59:45Z",
+      "reachable": false,
+      "packet_loss_pct": 100
+    }
+  ]
+}

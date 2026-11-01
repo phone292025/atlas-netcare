@@ -148,15 +148,41 @@ class ReadingIngestTest extends TestCase
         $response = $this->send([
             $this->reading(1),
             $this->reading(2, ['packet_loss_pct' => 300]),
-            $this->reading(3, ['sql' => 'drop table']),
-            $this->reading(4, ['reachable' => 'maybe']),
+            $this->reading(3, ['reachable' => 'maybe']),
         ])->assertOk()->assertJsonPath('stored', [1]);
 
         $reasons = collect($response->json('rejected'))->pluck('reason', 'sequence');
         $this->assertStringContainsString('packet loss pct', $reasons[2]);
-        $this->assertSame('Unknown field: sql.', $reasons[3]);
-        $this->assertStringContainsString('reachable', $reasons[4]);
+        $this->assertStringContainsString('reachable', $reasons[3]);
         $this->assertSame(1, TelemetryReading::count());
+    }
+
+    public function test_the_batch_the_go_agent_sends_is_stored_whole(): void
+    {
+        // agent/testdata/batch.json is what the Go agent encodes, checked by
+        // agent/internal/sender/contract_test.go. Both sides test the same
+        // file, so a field renamed on either side fails one of them.
+        $batch = json_decode(file_get_contents(base_path('agent/testdata/batch.json')), true);
+
+        $this->postJson(route('agent.readings'), $batch, ['Authorization' => 'Bearer '.$this->token])
+            ->assertOk()
+            ->assertJsonPath('stored', [1, 2])
+            ->assertJsonPath('rejected', []);
+
+        $readings = TelemetryReading::orderBy('sequence')->get();
+        $this->assertSame([12, null], $readings->pluck('latency_ms')->all());
+        $this->assertSame(9, $readings[0]->client_count);
+        $this->assertEquals(100, $readings[1]->packet_loss_pct);
+    }
+
+    public function test_a_field_atlas_does_not_know_is_ignored_and_the_reading_stored(): void
+    {
+        // A newer agent measuring something more must still be heard by an
+        // older Atlas. Refusing the reading would lose it for good.
+        $this->send([$this->reading(1, ['signal_dbm' => -61, 'sql' => 'drop table'])])
+            ->assertOk()
+            ->assertJsonPath('stored', [1])
+            ->assertJsonPath('rejected', []);
     }
 
     public function test_a_number_too_big_for_its_column_is_rejected_not_a_server_error(): void
