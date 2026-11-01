@@ -12,6 +12,7 @@ use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
+use App\Support\TableLock;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -132,6 +133,11 @@ class TicketService
         $ticket->reported_by = $reporter->id;
 
         $openedAt = now();
+
+        // Serialised, so requests at once don't all read the same highest
+        // number: under a load test, four assistants raising tickets together
+        // used up the retries below once in two thousand.
+        TableLock::named('ticket_numbers');
 
         $ticket->forceFill([
             'ticket_number' => $this->reserveNumber(),
