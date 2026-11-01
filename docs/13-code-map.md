@@ -189,6 +189,7 @@ authorise it through a policy.
 | `Assistant/InspectionRequest.php` | A completed inspection: one answer per checklist item |
 | `Auth/LoginRequest.php` | _no summary in the file_ |
 | `ProfileUpdateRequest.php` | _no summary in the file_ |
+| `ResolveIncidentRequest.php` | Resolving a degraded or flapping incident by hand: why, for the timeline |
 | `Telemetry/RunSimulationRequest.php` | A scenario for the Network monitor's simulation controls |
 | `Tickets/AssignTicketRequest.php` | Handing a ticket to an engineer, or taking the name off it (FR-307) |
 | `Tickets/StoreCommentRequest.php` | A comment on a ticket (FR-308) |

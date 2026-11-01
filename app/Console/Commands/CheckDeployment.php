@@ -95,7 +95,7 @@ class CheckDeployment extends Command
         }
 
         if (! config('atlas.published_on_loopback') && ! str_starts_with((string) config('app.url'), 'https://')) {
-            $problems[] = 'The app is reachable from other machines and APP_URL is not https://, so passwords and agent tokens would cross the network in the clear. Set ATLAS_SERVER_NAME and an https:// APP_URL (docs/11-installation-guide.md).';
+            $problems[] = 'The app is reachable from other machines and APP_URL is not https://, so passwords and agent tokens would cross the network in the clear. Set ATLAS_SERVER_NAME and ATLAS_URL=https://... in .env: under Docker, compose builds APP_URL from ATLAS_URL (docs/11-installation-guide.md).';
         }
 
         if (config('atlas.ingest.allow_plain_http')) {

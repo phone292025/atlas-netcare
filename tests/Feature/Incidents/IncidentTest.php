@@ -30,6 +30,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 use Tests\TestCase;
 
 /**
@@ -309,6 +311,11 @@ class IncidentTest extends TestCase
 
         $this->actingAs($this->userWith(UserRole::Assistant))
             ->post(route('incidents.resolve', $degraded), ['note' => 'Exam week'])->assertForbidden();
+        $this->actingAs($this->engineer)
+            ->post(route('incidents.resolve', $degraded), ['note' => str_repeat('x', 501)])->assertSessionHasErrors('note');
+        // The dialog opens again with the error, instead of hiding it.
+        $this->actingAs($this->engineer)->withSession(['errors' => (new ViewErrorBag)->put('default', new MessageBag(['note' => ['Too long.']]))])
+            ->get($degraded->urlFor($this->engineer))->assertSee('Too long.');
         $this->actingAs($this->engineer)
             ->post(route('incidents.resolve', $degraded), ['note' => 'Exam week, expected'])->assertSessionHas('success');
         $this->assertSame('by_hand', $degraded->fresh()->resolution);

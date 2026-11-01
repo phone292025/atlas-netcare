@@ -13,14 +13,16 @@ use Symfony\Component\HttpFoundation\Response;
  * An agent sends its token in every request. Over plain HTTP anybody on the
  * same network can read it and send readings as that agent, so a remote
  * agent must use HTTPS (docs/11-installation-guide.md, "HTTPS for remote
- * agents"). Plain HTTP is still accepted from this machine: a loopback
- * client, or any client of a Docker stack published on loopback only,
- * because inside the container every request arrives from Docker's gateway.
- * Either way the request must be addressed to localhost and carry no
- * forwarding header: a proxy, tunnel or port forward on this machine
- * connects from loopback too, may be passing on a request from anywhere,
- * and either adds a header or addresses the request to another name. The
- * same rule as App\Support\ResetLinkOnScreen.
+ * agents"). Plain HTTP is accepted only from a loopback client, addressed to
+ * localhost, with no forwarding header: Atlas run without Docker, and an
+ * agent on the same machine.
+ *
+ * Not from a Docker stack's gateway, even one published on loopback only.
+ * Inside the container every request arrives from the gateway, so a reverse
+ * proxy on the host that adds no forwarding header, as nginx's defaults
+ * don't, would pass for this machine and carry tokens from anywhere. An
+ * agent beside a Docker stack uses HTTPS too, or the opt-in below while
+ * testing.
  *
  * Runs before the token is checked, so a refused request says why without
  * saying whether its token was any good. `atlas.ingest.allow_plain_http`
@@ -56,6 +58,6 @@ class RequireHttpsForAgents
         $ip = (string) $request->server('REMOTE_ADDR');
         $ip = str_starts_with($ip, '::ffff:') ? substr($ip, 7) : $ip;
 
-        return ($ip !== '' && IpUtils::checkIp($ip, self::LOOPBACK)) || config('atlas.published_on_loopback');
+        return $ip !== '' && IpUtils::checkIp($ip, self::LOOPBACK);
     }
 }

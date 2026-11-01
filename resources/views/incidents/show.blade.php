@@ -127,10 +127,10 @@
         </x-card>
     </div>
     @if ($can['resolve'])
-        <x-modal name="resolve-incident" title="Resolve this incident">
+        <x-modal name="resolve-incident" title="Resolve this incident" :show="$errors->has('note')">
             <form method="POST" action="{{ route('incidents.resolve', $incident) }}" class="space-y-4">
                 @csrf
-                <x-form.textarea name="note" label="Why it can be closed" required
+                <x-form.textarea name="note" label="Why it can be closed" required maxlength="500"
                                  help="A known busy hour, a link already being replaced. It goes on the timeline." />
                 <div class="flex justify-end gap-2">
                     <x-button variant="ghost" type="button" @click="$dispatch('close-modal', 'resolve-incident')">Cancel</x-button>

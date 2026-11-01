@@ -319,11 +319,21 @@ class InspectionTest extends TestCase
     {
         $this->template();
         $assistant = $this->onShift();
-        $this->travel((int) config('atlas.shifts.on_shift_after_end_min') + 121)->minutes();
+        // The factory's shift ends two hours after the frozen clock.
+        $this->travel(120 + (int) config('atlas.shifts.on_shift_after_end_min') + 1)->minutes();
 
-        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Your shift ended at');
 
         app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
+    }
+
+    public function test_a_round_running_a_little_past_the_shift_end_can_still_start_a_machine(): void
+    {
+        $this->template();
+        $assistant = $this->onShift();
+        $this->travel(120 + (int) config('atlas.shifts.on_shift_after_end_min') - 1)->minutes();
+
+        $this->assertNotNull(app(InspectionService::class)->start(LabPc::factory()->create(), $assistant)->shift_id);
     }
 
     public function test_a_checked_out_shift_does_not_count(): void

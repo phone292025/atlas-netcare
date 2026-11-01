@@ -372,12 +372,20 @@ class ReadingIngestTest extends TestCase
         $this->sendFromTheNetwork(headers: ['X-Forwarded-For' => '203.0.113.9'], address: '127.0.0.1')->assertForbidden();
     }
 
-    public function test_a_stack_published_on_this_machine_only_accepts_plain_http(): void
+    public function test_a_docker_stack_published_on_loopback_still_refuses_plain_http_from_its_gateway(): void
     {
-        // Inside the container every request comes from Docker's gateway.
+        // Inside the container every request comes from Docker's gateway, a
+        // host reverse proxy's included, so the gateway is not this machine.
         config(['atlas.published_on_loopback' => true]);
 
-        $this->sendFromTheNetwork(address: '172.18.0.1')->assertOk();
+        $this->sendFromTheNetwork(address: '172.18.0.1')->assertForbidden();
+    }
+
+    public function test_an_agent_on_this_machine_without_docker_may_use_plain_http(): void
+    {
+        config(['atlas.published_on_loopback' => false]);
+
+        $this->sendFromTheNetwork(address: '127.0.0.1')->assertOk();
     }
 
     public function test_a_port_forward_to_this_machine_is_refused_plain_http(): void
