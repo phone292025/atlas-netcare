@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Last updated:** 2026-11-02
+> **Last updated:** 2026-11-01
 >
 > Every command below was run on the development machine. Where a step can fail, what it looks like when it does is written next to it, because a guide that only describes success is not much use at 9am on the morning of a demonstration.
 

@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last updated:** 2026-11-02 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), [ADR-0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
+> **Last updated:** 2026-11-01 · **Decisions behind this:** [ADR-0001](decisions/ADR-0001-modular-monolith-no-repositories.md), [ADR-0010](decisions/ADR-0010-probe-agents-push-readings.md), [ADR-0017](decisions/ADR-0017-agent-tokens-and-ingest-api.md), [ADR-0005](decisions/ADR-0005-ajax-polling-not-websockets.md), [ADR-0006](decisions/ADR-0006-alpine-chartjs-not-livewire.md)
 
 ---
 

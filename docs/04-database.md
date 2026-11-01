@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-11-02 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
+> **Last updated:** 2026-11-01 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -34,7 +34,7 @@ Apply these everywhere. They are not negotiable per-module.
 
 ### Partial unique keys
 
-Rules of the form "at most one of these at a time". A unique index over only the rows the rule is about holds them, so two requests that both pass a service's read-then-write check cannot both write. Raw SQL in the migration, because the schema builder has no partial index; the statement is the same on PostgreSQL and SQLite. Added 2026-11-02.
+Rules of the form "at most one of these at a time". A unique index over only the rows the rule is about holds them, so two requests that both pass a service's read-then-write check cannot both write. Raw SQL in the migration, because the schema builder has no partial index; the statement is the same on PostgreSQL and SQLite. Added 2026-11-01.
 
 | Index | Rule | What the service does when it fires |
 |---|---|---|
@@ -416,15 +416,15 @@ The denormalised `risk_score` and `risk_band` columns on `lab_pcs` and `network_
 
 An inspection stores `checklist_template_id`, so it is permanently tied to the template version it was completed against. Editing an active template creates a new version rather than mutating the existing one — otherwise historical inspections reference items that no longer exist.
 
-**Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a boolean, and since 2026-11-02 a partial unique index over the active rows holds "only one active" (see Partial unique keys). A plain unique index would forbid a second **inactive** template, which is precisely what versioning produces, and MariaDB, which Atlas ran on until 2026-10-22, had no partial index to say it.
+**Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a boolean, and since 2026-11-01 a partial unique index over the active rows holds "only one active" (see Partial unique keys). A plain unique index would forbid a second **inactive** template, which is precisely what versioning produces, and MariaDB, which Atlas ran on until 2026-10-22, had no partial index to say it.
 
 ### `inspections.shift_id`
 
 The shift an inspection happened in (FR-203). M3 created the column before `shifts` existed, and M6's migration added the foreign key, `nullOnDelete`. That is the pattern to follow whenever a module needs a column pointing at a table nobody has built yet: add the column, not the other module's table.
 
-Since 2026-11-02 `InspectionService::start()` writes it: a new inspection needs the assistant checked in to a shift today, and records that shift. Inspections from before then, and the seeded history, have it null.
+Since 2026-11-01 `InspectionService::start()` writes it: a new inspection needs the assistant checked in to a shift today, and records that shift. Inspections from before then, and the seeded history, have it null.
 
-### Incidents (2026-11-03, M8)
+### Incidents (2026-11-01, M8)
 
 Five tables, all written by `App\Services\Incidents` only ([M8](modules/M8-incidents.md), ADR-0014):
 

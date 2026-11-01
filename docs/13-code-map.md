@@ -488,15 +488,15 @@ database that already ran it.
 | `2026_10_28_120001_hand_existing_devices_to_the_simulator.php` | The simulator becomes an agent (ADR-0010, roadmap task 1.5), so the devices |
 | `2026_10_29_090001_add_silent_since_to_agents_table.php` | When Atlas noticed that a probe agent stopped reporting (roadmap task 1.6) |
 | `2026_11_01_090001_add_is_system_to_ticket_comments_table.php` | Which ticket comments TicketService wrote itself: a status change or an |
-| `2026_11_02_090001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
-| `2026_11_02_090002_allow_one_active_checklist_template.php` | At most one active checklist template, held by the database |
-| `2026_11_02_090003_allow_one_ticket_per_failed_answer.php` | One live ticket per failed checklist answer (FR-207), held by the database |
-| `2026_11_03_090001_create_incidents_table.php` | A fault the system has noticed (ADR-0014, roadmap 2.2) |
-| `2026_11_03_090002_create_incident_devices_table.php` | The devices one incident covers (roadmap 2.3) |
-| `2026_11_03_090003_create_incident_events_table.php` | An incident's timeline: opened, devices joining, alerts, escalation, |
-| `2026_11_03_090004_create_incident_alerts_table.php` | Every alert an incident sends: one row per incident, person, escalation |
-| `2026_11_03_090005_create_device_status_changes_table.php` | Each time a device's status changed, from the DeviceStatusesChanged event |
-| `2026_11_03_090006_add_telegram_chat_id_to_users_table.php` | Where a person's Telegram alerts go (roadmap 2.6). Set on their profile |
+| `2026_11_01_100001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
+| `2026_11_01_100002_allow_one_active_checklist_template.php` | At most one active checklist template, held by the database |
+| `2026_11_01_100003_allow_one_ticket_per_failed_answer.php` | One live ticket per failed checklist answer (FR-207), held by the database |
+| `2026_11_01_110001_create_incidents_table.php` | A fault the system has noticed (ADR-0014, roadmap 2.2) |
+| `2026_11_01_110002_create_incident_devices_table.php` | The devices one incident covers (roadmap 2.3) |
+| `2026_11_01_110003_create_incident_events_table.php` | An incident's timeline: opened, devices joining, alerts, escalation, |
+| `2026_11_01_110004_create_incident_alerts_table.php` | Every alert an incident sends: one row per incident, person, escalation |
+| `2026_11_01_110005_create_device_status_changes_table.php` | Each time a device's status changed, from the DeviceStatusesChanged event |
+| `2026_11_01_110006_add_telegram_chat_id_to_users_table.php` | Where a person's Telegram alerts go (roadmap 2.6). Set on their profile |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`
