@@ -169,7 +169,7 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         return view('assistant.tickets.show', [
-            'ticket' => $ticket->load(['ticketable', 'location', 'reporter', 'assignee']),
+            'ticket' => $ticket->load(['ticketable', 'location', 'reporter', 'assignee', 'incidents']),
             // Scoped in the query, never filtered in Blade — see
             // TicketComment::scopeVisibleTo().
             'comments' => $ticket->comments()->visibleTo(request()->user())->with('author')->get(),

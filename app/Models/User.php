@@ -43,6 +43,8 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        // Where this person's incident alerts go on Telegram. Their own to set.
+        'telegram_chat_id',
     ];
 
     /**

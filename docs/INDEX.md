@@ -47,7 +47,7 @@ Then read the module spec for whatever you are touching: [modules/](modules/).
 | Folder | Contents |
 |---|---|
 | [decisions/](decisions/) | Seventeen architecture decision records, 0010 to 0017 for 2.0. Each says what was chosen, what was rejected, and what it costs |
-| [modules/](modules/) | One spec per module, M1 to M7. Components, screens, requirements covered, definition of done |
+| [modules/](modules/) | One spec per module, M1 to M8. Components, screens, requirements covered, definition of done |
 | [progress/](progress/) | Build log, decision log, and what is still outstanding |
 
 ---

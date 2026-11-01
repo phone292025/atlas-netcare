@@ -53,6 +53,8 @@ class BuildCodeMap extends Command
         'app/Enums/',
         'app/Policies/',
         'app/Observers/',
+        'app/Events/',
+        'app/Listeners/',
         'app/Support/',
         'app/View/Components/',
         'app/Providers/',

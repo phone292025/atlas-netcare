@@ -389,10 +389,11 @@ class TelemetryPipelineTest extends TestCase
     public function test_an_access_point_going_offline_raises_exactly_one_ticket(): void
     {
         /*
-         * FR-503. Two guards are needed and this proves both: the ticket is
-         * raised on the TRANSITION into offline rather than on every offline
-         * reading, and hasOutstandingFor() stops a second one while the first
-         * is still open. Without them a six-hour outage files 360 tickets.
+         * FR-503. Two guards are needed and this proves both: the incident
+         * opens on the TRANSITION into offline rather than on every offline
+         * reading, and only one open incident per device and rule is allowed,
+         * with the device's open ticket reused. Without them a six-hour outage
+         * files 360 tickets.
          */
         $this->userWith(UserRole::Admin);
         $ap = AccessPoint::factory()->create(['status' => NetworkStatus::Online->value]);

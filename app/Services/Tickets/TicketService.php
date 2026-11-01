@@ -332,20 +332,6 @@ class TicketService
     }
 
     /**
-     * Is this asset already the subject of an unfinished ticket? The collector
-     * asks before auto-raising one, so a six-hour outage produces one ticket
-     * (FR-503).
-     */
-    public function hasOutstandingFor(Model $subject): bool
-    {
-        return Ticket::query()
-            ->outstanding()
-            ->where('ticketable_type', $subject->getMorphClass())
-            ->where('ticketable_id', $subject->getKey())
-            ->exists();
-    }
-
-    /**
      * The unfinished tickets on each of these lab PCs, oldest first, keyed by
      * machine id. The raise form warns with it before a second ticket goes in
      * for a fault somebody already reported.

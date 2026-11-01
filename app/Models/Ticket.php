@@ -90,6 +90,17 @@ class Ticket extends Model
     }
 
     /** @return HasMany<TicketComment, $this> */
+    /**
+     * The incidents this ticket is the work for (M8): one, or several when
+     * the device failed again while it was open.
+     *
+     * @return HasMany<Incident, $this>
+     */
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class)->latest('opened_at');
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(TicketComment::class)->orderBy('created_at');

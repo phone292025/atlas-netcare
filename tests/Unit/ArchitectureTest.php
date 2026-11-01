@@ -29,21 +29,25 @@ class ArchitectureTest extends TestCase
     private const INWARD = [
         'Enums' => [],
         'Support' => [],
+        // Domain events carry ids and statuses, never models, so a queued
+        // listener reads the database as it is when it runs (ADR-0014).
+        'Events' => ['Enums'],
         'Models' => ['Enums', 'Support'],
         'Observers' => ['Models', 'Enums', 'Support'],
         'Policies' => ['Models', 'Enums', 'Support'],
-        'Services' => ['Models', 'Enums', 'Support'],
+        'Services' => ['Models', 'Enums', 'Support', 'Events'],
     ];
 
     /**
      * Every use of one service module by another, with its reason. A new one
-     * fails this test until it is listed here. Phase 2.1 of the roadmap
-     * replaces the two Telemetry edges with domain events and deletes them.
+     * fails this test until it is listed here. Telemetry has none: since
+     * roadmap 2.1 it publishes domain events, and knows nothing of who
+     * listens.
      */
     private const MODULE_EDGES = [
-        // TelemetryCollector opens a ticket for an access point that goes
-        // offline, and alarms the engineers when one goes offline or degrades.
-        'Telemetry' => ['Tickets', 'Shifts'],
+        // IncidentTickets raises an incident's ticket, and IncidentAlerts
+        // raises its in-app alarms (ADR-0014).
+        'Incidents' => ['Tickets', 'Shifts'],
         // TicketService alarms engineers about a new critical ticket, a ticket
         // assigned to them by somebody else, and a missed SLA.
         'Tickets' => ['Shifts'],

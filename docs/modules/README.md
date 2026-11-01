@@ -15,6 +15,7 @@ Seven modules, each a slice of the system with its own spec.
 | [M5](M5-telemetry-and-dashboard.md) | Telemetry and AP dashboard | M2 | Built. Rebuilt in 2.0 Phase 1 |
 | [M6](M6-shifts-and-alarms.md) | Shifts, roster and alarms | M1 | Built |
 | [M7](M7-predictive-and-reports.md) | Predictive risk and reports | M3, M4, M5 | Built |
+| [M8](M8-incidents.md) | Incidents and on-call | M4, M5, M6 | Built, 2.0 phase 2 |
 
 ## Working in a module
 

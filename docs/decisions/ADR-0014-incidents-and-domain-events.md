@@ -1,6 +1,6 @@
 # ADR-0014: Put incidents between readings and tickets, and connect modules with events
 
-**Status:** Accepted
+**Status:** Accepted · built 2026-11-02, see [M8](../modules/M8-incidents.md)
 **Date:** 2026-10-22
 **Deciders:** Phone Myat Ko
 
@@ -25,6 +25,15 @@ ADR-0010 brings real devices, which flap, fail in groups and recover on their ow
 - **A test enforces the boundaries.** An architecture test fails the build if Telemetry imports Tickets or Shifts.
 
 Phase 2 settles the rule format, the escalation timings and the first channels.
+
+## As built (2026-11-02)
+
+- **Rules** are an enum, `IncidentRule`, with its escalation steps on each case: offline, degraded, flapping, silent. Thresholds stay in `config/atlas.php`.
+- **A sweep backs the events.** Every minute `atlas:watch-incidents` compares incidents with current statuses and fixes the difference, so a lost event costs a minute. The queue can stay at-least-once.
+- **One lock on `incidents`** around every write, instead of row locks across the device tree. Incidents change a few times an hour.
+- **A ticket per incident, not per outage:** a device that fails again while its ticket is open reuses it. `incidents.ticket_id` is therefore not unique.
+- **Escalation:** assistants on shift (those in the device's room first), then engineers, then administrators, `incidents.escalate_after_min` apart. A silent agent goes to engineers and administrators at once.
+- **Channels:** in-app (exactly once), email and Telegram (once unless a worker dies mid-send). Phone push waits for Phase 4.
 
 ## Consequences
 

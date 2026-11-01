@@ -327,32 +327,6 @@ class TicketLifecycleTest extends TestCase
 
     // ------------------------------------------------- the auto-ticket guard
 
-    public function test_an_asset_with_an_open_ticket_is_reported_as_such(): void
-    {
-        /*
-         * FR-503: an access point offline for six hours must produce one
-         * ticket, not one per polling interval. M5's collector asks this
-         * before raising another.
-         */
-        $labPc = LabPc::factory()->create();
-
-        $this->assertFalse($this->service()->hasOutstandingFor($labPc));
-
-        $this->service()->open($this->attributes(), $this->userWith(UserRole::Assistant), $labPc);
-
-        $this->assertTrue($this->service()->hasOutstandingFor($labPc));
-    }
-
-    public function test_a_closed_ticket_no_longer_blocks_a_new_one(): void
-    {
-        $labPc = LabPc::factory()->create();
-        $ticket = $this->service()->open($this->attributes(), $this->userWith(UserRole::Assistant), $labPc);
-
-        $ticket->forceFill(['status' => TicketStatus::Closed])->save();
-
-        $this->assertFalse($this->service()->hasOutstandingFor($labPc));
-    }
-
     /** @return array<string, mixed> */
     private function attributes(): array
     {

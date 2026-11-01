@@ -6,22 +6,21 @@ use App\Enums\AlarmType;
 use App\Enums\DeviceKind;
 use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
+use App\Events\DeviceStatusesChanged;
 use App\Models\AccessPoint;
 use App\Models\Agent;
 use App\Models\Alarm;
+use App\Models\Incident;
 use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Services\Shifts\AlarmService;
 use App\Services\Telemetry\AgentService;
 use App\Services\Telemetry\ReadingIngest;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Testing\TestResponse;
-use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -267,36 +266,22 @@ class ReadingIngestTest extends TestCase
         $this->assertSame('100.00', (string) $row->packet_loss_pct);
     }
 
-    public function test_an_outage_whose_alert_failed_is_alerted_on_the_retry(): void
+    public function test_an_outage_whose_event_was_lost_is_ticketed_and_alerted_by_the_sweep(): void
     {
         $engineer = User::factory()->create();
         $engineer->forceFill(['role' => UserRole::Engineer, 'is_active' => true])->save();
 
-        // The first alert fails, the way a dropped database connection would.
-        $this->app->instance(AlarmService::class, new class extends AlarmService
-        {
-            public bool $failed = false;
-
-            public function raiseForRole(AlarmType $type, UserRole $role, string $title, ?string $message = null, ?Model $related = null, ?Carbon $at = null): Collection
-            {
-                if (! $this->failed) {
-                    $this->failed = true;
-
-                    throw new RuntimeException('Lost the connection.');
-                }
-
-                return parent::raiseForRole($type, $role, $title, $message, $related, $at);
-            }
-        });
-
-        $offline = [$this->reading(1, ['reachable' => false, 'latency_ms' => null])];
-
-        $this->send($offline)->assertServerError();
-
-        // The agent keeps the batch and sends it again.
-        $this->send($offline)->assertOk()->assertJson(['stored' => [1]]);
-
+        // The worker that should have handled the event died with it.
+        Event::fake([DeviceStatusesChanged::class]);
+        $this->send([$this->reading(1, ['reachable' => false, 'latency_ms' => null])])->assertOk();
         $this->assertSame(NetworkStatus::Offline, $this->ap->fresh()->status);
+        $this->assertSame(0, Incident::count());
+
+        // The sweep reads the device's status, a minute later at most.
+        $this->artisan('atlas:watch-incidents')->assertSuccessful();
+        $this->artisan('atlas:watch-incidents')->assertSuccessful();
+
+        $this->assertSame(1, Incident::where('network_device_id', $this->ap->id)->count());
         $this->assertSame(1, Ticket::where('ticketable_id', $this->ap->id)->count());
         $this->assertSame(1, Alarm::where('type', AlarmType::ApOffline)->where('user_id', $engineer->id)->count());
     }

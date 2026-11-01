@@ -289,17 +289,28 @@ The agent itself is in `agent/`, written in Go: one file per platform, for Windo
 
 ### Keeping the monitor live
 
-The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs five jobs on a timer:
+The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs six jobs on a timer:
 
 | Job | When | What it does |
 |---|---|---|
-| `atlas:collect-telemetry` | every minute | Takes the simulator's readings. A device that has been silent for 5 minutes while its agent reports goes offline and gets a ticket. A silent agent's devices turn Unknown, and it raises one alert |
+| `atlas:collect-telemetry` | every minute | Takes the simulator's readings. A device that has been silent for 5 minutes while its agent reports goes offline. A silent agent's devices turn Unknown |
+| `atlas:watch-incidents` | every minute | Opens and resolves incidents from the devices' and agents' current state, and tells the next people on call about any incident nobody has acknowledged |
 | `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
 | `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
 | `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |
 | `atlas:generate-shifts` | Sundays at 18:00 | Builds next week's roster |
 
 The times are campus time.
+
+### Incidents and on-call
+
+A fault becomes an **incident**: a device that stops answering, degrades or keeps changing status, or an agent that stops reporting. One per fault: when a switch and the access points behind it fail together, it is one incident on the switch, with one ticket. An incident resolves itself when the device recovers. A device that fails again while its ticket is still open reuses that ticket.
+
+Who is told comes from the roster. First the assistants checked in to a shift, those in the device's room before anyone else; if nobody acknowledges within 10 minutes, the engineers; then the administrators. Acknowledging, on the incident's page under **Incidents**, stops it. A silent agent goes straight to engineers and administrators.
+
+Alerts arrive in the app, by email when mail is set up, and on Telegram when `.env` has `ATLAS_TELEGRAM_BOT_TOKEN` and the person has put a Telegram chat id on their profile. Each alert reaches each person on each channel once, however often it is retried.
+
+The `worker` service sends them: the stack runs it, and without Docker it is `php artisan queue:work` in a terminal of its own.
 
 Hourly summaries, compression and retention aren't on this list. The database runs them itself, as TimescaleDB jobs, set from `config/atlas.php` every time the app starts (`php artisan atlas:telemetry-storage`). Raw readings are compressed after 7 days and dropped after 90, and hourly summaries are kept for 12 months.
 
