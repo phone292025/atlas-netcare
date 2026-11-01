@@ -86,7 +86,7 @@ The second needs the Docker stack's database running (`docker compose up -d db`)
 
 ## Browser tests
 
-Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in Chromium instead, as eighteen tests in `tests/Browser/`:
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in Chromium instead, as 23 tests in `tests/Browser/`:
 
 | Spec | Flow |
 |---|---|

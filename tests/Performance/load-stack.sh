@@ -5,6 +5,10 @@
 #   bash tests/Performance/load-stack.sh          build, seed, measure, remove
 #   KEEP=1 bash tests/Performance/load-stack.sh   leave the stack running
 #
+# DAYS (30) is the telemetry history, DEVICES (150) how many access points
+# the agent watches and the outage storm takes down, ATLAS_LOAD_SECONDS
+# (300) and ATLAS_LOAD_USERS (12) the load itself.
+#
 # Its own Compose project, image tag, ports and volumes, like the browser
 # tests' stack, so it never touches the one you work in.
 set -euo pipefail
@@ -15,8 +19,18 @@ export ATLAS_PORT=8300 ATLAS_HTTPS_PORT=8743 ATLAS_DB_PORT=5436 ATLAS_BIND=127.0
 export ATLAS_ENV_FILE=./tests/Performance/.stack.env ATLAS_SERVER_NAME= ATLAS_URL=
 export DB_PASSWORD="$(node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")"
 DAYS="${DAYS:-30}"
+DEVICES="${DEVICES:-150}"
 
 artisan() { docker compose exec -T app php artisan "$@"; }
+
+# Removed however the run ends, a failed seed included, unless KEEP is set.
+cleanup() {
+    if [ -z "${KEEP:-}" ]; then
+        docker compose down --volumes --remove-orphans > /dev/null 2>&1 || true
+        rm -f "$ATLAS_ENV_FILE"
+    fi
+}
+trap cleanup EXIT
 
 cp .env.example "$ATLAS_ENV_FILE"
 # The agent below sends over plain HTTP from this machine, which reaches the
@@ -32,11 +46,11 @@ echo "Inventing ${DAYS} days of telemetry for every simulated device."
 artisan atlas:backfill-telemetry --days="$DAYS" > /dev/null
 artisan atlas:recalculate-risk > /dev/null
 
-# An agent watching 40 access points, so the ingest API is measured with
+# An agent watching $DEVICES access points, so the ingest API is measured with
 # real batches. Its token is printed once, here, and only used by this run.
 AGENT=$(artisan tinker --execute='
     $made = app(App\Services\Telemetry\AgentService::class)->register("Load test agent");
-    $codes = App\Models\AccessPoint::query()->orderBy("id")->limit(40)->pluck("code");
+    $codes = App\Models\AccessPoint::query()->orderBy("id")->limit('"$DEVICES"')->pluck("code");
     App\Models\NetworkDevice::query()->whereIn("code", $codes)->update(["agent_id" => $made["agent"]->id]);
     echo json_encode(["token" => $made["token"], "devices" => $codes]);')
 
@@ -56,11 +70,11 @@ echo "Rows: $(docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT 'rea
 status=0
 node tests/Performance/response-times.mjs || status=$?
 
-# An outage storm: the agent's 40 access points stop answering in one batch.
+# An outage storm: every access point the agent watches stops answering.
 # Measured from the batch to every incident opened and every alert sent,
 # through the queue worker, as an engineer would see it.
 echo
-echo "Outage storm: 40 devices offline in one batch."
+echo "Outage storm: $DEVICES devices offline at once."
 
 # Three batches, since a device goes offline after consecutive_breach
 # unreachable readings in a row. The clock starts before the first.
@@ -68,7 +82,7 @@ storm_batch() {
     node -e "
         const devices = JSON.parse(process.env.ATLAS_LOAD_DEVICES);
         const now = new Date().toISOString();
-        const readings = devices.map((device, i) => ({ sequence: 9e12 + $1 * 100 + i, device, measured_at: now, reachable: false }));
+        const readings = devices.map((device, i) => ({ sequence: 9e12 + $1 * 1000 + i, device, measured_at: now, reachable: false }));
         fetch(process.env.ATLAS_LOAD_URL + '/api/v1/readings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + process.env.ATLAS_LOAD_TOKEN },
@@ -98,7 +112,7 @@ storm_sql="
 done_storm=""
 for i in $(seq 1 120); do
     read -r offline covered sent pending <<< "$(docker compose exec -T db psql -U atlas -d atlas -tAc "$storm_sql")"
-    if [ "${offline:-0}" -eq 40 ] && [ "${covered:-0}" -eq 40 ] && [ "${sent:-0}" -gt 0 ] && [ "${pending:-1}" -eq 0 ]; then
+    if [ "${offline:-0}" -eq "$DEVICES" ] && [ "${covered:-0}" -eq "$DEVICES" ] && [ "${sent:-0}" -gt 0 ] && [ "${pending:-1}" -eq 0 ]; then
         done_storm=$(( $(date +%s%3N) - started ))
         break
     fi
@@ -106,15 +120,11 @@ for i in $(seq 1 120); do
 done
 
 if [ -n "$done_storm" ]; then
-    echo "  all 40 offline and in incidents, ${sent} alerts sent, ${done_storm} ms after the first batch was sent"
+    echo "  all $DEVICES offline and in incidents, ${sent} alerts sent, ${done_storm} ms after the first batch was sent"
 else
-    echo "  FAILED: after 60 s, ${offline:-0} of 40 offline, ${covered:-0} in incidents, ${sent:-0} alerts sent, ${pending:-0} waiting"
+    echo "  FAILED: after 60 s, ${offline:-0} of $DEVICES offline, ${covered:-0} in incidents, ${sent:-0} alerts sent, ${pending:-0} waiting"
     status=1
 fi
 
-if [ -z "${KEEP:-}" ]; then
-    docker compose down --volumes --remove-orphans > /dev/null 2>&1
-    rm -f "$ATLAS_ENV_FILE"
-fi
 
 exit "$status"

@@ -237,7 +237,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **22 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
+Expect **23 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
 
 ---
 
