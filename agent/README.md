@@ -10,7 +10,7 @@ Each device gets any of three checks, all at once, each with its own timeout. A 
 |---|---|---|
 | Ping (on unless `ping: false`) | any of 4 echo requests is answered | average round trip as `latency_ms`, `packet_loss_pct` |
 | `http: <url>` | the answer is below 500. A login page or a 401 still means the device is there | time to answer, when ping didn't |
-| `snmp:` (v2c) | the device returns `sysUpTime` | `client_count` from `clients_oid` |
+| `snmp:` (v2c) | the device returns `sysUpTime` | `client_count` from `clients_oid`, an integer OID from the vendor's MIB. Left out if the device doesn't have it |
 
 One reading per device per round. The device is reachable if any of its checks answered.
 
@@ -26,7 +26,21 @@ One reading per device per round. The device is reachable if any of its checks a
    ```
 
    It prints each device's reading and what each check found.
-5. Run it: `atlas-agent -config atlas-agent.yaml`. Run it as a service so it starts with the machine: a systemd unit on Linux, or `sc create` or NSSM on Windows.
+5. Run it: `atlas-agent -config atlas-agent.yaml`, then as a service so it starts with the machine (below).
+
+## Run it as a service
+
+**Linux and Raspberry Pi.** `packaging/atlas-agent.service` is a systemd unit, with the install commands at its top. It runs as its own system user with only `CAP_NET_RAW`, for ping, restarts five seconds after a crash, and logs to the journal: `journalctl -u atlas-agent -f`.
+
+**Windows.** From an administrator PowerShell:
+
+```powershell
+.\packaging\install-windows-service.ps1 -Binary .\atlas-agent-windows-amd64.exe -Config .\atlas-agent.yaml
+```
+
+It copies both to `C:\ProgramData\AtlasAgent`, readable by administrators and SYSTEM only because the folder holds the token, and registers the `AtlasAgent` service: automatic start, restart after a crash, log in `agent.log` beside it. It runs as LocalSystem, which raw ICMP needs on Windows. The script parses cleanly but has not been run as a real install yet.
+
+Both files come with every release build.
 
 Atlas refuses an agent on another machine that connects over plain HTTP. With an internal name, Atlas's certificate comes from its own authority: copy the root out of the stack with `docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt` and set `ca_file` to it. The installation guide's "HTTPS for remote agents" has the rest.
 
@@ -53,6 +67,19 @@ Go 1.27.
 ```bash
 cd agent
 go test ./...
+```
+
+The SNMP check also has integration tests against a real SNMP agent, net-snmp's `snmpd` from Alpine's packages, in `internal/check/testdata/snmpd`. CI runs them; locally:
+
+```bash
+docker build -t atlas-snmpd internal/check/testdata/snmpd
+docker run -d --rm -p 127.0.0.1:1161:161/udp --name atlas-snmpd atlas-snmpd
+ATLAS_SNMP_TEST_ADDR=127.0.0.1:1161 go test ./internal/check/ -run SNMP
+```
+
+To build:
+
+```bash
 go build -o atlas-agent ./cmd/atlas-agent
 ```
 

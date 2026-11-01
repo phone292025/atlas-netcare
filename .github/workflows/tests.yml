@@ -269,7 +269,16 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Start a real SNMP agent
+        # net-snmp's snmpd from Alpine's packages, for the SNMP check's
+        # integration tests (internal/check/testdata/snmpd).
+        run: |
+          docker build -q -t atlas-snmpd internal/check/testdata/snmpd
+          docker run -d --rm -p 127.0.0.1:1161:161/udp --name atlas-snmpd atlas-snmpd
+
       - name: Test
+        env:
+          ATLAS_SNMP_TEST_ADDR: 127.0.0.1:1161
         run: go test -race ./...
 
       - name: Build the releases
@@ -282,7 +291,7 @@ jobs:
             out="dist/atlas-agent-${os}-${arch}"; [ "$os" = windows ] && out="$out.exe"
             GOOS=$os GOARCH=$arch GOARM=7 go build -trimpath -ldflags "-s -w -X main.version=$version" -o "$out" ./cmd/atlas-agent
           done
-          cp atlas-agent.example.yaml dist/
+          cp atlas-agent.example.yaml packaging/atlas-agent.service packaging/install-windows-service.ps1 dist/
           ls -l dist
 
       - name: Keep the binaries
