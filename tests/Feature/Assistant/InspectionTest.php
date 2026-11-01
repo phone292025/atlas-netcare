@@ -5,15 +5,19 @@ namespace Tests\Feature\Assistant;
 use App\Enums\ChecklistResult;
 use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
+use App\Enums\ShiftStatus;
 use App\Enums\UserRole;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
+use App\Models\Shift;
 use App\Models\User;
 use App\Services\Maintenance\InspectionService;
 use DomainException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -32,6 +36,15 @@ class InspectionTest extends TestCase
     private function assistant(): User
     {
         return $this->userWith(UserRole::Assistant);
+    }
+
+    /** An assistant checked in to a shift running now (FR-203). */
+    private function onShift(?User $assistant = null): User
+    {
+        $assistant ??= $this->assistant();
+        Shift::factory()->checkedIn()->create(['user_id' => $assistant->id]);
+
+        return $assistant;
     }
 
     private function userWith(UserRole $role): User
@@ -235,7 +248,7 @@ class InspectionTest extends TestCase
         // An assistant on bad Wi-Fi taps start twice and must get one
         // inspection, not two competing records of the same visit.
         $this->template();
-        $assistant = $this->assistant();
+        $assistant = $this->onShift();
         $labPc = LabPc::factory()->create();
 
         $service = app(InspectionService::class);
@@ -253,11 +266,157 @@ class InspectionTest extends TestCase
         // screen must say who can rather than return a 500.
         $labPc = LabPc::factory()->create();
 
-        $this->actingAs($this->assistant())
+        $this->actingAs($this->onShift())
             ->post(route('assistant.inspections.store'), ['lab_pc_id' => $labPc->id])
             ->assertSessionHas('error');
 
         $this->assertSame(0, Inspection::count());
+    }
+
+    // ------------------------------------------------- FR-203: during a shift
+
+    public function test_an_inspection_is_recorded_against_the_shift_it_happens_in(): void
+    {
+        $this->template();
+        $assistant = $this->onShift();
+        $shift = Shift::query()->where('user_id', $assistant->id)->sole();
+
+        $inspection = app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
+
+        $this->assertSame($shift->id, $inspection->shift_id);
+        $this->assertTrue($shift->inspections()->whereKey($inspection->id)->exists());
+    }
+
+    public function test_an_assistant_who_is_not_checked_in_cannot_start_one(): void
+    {
+        $this->template();
+        $assistant = $this->assistant();
+        // Rostered for now, and not checked in.
+        Shift::factory()->inProgressWindow()->create(['user_id' => $assistant->id]);
+
+        $this->actingAs($assistant)
+            ->post(route('assistant.inspections.store'), ['lab_pc_id' => LabPc::factory()->create()->id])
+            ->assertRedirect()
+            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'Check in to your shift'));
+
+        $this->assertSame(0, Inspection::count());
+    }
+
+    public function test_a_check_in_left_open_from_yesterday_does_not_count(): void
+    {
+        $this->template();
+        $assistant = $this->onShift();
+        Shift::query()->where('user_id', $assistant->id)->update([
+            'shift_date' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->expectException(DomainException::class);
+
+        app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
+    }
+
+    public function test_a_checked_out_shift_does_not_count(): void
+    {
+        $this->template();
+        $assistant = $this->onShift();
+        Shift::query()->where('user_id', $assistant->id)->update(['status' => ShiftStatus::Completed->value]);
+
+        $this->expectException(DomainException::class);
+
+        app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
+    }
+
+    public function test_an_unfinished_inspection_resumes_after_the_shift_ends(): void
+    {
+        // The answers are on the machine's form, and refusing to reopen it
+        // would strand them. Only a NEW inspection needs a shift.
+        $this->template();
+        $assistant = $this->onShift();
+        $labPc = LabPc::factory()->create();
+        $started = app(InspectionService::class)->start($labPc, $assistant);
+        Shift::query()->where('user_id', $assistant->id)->update(['status' => ShiftStatus::Completed->value]);
+
+        $this->assertSame($started->id, app(InspectionService::class)->start($labPc, $assistant)->id);
+    }
+
+    public function test_the_round_screens_ask_an_assistant_who_is_not_checked_in_to_check_in(): void
+    {
+        $this->template();
+        $room = LabPc::factory()->create()->location;
+        $offShift = $this->assistant();
+
+        $this->actingAs($offShift)
+            ->get(route('assistant.inspections.index'))
+            ->assertOk()
+            ->assertSee('Check in to start inspecting');
+
+        $this->actingAs($offShift)
+            ->get(route('assistant.inspections.create', ['location' => $room->id]))
+            ->assertOk()
+            ->assertSee('Check in to start inspecting');
+
+        $this->actingAs($this->onShift())
+            ->get(route('assistant.inspections.create', ['location' => $room->id]))
+            ->assertOk()
+            ->assertDontSee('Check in to start inspecting');
+    }
+
+    // ------------------------------------------------- one draft per machine
+
+    public function test_the_database_refuses_a_second_unfinished_inspection_of_one_machine_by_one_person(): void
+    {
+        $template = $this->template();
+        $assistant = $this->assistant();
+        $labPc = LabPc::factory()->create();
+        $row = ['lab_pc_id' => $labPc->id, 'user_id' => $assistant->id, 'checklist_template_id' => $template->id, 'started_at' => now()];
+
+        DB::table('inspections')->insert($row);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        DB::table('inspections')->insert($row);
+    }
+
+    public function test_finished_inspections_of_the_same_machine_do_not_collide(): void
+    {
+        $template = $this->template();
+        $assistant = $this->assistant();
+        $labPc = LabPc::factory()->create();
+
+        foreach ([3, 2, 1] as $daysAgo) {
+            DB::table('inspections')->insert([
+                'lab_pc_id' => $labPc->id, 'user_id' => $assistant->id, 'checklist_template_id' => $template->id,
+                'started_at' => now()->subDays($daysAgo), 'completed_at' => now()->subDays($daysAgo),
+            ]);
+        }
+
+        $this->assertSame(3, Inspection::count());
+    }
+
+    public function test_a_start_that_loses_the_race_is_handed_the_winners_inspection(): void
+    {
+        // Two taps both miss the "already started?" read. The second insert
+        // hits the unique index, and the tap gets the first one's record.
+        $template = $this->template();
+        $assistant = $this->onShift();
+        $labPc = LabPc::factory()->create();
+        $winner = null;
+
+        // The other tap inserts right after this one's read comes back empty.
+        DB::listen(function ($query) use (&$winner, $labPc, $assistant, $template) {
+            if ($winner === null && str_starts_with($query->sql, 'select') && str_contains($query->sql, '"inspections"')) {
+                $winner = 0;
+                $winner = DB::table('inspections')->insertGetId([
+                    'lab_pc_id' => $labPc->id, 'user_id' => $assistant->id,
+                    'checklist_template_id' => $template->id, 'started_at' => now(),
+                ]);
+            }
+        });
+
+        $inspection = app(InspectionService::class)->start($labPc, $assistant);
+
+        $this->assertSame($winner, $inspection->id);
+        $this->assertSame(1, Inspection::count());
     }
 
     // ------------------------------------------------- the form and its rules
@@ -622,7 +781,7 @@ class InspectionTest extends TestCase
     {
         $this->template();
 
-        $inspection = app(InspectionService::class)->start(LabPc::factory()->create(), $this->assistant());
+        $inspection = app(InspectionService::class)->start(LabPc::factory()->create(), $this->onShift());
 
         $this->assertNotNull($inspection->id);
     }

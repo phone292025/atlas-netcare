@@ -13,6 +13,14 @@
         </x-alert>
     @endunless
 
+    @unless ($checkedIn)
+        {{-- FR-203: an inspection belongs to the shift it happens in. --}}
+        <x-alert type="info" class="mb-6" title="Check in to start inspecting">
+            New inspections are recorded against your shift, so check in first.
+            <a href="{{ route('assistant.shifts.today') }}" class="font-medium underline underline-offset-2">Go to My shift</a>
+        </x-alert>
+    @endunless
+
     <div class="space-y-8">
         @if ($inProgress->isNotEmpty())
             <section aria-labelledby="unfinished">

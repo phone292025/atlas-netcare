@@ -37,6 +37,14 @@
             </x-alert>
         @endunless
 
+        @unless ($checkedIn)
+            {{-- FR-203: an inspection belongs to the shift it happens in. --}}
+            <x-alert type="info" class="mb-6" title="Check in to start inspecting">
+                New inspections are recorded against your shift, so check in first.
+                <a href="{{ route('assistant.shifts.today') }}" class="font-medium underline underline-offset-2">Go to My shift</a>
+            </x-alert>
+        @endunless
+
         @if ($total > 0)
             <x-card class="mb-4">
                 {{-- The summary above says the same in words, for screen readers. --}}
@@ -51,7 +59,7 @@
                             <p class="text-sm text-fg-muted">
                                 Next in the room: <span class="font-mono font-medium text-fg">{{ $next->asset_tag }}</span>
                             </p>
-                            <x-button type="submit" size="lg" :disabled="! $hasTemplate" class="max-sm:w-full">Inspect {{ $next->asset_tag }}</x-button>
+                            <x-button type="submit" size="lg" :disabled="! $hasTemplate || ! $checkedIn" class="max-sm:w-full">Inspect {{ $next->asset_tag }}</x-button>
                         </form>
                     @else
                         <p class="flex items-center gap-2 text-sm font-medium text-emerald-700">
@@ -110,7 +118,7 @@
                                      same day. Secondary, because the button above
                                      is the way through the room. --}}
                                 <x-button type="submit" variant="secondary"
-                                          :disabled="! $hasTemplate" class="min-h-[44px] sm:min-h-0">
+                                          :disabled="! $hasTemplate || ! $checkedIn" class="min-h-[44px] sm:min-h-0">
                                     {{ $done ? 'Check again' : 'Inspect' }}
                                 </x-button>
                             </form>

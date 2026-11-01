@@ -8,7 +8,8 @@ import { artisan, compose, stack } from './stack.js';
  * 2. The image is built from the working tree, so the run tests this code.
  * 3. Demo data is seeded, which makes the default accounts, and an
  *    administrator of its own is created with atlas:create-admin, as the
- *    README tells an owner to.
+ *    README tells an owner to. The demo assistant gets an all-day shift
+ *    today, to check in to before inspecting.
  *
  * The accounts reach the tests through ATLAS_BROWSER_ACCOUNTS, which Playwright
  * hands to every worker. The demo accounts are read from the app's own config,
@@ -20,6 +21,12 @@ export default function globalSetup() {
     compose('up', '--detach', '--build', '--wait', '--wait-timeout', '300');
 
     artisan('db:seed', '--force');
+
+    // A shift for the demo assistant that runs all day, whenever the suite
+    // runs, so the inspection flow can check in to it (FR-203).
+    artisan('tinker', String.raw`--execute=$u = App\Models\User::where("email", config("atlas.demo_users.assistant.email"))->sole();
+        App\Models\Shift::create(["user_id" => $u->id, "location_id" => App\Models\Location::where("code", "L5-NET-01")->value("id"),
+        "shift_date" => App\Support\CampusClock::today()->toDateString(), "start_time" => "00:00", "end_time" => "23:59"]);`);
 
     const created = artisan('atlas:create-admin', '--email=owner@atlas.local');
     const admin = {

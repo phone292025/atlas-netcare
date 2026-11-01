@@ -5,11 +5,13 @@ namespace App\Services\Maintenance;
 use App\Enums\ChecklistResult;
 use App\Enums\DeviceStatus;
 use App\Enums\InspectionOutcome;
+use App\Enums\ShiftStatus;
 use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\InspectionResult;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\Shift;
 use App\Models\User;
 use App\Support\CampusClock;
 use DomainException;
@@ -34,6 +36,18 @@ class InspectionService
     /**
      * Begin an inspection, or hand back the one already in progress, so a
      * second tap of "start" on bad Wi-Fi does not create a competing record.
+     *
+     * A new one needs the assistant checked in to a shift today (FR-203), and
+     * is recorded against that shift. Resuming one already started does not:
+     * it was started during a shift, and refusing it would strand the answers.
+     *
+     * One unfinished inspection per machine and person is a unique index, not
+     * only the read below. Two taps that both miss the read race to insert;
+     * the loser hits the index and is handed the winner's row.
+     *
+     * @throws DomainException when the machine is retired or the assistant is
+     *                         not checked in
+     * @throws RuntimeException when there is no active checklist
      */
     public function start(LabPc $labPc, User $user, ?ChecklistTemplate $template = null): Inspection
     {
@@ -56,6 +70,14 @@ class InspectionService
             return $existing;
         }
 
+        $shift = $this->activeShiftFor($user);
+
+        if (! $shift) {
+            throw new DomainException(
+                'Check in to your shift before starting an inspection. Every inspection is recorded against the shift it happens in.'
+            );
+        }
+
         $template ??= ChecklistTemplate::current();
 
         if (! $template) {
@@ -64,12 +86,29 @@ class InspectionService
             throw new RuntimeException('No active checklist template.');
         }
 
-        return Inspection::create([
-            'lab_pc_id' => $labPc->id,
-            'user_id' => $user->id,
-            'checklist_template_id' => $template->id,
-            'started_at' => now(),
-        ]);
+        return Inspection::query()->createOrFirst(
+            ['lab_pc_id' => $labPc->id, 'user_id' => $user->id, 'completed_at' => null],
+            [
+                'checklist_template_id' => $template->id,
+                'shift_id' => $shift->id,
+                'started_at' => now(),
+            ],
+        );
+    }
+
+    /**
+     * The shift this assistant is checked in to today, if any: the one new
+     * inspections are recorded against. A check-in left open from an earlier
+     * day does not count.
+     */
+    public function activeShiftFor(User $user): ?Shift
+    {
+        return Shift::query()
+            ->forUser($user)
+            ->on(CampusClock::today())
+            ->where('status', ShiftStatus::CheckedIn)
+            ->latest('checked_in_at')
+            ->first();
     }
 
     /**
