@@ -33,7 +33,7 @@
         <label for="{{ $fieldId }}" class="block text-sm font-medium text-fg">
             {{ $label }}
             @if ($required)
-                <span class="text-red-600" aria-hidden="true">*</span>
+                <span class="text-red-700" aria-hidden="true">*</span>
                 <span class="sr-only">(required)</span>
             @endif
         </label>

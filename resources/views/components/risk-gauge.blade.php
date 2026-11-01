@@ -85,16 +85,17 @@
                     $points = (float) $contribution;
                     $cap = $caps->get($name) ?: max(1, $points);
                 @endphp
-                <div>
-                    <div class="flex items-baseline justify-between gap-3">
-                        <dt class="text-fg-muted">{{ \App\Models\RiskAssessment::factorLabel($name) }}</dt>
-                        <dd class="tabular-nums text-fg">
-                            {{ round($points, 1) }}<span class="text-fg-subtle"> of {{ round($cap, 1) }}</span>
-                        </dd>
-                    </div>
-                    <div class="mt-1 h-1 overflow-hidden rounded-full bg-sunken" aria-hidden="true">
+                {{-- A group in a <dl> may hold only its dt and dds, so the bar
+                     is a dd of its own, hidden from screen readers: the
+                     numbers before it say the same. --}}
+                <div class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3">
+                    <dt class="text-fg-muted">{{ \App\Models\RiskAssessment::factorLabel($name) }}</dt>
+                    <dd class="tabular-nums text-fg">
+                        {{ round($points, 1) }}<span class="text-fg-subtle"> of {{ round($cap, 1) }}</span>
+                    </dd>
+                    <dd class="col-span-2 mt-1 h-1 overflow-hidden rounded-full bg-sunken" aria-hidden="true">
                         <div class="h-full rounded-full {{ $fill }} opacity-70" style="width: {{ (int) round(min(1, $points / $cap) * 100) }}%"></div>
-                    </div>
+                    </dd>
                 </div>
             @endforeach
         </dl>

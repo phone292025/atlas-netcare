@@ -52,7 +52,7 @@
                         'border-brand-600 bg-brand-600 text-white' => $today,
                         'border-line bg-sunken' => ! $today,
                     ])>
-                        <span @class(['text-2xs font-medium uppercase', 'text-white/80' => $today, 'text-fg-muted' => ! $today])>{{ $day->format('D') }}</span>
+                        <span @class(['text-2xs font-medium uppercase', 'text-white' => $today, 'text-fg-muted' => ! $today])>{{ $day->format('D') }}</span>
                         <span @class(['mt-0.5 text-lg font-semibold tabular-nums', 'text-fg' => ! $today])>{{ $day->format('j') }}</span>
                     </div>
 

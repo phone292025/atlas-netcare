@@ -1,3 +1,4 @@
+import { AxeBuilder } from '@axe-core/playwright';
 import { accounts, expect, test } from './fixtures.js';
 
 /**
@@ -9,9 +10,16 @@ import { accounts, expect, test } from './fixtures.js';
  *   never gets stuck, and never lands on something hidden or off screen,
  *   like the links of a closed drawer.
  *
+ * - axe-core finds no WCAG 2.1 A or AA violation, in the light theme and the
+ *   dark one (ADR-0018).
+ *
  * "Visible change" compares the element's outline, shadow, background, border
  * and underline focused and unfocused, with transitions off so the focused
  * style is already in place when it is read.
+ *
+ * Every screen means each role's list screens, forms, and one of each detail
+ * and edit screen, found from the links on its list. The checklist form
+ * needs a check-in, so inspections.spec.js checks it, in its own flow.
  */
 
 const screens = {
@@ -29,6 +37,56 @@ const screens = {
         '/assistant/tickets/create', '/assistant/aps', '/assistant/monitor', '/assistant/incidents', '/notifications', '/profile',
     ],
 };
+
+/** A list screen, and the link on it that opens one of its records. */
+const details = {
+    admin: [
+        ['/admin/users', /^\/admin\/users\/\d+\/edit$/],
+        ['/admin/lab-pcs', /^\/admin\/lab-pcs\/\d+$/],
+        ['/admin/aps', /^\/admin\/aps\/\d+$/],
+        ['/admin/devices', /^\/admin\/devices\/\d+$/],
+        ['/admin/agents', /^\/admin\/agents\/\d+$/],
+        ['/admin/checklists', /^\/admin\/checklists\/\d+\/edit$/],
+        ['/admin/locations', /^\/admin\/locations\/\d+\/edit$/],
+        ['/admin/incidents?view=resolved', /^\/admin\/incidents\/\d+$/],
+    ],
+    engineer: [
+        ['/engineer/tickets', /^\/engineer\/tickets\/\d+$/],
+        ['/engineer/aps', /^\/engineer\/aps\/\d+$/],
+        ['/engineer/risk', /^\/engineer\/risk\/[a-z-]+\/\d+$/],
+        ['/engineer/incidents', /^\/engineer\/incidents\/\d+$/],
+    ],
+    assistant: [
+        ['/assistant/tickets', /^\/assistant\/tickets\/\d+$/],
+        ['/assistant/inspections', /^\/assistant\/inspections\/create\?location=\d+$/],
+        ['/assistant/aps', /^\/assistant\/aps\/\d+$/],
+    ],
+};
+
+/**
+ * The list screens, then the first record each list links to. A list with
+ * nothing in it, such as incidents on a quiet network, adds no detail page.
+ */
+async function everyScreen(page, role) {
+    const found = [...screens[role]];
+
+    for (const [list, link] of details[role]) {
+        await page.goto(list);
+        const hrefs = await page.$$eval('a[href]', (anchors) => anchors.map((a) => new URL(a.href).pathname + new URL(a.href).search));
+        const detail = hrefs.find((href) => link.test(href));
+        if (detail) found.push(detail);
+    }
+
+    return found;
+}
+
+/** axe's WCAG 2.1 A and AA rules on the page as it is. */
+async function axeViolations(page, label) {
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+
+    return results.violations.map((v) => `${label}: ${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(', ')}`
+        + (v.nodes.length > 3 ? ` and ${v.nodes.length - 3} more` : ''));
+}
 
 const phone = { width: 375, height: 812 };
 
@@ -100,6 +158,21 @@ async function sweep(page, stops = 120) {
     return problems;
 }
 
+test('the sign-in and forgot-password screens pass axe in both themes', async ({ page }) => {
+    const found = [];
+
+    for (const colorScheme of ['light', 'dark']) {
+        await page.emulateMedia({ colorScheme });
+
+        for (const path of ['/login', '/forgot-password']) {
+            await page.goto(path);
+            found.push(...await axeViolations(page, `${colorScheme} ${path}`));
+        }
+    }
+
+    expect(found).toEqual([]);
+});
+
 test('the keyboard alone signs in, and the first Tab offers to skip to the content', async ({ page }) => {
     await page.goto('/login');
     const email = page.getByLabel('Email');
@@ -143,13 +216,13 @@ test('on a phone the navigation drawer opens and closes from the keyboard', asyn
     await expect(link).toBeHidden();
 });
 
-for (const [role, paths] of Object.entries(screens)) {
+for (const role of Object.keys(screens)) {
     test(`every ${role} screen fits a phone without sideways scrolling`, async ({ signedIn }) => {
         const page = await signedIn(role);
         await page.setViewportSize(phone);
         const wide = [];
 
-        for (const path of paths) {
+        for (const path of await everyScreen(page, role)) {
             const response = await page.goto(path);
             expect(response.status(), path).toBe(200);
             const [scroll, client] = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
@@ -159,15 +232,35 @@ for (const [role, paths] of Object.entries(screens)) {
         expect(wide).toEqual([]);
     });
 
-    test(`every ${role} screen can be worked by keyboard`, async ({ signedIn }) => {
+    test(`every ${role} screen passes axe in both themes`, async ({ signedIn }) => {
         test.setTimeout(240_000);
         const page = await signedIn(role);
         const found = [];
+        const all = await everyScreen(page, role);
+
+        for (const colorScheme of ['light', 'dark']) {
+            await page.emulateMedia({ colorScheme });
+
+            for (const path of all) {
+                await page.goto(path);
+                await withoutTransitions(page);
+                found.push(...await axeViolations(page, `${colorScheme} ${path}`));
+            }
+        }
+
+        expect(found).toEqual([]);
+    });
+
+    test(`every ${role} screen can be worked by keyboard`, async ({ signedIn }) => {
+        test.setTimeout(300_000);
+        const page = await signedIn(role);
+        const found = [];
+        const all = await everyScreen(page, role);
 
         for (const viewport of [{ width: 1440, height: 900 }, phone]) {
             await page.setViewportSize(viewport);
 
-            for (const path of paths) {
+            for (const path of all) {
                 await page.goto(path);
                 await withoutTransitions(page);
                 for (const problem of await sweep(page)) found.push(`${viewport.width}px ${path}: ${problem}`);

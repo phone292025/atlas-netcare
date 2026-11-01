@@ -1,3 +1,4 @@
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from './fixtures.js';
 
 /**
@@ -28,6 +29,20 @@ test('an assistant inspects the next machine in a round', async ({ signedIn }) =
     const tag = (await start.textContent()).trim().replace('Inspect ', '');
     await start.click();
     await expect(assistant.getByRole('heading', { name: tag, level: 2 })).toBeVisible();
+
+    // The checklist form, the most-used screen, against axe's WCAG 2.1 AA
+    // rules in both themes (ADR-0018). Here because it needs a check-in.
+    for (const colorScheme of ['light', 'dark']) {
+        // Reloaded, so the theme is the one the page starts in, not one
+        // fading in: axe reads colours as they are at that instant.
+        await assistant.emulateMedia({ colorScheme });
+        await assistant.reload();
+        await assistant.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+        const { violations } = await new AxeBuilder({ page: assistant }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+        expect(violations.map((v) => `${colorScheme}: ${v.id} on ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
+    }
+    await assistant.emulateMedia({ colorScheme: 'light' });
+    await assistant.reload();
 
     // A section folds up once every question in it is answered, so its
     // questions leave the page. Answer the first open question until none is.

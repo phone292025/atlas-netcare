@@ -96,7 +96,7 @@
     </div>
 
     @foreach ($messages as $message)
-        <p class="mb-2 text-sm text-red-600">{{ $message }}</p>
+        <p class="mb-2 text-sm text-red-700">{{ $message }}</p>
     @endforeach
 
     <ul class="space-y-2">
@@ -127,6 +127,7 @@
 
                         <div class="flex flex-wrap items-center gap-3">
                             <select :name="`items[${index}][category]`"
+                                    :aria-label="`Category of item ${index + 1}`"
                                     x-model="row.category"
                                     class="rounded-md border-line-strong text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
                                 @foreach ($categories as $value => $label)
@@ -146,7 +147,7 @@
                             </label>
 
                             <button type="button" @click="remove(index)"
-                                    class="ml-auto rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50">
+                                    class="ml-auto rounded px-2 py-1 text-sm text-red-700 hover:bg-red-50">
                                 Remove
                             </button>
                         </div>

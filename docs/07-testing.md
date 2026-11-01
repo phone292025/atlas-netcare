@@ -95,7 +95,7 @@ Feature tests read the HTML the server sends. They never run JavaScript or apply
 | `inspections.spec.js` | An assistant is asked to check in, checks in to their shift (FR-203), inspects the next machine in a room's round, and the round's count goes up by one |
 | `monitor.spec.js` | The Network Monitor lists every access point, draws its chart, refreshes, filters by status and opens an access point's details |
 | `report.spec.js` | The report's Print button calls the browser's print, and on paper the page has its title block and the light palette, even from dark mode |
-| `accessibility.spec.js` | NFR-05 and NFR-10 on every screen of every role: nothing scrolls sideways at 375 px; the keyboard alone signs in and the first Tab offers "Skip to content"; Tab, at 1440 and 375 px, shows a visible change on every control it reaches, never gets stuck, and never lands on anything hidden or off screen; the phone drawer opens and closes from the keyboard |
+| `accessibility.spec.js` | NFR-05 and NFR-10 on every screen of every role: each list screen, form, and one of each detail and edit screen, found from the links on its list. Nothing scrolls sideways at 375 px; axe-core finds no WCAG 2.1 A or AA violation in the light theme or the dark one ([ADR-0018](decisions/ADR-0018-axe-for-accessibility-checks.md)); the keyboard alone signs in and the first Tab offers "Skip to content"; Tab, at 1440 and 375 px, shows a visible change on every control it reaches, never gets stuck, and never lands on anything hidden or off screen; the phone drawer opens and closes from the keyboard. The checklist form needs a check-in, so `inspections.spec.js` runs axe on it |
 
 ```bash
 npx playwright install chromium   # once
@@ -121,7 +121,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 | NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once and an agent, for 60 s, on a campus-sized dataset. Measured: slowest request 416 ms. See [Response times](#response-times). |
 | NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. One real phone as well, with a screenshot. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
-| NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. |
+| NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. A screen reader pass stays manual. |
 | NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. It is a design target with the mitigations that support it, not a measured result. |
 
 > Do not claim to have measured NFR-01. Claiming an unverifiable result is worse than acknowledging the limit.

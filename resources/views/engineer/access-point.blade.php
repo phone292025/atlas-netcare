@@ -98,7 +98,8 @@
                 @if ($hours->isEmpty())
                     <x-empty-state title="Nothing aggregated yet" icon="chart" />
                 @else
-                    <div class="max-h-[26rem] overflow-auto">
+                    {{-- Focusable, so the keyboard can scroll it as well as a wheel. --}}
+                    <div class="max-h-[26rem] overflow-auto" tabindex="0" role="region" aria-label="Hourly detail, scrollable">
                         <table class="min-w-full text-sm">
                             <thead class="sticky top-0 border-b border-line bg-sunken text-left text-xs font-medium text-fg-muted">
                                 <tr>
