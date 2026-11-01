@@ -40,6 +40,7 @@ desktop.ini
 # Browser tests (tests/Browser): the stack's .env copy, saved sessions, and
 # traces and reports from failed runs.
 /tests/Browser/.stack.env
+/tests/Performance/.stack.env
 /tests/Browser/.auth/
 /test-results/
 /playwright-report/
