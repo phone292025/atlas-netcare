@@ -88,6 +88,10 @@ The database lives in a Docker volume, so it survives stopping and rebuilding. `
 
 ### Backups
 
+The stack's `backup` service backs the database up once a day into `backups/`, and deletes dumps older than 14 days. `.env.example` turns it on with `COMPOSE_PROFILES=backup`; `ATLAS_BACKUP_EVERY_HOURS` and `ATLAS_BACKUP_KEEP_DAYS` change the timing. **Copy the `backups` folder somewhere else as well**, another disk or another machine: a backup on the same disk as the database is lost with it, and that copy is yours to set up.
+
+To take one now:
+
 ```bash
 docker compose exec db sh atlas/backup.sh
 ```

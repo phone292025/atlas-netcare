@@ -43,6 +43,8 @@ export function compose(...args) {
             // and an administrator with the published demo password.
             ATLAS_BIND: '127.0.0.1',
             ATLAS_SERVER_NAME: '',
+            // No backup service: a throwaway database must not fill ./backups.
+            COMPOSE_PROFILES: '',
             ATLAS_URL: '',
             // compose.yaml requires one. A throwaway stack gets a throwaway
             // password, fixed for the run so every compose call agrees.
