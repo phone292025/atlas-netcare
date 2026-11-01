@@ -42,7 +42,7 @@ The agent is written in **Go**, in its own folder (`agent/`) in this repository,
 
 **PHP.** Same language as Atlas. It's weak for long-running concurrent network work, and heavy to install on a Raspberry Pi.
 
-## Packages (2026-11-02)
+## Packages (2026-11-01)
 
 The first version, task 1.7, uses four packages beyond the standard library, pinned in `agent/go.mod` with checksums in `agent/go.sum`:
 

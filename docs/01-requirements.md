@@ -1,6 +1,6 @@
 # Requirements
 
-> **Last updated:** 2026-11-02 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions and by the 2.0 roadmap
+> **Last updated:** 2026-11-01 · **Source:** approved proposal, section 1.3–1.5, extended by design decisions and by the 2.0 roadmap
 
 Every requirement has an ID. Test cases reference these IDs; module specs list the IDs they satisfy. A requirement without an ID cannot be traced or tested.
 
@@ -115,7 +115,7 @@ Stated in the proposal:
 |---|---|---|
 | FR-501 | Collect one telemetry reading per active network device every minute. | Added · since task 1.5 the simulator does this for the devices it watches, and a probe agent for its own |
 | FR-502 | Classify a network device as degraded or offline according to configured thresholds. | Assumed — [Q1](02-open-questions.md) |
-| FR-503 | Automatically raise a ticket when a network device goes offline. | Added · since 2026-11-02 through its incident (FR-512, FR-514): one ticket per outage, and a device that fails again while its ticket is open reuses it |
+| FR-503 | Automatically raise a ticket when a network device goes offline. | Added · since 2026-11-01 through its incident (FR-512, FR-514): one ticket per outage, and a device that fails again while its ticket is open reuses it |
 | FR-504 | Aggregate raw telemetry into hourly summaries. | Assumed — [Q9](02-open-questions.md) · since task 1.4 a TimescaleDB continuous aggregate |
 | FR-505 | Recalculate risk scores for all assets daily, retaining history. | Added — **built 2026-08-30.** `atlas:recalculate-risk`, scheduled 02:00. One timestamp per run, so a run can be selected as a unit. |
 | FR-506 | Dispatch due alarms every minute. | Added |

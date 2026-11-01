@@ -1,6 +1,6 @@
 # ADR-0014: Put incidents between readings and tickets, and connect modules with events
 
-**Status:** Accepted · built 2026-11-02, see [M8](../modules/M8-incidents.md)
+**Status:** Accepted · built 2026-11-01, see [M8](../modules/M8-incidents.md)
 **Date:** 2026-10-22
 **Deciders:** Phone Myat Ko
 
@@ -26,7 +26,7 @@ ADR-0010 brings real devices, which flap, fail in groups and recover on their ow
 
 Phase 2 settles the rule format, the escalation timings and the first channels.
 
-## As built (2026-11-02)
+## As built (2026-11-01)
 
 - **Rules** are an enum, `IncidentRule`, with its escalation steps on each case: offline, degraded, flapping, silent. Thresholds stay in `config/atlas.php`.
 - **A sweep backs the events.** Every minute `atlas:watch-incidents` compares incidents with current statuses and fixes the difference, so a lost event costs a minute. The queue can stay at-least-once.

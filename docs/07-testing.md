@@ -1,6 +1,6 @@
 # Testing
 
-> **Last updated:** 2026-11-02
+> **Last updated:** 2026-11-01
 
 The test plan covers automated tests at three levels and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
 
@@ -137,7 +137,7 @@ KEEP=1 bash tests/Performance/load-stack.sh     # leave the stack running on por
 
 The script builds a throwaway Compose project, `atlas-load`, on ports 8300 and 5436, from the working tree. It seeds the demo data, then `LoadTestSeeder`: 250 lab PCs, 150 access points, 3,000 tickets in every status and 4,000 finished inspections over 90 days. `atlas:backfill-telemetry` adds 30 days of readings every five minutes for each simulated device, and risk is recalculated. It then registers an agent watching 40 access points. `tests/Performance/response-times.mjs` signs in 12 people at once, a third each as administrator, engineer and assistant, each in their own session. For 60 seconds they open their role's heaviest screens in turn, as fast as the server answers, while the agent posts a batch of 40 readings a second. A time runs from sending the request to the last byte of the body. The script fails if any request fails or takes longer than 7 seconds.
 
-Measured 2026-11-02 on a Windows 11 laptop under Docker Desktop, with 1,358,521 readings, 3,001 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
+Measured 2026-11-01 on a Windows 11 laptop under Docker Desktop, with 1,358,521 readings, 3,001 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
 
 | Request | n | p50 ms | p95 ms | max ms |
 |---|---:|---:|---:|---:|

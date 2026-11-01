@@ -117,7 +117,7 @@ CI runs all of this on every pull request: it backs up a seeded database, restor
 - **Port 8000 is already in use.** Add `ATLAS_PORT=8080` to `.env`, or any free port, and run `docker compose up -d` again.
 - **`bind source path does not exist` mentioning `.env`.** Step 1 was skipped. Copy `.env.example` to `.env` and start again.
 - **`required variable DB_PASSWORD is missing a value`.** Set `DB_PASSWORD` in `.env`, as step 1 says.
-- **`password authentication failed for user "atlas"` after updating.** Before 2026-11-02 `compose.yaml` set the password to `atlas` itself, and the database keeps the password it was created with. Put `DB_PASSWORD=atlas` in `.env`, or change it in the database first: `docker compose exec db psql -U atlas -c "ALTER USER atlas PASSWORD '<new password>'"`, then put the new one in `.env`.
+- **`password authentication failed for user "atlas"` after updating.** Older copies of `compose.yaml` set the password to `atlas` itself, and the database keeps the password it was created with. Put `DB_PASSWORD=atlas` in `.env`, or change it in the database first: `docker compose exec db psql -U atlas -c "ALTER USER atlas PASSWORD '<new password>'"`, then put the new one in `.env`.
 - **Docker Desktop closes on start with "The file cannot be accessed by the system".** It left socket files behind after a crash, and Windows won't delete them until it restarts. Restart Windows.
 
 ### Working on the code
