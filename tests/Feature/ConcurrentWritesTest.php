@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Incidents\IncidentService;
 use App\Services\Maintenance\ChecklistService;
 use App\Services\Shifts\ShiftService;
+use App\Services\Tickets\TicketService;
 use App\Support\CampusClock;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
@@ -129,6 +130,32 @@ class ConcurrentWritesTest extends TestCase
             [['device_id' => $device->id, 'from' => NetworkStatus::Online->value, 'to' => NetworkStatus::Offline->value]],
             now(),
         ));
+    }
+
+    // ------------------------------------------------- ticket numbers
+
+    public function test_a_new_ticket_waits_for_another_before_reading_the_highest_number(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('Needs a second PostgreSQL connection.');
+        }
+
+        $reporter = User::factory()->create();
+        $other = $this->secondConnection();
+        $other->beginTransaction();
+        $other->select("SELECT pg_advisory_xact_lock(hashtext('ticket_numbers'))");
+
+        try {
+            DB::statement("SET LOCAL lock_timeout = '300ms'");
+            app(TicketService::class)->open(['title' => 'x', 'description' => 'x', 'category' => 'hardware', 'priority' => 'low'], $reporter);
+            $this->fail('The ticket did not wait for the number.');
+        } catch (QueryException $e) {
+            $this->assertSame('55P03', (string) $e->getCode(), $e->getMessage());
+            $this->assertStringContainsString('pg_advisory_xact_lock', $e->getSql());
+        } finally {
+            $other->rollBack();
+            DB::statement("SET LOCAL lock_timeout = '0'");
+        }
     }
 
     // ------------------------------------------------- one ticket per failed answer

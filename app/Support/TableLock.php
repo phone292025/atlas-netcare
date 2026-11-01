@@ -38,4 +38,21 @@ final class TableLock
             DB::statement('LOCK TABLE '.DB::getQueryGrammar()->wrapTable($table).' IN SHARE ROW EXCLUSIVE MODE');
         }
     }
+
+    /**
+     * One holder at a time of a named lock, until the transaction ends,
+     * without locking any table: a PostgreSQL transaction-level advisory
+     * lock. For a counter derived from a busy table, such as the next ticket
+     * number, where locking the table would also hold up every update to it.
+     */
+    public static function named(string $name): void
+    {
+        if (DB::transactionLevel() === 0) {
+            throw new LogicException("Take the {$name} lock inside a transaction.");
+        }
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', [$name]);
+        }
+    }
 }
