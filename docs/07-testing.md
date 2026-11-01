@@ -126,6 +126,10 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 > Do not claim to have measured NFR-01. Claiming an unverifiable result is worse than acknowledging the limit.
 
+## The stack end to end
+
+`tests/Stack/agent-https.sh` runs in CI's Docker stack job, after the backup and restore checks. On the stack as `.env.example` leaves it, an agent's batch over plain HTTP gets Atlas's 403. It then restarts the app with `ATLAS_SERVER_NAME=127.0.0.1`: the same batch over HTTPS through the image's Caddy is stored, plain HTTP is redirected by Caddy before PHP sees the token, and the real `atlas-agent` binary refuses Caddy's certificate until it is given Caddy's root as `ca_file`, and then stores its readings. Writing it found that an IP address as the server name broke every TLS handshake, since a client sends no name to an IP; compose now sets Caddy's `default_sni`.
+
 ## Response times
 
 NFR-02 is measured on a stack the size of a campus, not on the demo data:
@@ -135,11 +139,15 @@ bash tests/Performance/load-stack.sh            # build, seed, measure, remove
 KEEP=1 bash tests/Performance/load-stack.sh     # leave the stack running on port 8300
 ```
 
-The script builds a throwaway Compose project, `atlas-load`, on ports 8300 and 5436, from the working tree. It seeds the demo data, then `LoadTestSeeder`: 250 lab PCs, 150 access points, 3,000 tickets in every status and 4,000 finished inspections over 90 days. `atlas:backfill-telemetry` adds 30 days of readings every five minutes for each simulated device, and risk is recalculated. It then registers an agent watching 40 access points.
+The script builds a throwaway Compose project, `atlas-load`, on ports 8300 and 5436, from the working tree. It seeds the demo data, then `LoadTestSeeder`: 250 lab PCs, 150 access points, 3,000 tickets in every status and 4,000 finished inspections over 90 days. `atlas:backfill-telemetry` adds 30 days of readings every five minutes for each simulated device, and risk is recalculated. It then registers an agent watching all 150 access points (`DEVICES` changes the number).
 
-`tests/Performance/response-times.mjs` signs in 12 people at once, a third each as administrator, engineer and assistant, each in their own session. For five minutes they open their role's heaviest screens in turn, as fast as the server answers. Every fourth step an assistant raises a ticket through the form instead, so writes, ticket numbering and the alerts a ticket raises run under the load too. Meanwhile the agent posts a batch of 40 readings a second. A time runs from sending the request to the last byte of the body. The script fails if any request fails or takes longer than 7 seconds.
+`tests/Performance/response-times.mjs` signs in 12 people at once, a third each as administrator, engineer and assistant, each in their own session. For five minutes they open their role's heaviest screens in turn, as fast as the server answers. Every fourth step an assistant raises a ticket through the form instead, so writes, ticket numbering and the alerts a ticket raises run under the load too. Meanwhile the agent posts a batch of a reading per access point every second. A time runs from sending the request to the last byte of the body. The script fails if any request fails or takes longer than 7 seconds.
 
-Then comes the **outage storm**: the agent reports all 40 of its access points unreachable, in three batches, because a device goes offline after three unreachable readings in a row. The clock starts before the first batch and stops when all 40 are offline and in open incidents and every alert those incidents raised has been sent, through the queue worker. The script fails if that takes more than a minute.
+Then comes the **outage storm**: the agent reports all its access points unreachable, in three batches, because a device goes offline after three unreachable readings in a row. The clock starts before the first batch and stops when every one is offline and in an open incident and every alert those incidents raised has been sent, through the queue worker. The script fails if that takes more than a minute.
+
+Last, the **backlog** (`tests/Performance/backlog.mjs`): five agents come back after an outage at once, each with 30 access points of its own, and each sends two batches of 500 buffered readings in a row, the most Atlas takes in one batch. It fails if a batch takes longer than 7 seconds or a reading is refused.
+
+CI's **Response times** job runs a shorter version on every pull request and every push to `main`: a week of telemetry, 60 seconds of load, then the storm and the backlog, with the same budgets. The stack is removed however the run ends.
 
 Measured 2026-11-02 on a Windows 11 laptop under Docker Desktop, with 1,358,512 readings, 3,003 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
 
