@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -34,7 +35,7 @@ func main() {
 	once := flag.Bool("check", false, "check the config and every device once, print the readings, send nothing")
 	verbose := flag.Bool("verbose", false, "log every failed check")
 	showVersion := flag.Bool("version", false, "print the version and stop")
-	logFile := flag.String("log", "", "append the log to this file instead of standard error")
+	logFile := flag.String("log", "", "append the log to this file instead of standard error, rotated at 10 MB")
 	flag.Parse()
 
 	if *showVersion {
@@ -46,9 +47,9 @@ func main() {
 	if *verbose {
 		level = slog.LevelDebug
 	}
-	logTo := os.Stderr
+	var logTo io.Writer = os.Stderr
 	if *logFile != "" {
-		f, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		f, err := openRotating(*logFile, maxLogBytes)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "opening the log file:", err)
 			os.Exit(2)

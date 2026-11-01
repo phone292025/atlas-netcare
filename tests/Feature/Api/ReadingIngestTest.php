@@ -128,24 +128,48 @@ class ReadingIngestTest extends TestCase
 
     // ---------------------------------------------------------- what is refused
 
-    public function test_a_malformed_batch_is_refused_whole(): void
+    public function test_a_broken_batch_is_refused_whole(): void
     {
+        // The request or the agent is wrong: the agent keeps every reading
+        // and waits, since sending them again one by one would not help.
         $this->send([], batch: ['sent_at' => 'yesterday-ish'])->assertUnprocessable()->assertJsonValidationErrors('sent_at');
-        $this->send([$this->reading(1, ['packet_loss_pct' => 300])])->assertUnprocessable()->assertJsonValidationErrors('readings.0.packet_loss_pct');
-        $this->send([$this->reading(1, ['sql' => 'drop table'])])->assertUnprocessable();
+        $this->send([], batch: ['agent_version' => str_repeat('x', 41)])->assertUnprocessable()->assertJsonValidationErrors('agent_version');
         $this->send([$this->reading(1), $this->reading(1)])->assertUnprocessable()->assertJsonValidationErrors('readings.0.sequence');
+        $this->send([['device' => 'AP-01', 'measured_at' => now()->toIso8601ZuluString(), 'reachable' => true]])
+            ->assertUnprocessable()->assertJsonValidationErrors('readings.0.sequence');
 
         $this->assertSame(0, TelemetryReading::count());
     }
 
-    public function test_a_number_too_big_for_its_column_is_refused_not_a_server_error(): void
+    public function test_a_reading_with_bad_values_is_rejected_alone_and_the_rest_are_stored(): void
+    {
+        // One bad reading used to refuse all 500 with 422, and the agent had
+        // to guess which one. Now it is rejected by sequence, in a 200.
+        $response = $this->send([
+            $this->reading(1),
+            $this->reading(2, ['packet_loss_pct' => 300]),
+            $this->reading(3, ['sql' => 'drop table']),
+            $this->reading(4, ['reachable' => 'maybe']),
+        ])->assertOk()->assertJsonPath('stored', [1]);
+
+        $reasons = collect($response->json('rejected'))->pluck('reason', 'sequence');
+        $this->assertStringContainsString('packet loss pct', $reasons[2]);
+        $this->assertSame('Unknown field: sql.', $reasons[3]);
+        $this->assertStringContainsString('reachable', $reasons[4]);
+        $this->assertSame(1, TelemetryReading::count());
+    }
+
+    public function test_a_number_too_big_for_its_column_is_rejected_not_a_server_error(): void
     {
         // Both columns are smallint on PostgreSQL, which tops out at 32767.
         // Accepting more failed the insert, and the agent resent the batch forever.
-        $this->send([$this->reading(1, ['latency_ms' => 40000])])->assertUnprocessable()->assertJsonValidationErrors('readings.0.latency_ms');
-        $this->send([$this->reading(1, ['client_count' => 40000])])->assertUnprocessable()->assertJsonValidationErrors('readings.0.client_count');
+        $this->send([$this->reading(1, ['latency_ms' => 40000]), $this->reading(2, ['client_count' => 40000])])
+            ->assertOk()
+            ->assertJsonPath('stored', [])
+            ->assertJsonPath('rejected.0.sequence', 1)
+            ->assertJsonPath('rejected.1.sequence', 2);
 
-        $this->send([$this->reading(1, ['latency_ms' => 32767, 'client_count' => 32767])])->assertOk();
+        $this->send([$this->reading(3, ['latency_ms' => 32767, 'client_count' => 32767])])->assertOk()->assertJsonPath('stored', [3]);
     }
 
     public function test_a_clock_years_out_is_recorded_as_far_out_not_a_server_error(): void

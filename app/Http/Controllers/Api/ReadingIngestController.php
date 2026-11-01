@@ -36,7 +36,10 @@ class ReadingIngestController extends Controller
 
         $agents->recordContact($agent, $request->ip(), $request->validated('agent_version'), $offsetMs);
 
-        $outcome = $ingest->ingest($agent, $request->validated('readings'), $receivedAt);
+        // As sent, not validated(): the request checks only each reading's
+        // sequence, and validated() would strip every other field. Each
+        // reading's values are checked, and refused alone, by the ingest.
+        $outcome = $ingest->ingest($agent, $request->input('readings'), $receivedAt);
 
         return response()->json([
             ...$outcome,

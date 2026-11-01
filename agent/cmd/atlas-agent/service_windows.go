@@ -53,7 +53,8 @@ func (s *service) Execute(_ []string, requests <-chan svc.ChangeRequest, status 
 			}
 		case err := <-done:
 			// The agent stopped by itself: a broken buffer file, say. A
-			// non-zero exit code makes the service's failure actions restart it.
+			// non-zero exit code makes the service's failure actions restart
+			// it, given the failure flag the installer sets (sc.exe failureflag).
 			if err != nil {
 				return false, 1
 			}

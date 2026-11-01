@@ -38,6 +38,9 @@ if (Get-Service AtlasAgent -ErrorAction SilentlyContinue) {
 New-Service -Name AtlasAgent -DisplayName 'Atlas NetCare probe agent' -BinaryPathName $command -StartupType Automatic | Out-Null
 # Restart 5 seconds after any crash, and keep doing so.
 sc.exe failure AtlasAgent reset= 0 actions= restart/5000/restart/5000/restart/5000 | Out-Null
+# Also when the agent stops itself with an error (exit code 1), not only when
+# the process crashes: without this flag Windows treats that as a clean stop.
+sc.exe failureflag AtlasAgent 1 | Out-Null
 Start-Service AtlasAgent
 
 Get-Service AtlasAgent
