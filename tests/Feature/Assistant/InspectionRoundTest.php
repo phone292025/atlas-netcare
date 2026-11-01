@@ -10,6 +10,7 @@ use App\Models\ChecklistTemplate;
 use App\Models\Inspection;
 use App\Models\LabPc;
 use App\Models\Location;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -50,6 +51,10 @@ class InspectionRoundTest extends TestCase
         $this->template->load('items');
 
         $this->room = Location::factory()->create(['name' => 'Level 6 IT Lab 01']);
+
+        // FR-203: going on to the next machine starts an inspection, and
+        // that needs the assistant checked in.
+        Shift::factory()->checkedIn()->create(['user_id' => $this->assistant->id, 'location_id' => $this->room->id]);
     }
 
     private function machine(string $tag): LabPc

@@ -457,6 +457,7 @@ database that already ran it.
 | `2026_10_28_120001_hand_existing_devices_to_the_simulator.php` | The simulator becomes an agent (ADR-0010, roadmap task 1.5), so the devices |
 | `2026_10_29_090001_add_silent_since_to_agents_table.php` | When Atlas noticed that a probe agent stopped reporting (roadmap task 1.6) |
 | `2026_11_01_090001_add_is_system_to_ticket_comments_table.php` | Which ticket comments TicketService wrote itself: a status change or an |
+| `2026_11_02_090001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`

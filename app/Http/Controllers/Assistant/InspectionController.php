@@ -56,6 +56,7 @@ class InspectionController extends Controller
             'rooms' => $this->inspections->roundsToday(),
 
             'hasTemplate' => ChecklistTemplate::current() !== null,
+            'checkedIn' => $this->inspections->activeShiftFor($request->user()) !== null,
         ]);
     }
 
@@ -76,6 +77,7 @@ class InspectionController extends Controller
             'labPcs' => $this->inspections->roundIn($location),
             'next' => $this->inspections->nextToCheck($location),
             'hasTemplate' => ChecklistTemplate::current() !== null,
+            'checkedIn' => $this->inspections->activeShiftFor($request->user()) !== null,
         ]);
     }
 
@@ -90,6 +92,10 @@ class InspectionController extends Controller
 
         try {
             $inspection = $this->inspections->start($labPc, $request->user());
+        } catch (DomainException $e) {
+            // Not checked in, or the machine was retired. Both are sentences
+            // the assistant can act on.
+            return back()->with('error', $e->getMessage());
         } catch (RuntimeException) {
             // A fresh install with no checklist yet. A real state, and the
             // assistant can do nothing about it — say so instead of 500ing.

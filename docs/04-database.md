@@ -1,6 +1,6 @@
 # Database Design
 
-> **Last updated:** 2026-11-01 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
+> **Last updated:** 2026-11-02 · **Status:** describes the 1.0 schema, on PostgreSQL 16 with TimescaleDB since 2026-10-22 ([ADR-0011](decisions/ADR-0011-postgresql-timescaledb.md)). Phase 1 of the [roadmap](roadmap.md) adds devices, agents and hypertables
 >
 > **Rule:** a schema change updates this file in the *same commit* as the migration.
 
@@ -31,6 +31,14 @@ Apply these everywhere. They are not negotiable per-module.
 `users.email` · `users.tp_number` · `lab_pcs.asset_tag` · `network_devices.code` · `network_devices.mac_address` · `tickets.ticket_number` · `locations.code`
 
 > Duplicate asset tags are the classic inventory-system demo failure. Enforce it at the database level, not in a validation rule alone.
+
+### Partial unique keys
+
+Rules of the form "at most one of these at a time". A unique index over only the rows the rule is about holds them, so two requests that both pass a service's read-then-write check cannot both write. Raw SQL in the migration, because the schema builder has no partial index; the statement is the same on PostgreSQL and SQLite. Added 2026-11-02.
+
+| Index | Rule | What the service does when it fires |
+|---|---|---|
+| `inspections_one_unfinished_unique` on `inspections (lab_pc_id, user_id) WHERE completed_at IS NULL` | One unfinished inspection per machine and person | `InspectionService::start()` uses `createOrFirst()`, so the losing tap gets the winner's record |
 
 ### Required indexes
 
@@ -404,15 +412,11 @@ An inspection stores `checklist_template_id`, so it is permanently tied to the t
 
 **Built in M3.** `ChecklistService` owns the copy-on-write; `is_active` moves to the new version so an edit never leaves the system without a checklist. `is_active` is a plain boolean with a plain index, *not* a unique constraint: "only one active" is a rule the service enforces, because a unique index on the column would forbid a second **inactive** template, which is precisely what versioning produces. MariaDB has no partial unique index to express it properly.
 
-### `inspections.shift_id` has no foreign key yet
+### `inspections.shift_id`
 
-The column exists because the ERD has it, but `shifts` is M6's table and does not exist. M6's migration adds the constraint:
+The shift an inspection happened in (FR-203). M3 created the column before `shifts` existed, and M6's migration added the foreign key, `nullOnDelete`. That is the pattern to follow whenever a module needs a column pointing at a table nobody has built yet: add the column, not the other module's table.
 
-```php
-$table->foreign('shift_id')->references('id')->on('shifts')->nullOnDelete();
-```
-
-Nothing writes the column until then. This is the pattern to follow whenever a module needs a column pointing at a table nobody has built yet — add the column, not the other module's table.
+Since 2026-11-02 `InspectionService::start()` writes it: a new inspection needs the assistant checked in to a shift today, and records that shift. Inspections from before then, and the seeded history, have it null.
 
 ### `telemetry_readings.source`
 
