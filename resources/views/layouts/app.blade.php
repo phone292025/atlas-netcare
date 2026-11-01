@@ -43,10 +43,15 @@
          drawer already off screen. When only Alpine applied it, the drawer
          rendered open and slid shut on every page load. Open is the bound
          class, marked important so it beats the static one whatever order
-         Tailwind writes them in. --}}
+         Tailwind writes them in.
+
+         Closed is also invisible, so its links leave the Tab order: off
+         screen, they still took focus, sixteen stops nobody could see.
+         Visibility is in the transition, so it switches off only once the
+         drawer has slid shut. --}}
     <aside class="fixed inset-y-0 left-0 z-drawer flex w-[260px] print:hidden flex-col border-r border-line bg-surface
-                  max-lg:-translate-x-full max-lg:shadow-lg max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
-           :class="navOpen && 'max-lg:!translate-x-0'"
+                  max-lg:invisible max-lg:-translate-x-full max-lg:shadow-lg max-lg:transition-[transform,visibility] max-lg:duration-200 max-lg:ease-out"
+           :class="navOpen && 'max-lg:!visible max-lg:!translate-x-0'"
            aria-label="Sidebar">
 
         <div class="flex h-14 flex-none items-center gap-2 px-4">

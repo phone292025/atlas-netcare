@@ -190,7 +190,10 @@ class AppShellTest extends TestCase
         preg_match('/<aside class="([^"]*)"[^>]*aria-label="Sidebar"/', $html, $sidebar);
 
         $this->assertStringContainsString('max-lg:-translate-x-full', $sidebar[1] ?? '', 'Closed is not in the static class list, so the drawer flashes open on every page load.');
-        $this->assertStringContainsString("'max-lg:!translate-x-0'", $html);
+        $this->assertStringContainsString("'max-lg:!visible max-lg:!translate-x-0'", $html);
+        // Closed, the drawer is invisible as well as off screen, or its links
+        // keep taking keyboard focus (accessibility.spec.js).
+        $this->assertStringContainsString('max-lg:invisible', $sidebar[1] ?? '');
         $this->assertStringNotContainsString('lg:translate-x-0"', $html, 'An unscoped lg:translate-x-0 re-creates the cascade conflict.');
     }
 
