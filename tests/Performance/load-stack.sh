@@ -128,5 +128,18 @@ else
     status=1
 fi
 
+# Agents back after an outage: five at once, each with 30 access points of
+# its own, each sending two batches of 500 buffered readings in a row.
+echo
+echo "Backlog: 5 agents back at once, 2 batches of 500 readings each."
+BACKLOG=$(artisan tinker --execute='
+    $out = [];
+    foreach (App\Models\AccessPoint::query()->orderBy("id")->limit(150)->pluck("code")->chunk(30)->take(5) as $i => $codes) {
+        $made = app(App\Services\Telemetry\AgentService::class)->register("Backlog agent ".($i + 1));
+        App\Models\NetworkDevice::query()->whereIn("code", $codes)->update(["agent_id" => $made["agent"]->id]);
+        $out[] = ["token" => $made["token"], "devices" => $codes->values()];
+    }
+    echo json_encode($out);')
+node tests/Performance/backlog.mjs "$BACKLOG" || status=1
 
 exit "$status"
