@@ -26,7 +26,8 @@ const screens = {
     admin: [
         '/admin/monitor', '/admin/lab-pcs', '/admin/aps', '/admin/devices', '/admin/agents', '/admin/locations',
         '/admin/users', '/admin/audit', '/admin/roster', '/admin/shift-templates', '/admin/checklists', '/admin/reports',
-        '/admin/lab-pcs/create', '/admin/users/create', '/admin/incidents', '/notifications', '/profile',
+        '/admin/lab-pcs/create', '/admin/aps/create', '/admin/devices/create', '/admin/agents/create', '/admin/locations/create',
+        '/admin/checklists/create', '/admin/shift-templates/create', '/admin/users/create', '/admin/incidents', '/notifications', '/profile',
     ],
     engineer: [
         '/engineer/dashboard', '/engineer/monitor', '/engineer/aps', '/engineer/traffic', '/engineer/tickets',
@@ -38,28 +39,39 @@ const screens = {
     ],
 };
 
-/** A list screen, and the link on it that opens one of its records. */
+/**
+ * A list screen, and the link on it that opens one of its records. The demo
+ * data fills every list, so a link that isn't there fails the test, unless
+ * the entry is marked optional: incidents come and go with the simulator.
+ */
 const details = {
     admin: [
         ['/admin/users', /^\/admin\/users\/\d+\/edit$/],
         ['/admin/lab-pcs', /^\/admin\/lab-pcs\/\d+$/],
+        ['/admin/lab-pcs', /^\/admin\/lab-pcs\/\d+\/edit$/],
         ['/admin/aps', /^\/admin\/aps\/\d+$/],
+        ['/admin/aps', /^\/admin\/aps\/\d+\/edit$/],
         ['/admin/devices', /^\/admin\/devices\/\d+$/],
+        ['/admin/devices', /^\/admin\/devices\/\d+\/edit$/],
         ['/admin/agents', /^\/admin\/agents\/\d+$/],
         ['/admin/checklists', /^\/admin\/checklists\/\d+\/edit$/],
         ['/admin/locations', /^\/admin\/locations\/\d+\/edit$/],
-        ['/admin/incidents?view=resolved', /^\/admin\/incidents\/\d+$/],
+        ['/admin/shift-templates', /^\/admin\/shift-templates\/\d+\/edit$/],
+        ['/admin/incidents?view=resolved', /^\/admin\/incidents\/\d+$/, 'optional'],
+        ['/admin/incidents', /^\/admin\/incidents\/\d+$/, 'optional'],
     ],
     engineer: [
         ['/engineer/tickets', /^\/engineer\/tickets\/\d+$/],
         ['/engineer/aps', /^\/engineer\/aps\/\d+$/],
         ['/engineer/risk', /^\/engineer\/risk\/[a-z-]+\/\d+$/],
-        ['/engineer/incidents', /^\/engineer\/incidents\/\d+$/],
+        ['/engineer/incidents', /^\/engineer\/incidents\/\d+$/, 'optional'],
+        ['/engineer/incidents?view=resolved', /^\/engineer\/incidents\/\d+$/, 'optional'],
     ],
     assistant: [
         ['/assistant/tickets', /^\/assistant\/tickets\/\d+$/],
         ['/assistant/inspections', /^\/assistant\/inspections\/create\?location=\d+$/],
-        ['/assistant/aps', /^\/assistant\/aps\/\d+$/],
+        ['/assistant/incidents', /^\/assistant\/incidents\/\d+$/, 'optional'],
+        ['/assistant/incidents?view=resolved', /^\/assistant\/incidents\/\d+$/, 'optional'],
     ],
 };
 
@@ -70,14 +82,19 @@ const details = {
 async function everyScreen(page, role) {
     const found = [...screens[role]];
 
-    for (const [list, link] of details[role]) {
+    for (const [list, link, optional] of details[role]) {
         await page.goto(list);
         const hrefs = await page.$$eval('a[href]', (anchors) => anchors.map((a) => new URL(a.href).pathname + new URL(a.href).search));
         const detail = hrefs.find((href) => link.test(href));
-        if (detail) found.push(detail);
+
+        if (detail) {
+            found.push(detail);
+        } else if (!optional) {
+            throw new Error(`${list} has no link matching ${link}, so that screen would go unchecked.`);
+        }
     }
 
-    return found;
+    return [...new Set(found)];
 }
 
 /** axe's WCAG 2.1 A and AA rules on the page as it is. */

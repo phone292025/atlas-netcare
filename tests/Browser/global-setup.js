@@ -9,7 +9,8 @@ import { artisan, compose, stack } from './stack.js';
  * 3. Demo data is seeded, which makes the default accounts, and an
  *    administrator of its own is created with atlas:create-admin, as the
  *    README tells an owner to. The demo assistant gets an all-day shift
- *    today, to check in to before inspecting.
+ *    today, to check in to before inspecting, and one probe agent is
+ *    registered, so the agent screens have a record to show.
  *
  * The accounts reach the tests through ATLAS_BROWSER_ACCOUNTS, which Playwright
  * hands to every worker. The demo accounts are read from the app's own config,
@@ -26,7 +27,8 @@ export default function globalSetup() {
     // runs, so the inspection flow can check in to it (FR-203).
     artisan('tinker', String.raw`--execute=$u = App\Models\User::where("email", config("atlas.demo_users.assistant.email"))->sole();
         App\Models\Shift::create(["user_id" => $u->id, "location_id" => App\Models\Location::where("code", "L5-NET-01")->value("id"),
-        "shift_date" => App\Support\CampusClock::today()->toDateString(), "start_time" => "00:00", "end_time" => "23:59"]);`);
+        "shift_date" => App\Support\CampusClock::today()->toDateString(), "start_time" => "00:00", "end_time" => "23:59"]);
+        app(App\Services\Telemetry\AgentService::class)->register("Browser test agent");`);
 
     const created = artisan('atlas:create-admin', '--email=owner@atlas.local');
     const admin = {
