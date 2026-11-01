@@ -369,7 +369,7 @@ which is why a grep for the class name finds nothing and proves nothing.
 | `FormField.php` | Shared derivations for form controls |
 | `Icons.php` | The icon set: Phosphor glyphs under the app's own names |
 | `ResetLinkOnScreen.php` | Whether the forgot-password page may show the reset link itself |
-| `TableLock.php` | One writer at a time on a small table, until the transaction ends |
+| `TableLock.php` | One writer at a time on a table written rarely, until the transaction ends |
 | `Tone.php` | The single source of truth for what a tone looks like |
 <!-- /code-map -->
 
@@ -416,7 +416,7 @@ and why each runs when it does.
 |---|---|
 | `BackfillTelemetry.php` | Invent plausible telemetry history, so the charts have something to draw |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
-| `CheckDeployment.php` | Refuse to start a production copy with settings that would expose it |
+| `CheckDeployment.php` | Refuse to start a copy with settings that would expose it |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
 | `CollectTelemetry.php` | Take one reading from every access point and store it |
 | `CreateAdmin.php` | Create the first administrator, or let an administrator back in |
@@ -491,6 +491,7 @@ database that already ran it.
 | `2026_11_01_100001_allow_one_unfinished_inspection_per_machine_and_person.php` | One unfinished inspection per machine and person, held by the database |
 | `2026_11_01_100002_allow_one_active_checklist_template.php` | At most one active checklist template, held by the database |
 | `2026_11_01_100003_allow_one_ticket_per_failed_answer.php` | One live ticket per failed checklist answer (FR-207), held by the database |
+| `2026_11_01_100004_make_checklist_versions_unique_per_name.php` | One checklist template per name and version, held by the database |
 | `2026_11_01_110001_create_incidents_table.php` | A fault the system has noticed (ADR-0014, roadmap 2.2) |
 | `2026_11_01_110002_create_incident_devices_table.php` | The devices one incident covers (roadmap 2.3) |
 | `2026_11_01_110003_create_incident_events_table.php` | An incident's timeline: opened, devices joining, alerts, escalation, |

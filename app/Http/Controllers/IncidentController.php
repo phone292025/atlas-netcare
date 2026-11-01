@@ -48,11 +48,19 @@ class IncidentController extends Controller
         ]);
     }
 
-    public function show(Incident $incident): View
+    public function show(Request $request, Incident $incident): View
     {
         $this->authorize('view', $incident);
+        $user = $request->user();
 
         return view('incidents.show', [
+            // Worked out here: the acknowledge rule reads who was alerted,
+            // and views never query.
+            'can' => [
+                'acknowledge' => $user->can('acknowledge', $incident),
+                'resolve' => $user->can('resolve', $incident),
+                'raiseTicket' => $user->can('raiseTicket', $incident),
+            ],
             'incident' => $incident->load(['device.location', 'device.parent', 'agent', 'ticket', 'acknowledgedBy', 'groupedInto', 'events.user', 'devices.location']),
             'alerts' => $incident->alerts()->with('user')->orderBy('step')->orderBy('id')->get(),
         ]);
@@ -69,6 +77,21 @@ class IncidentController extends Controller
         }
 
         return back()->with('success', 'Acknowledged. Nobody else will be told about it unless it gets worse.');
+    }
+
+    public function resolve(Request $request, Incident $incident): RedirectResponse
+    {
+        $this->authorize('resolve', $incident);
+
+        $note = $request->validate(['note' => ['required', 'string', 'max:500']])['note'];
+
+        try {
+            $this->incidents->resolveByHand($incident, $request->user(), $note);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Resolved. It opens again if the device degrades again.');
     }
 
     public function ticket(Request $request, Incident $incident): RedirectResponse

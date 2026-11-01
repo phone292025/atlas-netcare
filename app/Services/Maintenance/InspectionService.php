@@ -97,9 +97,9 @@ class InspectionService
     }
 
     /**
-     * The shift this assistant is checked in to today, if any: the one new
-     * inspections are recorded against. A check-in left open from an earlier
-     * day does not count.
+     * The shift this assistant is on now, if any: the one new inspections are
+     * recorded against. A check-in left open from an earlier day, or past
+     * its shift's end, does not count (Shift::isOnNow()).
      */
     public function activeShiftFor(User $user): ?Shift
     {
@@ -108,7 +108,8 @@ class InspectionService
             ->on(CampusClock::today())
             ->where('status', ShiftStatus::CheckedIn)
             ->latest('checked_in_at')
-            ->first();
+            ->get()
+            ->first(fn (Shift $shift) => $shift->isOnNow());
     }
 
     /**

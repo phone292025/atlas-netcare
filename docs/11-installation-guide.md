@@ -124,7 +124,7 @@ An administrator adds every other account, other administrators included, under 
 
 The stack listens on this machine only. To open it from a phone on the same Wi-Fi, add `ATLAS_BIND=0.0.0.0` to `.env` and run `docker compose up -d`. Then browse to `http://<your-machine-ip>:8000`, where `ipconfig` gives the IP. Windows asks once whether to let Docker through the firewall. It has to be allowed on public networks too, because most Wi-Fi networks are classified public.
 
-Anyone on that Wi-Fi can then reach the sign-in page, over plain HTTP, and the default accounts' password is public. Create your own administrator and remove the default accounts first, or at least set your own `ATLAS_DEMO_PASSWORD` and seed again, and set `APP_DEBUG=false`. For anything longer than a demonstration, turn on HTTPS as [HTTPS for remote agents](#https-for-remote-agents) shows: passwords then cross the Wi-Fi encrypted too.
+Anyone on that Wi-Fi can then reach the sign-in page, over plain HTTP, and the default accounts' password is public. So with `.env.example`'s settings **the app refuses to start** once `ATLAS_BIND` opens it to the network, and `docker compose logs app` lists why: debug on, demo mode, demo accounts, plain HTTP. Fix each one, which for HTTPS is [HTTPS for remote agents](#https-for-remote-agents), or, for a short demonstration on a Wi-Fi you trust, add `ATLAS_ALLOW_UNSAFE_NETWORK=true` to `.env` and it starts with a warning. Take it out again afterwards.
 
 Switching `ATLAS_BIND` can fail with "ports are not available" while Docker Desktop is still letting go of the old address. Run `docker compose up -d` again a few seconds later.
 
@@ -267,7 +267,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 ### Before anyone else can reach it
 
-Set `APP_ENV=production` in `.env`. On every start the app container then runs `php artisan atlas:check-deployment`, and **refuses to start** while any of these is true:
+Set `APP_ENV=production` in `.env`. On every start the app container runs `php artisan atlas:check-deployment`, and **refuses to start** while any of these is true, in production and whenever the stack is reachable from other machines:
 
 - `APP_DEBUG` is on
 - `APP_KEY` is empty
@@ -276,7 +276,7 @@ Set `APP_ENV=production` in `.env`. On every start the app container then runs `
 - the stack is published beyond this machine and `ATLAS_URL` is not `https://`
 - `ATLAS_AGENTS_ALLOW_PLAIN_HTTP` is on
 
-The container exits, Docker restarts it, and `docker compose logs app` lists what to change. Outside production the same findings print as warnings and the app starts. Run the command yourself to check before switching: `docker compose exec app php artisan atlas:check-deployment`.
+The container exits, Docker restarts it, and `docker compose logs app` lists what to change. On a stack only this machine can reach, the same findings print as warnings and the app starts. `ATLAS_ALLOW_UNSAFE_NETWORK=true` starts a reachable stack anyway, outside production only. Run the command yourself to check before switching: `docker compose exec app php artisan atlas:check-deployment`.
 
 Backups and restores are in the README, under "Backups".
 

@@ -7,14 +7,17 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Refuse to start a production copy with settings that would expose it.
+ * Refuse to start a copy with settings that would expose it.
  *
  * Runs in the container's start script, after migrations and before the web
- * server. With APP_ENV=production every problem it finds is fatal: the
- * container exits, Docker restarts it, and `docker compose logs app` says
- * what to change. Anywhere else the same findings are printed as warnings,
- * because a development machine runs with debug on and the demo accounts on
- * purpose.
+ * server. Every problem it finds is fatal when APP_ENV=production, and also
+ * whenever the stack is reachable from other machines (ATLAS_BIND beyond
+ * loopback), whatever APP_ENV says: the container exits, Docker restarts it,
+ * and `docker compose logs app` says what to change. On a stack only this
+ * machine can reach the same findings are warnings, because a development
+ * machine runs with debug on and the demo accounts on purpose.
+ * ATLAS_ALLOW_UNSAFE_NETWORK=true lets a demonstration on a trusted Wi-Fi
+ * start anyway, and says so.
  *
  * Each check is a setting that has a safe value Atlas cannot choose for the
  * owner: their own database password, their HTTPS address, debug off, no
@@ -34,7 +37,8 @@ class CheckDeployment extends Command
     public function handle(): int
     {
         $problems = $this->problems();
-        $production = app()->environment('production');
+        $reachable = ! config('atlas.published_on_loopback');
+        $fatal = app()->environment('production') || ($reachable && ! config('atlas.allow_unsafe_network'));
 
         if ($problems === []) {
             $this->info('Deployment settings: nothing unsafe found.');
@@ -43,16 +47,19 @@ class CheckDeployment extends Command
         }
 
         foreach ($problems as $problem) {
-            $production ? $this->error("  {$problem}") : $this->warn("  {$problem}");
+            $fatal ? $this->error("  {$problem}") : $this->warn("  {$problem}");
         }
 
-        if (! $production) {
-            $this->line('  Fine on a development machine. With APP_ENV=production these stop the app from starting.');
+        if (! $fatal) {
+            $this->line($reachable
+                ? '  Starting anyway, because ATLAS_ALLOW_UNSAFE_NETWORK is on. Anyone on this network can reach these settings.'
+                : '  Fine while only this machine can reach it. Published to the network, or with APP_ENV=production, these stop the app from starting.');
 
             return self::SUCCESS;
         }
 
-        $this->error('Refusing to start: fix the settings above in .env, then run docker compose up -d again.');
+        $this->error('Refusing to start: fix the settings above in .env, then run docker compose up -d again.'
+            .($reachable && ! app()->environment('production') ? ' For a short demonstration on a Wi-Fi you trust, ATLAS_ALLOW_UNSAFE_NETWORK=true starts it anyway.' : ''));
 
         return self::FAILURE;
     }

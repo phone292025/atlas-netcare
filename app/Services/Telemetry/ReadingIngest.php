@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\DB;
  * sequence it was told about, so nothing it sent waits in its buffer for ever.
  *
  * Stored readings go through the same path as the simulator's, so a reading
- * from an agent changes a device's status and raises tickets and alerts
- * exactly as a simulated one does.
+ * from an agent changes a device's status, and publishes the change for the
+ * incidents to follow, exactly as a simulated one does.
  */
 class ReadingIngest
 {
@@ -65,10 +65,10 @@ class ReadingIngest
             $accepted->push($this->toReading($agent, $device, $reading, $measuredAt, $receivedAt));
         }
 
-        // One transaction: if the ticket or the alert fails, the readings go
-        // too, and the agent's retry raises them. Stored alone, the retry was
-        // all duplicates, the device was already Offline, and the outage was
-        // never ticketed.
+        // The readings and the statuses they move commit together. The status
+        // changes are published once this commits; incidents, tickets and
+        // alerts follow on the queue, and the incident sweep catches any the
+        // queue loses, from the statuses stored here.
         $result = DB::transaction(function () use ($accepted): StoredReadings {
             $result = $this->telemetry->record($accepted);
             $this->collector->react($result->transitions);

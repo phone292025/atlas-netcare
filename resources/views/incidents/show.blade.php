@@ -32,20 +32,23 @@
     <x-page-header :title="$incident->title" :subtitle="'#'.$incident->id.' · '.$incident->rule->label()">
         <x-slot:actions>
             <x-status-badge :status="$incident->status" />
-            @can('acknowledge', $incident)
+            @if ($can['acknowledge'])
                 @if ($incident->status === \App\Enums\IncidentStatus::Open)
                     <form method="POST" action="{{ route('incidents.acknowledge', $incident) }}">
                         @csrf
                         <x-button type="submit" icon="check">Acknowledge</x-button>
                     </form>
                 @endif
-            @endcan
-            @can('raiseTicket', $incident)
+            @endif
+            @if ($can['resolve'])
+                <x-button variant="secondary" icon="check-circle" @click="$dispatch('open-modal', 'resolve-incident')">Resolve</x-button>
+            @endif
+            @if ($can['raiseTicket'])
                 <form method="POST" action="{{ route('incidents.ticket', $incident) }}">
                     @csrf
                     <x-button type="submit" variant="secondary" icon="ticket">Raise ticket</x-button>
                 </form>
-            @endcan
+            @endif
         </x-slot:actions>
     </x-page-header>
 
@@ -110,6 +113,9 @@
                                     {{ $alert->sent_at ? $alert->sent_at->campus()->format('H:i') : ($alert->failed_at ? 'Failed' : 'Sending') }}
                                 </span>
                             </li>
+                            @if ($alert->failed_at && $alert->error)
+                                <li class="px-5 pb-2.5 text-xs text-red-700 break-words">{{ $alert->error }}</li>
+                            @endif
                         @endforeach
                     </ul>
                 </x-card>
@@ -120,4 +126,17 @@
             <x-timeline :events="$timeline" />
         </x-card>
     </div>
+    @if ($can['resolve'])
+        <x-modal name="resolve-incident" title="Resolve this incident">
+            <form method="POST" action="{{ route('incidents.resolve', $incident) }}" class="space-y-4">
+                @csrf
+                <x-form.textarea name="note" label="Why it can be closed" required
+                                 help="A known busy hour, a link already being replaced. It goes on the timeline." />
+                <div class="flex justify-end gap-2">
+                    <x-button variant="ghost" type="button" @click="$dispatch('close-modal', 'resolve-incident')">Cancel</x-button>
+                    <x-button type="submit">Resolve</x-button>
+                </div>
+            </form>
+        </x-modal>
+    @endif
 </x-app-layout>

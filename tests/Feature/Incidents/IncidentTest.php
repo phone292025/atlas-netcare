@@ -25,6 +25,7 @@ use App\Services\Incidents\IncidentAlerts;
 use App\Services\Incidents\IncidentService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
@@ -236,6 +237,18 @@ class IncidentTest extends TestCase
         $this->assertNull(Incident::sole()->next_escalation_at);
     }
 
+    public function test_an_assistant_who_forgot_to_check_out_is_not_on_call_all_evening(): void
+    {
+        $forgot = $this->onShift($this->room);
+        // The factory's shift ends two hours after the frozen clock.
+        $this->travel(120 + (int) config('atlas.shifts.on_shift_after_end_min') + 1)->minutes();
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+
+        $this->assertSame(0, $this->alarmsFor($forgot));
+        $this->assertSame(1, $this->alarmsFor($this->engineer));
+    }
+
     public function test_with_nobody_on_shift_the_engineers_are_told_at_once(): void
     {
         $this->change(NetworkStatus::Offline, $this->accessPointBehind());
@@ -261,6 +274,51 @@ class IncidentTest extends TestCase
         $this->assertSame(IncidentStatus::Acknowledged, $incident->status);
         $this->assertTrue($incident->acknowledgedBy->is($assistant));
         $this->assertSame(0, $this->alarmsFor($this->engineer));
+    }
+
+    public function test_only_people_whose_job_it_is_can_stop_the_escalation(): void
+    {
+        $alerted = $this->onShift($this->room);
+        $offShift = $this->userWith(UserRole::Assistant);
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $incident = Incident::sole();
+
+        $this->actingAs($offShift)->post(route('incidents.acknowledge', $incident))->assertForbidden();
+        $this->assertSame(IncidentStatus::Open, $incident->fresh()->status);
+
+        $this->actingAs($offShift)->get($incident->urlFor($offShift))->assertOk()->assertDontSee('Acknowledge');
+        $this->actingAs($alerted)->get($incident->urlFor($alerted))->assertOk()->assertSee('Acknowledge');
+        $this->actingAs($this->engineer)->post(route('incidents.acknowledge', $incident))->assertSessionHas('success');
+    }
+
+    public function test_a_late_event_about_a_status_the_device_has_left_opens_nothing(): void
+    {
+        $ap = $this->accessPointBehind();
+        // The Offline event is retried after the device came back.
+        event(DeviceStatusesChanged::fromTransitions([['device' => $ap, 'from' => NetworkStatus::Online, 'to' => NetworkStatus::Offline]]));
+
+        $this->assertSame(0, Incident::count());
+        $this->assertSame(0, Ticket::count());
+    }
+
+    public function test_an_engineer_can_close_a_degraded_incident_by_hand_and_not_an_outage(): void
+    {
+        $ap = $this->accessPointBehind();
+        $this->change(NetworkStatus::Degraded, $ap);
+        $degraded = Incident::sole();
+
+        $this->actingAs($this->userWith(UserRole::Assistant))
+            ->post(route('incidents.resolve', $degraded), ['note' => 'Exam week'])->assertForbidden();
+        $this->actingAs($this->engineer)
+            ->post(route('incidents.resolve', $degraded), ['note' => 'Exam week, expected'])->assertSessionHas('success');
+        $this->assertSame('by_hand', $degraded->fresh()->resolution);
+        $this->assertTrue($degraded->events()->where('message', 'like', '%Exam week, expected%')->exists());
+
+        $this->change(NetworkStatus::Offline, $ap);
+        $outage = Incident::where('rule', IncidentRule::Offline)->sole();
+        $this->actingAs($this->engineer)
+            ->post(route('incidents.resolve', $outage), ['note' => 'x'])->assertForbidden();
+        $this->assertNull($outage->fresh()->resolved_at);
     }
 
     // ------------------------------------------------- alerts once
@@ -312,6 +370,23 @@ class IncidentTest extends TestCase
         Http::assertSentCount(2);
         // The in-app alert is a separate claim, and it went, once.
         $this->assertSame(1, $this->alarmsFor($this->engineer));
+    }
+
+    public function test_a_telegram_connection_error_is_stored_without_the_bot_token(): void
+    {
+        config(['queue.default' => 'database', 'atlas.incidents.telegram_bot_token' => '987654:SECRET-token-value']);
+        Http::fake(fn () => throw new ConnectionException('cURL error 7: Failed to connect for https://api.telegram.org/bot987654:SECRET-token-value/sendMessage'));
+        $this->engineer->forceFill(['telegram_chat_id' => '4242'])->save();
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 1]);
+
+        $error = IncidentAlert::where('channel', AlertChannel::Telegram)->sole()->error;
+        $this->assertStringContainsString('[token]', $error);
+        $this->assertStringNotContainsString('SECRET', $error);
+        $this->assertStringNotContainsString('SECRET', (string) DB::table('failed_jobs')->value('exception'));
+
+        $this->actingAs($this->engineer)->get(Incident::sole()->urlFor($this->engineer))->assertOk()->assertSee('[token]');
     }
 
     // ------------------------------------------------- degraded, flapping, silent

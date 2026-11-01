@@ -23,7 +23,9 @@ class ChecklistTemplateFactory extends Factory
         return [
             'name' => 'Standard Lab PC Check',
             'description' => 'Routine check carried out during a lab round.',
-            'version' => 1,
+            // The next free version for the name: name and version are
+            // unique together, and tests often make several templates.
+            'version' => fn (array $attributes) => (int) ChecklistTemplate::query()->where('name', $attributes['name'])->max('version') + 1,
             'is_active' => false,
         ];
     }

@@ -89,14 +89,42 @@ class CheckDeploymentTest extends TestCase
         $this->artisan('atlas:check-deployment')->assertSuccessful();
     }
 
+    public function test_a_development_copy_reachable_from_the_network_refuses_unsafe_settings(): void
+    {
+        $this->app['env'] = 'local';
+        config(['app.debug' => true, 'atlas.demo_mode' => true, 'atlas.published_on_loopback' => false]);
+
+        $this->artisan('atlas:check-deployment')
+            ->assertFailed()
+            ->expectsOutputToContain('ATLAS_ALLOW_UNSAFE_NETWORK=true starts it anyway');
+    }
+
+    public function test_a_demonstration_on_a_trusted_wifi_can_start_when_asked_and_is_told_so(): void
+    {
+        $this->app['env'] = 'local';
+        config(['app.debug' => true, 'atlas.published_on_loopback' => false, 'atlas.allow_unsafe_network' => true]);
+
+        $this->artisan('atlas:check-deployment')
+            ->assertSuccessful()
+            ->expectsOutputToContain('Anyone on this network can reach these settings');
+    }
+
+    public function test_the_override_does_not_reach_production(): void
+    {
+        $this->safeProduction();
+        config(['app.debug' => true, 'atlas.allow_unsafe_network' => true]);
+
+        $this->artisan('atlas:check-deployment')->assertFailed();
+    }
+
     public function test_a_development_machine_is_warned_and_still_starts(): void
     {
         $this->app['env'] = 'local';
-        config(['app.debug' => true, 'atlas.demo_mode' => true]);
+        config(['app.debug' => true, 'atlas.demo_mode' => true, 'atlas.published_on_loopback' => true]);
 
         $this->artisan('atlas:check-deployment')
             ->assertSuccessful()
             ->expectsOutputToContain('APP_DEBUG')
-            ->expectsOutputToContain('Fine on a development machine');
+            ->expectsOutputToContain('Fine while only this machine can reach it');
     }
 }

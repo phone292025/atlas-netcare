@@ -52,6 +52,26 @@ class ConcurrentWritesTest extends TestCase
         DB::table('checklist_templates')->where('id', $second->id)->update(['is_active' => true]);
     }
 
+    public function test_the_database_refuses_a_second_template_with_one_name_and_version(): void
+    {
+        ChecklistTemplate::factory()->create(['name' => 'Lab check', 'version' => 3]);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        ChecklistTemplate::factory()->create(['name' => 'Lab check', 'version' => 3]);
+    }
+
+    public function test_a_new_template_with_a_name_in_use_is_numbered_after_it(): void
+    {
+        ChecklistTemplate::factory()->create(['name' => 'Lab check', 'version' => 2]);
+
+        $copy = app(ChecklistService::class)->create(['name' => 'Lab check'], [['label' => 'Boots', 'category' => 'boot']]);
+        $renamed = app(ChecklistService::class)->update(ChecklistTemplate::factory()->create(['name' => 'Draft']), ['name' => 'Lab check']);
+
+        $this->assertSame(3, $copy->version);
+        $this->assertSame(4, $renamed->version);
+    }
+
     public function test_activating_still_moves_the_active_checklist(): void
     {
         $first = ChecklistTemplate::factory()->active()->create();

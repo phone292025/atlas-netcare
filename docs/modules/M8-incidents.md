@@ -31,7 +31,7 @@ FR-503, FR-511 to FR-517
 ## How a fault travels
 
 1. A reading or a sweep changes a device's status. Telemetry publishes `DeviceStatusesChanged` for the batch once its transaction commits. It imports nothing from Tickets, Shifts or Incidents, and `ArchitectureTest` fails the build if it does.
-2. The listener, on the queue, takes a lock on `incidents` and goes through the changes, highest devices first:
+2. The listener, on the queue, takes a lock on `incidents` and goes through the changes, highest devices first. A change whose new status the device has already left is skipped: a retried or late event must not open an outage on a device that is up. The event that moved it on brings its own change.
    - **Offline.** If a device above it already has an open offline incident, the device joins it (`incident_devices`). Otherwise it opens its own, takes in any open offline incidents of devices below it (resolved as `grouped`, pointing at the new one), raises the ticket and starts on-call.
    - **Back** (Online, Degraded or Maintenance from Offline). Its incident resolves. Any device in it still offline then starts again on its own, since it is now a fault of its own.
    - **Degraded** from Online or Unknown opens a degraded incident, at most once per `thresholds.degraded_alert_cooldown_min`. Back to Online resolves it. Coming back from Offline through Degraded is recovery, not a new fault.
@@ -51,11 +51,15 @@ An offline incident raises one ticket as it opens: Critical, Network, reported i
 
 | Step | Who | When |
 |---|---|---|
-| 0 | Assistants checked in to a shift today. Those whose shift is in the device's location, alone, if there are any | When it opens |
+| 0 | Assistants on a shift now: checked in, today, and not past the shift's end by more than `shifts.on_shift_after_end_min`, so a forgotten check-out stops counting. Those whose shift is in the device's location, alone, if there are any | When it opens |
 | 1 | Every active engineer | `incidents.escalate_after_min` later, if nobody acknowledged it |
 | 2 | Every active administrator | The same again |
 
-A step with nobody in it, such as no assistant on shift at night, is skipped at once. A silent agent is configuration, so it goes to engineers and administrators together, in one step. Acknowledging, from the incident's page, stops the escalation; the incident still resolves itself.
+A step with nobody in it, such as no assistant on shift at night, is skipped at once. A silent agent is configuration, so it goes to engineers and administrators together, in one step.
+
+Acknowledging, from the incident's page, stops the escalation; the incident still resolves itself. Engineers and administrators can acknowledge any incident, and an assistant one they were alerted to: it stops everyone else being told, so it is for the people whose job it is.
+
+An engineer or administrator can **resolve a degraded or flapping incident by hand**, with a note that goes on the timeline: a known busy hour, a link already being replaced. Offline and silent incidents resolve only when the device or agent is back, because the next sweep would open them again a minute later.
 
 ## Alerts
 
@@ -67,7 +71,7 @@ A step with nobody in it, such as no assistant on shift at night, is skipped at 
 | Email | `MAIL_MAILER` is not `log` | Once, unless the worker dies between the mail server accepting it and `sent_at` being saved |
 | Telegram | `ATLAS_TELEGRAM_BOT_TOKEN` is set and the person has a chat id on their profile | The same |
 
-A send that fails is retried by the worker, and the last failure is saved on the claim as `failed_at` and `error`, which the incident's page shows. Phone push is not built.
+A send that fails is retried by the worker, and the last failure is saved on the claim as `failed_at` and `error`, which the incident's page shows. The Telegram bot token is in the API's URL, and a connection error quotes the URL, so the token is replaced with `[token]` before anything is stored or logged. Phone push is not built.
 
 ## Screens
 
@@ -89,3 +93,6 @@ Every role: **Incidents** (active, with those nobody has taken first; resolved) 
 - [x] An alert is sent once per person, step and channel; a failed Telegram send is retried and recorded
 - [x] The sweep opens and resolves what a lost event missed, and changes nothing when run twice
 - [x] Every role's incident screens render empty and populated
+- [x] A late event about a status the device has left opens nothing
+- [x] An off-shift assistant cannot acknowledge; an engineer can resolve a degraded incident by hand and not an outage
+- [x] A Telegram connection error is stored without the bot token

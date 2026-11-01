@@ -26,6 +26,25 @@ use Illuminate\Support\Facades\DB;
 class ChecklistService
 {
     /**
+     * A new template, numbered after any other with its name, so a second
+     * "Standard Lab PC Check" is v2 rather than a second v1.
+     *
+     * @param  array{name: string, description?: string|null}  $attributes
+     * @param  array<int, array{label: string, category: string, is_critical?: bool}>  $items
+     */
+    public function create(array $attributes, array $items): ChecklistTemplate
+    {
+        return DB::transaction(function () use ($attributes, $items) {
+            TableLock::forWriting('checklist_templates');
+
+            $template = new ChecklistTemplate($attributes);
+            $template->forceFill(['version' => $this->nextVersion($attributes['name'])])->save();
+
+            return $this->replaceItems($template->refresh(), $items);
+        });
+    }
+
+    /**
      * Apply an edit, versioning first if the template has been used.
      *
      * Returns the template the caller should now show — which may not be the
@@ -36,9 +55,19 @@ class ChecklistService
     public function update(ChecklistTemplate $template, array $attributes): ChecklistTemplate
     {
         if (! $template->isLocked()) {
-            $template->update($attributes);
+            return DB::transaction(function () use ($template, $attributes) {
+                TableLock::forWriting('checklist_templates');
 
-            return $template;
+                // Renamed to a name that already has this version number:
+                // it takes the next free one under the new name.
+                $template->fill($attributes);
+                if ($template->isDirty('name')) {
+                    $template->forceFill(['version' => $this->nextVersion($template->name)]);
+                }
+                $template->save();
+
+                return $template;
+            });
         }
 
         return $this->newVersionOf($template, $attributes);
@@ -69,7 +98,9 @@ class ChecklistService
              */
             $nextVersion = $this->nextVersion($attributes['name'] ?? $template->name);
 
-            $copy = ChecklistTemplate::create([
+            // Numbered before it is inserted: the name and version pair is
+            // unique, and the column default of 1 is usually taken.
+            $copy = new ChecklistTemplate([
                 'name' => $attributes['name'] ?? $template->name,
                 'description' => $attributes['description'] ?? $template->description,
             ]);

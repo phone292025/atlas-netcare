@@ -124,6 +124,12 @@ return [
     // shows its link only to somebody at this machine (ResetLinkOnScreen).
     'published_on_loopback' => in_array(env('ATLAS_BIND'), ['127.0.0.1', 'localhost', '::1'], true),
 
+    // Start anyway when the stack is reachable from other machines with
+    // unsafe settings: debug on, demo accounts, plain HTTP. For showing it on
+    // a phone over a Wi-Fi you trust, and nothing longer. Off, and
+    // atlas:check-deployment stops the container instead.
+    'allow_unsafe_network' => (bool) env('ATLAS_ALLOW_UNSAFE_NETWORK', false),
+
     /*
     |--------------------------------------------------------------------------
     | Dashboard refresh
@@ -361,6 +367,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | `check_in_grace_min`   how early an assistant may check in
+    | `on_shift_after_end_min` how long after its end a shift still counts as
+    |                        the one somebody is on, for starting inspections
+    |                        and for on-call: a check-out forgotten at noon
+    |                        must not make them on call all evening
     | `reminder_before_min`  how long before a shift its reminder is sent
     | `round_interval_min`   how often an inspection-round reminder fires
     |                        during a shift; lower it and the bell becomes
@@ -372,6 +382,7 @@ return [
 
     'shifts' => [
         'check_in_grace_min' => 15,
+        'on_shift_after_end_min' => 30,
         'reminder_before_min' => 30,
         'round_interval_min' => 120,
     ],

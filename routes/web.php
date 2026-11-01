@@ -200,6 +200,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,engineer,assistant')->prefix('incidents')->name('incidents.')->group(function () {
         Route::post('{incident}/acknowledge', [IncidentController::class, 'acknowledge'])->name('acknowledge');
         Route::post('{incident}/ticket', [IncidentController::class, 'ticket'])->name('ticket');
+        Route::post('{incident}/resolve', [IncidentController::class, 'resolve'])->name('resolve');
     });
 
     // The dashboards' polling endpoint (FR-302, ADR-0005). Behind `auth`: a

@@ -16,8 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
  * agents"). Plain HTTP is still accepted from this machine: a loopback
  * client, or any client of a Docker stack published on loopback only,
  * because inside the container every request arrives from Docker's gateway.
- * A forwarding header means a proxy or tunnel on this machine, which may be
- * passing on a request from anywhere, so it takes that allowance away.
+ * Either way the request must be addressed to localhost and carry no
+ * forwarding header: a proxy, tunnel or port forward on this machine
+ * connects from loopback too, may be passing on a request from anywhere,
+ * and either adds a header or addresses the request to another name. The
+ * same rule as App\Support\ResetLinkOnScreen.
  *
  * Runs before the token is checked, so a refused request says why without
  * saying whether its token was any good. `atlas.ingest.allow_plain_http`
@@ -26,6 +29,8 @@ use Symfony\Component\HttpFoundation\Response;
 class RequireHttpsForAgents
 {
     private const LOOPBACK = ['127.0.0.0/8', '::1'];
+
+    private const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', '::1'];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -41,6 +46,10 @@ class RequireHttpsForAgents
     private function fromThisMachine(Request $request): bool
     {
         if ($request->headers->has('X-Forwarded-For') || $request->headers->has('Forwarded') || $request->headers->has('Via')) {
+            return false;
+        }
+
+        if (! in_array(strtolower($request->getHost()), self::LOCAL_HOSTS, true)) {
             return false;
         }
 
