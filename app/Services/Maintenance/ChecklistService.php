@@ -3,6 +3,7 @@
 namespace App\Services\Maintenance;
 
 use App\Models\ChecklistTemplate;
+use App\Support\TableLock;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -57,6 +58,10 @@ class ChecklistService
     public function newVersionOf(ChecklistTemplate $template, array $attributes = []): ChecklistTemplate
     {
         return DB::transaction(function () use ($template, $attributes) {
+            // Two administrators saving at once would both read the same
+            // highest version and both write the next one.
+            TableLock::forWriting('checklist_templates');
+
             /*
              * The next version number comes from the highest version sharing
              * this name, not from $template->version + 1. Editing v2 while v3
@@ -100,10 +105,16 @@ class ChecklistService
      * templates would make `ChecklistTemplate::current()` depend on row order,
      * and two assistants inspecting the same rack would answer different
      * questions.
+     *
+     * A partial unique index allows one active row, so a slip here fails
+     * rather than leaving two. The table lock makes two activations at once
+     * queue instead: unlocked, each turned the other off and they deadlocked.
      */
     public function activate(ChecklistTemplate $template): ChecklistTemplate
     {
         DB::transaction(function () use ($template) {
+            TableLock::forWriting('checklist_templates');
+
             ChecklistTemplate::query()
                 ->where('id', '!=', $template->id)
                 ->update(['is_active' => false]);
