@@ -47,7 +47,7 @@ class IncidentTickets
 
         if ($existing) {
             $incident->forceFill(['ticket_id' => $existing->id])->save();
-            $this->log->write($incident, 'ticket', "Linked to {$existing->ticket_number}, already open for {$device->code}.", $by);
+            $this->log->write($incident, 'ticket', "linked it to {$existing->ticket_number}, already open for {$device->code}.", $by);
 
             return $existing;
         }
@@ -55,7 +55,7 @@ class IncidentTickets
         $reporter = $by ?? User::query()->active()->role(UserRole::Admin)->orderBy('id')->first();
 
         if (! $reporter) {
-            $this->log->write($incident, 'note', 'No ticket: there is no administrator to raise it in the system\'s name.');
+            $this->log->write($incident, 'note', 'raised no ticket: there is no administrator to raise it in the system\'s name.');
 
             return null;
         }
@@ -76,7 +76,7 @@ class IncidentTickets
         ], $reporter, $device, isDemo: (bool) $device->is_demo);
 
         $incident->forceFill(['ticket_id' => $ticket->id])->save();
-        $this->log->write($incident, 'ticket', "Raised {$ticket->ticket_number}.", $by);
+        $this->log->write($incident, 'ticket', "raised {$ticket->ticket_number}.", $by);
 
         return $ticket;
     }

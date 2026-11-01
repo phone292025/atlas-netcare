@@ -98,7 +98,7 @@ class OnCall
             ])->save();
 
             $names = $people->pluck('name')->take(3)->implode(', ').($people->count() > 3 ? ' and '.($people->count() - 3).' more' : '');
-            $this->log->write($incident, $escalated ? 'escalated' : 'alerted', ($escalated ? 'Nobody acknowledged it. Told ' : 'Told ').$names.'.');
+            $this->log->write($incident, $escalated ? 'escalated' : 'alerted', 'told '.$names.($escalated ? ', since nobody had acknowledged it.' : '.'));
 
             return;
         }

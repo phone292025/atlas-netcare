@@ -18,12 +18,13 @@ class IncidentEvent extends Model
     }
 
     /** The dot beside it on the timeline: opening and escalating are bad news. */
-    public function tone(): ?string
+    public function tone(): string
     {
         return match ($this->type) {
             'opened', 'escalated' => 'urgent',
             'resolved' => 'healthy',
-            default => null,
+            'acknowledged' => 'attention',
+            default => 'neutral',
         };
     }
 
