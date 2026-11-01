@@ -44,14 +44,7 @@ func (r *rotatingFile) Write(p []byte) (int, error) {
 	defer r.mu.Unlock()
 
 	if r.size+int64(len(p)) > r.max && r.size > 0 {
-		r.file.Close()
-		_ = os.Remove(r.path + ".1")
-		if err := os.Rename(r.path, r.path+".1"); err != nil {
-			return 0, err
-		}
-		if err := r.open(); err != nil {
-			return 0, err
-		}
+		r.rotate()
 	}
 
 	n, err := r.file.Write(p)
@@ -59,8 +52,31 @@ func (r *rotatingFile) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// rotate moves the file to <name>.1 and starts a new one. If it can't, say
+// because another program holds the file open on Windows, it keeps
+// appending to the current file: a log that is too big beats no log.
+func (r *rotatingFile) rotate() {
+	r.file.Close()
+	_ = os.Remove(r.path + ".1")
+	renameErr := os.Rename(r.path, r.path+".1")
+
+	if err := r.open(); err != nil {
+		// The file can't be opened at all now; write to standard error so
+		// a service manager's own log still has something.
+		r.file, r.size = os.Stderr, 0
+		return
+	}
+	if renameErr != nil {
+		// Try again only once the file has grown by another limit.
+		r.size = 0
+	}
+}
+
 func (r *rotatingFile) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.file == os.Stderr {
+		return nil
+	}
 	return r.file.Close()
 }
