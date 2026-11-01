@@ -198,6 +198,11 @@ jobs:
           curl -fsS http://127.0.0.1:8000/login > /dev/null
           docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT count(*) FROM users" | grep -qv '^0$'
 
+      - name: Agents over HTTPS through Caddy, and never over plain HTTP
+        # Restarts the app with ATLAS_SERVER_NAME set: a batch over HTTPS is
+        # stored, and plain HTTP gets 403 from Atlas or 308 from Caddy.
+        run: bash tests/Stack/agent-https.sh
+
       - name: Show the logs
         if: failure()
         run: docker compose logs --no-color
@@ -300,6 +305,29 @@ jobs:
           name: atlas-agent
           path: agent/dist
           retention-days: 30
+
+  load:
+    name: Response times
+    # A shorter tests/Performance/load-stack.sh on every pull request: a week
+    # of telemetry instead of 30 days, 60 s of load instead of 300, then the
+    # outage storm. It fails on a failed request, one over 7 s (NFR-02), or a
+    # storm not in incidents and alerted within a minute. The full run is in
+    # docs/07-testing.md.
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Build, seed, load, storm
+        env:
+          DAYS: "7"
+          ATLAS_LOAD_SECONDS: "60"
+        run: bash tests/Performance/load-stack.sh
 
   agent-windows:
     name: Agent on Windows

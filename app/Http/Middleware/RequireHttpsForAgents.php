@@ -41,7 +41,7 @@ class RequireHttpsForAgents
         }
 
         return response()->json([
-            'message' => 'Agents must connect over HTTPS. This request came over plain HTTP from another machine, so its token could be read on the way.',
+            'message' => 'Agents must connect over HTTPS. This request came over plain HTTP, so its token could be read on the way.',
         ], 403);
     }
 
