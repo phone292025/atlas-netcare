@@ -6,8 +6,9 @@
 #   1. an app key, generated into .env the first time
 #   2. migrations, which do nothing when the schema is already current
 #   3. TimescaleDB's telemetry jobs, set from config/atlas.php
-#   4. config, route and view caches, rebuilt from the current environment
-#   5. the web server, which takes over this process
+#   4. the deployment check, which stops a production copy on unsafe settings
+#   5. config, route and view caches, rebuilt from the current environment
+#   6. the web server, which takes over this process
 set -e
 
 # compose.yaml mounts the project's .env at /app/.env, so a generated key
@@ -23,6 +24,11 @@ php artisan migrate --force
 # TimescaleDB's telemetry jobs, from config/atlas.php, so a changed retention
 # takes effect on the next start.
 php artisan atlas:telemetry-storage
+
+# Only warns outside production. With APP_ENV=production a finding exits
+# non-zero, set -e stops the container, and `docker compose logs app` says
+# what to change.
+php artisan atlas:check-deployment
 
 # Cached from the environment Docker passes in. Never run the test suite in
 # this container: the cached config points at the real database, and the

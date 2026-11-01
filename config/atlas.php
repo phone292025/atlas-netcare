@@ -37,14 +37,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | When true, DemoDataSeeder populates demo accounts, assets, telemetry and
-    | tickets, every row tagged is_demo. Set false for a clean deployable
-    | system; `php artisan atlas:purge-demo-data` removes what was seeded.
+    | tickets, every row tagged is_demo. Off unless .env turns it on, as
+    | .env.example does for a development machine: the demo accounts share a
+    | published password. `php artisan atlas:purge-demo-data` removes what
+    | was seeded, and atlas:check-deployment refuses production with it on.
     |
     | See docs/decisions/ADR-0003-single-database-demo-flag.md
     |
     */
 
-    'demo_mode' => (bool) env('ATLAS_DEMO_MODE', true),
+    'demo_mode' => (bool) env('ATLAS_DEMO_MODE', false),
 
     /*
     |--------------------------------------------------------------------------
@@ -309,6 +311,10 @@ return [
         'per_address_per_minute' => 120,
         'future_minutes' => 5,
         'clock_drift_seconds' => 30,
+        // Plain HTTP from another machine is refused, because the agent's
+        // token travels in every request (RequireHttpsForAgents). True turns
+        // that off, for a closed lab network whose owner accepts the risk.
+        'allow_plain_http' => (bool) env('ATLAS_AGENTS_ALLOW_PLAIN_HTTP', false),
     ],
 
     'retention' => [

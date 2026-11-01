@@ -150,6 +150,7 @@ They answer different questions.
 | `EnsureUserHasRole.php` | Area-level authorisation: may this role reach this part of the system at all? |
 | `IgnoreArrayQueryValues.php` | Drops array values from the query string |
 | `LimitBodySize.php` | Refuses a request body larger than `atlas.ingest.max_kilobytes` with 413, |
+| `RequireHttpsForAgents.php` | Refuses an agent request over plain HTTP from anywhere but this machine |
 <!-- /code-map -->
 
 `EnsureUserHasRole` is applied per route group, and asks whether this role
@@ -388,6 +389,7 @@ and why each runs when it does.
 |---|---|
 | `BackfillTelemetry.php` | Invent plausible telemetry history, so the charts have something to draw |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
+| `CheckDeployment.php` | Refuse to start a production copy with settings that would expose it |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
 | `CollectTelemetry.php` | Take one reading from every access point and store it |
 | `CreateAdmin.php` | Create the first administrator, or let an administrator back in |
@@ -709,6 +711,7 @@ this the fourth.
 | `Feature/AuthFormAccessibilityTest.php` | Sign-in and profile form errors are announced with the failing field |
 | `Feature/BuildCodeMapTest.php` | `atlas:code-map` keeps docs/13-code-map.md true |
 | `Feature/CampusClockTest.php` | The application stores time in UTC and must answer calendar questions on the |
+| `Feature/CheckDeploymentTest.php` | atlas:check-deployment, which the container runs before serving: fatal in |
 | `Feature/ChecklistItemTest.php` | The inspection checklist is the most-used screen in the system: an assistant |
 | `Feature/ComponentLibraryTest.php` | The shared component library. Every screen is built from these, so a fault |
 | `Feature/ConcurrentWritesTest.php` | The rules two requests at once could break, held where a second request |

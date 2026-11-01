@@ -348,4 +348,57 @@ class ReadingIngestTest extends TestCase
 
         $this->assertSame(NetworkStatus::Online, NetworkDevice::firstWhere('code', 'SW-L6')->status);
     }
+
+    // ------------------------------------------------------------ HTTPS for remote agents
+
+    /** A batch from another machine on the network, over $scheme. */
+    private function sendFromTheNetwork(string $scheme = 'http', array $headers = [], string $address = '192.168.1.50'): TestResponse
+    {
+        return $this->withServerVariables(['REMOTE_ADDR' => $address])->postJson(
+            preg_replace('/^http:/', $scheme.':', route('agent.readings')),
+            ['sent_at' => now()->toIso8601ZuluString(), 'agent_version' => '0.1.0', 'readings' => [$this->reading(1)]],
+            ['Authorization' => 'Bearer '.$this->token] + $headers,
+        );
+    }
+
+    public function test_plain_http_from_another_machine_is_refused_before_the_token_is_read(): void
+    {
+        config(['atlas.published_on_loopback' => false]);
+
+        $this->sendFromTheNetwork()->assertForbidden()->assertJsonPath('message', fn (string $m) => str_contains($m, 'HTTPS'));
+
+        $this->assertSame(0, TelemetryReading::count());
+        $this->assertNull($this->agent->fresh()->last_seen_at);
+    }
+
+    public function test_https_from_another_machine_is_accepted(): void
+    {
+        config(['atlas.published_on_loopback' => false]);
+
+        $this->sendFromTheNetwork('https')->assertOk();
+    }
+
+    public function test_a_forwarded_request_over_plain_http_is_refused_even_from_this_machine(): void
+    {
+        // A tunnel or proxy on this machine connects from loopback, and may
+        // be passing on a request from anywhere.
+        config(['atlas.published_on_loopback' => false]);
+
+        $this->sendFromTheNetwork(headers: ['X-Forwarded-For' => '203.0.113.9'], address: '127.0.0.1')->assertForbidden();
+    }
+
+    public function test_a_stack_published_on_this_machine_only_accepts_plain_http(): void
+    {
+        // Inside the container every request comes from Docker's gateway.
+        config(['atlas.published_on_loopback' => true]);
+
+        $this->sendFromTheNetwork(address: '172.18.0.1')->assertOk();
+    }
+
+    public function test_the_owner_of_a_closed_network_can_allow_plain_http(): void
+    {
+        config(['atlas.published_on_loopback' => false, 'atlas.ingest.allow_plain_http' => true]);
+
+        $this->sendFromTheNetwork()->assertOk();
+    }
 }

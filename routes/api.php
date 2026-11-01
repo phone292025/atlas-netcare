@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ReadingIngestController;
 use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\LimitBodySize;
+use App\Http\Middleware\RequireHttpsForAgents;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,10 +12,11 @@ use Illuminate\Support\Facades\Route;
 | need a signed-in user, are in web.php.
 |
 | In this order: a limit per address before anything is checked, so a
-| caller without a token can't keep the app busy; the size cap; the token;
+| caller without a token can't keep the app busy; HTTPS from other
+| machines, before a token is read; the size cap; the token;
 | then a limit per agent.
 */
 
 Route::post('v1/readings', ReadingIngestController::class)
-    ->middleware(['throttle:agent-address', LimitBodySize::class, AuthenticateAgent::class, 'throttle:agent'])
+    ->middleware(['throttle:agent-address', RequireHttpsForAgents::class, LimitBodySize::class, AuthenticateAgent::class, 'throttle:agent'])
     ->name('agent.readings');
