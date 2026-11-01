@@ -19,6 +19,9 @@ DAYS="${DAYS:-30}"
 artisan() { docker compose exec -T app php artisan "$@"; }
 
 cp .env.example "$ATLAS_ENV_FILE"
+# The agent below sends over plain HTTP from this machine, which reaches the
+# stack through Docker's gateway: allowed for this throwaway stack only.
+echo "ATLAS_AGENTS_ALLOW_PLAIN_HTTP=true" >> "$ATLAS_ENV_FILE"
 docker compose down --volumes --remove-orphans > /dev/null 2>&1 || true
 docker compose up -d --build --wait --wait-timeout 300
 
@@ -58,39 +61,56 @@ node tests/Performance/response-times.mjs || status=$?
 # through the queue worker, as an engineer would see it.
 echo
 echo "Outage storm: 40 devices offline in one batch."
-storm=$(node -e "
-    const devices = JSON.parse(process.env.ATLAS_LOAD_DEVICES);
-    const now = new Date().toISOString();
-    const readings = devices.map((device, i) => ({ sequence: 9e12 + i, device, measured_at: now, reachable: false }));
-    fetch(process.env.ATLAS_LOAD_URL + '/api/v1/readings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + process.env.ATLAS_LOAD_TOKEN },
-        body: JSON.stringify({ sent_at: now, agent_version: 'load-test', readings }),
-    }).then((r) => console.log(r.status));")
-started=$(date +%s%3N)
-echo "  batch answered ${storm}"
-# Offline needs consecutive_breach readings in a row: send the rest.
-for n in 1 2; do
+
+# Three batches, since a device goes offline after consecutive_breach
+# unreachable readings in a row. The clock starts before the first.
+storm_batch() {
     node -e "
         const devices = JSON.parse(process.env.ATLAS_LOAD_DEVICES);
         const now = new Date().toISOString();
-        const readings = devices.map((device, i) => ({ sequence: 9e12 + ${n} * 100 + i, device, measured_at: now, reachable: false }));
+        const readings = devices.map((device, i) => ({ sequence: 9e12 + $1 * 100 + i, device, measured_at: now, reachable: false }));
         fetch(process.env.ATLAS_LOAD_URL + '/api/v1/readings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + process.env.ATLAS_LOAD_TOKEN },
             body: JSON.stringify({ sent_at: now, agent_version: 'load-test', readings }),
-        });" > /dev/null
+        }).then((r) => console.log(r.status));"
+}
+
+# Whole seconds: opened_at is stored to the second, and a fraction would
+# put an incident opened in the same second before the start.
+since=$(docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT date_trunc('second', now())")
+started=$(date +%s%3N)
+for n in 0 1 2; do
+    answered=$(storm_batch "$n")
+    [ "$answered" = "200" ] || { echo "  batch $n answered $answered"; status=1; }
 done
+
+# Only the storm's own devices, and only incidents and alerts since it began.
+storm_sql="
+    WITH storm AS (SELECT id FROM network_devices WHERE code IN (SELECT jsonb_array_elements_text('${ATLAS_LOAD_DEVICES}'::jsonb)))
+    SELECT
+        (SELECT count(*) FROM network_devices WHERE id IN (SELECT id FROM storm) AND status = 'offline') || ' ' ||
+        (SELECT count(DISTINCT d.network_device_id) FROM incident_devices d JOIN incidents i ON i.id = d.incident_id
+            WHERE i.resolved_at IS NULL AND i.opened_at >= '${since}' AND d.network_device_id IN (SELECT id FROM storm)) || ' ' ||
+        (SELECT count(*) FROM incident_alerts a JOIN incidents i ON i.id = a.incident_id WHERE i.opened_at >= '${since}' AND a.sent_at IS NOT NULL) || ' ' ||
+        (SELECT count(*) FROM incident_alerts a JOIN incidents i ON i.id = a.incident_id WHERE i.opened_at >= '${since}' AND a.sent_at IS NULL)"
+
+done_storm=""
 for i in $(seq 1 120); do
-    counts=$(docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT (SELECT count(*) FROM network_devices d WHERE d.code IN (SELECT jsonb_array_elements_text('${ATLAS_LOAD_DEVICES}'::jsonb)) AND d.status = 'offline') || ' ' || (SELECT count(DISTINCT incident_devices.network_device_id) FROM incident_devices JOIN incidents ON incidents.id = incident_devices.incident_id WHERE incidents.resolved_at IS NULL) || ' ' || (SELECT count(*) FROM incident_alerts WHERE sent_at IS NOT NULL) || ' ' || (SELECT count(*) FROM incident_alerts WHERE sent_at IS NULL)")
-    read -r offline covered sent pending <<< "$counts"
-    if [ "${offline:-0}" -ge 40 ] && [ "${covered:-0}" -ge 40 ] && [ "${pending:-1}" -eq 0 ] && [ "${sent:-0}" -gt 0 ]; then
-        echo "  40 offline, all 40 in incidents, ${sent} alerts sent, $(( $(date +%s%3N) - started )) ms after the first batch"
+    read -r offline covered sent pending <<< "$(docker compose exec -T db psql -U atlas -d atlas -tAc "$storm_sql")"
+    if [ "${offline:-0}" -eq 40 ] && [ "${covered:-0}" -eq 40 ] && [ "${sent:-0}" -gt 0 ] && [ "${pending:-1}" -eq 0 ]; then
+        done_storm=$(( $(date +%s%3N) - started ))
         break
     fi
     sleep 0.5
 done
-docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT rule, count(*) || ' incidents, ' || coalesce(sum((SELECT count(*) FROM incident_devices WHERE incident_id = incidents.id)), 0) || ' devices' FROM incidents WHERE resolved_at IS NULL GROUP BY rule"
+
+if [ -n "$done_storm" ]; then
+    echo "  all 40 offline and in incidents, ${sent} alerts sent, ${done_storm} ms after the first batch was sent"
+else
+    echo "  FAILED: after 60 s, ${offline:-0} of 40 offline, ${covered:-0} in incidents, ${sent:-0} alerts sent, ${pending:-0} waiting"
+    status=1
+fi
 
 if [ -z "${KEEP:-}" ]; then
     docker compose down --volumes --remove-orphans > /dev/null 2>&1
