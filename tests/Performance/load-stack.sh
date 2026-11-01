@@ -53,6 +53,45 @@ echo "Rows: $(docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT 'rea
 status=0
 node tests/Performance/response-times.mjs || status=$?
 
+# An outage storm: the agent's 40 access points stop answering in one batch.
+# Measured from the batch to every incident opened and every alert sent,
+# through the queue worker, as an engineer would see it.
+echo
+echo "Outage storm: 40 devices offline in one batch."
+storm=$(node -e "
+    const devices = JSON.parse(process.env.ATLAS_LOAD_DEVICES);
+    const now = new Date().toISOString();
+    const readings = devices.map((device, i) => ({ sequence: 9e12 + i, device, measured_at: now, reachable: false }));
+    fetch(process.env.ATLAS_LOAD_URL + '/api/v1/readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + process.env.ATLAS_LOAD_TOKEN },
+        body: JSON.stringify({ sent_at: now, agent_version: 'load-test', readings }),
+    }).then((r) => console.log(r.status));")
+started=$(date +%s%3N)
+echo "  batch answered ${storm}"
+# Offline needs consecutive_breach readings in a row: send the rest.
+for n in 1 2; do
+    node -e "
+        const devices = JSON.parse(process.env.ATLAS_LOAD_DEVICES);
+        const now = new Date().toISOString();
+        const readings = devices.map((device, i) => ({ sequence: 9e12 + ${n} * 100 + i, device, measured_at: now, reachable: false }));
+        fetch(process.env.ATLAS_LOAD_URL + '/api/v1/readings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + process.env.ATLAS_LOAD_TOKEN },
+            body: JSON.stringify({ sent_at: now, agent_version: 'load-test', readings }),
+        });" > /dev/null
+done
+for i in $(seq 1 120); do
+    counts=$(docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT (SELECT count(*) FROM network_devices d WHERE d.code IN (SELECT jsonb_array_elements_text('${ATLAS_LOAD_DEVICES}'::jsonb)) AND d.status = 'offline') || ' ' || (SELECT count(DISTINCT incident_devices.network_device_id) FROM incident_devices JOIN incidents ON incidents.id = incident_devices.incident_id WHERE incidents.resolved_at IS NULL) || ' ' || (SELECT count(*) FROM incident_alerts WHERE sent_at IS NOT NULL) || ' ' || (SELECT count(*) FROM incident_alerts WHERE sent_at IS NULL)")
+    read -r offline covered sent pending <<< "$counts"
+    if [ "${offline:-0}" -ge 40 ] && [ "${covered:-0}" -ge 40 ] && [ "${pending:-1}" -eq 0 ] && [ "${sent:-0}" -gt 0 ]; then
+        echo "  40 offline, all 40 in incidents, ${sent} alerts sent, $(( $(date +%s%3N) - started )) ms after the first batch"
+        break
+    fi
+    sleep 0.5
+done
+docker compose exec -T db psql -U atlas -d atlas -tAc "SELECT rule, count(*) || ' incidents, ' || coalesce(sum((SELECT count(*) FROM incident_devices WHERE incident_id = incidents.id)), 0) || ' devices' FROM incidents WHERE resolved_at IS NULL GROUP BY rule"
+
 if [ -z "${KEEP:-}" ]; then
     docker compose down --volumes --remove-orphans > /dev/null 2>&1
     rm -f "$ATLAS_ENV_FILE"

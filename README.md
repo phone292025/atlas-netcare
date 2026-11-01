@@ -289,7 +289,7 @@ The agent itself is in `agent/`, written in Go: one file per platform, for Windo
 
 ### Keeping the monitor live
 
-The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs six jobs on a timer:
+The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs seven jobs on a timer:
 
 | Job | When | What it does |
 |---|---|---|
@@ -297,6 +297,7 @@ The stack's `scheduler` service runs the scheduler for you, and restarts it if i
 | `atlas:watch-incidents` | every minute | Opens and resolves incidents from the devices' and agents' current state, and tells the next people on call about any incident nobody has acknowledged |
 | `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
 | `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
+| `atlas:check-queue` | every 5 minutes | Alerts the administrators, in the app, if the worker has stopped or jobs keep failing: incidents' alerts depend on it |
 | `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |
 | `atlas:generate-shifts` | Sundays at 18:00 | Builds next week's roster |
 

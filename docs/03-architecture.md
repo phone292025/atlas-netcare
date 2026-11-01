@@ -229,13 +229,14 @@ Nothing in `app/` uses a controller or a command. They are entry points, and log
 
 Business code, meaning the services, models, enums and support classes, never reads the request, the session or the signed-in user. The scheduler, the queue worker and the agents' ingest API have none of them, so a service that asked `auth()` for the user would get `null` there. The caller passes the user in.
 
-The service modules use each other along three edges, which form no cycle:
+The service modules use each other along four edges, which form no cycle:
 
 | From | To | Why |
 |---|---|---|
 | Incidents | Tickets | `IncidentTickets` raises an offline incident's ticket |
 | Incidents | Shifts | `IncidentAlerts` raises an incident's in-app alarms |
 | Tickets | Shifts | `TicketService` alarms engineers about a new critical ticket, a ticket assigned to them and a missed SLA |
+| Operations | Shifts | `QueueHealth` alarms the administrators when the queue worker stops or keeps failing |
 
 Telemetry uses no other module. Since roadmap 2.1 it publishes domain events, `DeviceStatusesChanged` and `AgentSilenceChanged`, after its transaction commits, and knows nothing of who listens ([ADR-0014](decisions/ADR-0014-incidents-and-domain-events.md)). `App\Listeners\OpenAndResolveIncidents` is the only listener, on the queue, so the whole reaction to a fault is read in one place: [M8](modules/M8-incidents.md). Maintenance, Reports, Risk and Shifts use no other module either. Every module shares the models, so these rules cover the services only. `ArchitectureTest` fails the build on an edge not in this table.
 
@@ -371,6 +372,7 @@ return [
 | `atlas:purge-demo-data` | never — run by hand | Removes every demonstration row, leaving reference data and real records |
 | `atlas:renumber-tickets` | never — run by hand | Repairs a database seeded with random ticket references: sequential per year, references rewritten, `--dry-run` first |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed, so the roster stops offering to reassign them |
+| `atlas:check-queue` | every five minutes | `QueueHealth`: alarms the administrators if the worker is down or jobs keep failing |
 | `atlas:generate-shifts` | weekly, Sunday 18:00 | Materialises next week's shifts from templates |
 
 Times are on the campus clock. Under Docker the `scheduler` service runs `php artisan schedule:work` and drives all five scheduled commands. Without Docker, run the same command in a terminal.
