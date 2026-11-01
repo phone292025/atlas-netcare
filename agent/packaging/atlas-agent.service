@@ -1,0 +1,40 @@
+# systemd unit for atlas-agent on Linux and Raspberry Pi OS.
+#
+#   sudo useradd --system --home /var/lib/atlas-agent --create-home atlas-agent
+#   sudo install -m 0755 atlas-agent-linux-arm64 /usr/local/bin/atlas-agent
+#   sudo install -d -o atlas-agent -m 0750 /etc/atlas-agent
+#   sudo install -o atlas-agent -m 0640 atlas-agent.yaml token.txt atlas-root.crt /etc/atlas-agent/
+#   sudo install -m 0644 atlas-agent.service /etc/systemd/system/
+#   sudo systemctl enable --now atlas-agent
+#   journalctl -u atlas-agent -f
+#
+# In atlas-agent.yaml set token_file and ca_file to /etc/atlas-agent/... and
+# buffer to /var/lib/atlas-agent/atlas-agent.db. Ping uses raw ICMP through
+# CAP_NET_RAW below, so set privileged_ping: true.
+
+[Unit]
+Description=Atlas NetCare probe agent
+Documentation=https://github.com/phone292025/atlas-netcare/tree/main/agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=atlas-agent
+Group=atlas-agent
+ExecStart=/usr/local/bin/atlas-agent -config /etc/atlas-agent/atlas-agent.yaml
+WorkingDirectory=/var/lib/atlas-agent
+Restart=always
+RestartSec=5
+
+# Raw ICMP for ping, and nothing else a root process could do.
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/atlas-agent
+ReadOnlyPaths=/etc/atlas-agent
+
+[Install]
+WantedBy=multi-user.target
