@@ -52,6 +52,11 @@ type atlas struct {
 	// refuse answers 422 to any batch holding a reading for this device,
 	// as Atlas does when one reading breaks a rule.
 	refuse string
+	// refuseAll answers 422 to any batch, as a rule about the whole request
+	// would: a version string too long, or more readings than Atlas takes.
+	refuseAll bool
+	// requests counts every request, refused or not.
+	requests int
 }
 
 func (a *atlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,8 +67,14 @@ func (a *atlas) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	a.requests++
 	if a.status != 0 {
 		w.WriteHeader(a.status)
+		return
+	}
+	if a.refuseAll {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"message":"The agent version field must not be greater than 40 characters."}`))
 		return
 	}
 
@@ -268,5 +279,51 @@ func TestAReadingAtlasRefusesIsFoundDroppedAndDoesNotHoldUpTheRest(t *testing.T)
 	}
 	if !got["SW"] || !got["AP"] || got["BAD"] {
 		t.Fatalf("Atlas stored %v, want SW and AP and not BAD", got)
+	}
+}
+
+func TestARefusedHeartbeatWaitsInsteadOfAskingAgainAtOnce(t *testing.T) {
+	fake := &atlas{refuseAll: true}
+	server := httptest.NewServer(fake)
+	defer server.Close()
+	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"})
+	a.Config.Interval = time.Hour
+	a.MinBackoff, a.MaxBackoff = time.Millisecond, time.Hour
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	a.wake = make(chan struct{}, 1)
+	a.sendLoop(ctx)
+
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if fake.requests > 2 {
+		t.Fatalf("%d requests in 300 ms: a refused heartbeat was sent again at once", fake.requests)
+	}
+}
+
+func TestIsolationEndsOnceTheRefusedBatchHasGoneThrough(t *testing.T) {
+	fake := &atlas{refuse: "BAD"}
+	server := httptest.NewServer(fake)
+	defer server.Close()
+	a := setUp(t, server, config.Device{Code: "SW", Host: "10.0.0.1"}, config.Device{Code: "BAD", Host: "10.0.0.1"}, config.Device{Code: "AP", Host: "10.0.0.1"})
+	ctx := context.Background()
+
+	if err := a.Round(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.SendOnce(ctx, 500); err == nil {
+		t.Fatal("the batch with the bad reading was accepted")
+	}
+	if a.isolateLeft != 3 {
+		t.Fatalf("isolateLeft = %d, want the refused batch's 3", a.isolateLeft)
+	}
+	for i := 0; i < 3; i++ {
+		if _, err := a.SendOnce(ctx, 1); err != nil {
+			t.Fatalf("send %d: %v", i, err)
+		}
+	}
+	if a.isolateLeft != 0 {
+		t.Fatalf("isolateLeft = %d after the batch went through, want 0", a.isolateLeft)
 	}
 }

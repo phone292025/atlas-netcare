@@ -3,6 +3,10 @@
 //
 //	atlas-agent -config atlas-agent.yaml          run until stopped
 //	atlas-agent -config atlas-agent.yaml -check   check the config and every device once, send nothing
+//	atlas-agent -config ... -log agent.log        log to a file, as a Windows service must
+//
+// Started by the Windows Service Control Manager, it runs as a service and
+// stops when the service is stopped (service_windows.go).
 package main
 
 import (
@@ -30,6 +34,7 @@ func main() {
 	once := flag.Bool("check", false, "check the config and every device once, print the readings, send nothing")
 	verbose := flag.Bool("verbose", false, "log every failed check")
 	showVersion := flag.Bool("version", false, "print the version and stop")
+	logFile := flag.String("log", "", "append the log to this file instead of standard error")
 	flag.Parse()
 
 	if *showVersion {
@@ -41,32 +46,62 @@ func main() {
 	if *verbose {
 		level = slog.LevelDebug
 	}
-	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	logTo := os.Stderr
+	if *logFile != "" {
+		f, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "opening the log file:", err)
+			os.Exit(2)
+		}
+		defer f.Close()
+		logTo = f
+	}
+	log := slog.New(slog.NewTextHandler(logTo, &slog.HandlerOptions{Level: level}))
 
 	cfg, err := config.Load(*path)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(logTo, err)
 		os.Exit(2)
+	}
+
+	if *once {
+		os.Exit(checkOnce(context.Background(), cfg))
+	}
+
+	run := func(ctx context.Context) error { return runAgent(ctx, cfg, log) }
+
+	// Under the Windows Service Control Manager the service decides when to
+	// stop; anywhere else, Ctrl+C or SIGTERM do.
+	if asService, err := runAsService(run); asService || err != nil {
+		if err != nil {
+			log.Error("the service stopped with an error", "error", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if *once {
-		os.Exit(checkOnce(ctx, cfg))
+	if err := run(ctx); err != nil {
+		os.Exit(1)
 	}
+}
+
+// runAgent checks and sends until ctx ends.
+func runAgent(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 
 	buf, err := buffer.Open(cfg.Buffer)
 	if err != nil {
 		log.Error("could not open the buffer", "file", cfg.Buffer, "error", err)
-		os.Exit(1)
+		return err
 	}
 	defer buf.Close()
 
 	send, err := sender.New(cfg.AtlasURL, cfg.Token, version, cfg.CAFile, cfg.Timeout*2)
 	if err != nil {
 		log.Error("could not set up the connection to Atlas", "error", err)
-		os.Exit(2)
+		return err
 	}
 
 	waiting, _ := buf.Len()
@@ -75,9 +110,11 @@ func main() {
 	a := &agent.Agent{Config: cfg, Prober: check.NewNetwork(), Buffer: buf, Sender: send, Log: log}
 	if err := a.Run(ctx); err != nil {
 		log.Error("stopped", "error", err)
-		os.Exit(1)
+		return err
 	}
 	log.Info("atlas-agent stopped")
+
+	return nil
 }
 
 // checkOnce runs one round and prints it as JSON, for setting an agent up.
