@@ -141,6 +141,7 @@ The `scheduler` service runs `php artisan schedule:work`, and the `worker` servi
 | `atlas:watch-incidents` | every minute | Opens and resolves incidents from current statuses, and escalates any nobody has acknowledged ([M8](modules/M8-incidents.md)) |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
+| `atlas:check-queue` | every five minutes | Alarms the administrators if a job has waited 5 minutes (the worker is down) or jobs keep failing. In-app alarms go out through the scheduler, so this works with the worker down |
 | `atlas:generate-shifts` | Sunday 18:00 | Next week's roster |
 
 `docker compose logs -f scheduler` shows each run.

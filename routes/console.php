@@ -42,6 +42,12 @@ Schedule::command('atlas:watch-incidents')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// The queue worker sends incidents' alerts. If it stops, the administrators
+// hear about it from this, through the scheduler's own alarms.
+Schedule::command('atlas:check-queue')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+
 // Next week's roster on Sunday evening. Idempotent.
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00')

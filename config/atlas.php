@@ -363,6 +363,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The queue worker
+    |--------------------------------------------------------------------------
+    |
+    | `atlas:check-queue` alarms the administrators when a job has waited
+    | `stuck_after_min`, or `failed_jobs_alert` jobs failed, within
+    | `alert_every_min`, and at most once in that time.
+    |
+    */
+
+    'queue' => [
+        'stuck_after_min' => 5,
+        'failed_jobs_alert' => 3,
+        'alert_every_min' => 60,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Shifts and reminders
     |--------------------------------------------------------------------------
     |

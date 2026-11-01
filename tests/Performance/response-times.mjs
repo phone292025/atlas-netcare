@@ -3,9 +3,11 @@
  *
  * Signs in a number of people at once, each with their own session, and has
  * each one open its role's heaviest screens in turn for a fixed time, as
- * fast as the server answers. A time is measured from sending the request
- * until the whole body has arrived. The agent API is measured too, with
- * batches of readings for simulated devices.
+ * fast as the server answers. Every fourth step an assistant raises a ticket
+ * through the form, so writes and the ticket's alerts run under the load
+ * too. A time is measured from sending the request until the whole body has
+ * arrived. The agent API is measured too, with batches of readings for
+ * simulated devices.
  *
  * Run it against a throwaway stack seeded with LoadTestSeeder, never the
  * stack you work in: it signs in with the demo password and writes
@@ -19,7 +21,7 @@
  *   ATLAS_LOAD_TOKEN     an agent token, to measure the ingest API as well
  *   ATLAS_LOAD_DEVICES   JSON list of device codes that agent watches
  *   ATLAS_LOAD_USERS     people at once, default 12
- *   ATLAS_LOAD_SECONDS   how long, default 60
+ *   ATLAS_LOAD_SECONDS   how long, default 300
  *
  * Prints one row per address and exits 1 if any request failed or any
  * address's slowest time passed the target.
@@ -28,7 +30,7 @@
 const base = process.env.ATLAS_LOAD_URL ?? 'http://127.0.0.1:8300';
 const accounts = JSON.parse(process.env.ATLAS_LOAD_ACCOUNTS ?? '{}');
 const users = Number(process.env.ATLAS_LOAD_USERS ?? 12);
-const seconds = Number(process.env.ATLAS_LOAD_SECONDS ?? 60);
+const seconds = Number(process.env.ATLAS_LOAD_SECONDS ?? 300);
 const targetMs = 7000;
 
 const screens = {
@@ -89,10 +91,32 @@ async function person(role, until) {
     await session.signIn(accounts[role]);
 
     for (let i = 0; performance.now() < until; i++) {
+        if (role === 'assistant' && i % 4 === 3) {
+            await raiseTicket(session, i);
+            continue;
+        }
+
         const path = screens[role][i % screens[role].length];
         const result = await session.request(path, path.startsWith('/api/') ? { headers: { Accept: 'application/json' } } : {});
         record(`${role.padEnd(9)} GET ${path}`, result, result.status === 200);
     }
+}
+
+/** The raise-ticket form, filled in and sent: a write, an audit row, alerts. */
+async function raiseTicket(session, i) {
+    const form = await session.request('/assistant/tickets/create');
+    const token = form.body.match(/name="_token" value="([^"]+)"/)?.[1];
+    const machine = form.body.match(/<select[^>]*name="ticketable_id"[\s\S]*?<option value="(\d+)"/)?.[1];
+    const result = await session.request('/assistant/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            _token: token, title: `Load test ticket ${i}`, description: 'Raised by the response-time measurement.',
+            category: 'hardware', priority: 'low', ticketable_type: 'lab_pc', ticketable_id: machine ?? '',
+        }),
+    });
+    // A raised ticket redirects to itself; a refused one back to the form.
+    record('assistant POST /assistant/tickets', result, result.status === 302 && /\/assistant\/tickets\/\d+$/.test(result.location ?? ''));
 }
 
 async function agent(until) {

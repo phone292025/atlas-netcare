@@ -48,6 +48,8 @@ class ArchitectureTest extends TestCase
         // IncidentTickets raises an incident's ticket, and IncidentAlerts
         // raises its in-app alarms (ADR-0014).
         'Incidents' => ['Tickets', 'Shifts'],
+        // QueueHealth alarms the administrators when the worker stops.
+        'Operations' => ['Shifts'],
         // TicketService alarms engineers about a new critical ticket, a ticket
         // assigned to them by somebody else, and a missed SLA.
         'Tickets' => ['Shifts'],
