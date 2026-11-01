@@ -62,6 +62,15 @@ enum IncidentRule: string implements HasLabel
         };
     }
 
+    /**
+     * Whether a person may close it. Offline and silent are facts the next
+     * sweep would see again, so only recovery closes them.
+     */
+    public function canBeResolvedByHand(): bool
+    {
+        return in_array($this, [self::Degraded, self::Flapping], true);
+    }
+
     /** Whether opening one raises a ticket by itself: a device that is down needs work. */
     public function raisesTicket(): bool
     {

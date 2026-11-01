@@ -2,7 +2,7 @@
 
 **Depends on:** M1 · **Blocks:** nothing
 
-> **Last updated:** 2026-10-23
+> **Last updated:** 2026-11-01
 
 ## Purpose
 
@@ -34,6 +34,8 @@ Admin: shift template index/create/edit · roster generator with week preview, p
 On a day with no shift, My shift says so in one line and gives the date, time and room of the next one. Under the shift it shows today's inspection rounds room by room (M3's `<x-room-rounds>`), with the shift's room marked.
 
 ## Key decisions
+
+- **On shift means checked in, today, and not long past the end** (`Shift::isOnNow()`, `shifts.on_shift_after_end_min`). Starting an inspection (FR-203) and on-call (M8) both ask it, so a check-out forgotten at noon doesn't leave somebody on call all evening.
 
 - **Templates generate dated shifts**, one week ahead, via scheduled command. Admin overrides individual shifts afterwards. Blocked on [Q4](../02-open-questions.md).
 - **`AlarmService` is a shared service.** M4 calls it for SLA breaches, M5 for access points going offline or degraded. Keep its interface small and stable.

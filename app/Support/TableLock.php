@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
- * One writer at a time on a small table, until the transaction ends.
+ * One writer at a time on a table written rarely, until the transaction ends.
  *
  * For a rule that reads several rows and then writes, where a unique index
  * cannot say the whole rule: "fill each roster slot up to its count",
@@ -20,8 +20,10 @@ use LogicException;
  * plain reads through. SQLite, which only the test suite runs on, already
  * allows one writing transaction per database, so there is nothing to add.
  *
- * Only for tables written rarely and by people (rosters, checklists). Never
- * for telemetry, which is written every few seconds.
+ * Only for tables written a few times an hour: rosters and checklists, by
+ * people, and incidents, by the queue worker and the minute's sweep, where
+ * grouping reads several rows before it decides. Never for telemetry, which
+ * is written every few seconds.
  */
 final class TableLock
 {

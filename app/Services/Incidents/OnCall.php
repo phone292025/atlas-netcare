@@ -108,8 +108,8 @@ class OnCall
     }
 
     /**
-     * Assistants checked in to a shift today. Those whose shift is in the
-     * device's location come first and alone: they are in the room.
+     * Assistants on a shift now (Shift::isOnNow()). Those whose shift is in
+     * the device's location come first and alone: they are in the room.
      *
      * @return Collection<int, User>
      */
@@ -120,7 +120,7 @@ class OnCall
             ->where('status', ShiftStatus::CheckedIn)
             ->with('user')
             ->get()
-            ->filter(fn (Shift $shift) => $shift->user?->is_active);
+            ->filter(fn (Shift $shift) => $shift->user?->is_active && $shift->isOnNow());
 
         $here = $shifts->where('location_id', $incident->device?->location_id);
 

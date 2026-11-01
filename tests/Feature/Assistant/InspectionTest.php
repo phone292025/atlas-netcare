@@ -315,6 +315,17 @@ class InspectionTest extends TestCase
         app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
     }
 
+    public function test_a_check_out_forgotten_after_the_shift_ended_does_not_count(): void
+    {
+        $this->template();
+        $assistant = $this->onShift();
+        $this->travel((int) config('atlas.shifts.on_shift_after_end_min') + 121)->minutes();
+
+        $this->expectException(DomainException::class);
+
+        app(InspectionService::class)->start(LabPc::factory()->create(), $assistant);
+    }
+
     public function test_a_checked_out_shift_does_not_count(): void
     {
         $this->template();

@@ -380,6 +380,19 @@ class ReadingIngestTest extends TestCase
         $this->sendFromTheNetwork(address: '172.18.0.1')->assertOk();
     }
 
+    public function test_a_port_forward_to_this_machine_is_refused_plain_http(): void
+    {
+        // A host port forward (netsh portproxy, ssh -R) adds no header, but
+        // the request is addressed to the name the forward was reached by.
+        config(['atlas.published_on_loopback' => true]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '172.18.0.1'])->postJson(
+            'http://atlas.example.org/api/v1/readings',
+            ['sent_at' => now()->toIso8601ZuluString(), 'agent_version' => '0.1.0', 'readings' => [$this->reading(1)]],
+            ['Authorization' => 'Bearer '.$this->token],
+        )->assertForbidden();
+    }
+
     public function test_the_owner_of_a_closed_network_can_allow_plain_http(): void
     {
         config(['atlas.published_on_loopback' => false, 'atlas.ingest.allow_plain_http' => true]);

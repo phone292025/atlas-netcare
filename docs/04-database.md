@@ -40,6 +40,7 @@ Rules of the form "at most one of these at a time". A unique index over only the
 |---|---|---|
 | `inspections_one_unfinished_unique` on `inspections (lab_pc_id, user_id) WHERE completed_at IS NULL` | One unfinished inspection per machine and person | `InspectionService::start()` uses `createOrFirst()`, so the losing tap gets the winner's record |
 | `checklist_templates_one_active_unique` on `checklist_templates (is_active) WHERE is_active` | One active checklist | `ChecklistService::activate()` takes a table lock first, so it queues rather than fires |
+| `checklist_templates_name_version_unique` on `checklist_templates (name, version)`, a plain unique key | One template per name and version | `ChecklistService` numbers a new template, a copy and a renamed draft after the highest version with that name, under the lock |
 | `tickets_one_per_failed_answer_unique` on `tickets (inspection_result_id) WHERE inspection_result_id IS NOT NULL AND deleted_at IS NULL` | One live ticket per failed checklist answer (FR-207) | `TicketService` locks the answer row first, so it queues rather than fires |
 | `incidents_one_open_per_device_unique` on `incidents (network_device_id, rule) WHERE resolved_at IS NULL AND network_device_id IS NOT NULL` | One open incident per rule and device (FR-512) | `IncidentService` locks `incidents` first, so it queues rather than fires |
 | `incidents_one_open_per_agent_unique` on `incidents (agent_id, rule) WHERE resolved_at IS NULL AND agent_id IS NOT NULL` | One open silent incident per agent | The same |

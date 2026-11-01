@@ -68,12 +68,18 @@ class IncidentService
                 ->sortBy(fn (array $c) => $this->depth($devices[$c['device_id']]));
 
             foreach ($ordered as $change) {
-                $this->apply(
-                    $devices[$change['device_id']],
-                    NetworkStatus::from($change['from']),
-                    NetworkStatus::from($change['to']),
-                    $at,
-                );
+                $device = $devices[$change['device_id']];
+                $to = NetworkStatus::from($change['to']);
+
+                // A retried or late event about a status the device has since
+                // left. Acting on it would open an outage on a device that is
+                // up. The event that moved it on brings its own change, and
+                // the sweep covers any that was lost.
+                if ($device->status !== $to) {
+                    continue;
+                }
+
+                $this->apply($device, NetworkStatus::from($change['from']), $to, $at);
             }
         });
     }
@@ -374,6 +380,33 @@ class IncidentService
         });
     }
 
+    /**
+     * An engineer closes a degraded or flapping incident by hand, with why:
+     * a known busy hour, a link already being replaced. An offline or silent
+     * one resolves only when the device or agent is back, or the next sweep
+     * would open it again a minute later.
+     */
+    public function resolveByHand(Incident $incident, User $user, string $note): Incident
+    {
+        return DB::transaction(function () use ($incident, $user, $note) {
+            TableLock::forWriting('incidents');
+            $incident->refresh();
+
+            if ($incident->isResolved()) {
+                throw new DomainException('This incident has already resolved.');
+            }
+
+            if (! $incident->rule->canBeResolvedByHand()) {
+                throw new DomainException('It resolves itself when the '.($incident->agent_id ? 'agent reports' : 'device answers').' again.');
+            }
+
+            $this->resolve($incident, 'by_hand', now());
+            $this->log($incident, 'note', "Resolved by hand: {$note}", $user);
+
+            return $incident;
+        });
+    }
+
     /** An engineer decides a degraded or flapping incident needs work too. */
     public function raiseTicket(Incident $incident, User $user): Incident
     {
@@ -427,6 +460,7 @@ class IncidentService
             'grouped' => 'Grouped into the incident on '.$groupedInto?->subjectLabel().', which failed too.',
             'retired' => 'The device was retired.',
             'settled' => 'The device has kept one status for '.config('atlas.incidents.flapping_window_min').' minutes.',
+            'by_hand' => 'Resolved by hand.',
             default => $incident->rule === IncidentRule::Silent ? 'The agent is reporting again.' : 'The device has recovered.',
         }, at: $at);
     }

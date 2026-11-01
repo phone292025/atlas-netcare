@@ -51,9 +51,7 @@ class ChecklistTemplateController extends Controller
 
     public function store(ChecklistTemplateRequest $request): RedirectResponse
     {
-        // refresh(): version is a column default, and the label quotes it.
-        $template = ChecklistTemplate::create($request->validated())->refresh();
-        $this->checklists->replaceItems($template, $request->items());
+        $template = $this->checklists->create($request->validated(), $request->items());
 
         return redirect()
             ->route('admin.checklists.edit', $template)

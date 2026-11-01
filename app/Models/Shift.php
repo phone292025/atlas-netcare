@@ -170,6 +170,19 @@ class Shift extends Model
     }
 
     /**
+     * Whether somebody is on this shift now: checked in, today, and not past
+     * its end by more than `shifts.on_shift_after_end_min`. A check-out
+     * forgotten at noon leaves the shift checked in, and without the end it
+     * would count until midnight.
+     */
+    public function isOnNow(): bool
+    {
+        return $this->isActive()
+            && $this->isToday()
+            && now()->lessThanOrEqualTo($this->endsAt()->addMinutes((int) config('atlas.shifts.on_shift_after_end_min')));
+    }
+
+    /**
      * Whether check-in is allowed yet. Generous at the front, so somebody
      * arriving early is not told to wait.
      */

@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -99,6 +100,20 @@ class IncidentAlerts
             return;
         }
 
+        try {
+            $this->sendOutside($alert);
+        } catch (Throwable $e) {
+            // The Telegram API puts the bot token in its URL, and a
+            // connection error quotes the URL. Nothing stored or logged may
+            // carry it.
+            throw new RuntimeException($this->redact($e->getMessage()), previous: null);
+        }
+
+        $alert->forceFill(['sent_at' => now()])->save();
+    }
+
+    private function sendOutside(IncidentAlert $alert): void
+    {
         match ($alert->channel) {
             AlertChannel::Email => Mail::raw(
                 $this->summary($alert->incident)."\n\n".$alert->incident->urlFor($alert->user),
@@ -109,14 +124,19 @@ class IncidentAlerts
                 ['chat_id' => $alert->user->telegram_chat_id, 'text' => $alert->incident->title."\n".$this->summary($alert->incident)."\n".$alert->incident->urlFor($alert->user)],
             )->throw(),
         };
+    }
 
-        $alert->forceFill(['sent_at' => now()])->save();
+    private function redact(string $message): string
+    {
+        $token = (string) config('atlas.incidents.telegram_bot_token');
+
+        return $token === '' ? $message : str_replace($token, '[token]', $message);
     }
 
     public function failed(int $alertId, string $error): void
     {
         IncidentAlert::query()->whereKey($alertId)->whereNull('sent_at')
-            ->update(['failed_at' => now(), 'error' => mb_substr($error, 0, 250), 'updated_at' => now()]);
+            ->update(['failed_at' => now(), 'error' => mb_substr($this->redact($error), 0, 250), 'updated_at' => now()]);
     }
 
     private function summary(Incident $incident): string
