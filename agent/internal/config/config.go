@@ -40,6 +40,10 @@ type Config struct {
 	// on Windows and root or CAP_NET_RAW on Linux. Unprivileged ping uses
 	// UDP ICMP sockets, which Linux allows through ping_group_range.
 	Privileged bool `yaml:"privileged_ping"`
+	// AllowSNMPv2c lets a device use a v2c community. Off, the config
+	// refuses one: v2c sends the community in clear text, so turning it on
+	// says the agent and those devices share a management network.
+	AllowSNMPv2c bool `yaml:"allow_snmp_v2c"`
 
 	Devices []Device `yaml:"devices"`
 }
@@ -192,7 +196,7 @@ func (c *Config) check() error {
 			problems = append(problems, where+": no checks: turn on ping, or set http or snmp")
 		}
 		if s := d.SNMP; s != nil {
-			problems = append(problems, s.problems(where)...)
+			problems = append(problems, s.problems(where, c.AllowSNMPv2c)...)
 		}
 		if d.HTTP != "" {
 			if h, err := url.Parse(d.HTTP); err != nil || h.Host == "" || (h.Scheme != "http" && h.Scheme != "https") {
@@ -208,13 +212,15 @@ func (c *Config) check() error {
 	return nil
 }
 
-func (s SNMP) problems(where string) []string {
+func (s SNMP) problems(where string, allowV2c bool) []string {
 	where += ".snmp"
 	switch {
 	case s.V3() && s.Community != "":
 		return []string{where + ": set user for SNMPv3 or community for v2c, not both"}
 	case !s.V3() && s.Community == "":
 		return []string{where + ": set user, auth_passphrase and priv_passphrase for SNMPv3, or community for a device that only has v2c. There is no default community"}
+	case !s.V3() && !allowV2c:
+		return []string{where + ": a v2c community crosses the network in clear text. Use SNMPv3 (user, auth_passphrase, priv_passphrase), or set allow_snmp_v2c: true once the agent and this device share a management network"}
 	case !s.V3():
 		return nil
 	}

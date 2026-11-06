@@ -103,8 +103,15 @@ func TestSNMPHasNoDefaultCommunity(t *testing.T) {
 	}
 }
 
-func TestSNMPv2cWorksWithACommunityAndIsWarnedAbout(t *testing.T) {
+func TestSNMPv2cIsRefusedUntilTheConfigAllowsIt(t *testing.T) {
 	body := strings.Replace(good, "user: atlas, auth_passphrase: auth-pass-1, priv_passphrase: priv-pass-1", "community: lab-ro", 1)
+	if _, err := Load(write(t, body)); err == nil || !strings.Contains(err.Error(), "allow_snmp_v2c") {
+		t.Fatalf("a v2c community loaded without allow_snmp_v2c: %v", err)
+	}
+}
+
+func TestSNMPv2cWorksWhenAllowedAndIsWarnedAbout(t *testing.T) {
+	body := "allow_snmp_v2c: true\n" + strings.Replace(good, "user: atlas, auth_passphrase: auth-pass-1, priv_passphrase: priv-pass-1", "community: lab-ro", 1)
 	c, err := Load(write(t, body))
 	if err != nil {
 		t.Fatal(err)
