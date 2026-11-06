@@ -32,7 +32,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Tests\TestCase;
+use Throwable;
 
 /**
  * Phase 2: incidents between readings and tickets (ADR-0014).
@@ -476,6 +481,64 @@ class IncidentTest extends TestCase
 
         $this->assertNotNull(IncidentAlert::where('channel', AlertChannel::Telegram)->sole()->sent_at);
         Http::assertSent(fn ($request) => str_starts_with((string) $request['text'], IncidentAlerts::REPEAT));
+    }
+
+    /**
+     * A mail transport that fails each send with the next exception given,
+     * then delivers. Returns the subjects it delivered.
+     *
+     * @param  list<Throwable>  $failures
+     */
+    private function scriptedMail(array $failures): \ArrayObject
+    {
+        $delivered = new \ArrayObject;
+        Mail::extend('scripted', fn () => new class($failures, $delivered) extends AbstractTransport
+        {
+            public function __construct(private array $failures, private \ArrayObject $delivered)
+            {
+                parent::__construct();
+            }
+
+            protected function doSend(SentMessage $message): void
+            {
+                if ($failure = array_shift($this->failures)) {
+                    throw $failure;
+                }
+                $this->delivered[] = $message->getOriginalMessage()->getSubject();
+            }
+
+            public function __toString(): string
+            {
+                return 'scripted';
+            }
+        });
+        config(['mail.mailers.scripted' => ['transport' => 'scripted'], 'mail.default' => 'scripted', 'atlas.mail_configured' => true, 'queue.default' => 'database']);
+        app('mail.manager')->forgetMailers();
+
+        return $delivered;
+    }
+
+    public function test_an_email_the_mail_server_refused_goes_again_plain(): void
+    {
+        $delivered = $this->scriptedMail([new UnexpectedResponseException('Expected response code "250" but got code "451", with message "451 4.3.0 Try again later".', 451)]);
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 2, '--backoff' => 0]);
+
+        $this->assertCount(1, $delivered);
+        $this->assertStringStartsNotWith('[Atlas] Repeat:', $delivered[0]);
+        $this->assertFalse(IncidentAlert::where('channel', AlertChannel::Email)->sole()->maybe_sent);
+    }
+
+    public function test_an_email_whose_connection_dropped_goes_again_as_a_labelled_repeat(): void
+    {
+        $delivered = $this->scriptedMail([new TransportException('Connection to "smtp.campus.test:587" timed out.')]);
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 2, '--backoff' => 0]);
+
+        $this->assertCount(1, $delivered);
+        $this->assertStringStartsWith('[Atlas] Repeat:', $delivered[0]);
     }
 
     public function test_an_alert_taken_from_a_dead_worker_goes_as_a_labelled_repeat(): void

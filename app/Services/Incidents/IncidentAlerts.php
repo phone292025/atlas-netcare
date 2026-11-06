@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
+use Symfony\Component\Mailer\Exception\HttpTransportException;
+use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Throwable;
 
 /**
@@ -201,9 +203,11 @@ class IncidentAlerts
         try {
             $this->sendOutside($alert);
         } catch (Throwable $e) {
-            // An answer with an error status means the provider refused it.
-            // Anything else, a timeout above all, may have been delivered.
-            if (! $e instanceof RequestException) {
+            // An answer with an error status means the provider refused it:
+            // Telegram's HTTP error, an SMTP server's 4xx or 5xx, a mail
+            // API's error response. Anything else, a timeout above all, may
+            // have been delivered.
+            if (! $this->refused($e)) {
                 IncidentAlert::query()->whereKey($alertId)->update(['maybe_sent' => true]);
             }
 
@@ -234,6 +238,14 @@ class IncidentAlerts
                 ['chat_id' => $alert->user->telegram_chat_id, 'text' => $repeat.$alert->incident->title."\n".$this->summary($alert->incident)."\n".$alert->incident->urlFor($alert->user)],
             )->throw(),
         };
+    }
+
+    /** Whether the provider answered, and the answer was no. */
+    private function refused(Throwable $e): bool
+    {
+        return $e instanceof RequestException
+            || $e instanceof UnexpectedResponseException
+            || ($e instanceof HttpTransportException && $e->getResponse()->getStatusCode() >= 400);
     }
 
     public function messageId(IncidentAlert $alert): string

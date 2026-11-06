@@ -67,7 +67,7 @@ An engineer or administrator can **resolve a degraded or flapping incident by ha
 
 The row is the record of what is owed, and the queue only carries it. A worker takes an alert by setting `attempted_at`, and only when nobody has it or the last taker is more than three minutes old, so two jobs for one alert never send at once; a failed attempt gives it back for the retry. If the job never reached the queue, because the process died after the incident committed, or its worker died mid-send, the alert stays unsent. The minute sweep queues every such alert again once it has been quiet for three minutes, so it goes out late and is never lost.
 
-An alert that may already have reached its person is marked `maybe_sent`: a worker died holding it, or an attempt failed without an answer from the provider, as a timeout does. Its next send starts "Repeat: Atlas may have sent you this alert already", and an email's subject starts "[Atlas] Repeat:", so a duplicate reads as one and not as a second incident. A retry after the provider answered with an error is sent plain, since that one never arrived.
+An alert that may already have reached its person is marked `maybe_sent`: a worker died holding it, or an attempt failed without an answer from the provider, as a timeout does. Its next send starts "Repeat: Atlas may have sent you this alert already", and an email's subject starts "[Atlas] Repeat:", so a duplicate reads as one and not as a second incident. A retry after the provider answered no is sent plain, since that one never arrived: Telegram's HTTP error, an SMTP server's 4xx or 5xx reply, or a mail API's error response.
 
 | Channel | When | Once? |
 |---|---|---|
