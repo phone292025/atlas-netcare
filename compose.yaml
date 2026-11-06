@@ -34,8 +34,10 @@ x-atlas: &atlas
     LOG_CHANNEL: stderr
     QUEUE_CONNECTION: database
     # Whether the backup service runs, so atlas:check-backups knows to
-    # expect backups.
+    # expect backups, and where it copies them, which a production copy must
+    # have (atlas:check-deployment).
     ATLAS_COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
+    ATLAS_BACKUP_COPY_DIR: ${ATLAS_BACKUP_COPY_DIR:-}
     # Where the stack is published, so the app knows whether only this
     # machine can reach it (config atlas.published_on_loopback).
     ATLAS_BIND: ${ATLAS_BIND:-127.0.0.1}

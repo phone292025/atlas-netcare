@@ -394,6 +394,11 @@ return [
     'backups' => [
         'status_file' => env('ATLAS_BACKUP_STATUS_FILE', '/backups/status'),
         'expected' => (bool) env('ATLAS_BACKUPS_EXPECTED', in_array('backup', explode(',', (string) env('ATLAS_COMPOSE_PROFILES', '')), true)),
+        // Where the backup service copies each backup. In production
+        // atlas:check-deployment refuses to start without one, unless
+        // ATLAS_BACKUPS_ELSEWHERE says the owner backs up another way.
+        'copy_dir' => env('ATLAS_BACKUP_COPY_DIR', ''),
+        'elsewhere' => (bool) env('ATLAS_BACKUPS_ELSEWHERE', false),
         'late_after_hours' => 2,
         'alert_every_min' => 360,
     ],
