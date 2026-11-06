@@ -7,6 +7,7 @@ use App\Models\Incident;
 use App\Models\IncidentAlert;
 use App\Models\User;
 use App\Services\Shifts\AlarmService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -37,9 +38,13 @@ use Throwable;
  * In the app the alarm and `sent_at` are written in one transaction, so that
  * channel is exactly once. Email and Telegram are at least once: a worker
  * that dies after the provider took the message and before `sent_at` was
- * saved leaves an alert the sweep sends again. An email keeps one Message-ID
- * per alert, so a mail server that drops repeated IDs shows one; Telegram
- * has no way to say "this one again".
+ * saved leaves an alert the sweep sends again. So does a timeout: the
+ * provider may have taken the message before the connection dropped. Such an
+ * alert is marked `maybe_sent`, and goes again as a labelled repeat, so the
+ * person can tell it from a second incident. An email also keeps one
+ * Message-ID per alert, so a mail server that drops repeated IDs shows one.
+ * A retry after the provider refused the message, with an error status, is
+ * not a repeat and is sent plain.
  */
 class IncidentAlerts
 {
@@ -49,6 +54,9 @@ class IncidentAlerts
      * after 10.
      */
     public const LEASE_SECONDS = 180;
+
+    /** The first line of an alert that may have reached its person already. */
+    public const REPEAT = 'Repeat: Atlas may have sent you this alert already, and is sending it again in case it did not arrive.';
 
     public function __construct(private readonly AlarmService $alarms) {}
 
@@ -153,15 +161,22 @@ class IncidentAlerts
         }
     }
 
-    /** Take the alert for this worker, if it is owed and nobody else has it. */
+    /**
+     * Take the alert for this worker, if it is owed and nobody else has it.
+     * Taking it from a worker whose lease ran out marks it `maybe_sent`: that
+     * worker may have sent it before it died.
+     */
     private function take(int $alertId): bool
     {
-        return IncidentAlert::query()
-            ->whereKey($alertId)
-            ->whereNull('sent_at')
-            ->whereNull('failed_at')
-            ->where(fn ($q) => $q->whereNull('attempted_at')->orWhere('attempted_at', '<', now()->subSeconds(self::LEASE_SECONDS)))
-            ->update(['attempted_at' => now(), 'updated_at' => now()]) === 1;
+        $owed = fn () => IncidentAlert::query()->whereKey($alertId)->whereNull('sent_at')->whereNull('failed_at');
+
+        if ($owed()->whereNull('attempted_at')->update(['attempted_at' => now(), 'updated_at' => now()]) === 1) {
+            return true;
+        }
+
+        return $owed()
+            ->where('attempted_at', '<', now()->subSeconds(self::LEASE_SECONDS))
+            ->update(['attempted_at' => now(), 'maybe_sent' => true, 'updated_at' => now()]) === 1;
     }
 
     private function sendTaken(IncidentAlert $alert): void
@@ -186,6 +201,12 @@ class IncidentAlerts
         try {
             $this->sendOutside($alert);
         } catch (Throwable $e) {
+            // An answer with an error status means the provider refused it.
+            // Anything else, a timeout above all, may have been delivered.
+            if (! $e instanceof RequestException) {
+                IncidentAlert::query()->whereKey($alertId)->update(['maybe_sent' => true]);
+            }
+
             // The Telegram API puts the bot token in its URL, and a
             // connection error quotes the URL. Nothing stored or logged may
             // carry it.
@@ -197,18 +218,20 @@ class IncidentAlerts
 
     private function sendOutside(IncidentAlert $alert): void
     {
+        $repeat = $alert->maybe_sent ? self::REPEAT."\n\n" : '';
+
         match ($alert->channel) {
             AlertChannel::Email => Mail::raw(
-                $this->summary($alert->incident)."\n\n".$alert->incident->urlFor($alert->user),
+                $repeat.$this->summary($alert->incident)."\n\n".$alert->incident->urlFor($alert->user),
                 function ($message) use ($alert) {
-                    $message->to($alert->user->email)->subject('[Atlas] '.$alert->incident->title);
+                    $message->to($alert->user->email)->subject('[Atlas] '.($alert->maybe_sent ? 'Repeat: ' : '').$alert->incident->title);
                     // One ID per alert, so a resend after a crash is the same message.
                     $message->getSymfonyMessage()->getHeaders()->addIdHeader('Message-ID', $this->messageId($alert));
                 },
             ),
             AlertChannel::Telegram => Http::timeout(10)->post(
                 'https://api.telegram.org/bot'.config('atlas.incidents.telegram_bot_token').'/sendMessage',
-                ['chat_id' => $alert->user->telegram_chat_id, 'text' => $alert->incident->title."\n".$this->summary($alert->incident)."\n".$alert->incident->urlFor($alert->user)],
+                ['chat_id' => $alert->user->telegram_chat_id, 'text' => $repeat.$alert->incident->title."\n".$this->summary($alert->incident)."\n".$alert->incident->urlFor($alert->user)],
             )->throw(),
         };
     }

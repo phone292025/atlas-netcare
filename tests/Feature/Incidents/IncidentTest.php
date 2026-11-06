@@ -453,6 +453,49 @@ class IncidentTest extends TestCase
         $this->assertNotNull($telegram->sent_at);
         $this->assertNull($telegram->failed_at);
         Http::assertSentCount(2);
+        // Telegram refused the first, so the second is no repeat.
+        Http::assertNotSent(fn ($request) => str_starts_with((string) $request['text'], IncidentAlerts::REPEAT));
+    }
+
+    public function test_an_alert_that_timed_out_goes_again_as_a_labelled_repeat(): void
+    {
+        config(['queue.default' => 'database', 'atlas.incidents.telegram_bot_token' => '123:abc']);
+        $calls = 0;
+        // Telegram may have taken the message before the connection dropped.
+        Http::fake(function () use (&$calls) {
+            if (++$calls === 1) {
+                throw new ConnectionException('cURL error 28: Operation timed out');
+            }
+
+            return Http::response(['ok' => true]);
+        });
+        $this->engineer->forceFill(['telegram_chat_id' => '4242'])->save();
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 2, '--backoff' => 0]);
+
+        $this->assertNotNull(IncidentAlert::where('channel', AlertChannel::Telegram)->sole()->sent_at);
+        Http::assertSent(fn ($request) => str_starts_with((string) $request['text'], IncidentAlerts::REPEAT));
+    }
+
+    public function test_an_alert_taken_from_a_dead_worker_goes_as_a_labelled_repeat(): void
+    {
+        config(['queue.default' => 'database', 'atlas.mail_configured' => true, 'mail.default' => 'array']);
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--max-jobs' => 1]);
+        DB::table('jobs')->delete();
+        $email = IncidentAlert::where(['user_id' => $this->engineer->id, 'channel' => AlertChannel::Email])->sole();
+        // A worker took it and died, perhaps after the mail server had it.
+        $email->forceFill(['attempted_at' => now()])->save();
+
+        $this->travel(IncidentAlerts::LEASE_SECONDS + 1)->seconds();
+        $this->artisan('atlas:watch-incidents');
+        $this->artisan('queue:work', ['--stop-when-empty' => true]);
+
+        $sent = collect(app('mailer')->getSymfonyTransport()->messages())->map->getOriginalMessage()->sole();
+        $this->assertStringStartsWith('[Atlas] Repeat: ', $sent->getSubject());
+        $this->assertStringStartsWith(IncidentAlerts::REPEAT, $sent->getTextBody());
+        $this->assertTrue($email->fresh()->maybe_sent);
     }
 
     public function test_an_email_alert_sent_again_after_a_crash_is_the_same_message(): void
