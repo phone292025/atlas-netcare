@@ -130,6 +130,8 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 `tests/Stack/agent-https.sh` runs in CI's Docker stack job, after the backup and restore checks. On the stack as `.env.example` leaves it, an agent's batch over plain HTTP gets Atlas's 403. It then restarts the app with `ATLAS_SERVER_NAME=127.0.0.1`: the same batch over HTTPS through the image's Caddy is stored, plain HTTP is redirected by Caddy before PHP sees the token, and the real `atlas-agent` binary refuses Caddy's certificate until it is given Caddy's root as `ca_file`, and then stores its readings. Writing it found that an IP address as the server name broke every TLS handshake, since a client sends no name to an IP; compose now sets Caddy's `default_sni`.
 
+`tests/Stack/backups.sh` runs in the same job, on the backup service the stack starts with `.env.example`'s `COMPOSE_PROFILES=backup` and an `ATLAS_BACKUP_COPY_DIR`. It waits for the first scheduled backup, then checks that the loop restored it into a scratch database and found it identical, dropped that database, copied the file to the copy folder, and wrote `backups/status`; that the service's health check then reads healthy; and that the scheduler's `atlas:check-backups` reads the backup as on time. Last it records a newer backup with no copy, and the scheduler must report it and alarm the administrator. Writing it found that an `environment:` block on the scheduler had replaced the shared one from compose's anchor, database settings included.
+
 ## Response times
 
 NFR-02 is measured on a stack the size of a campus, not on the demo data:

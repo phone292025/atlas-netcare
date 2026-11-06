@@ -136,6 +136,9 @@ jobs:
         run: |
           cp .env.example .env
           sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 16)/" .env
+          # The backup service copies every backup here, as a second disk would.
+          sed -i "s|^ATLAS_BACKUP_COPY_DIR=.*|ATLAS_BACKUP_COPY_DIR=./backups-copy|" .env
+          mkdir -p backups backups-copy
 
       - name: Build the image and start the stack
         # --wait returns once the database and the app pass their health
@@ -168,11 +171,18 @@ jobs:
         # crash from the steps above. Each container must still be on its
         # first run.
         run: |
-          for service in db app worker scheduler; do
+          for service in db app worker scheduler backup; do
             restarts=$(docker inspect -f '{{.RestartCount}}' "$(docker compose ps -q "$service")")
             echo "$service: $restarts restarts"
             test "$restarts" = 0
           done
+
+      - name: Scheduled backups are made, proven, copied and watched
+        # The backup service's first backup, its restore check, its copy to
+        # ATLAS_BACKUP_COPY_DIR, its health check, and the scheduler's
+        # atlas:check-backups reading it as on time, then reporting a copy
+        # that fell behind.
+        run: ATLAS_BACKUP_COPY_DIR=./backups-copy bash tests/Stack/backups.sh
 
       - name: Back up the database and restore it into a fresh one
         # The worker and the scheduler stop first, so nothing writes between

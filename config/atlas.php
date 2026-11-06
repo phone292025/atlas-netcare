@@ -380,6 +380,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Backups
+    |--------------------------------------------------------------------------
+    |
+    | What atlas:check-backups reads: the status file the backup service
+    | writes, and whether to expect one. Under Docker, backups are expected
+    | while COMPOSE_PROFILES includes `backup`; ATLAS_BACKUPS_EXPECTED says so
+    | elsewhere. `late_after_hours` is added to the service's own interval
+    | before the newest backup counts as late.
+    |
+    */
+
+    'backups' => [
+        'status_file' => env('ATLAS_BACKUP_STATUS_FILE', '/backups/status'),
+        'expected' => (bool) env('ATLAS_BACKUPS_EXPECTED', in_array('backup', explode(',', (string) env('ATLAS_COMPOSE_PROFILES', '')), true)),
+        'late_after_hours' => 2,
+        'alert_every_min' => 360,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Shifts and reminders
     |--------------------------------------------------------------------------
     |

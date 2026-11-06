@@ -56,3 +56,8 @@ desktop.ini
 /agent/atlas-agent.yaml
 /agent/token.txt
 /agent/*.db*
+
+# The backup check's throwaway stack (tests/Stack/backups.sh run locally).
+/tests/Stack/.stack.env
+/tests/Stack/.backups/
+/tests/Stack/.backups-copy/

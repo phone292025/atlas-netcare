@@ -33,6 +33,7 @@ enum AlarmType: string implements HasLabel, HasTone
     case AgentSilent = 'agent_silent';
     case DeviceFlapping = 'device_flapping';
     case QueueUnhealthy = 'queue_unhealthy';
+    case BackupUnhealthy = 'backup_unhealthy';
     case SlaBreach = 'sla_breach';
 
     public function label(): string
@@ -49,6 +50,7 @@ enum AlarmType: string implements HasLabel, HasTone
             self::AgentSilent => 'Agent stopped reporting',
             self::DeviceFlapping => 'Device flapping',
             self::QueueUnhealthy => 'Background jobs stuck',
+            self::BackupUnhealthy => 'Backups not working',
             self::SlaBreach => 'Ticket overdue',
         };
     }
@@ -58,7 +60,7 @@ enum AlarmType: string implements HasLabel, HasTone
         return match ($this) {
             self::ShiftStart, self::InspectionRound, self::Handover, self::ShiftRemoved,
             self::TicketRaised, self::TicketAssigned, self::ApDegraded, self::DeviceFlapping => 'attention',
-            self::ApOffline, self::AgentSilent, self::SlaBreach, self::QueueUnhealthy => 'urgent',
+            self::ApOffline, self::AgentSilent, self::SlaBreach, self::QueueUnhealthy, self::BackupUnhealthy => 'urgent',
         };
     }
 
@@ -77,6 +79,7 @@ enum AlarmType: string implements HasLabel, HasTone
             self::AgentSilent => 'activity',
             self::DeviceFlapping => 'activity',
             self::QueueUnhealthy => 'gear',
+            self::BackupUnhealthy => 'gear',
             self::SlaBreach => 'clock',
         };
     }

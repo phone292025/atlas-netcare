@@ -33,6 +33,9 @@ x-atlas: &atlas
     # To the container's output, so `docker compose logs` shows them.
     LOG_CHANNEL: stderr
     QUEUE_CONNECTION: database
+    # Whether the backup service runs, so atlas:check-backups knows to
+    # expect backups.
+    ATLAS_COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
     # Where the stack is published, so the app knows whether only this
     # machine can reach it (config atlas.published_on_loopback).
     ATLAS_BIND: ${ATLAS_BIND:-127.0.0.1}
@@ -167,16 +170,21 @@ services:
       retries: 3
       start_period: 10s
       start_interval: 2s
+    # No environment: here. It would replace the shared one above, database
+    # settings and all, rather than add to it.
     volumes:
       - <<: *env-file
         read_only: true
+      # backups/status, for atlas:check-backups. Read-only.
+      - ${ATLAS_BACKUP_DIR:-./backups}:/backups:ro
     depends_on:
       app:
         condition: service_healthy
 
-  # Daily backups into ./backups, kept 14 days (docker/postgres/bin/backup-loop.sh).
-  # The same image as the database, so pg_dump matches the server. A copy
-  # off this machine is still yours to make: see the README's Backups.
+  # Daily backups into ./backups, kept 14 days, each restored once to prove
+  # it, and copied to ATLAS_BACKUP_COPY_DIR when that is set
+  # (docker/postgres/bin/backup-loop.sh). The same image as the database, so
+  # pg_dump matches the server.
   # Behind the `backup` profile, which .env.example turns on: the browser and
   # load-test stacks run from this folder too, and their throwaway databases
   # must not fill ./backups.
@@ -191,16 +199,24 @@ services:
       POSTGRES_USER: atlas
       ATLAS_BACKUP_EVERY_HOURS: ${ATLAS_BACKUP_EVERY_HOURS:-24}
       ATLAS_BACKUP_KEEP_DAYS: ${ATLAS_BACKUP_KEEP_DAYS:-14}
+      ATLAS_BACKUP_VERIFY: ${ATLAS_BACKUP_VERIFY:-true}
+      # Non-empty when ATLAS_BACKUP_COPY_DIR is set, so the loop copies.
+      ATLAS_BACKUP_COPY: ${ATLAS_BACKUP_COPY_DIR:-}
     volumes:
       - ./docker/postgres/bin:/atlas:ro
       - ${ATLAS_BACKUP_DIR:-./backups}:/backups
+      # Without ATLAS_BACKUP_COPY_DIR this is backups/ again, and nothing is
+      # copied to it.
+      - ${ATLAS_BACKUP_COPY_DIR:-./backups}:/copy
+    # Healthy while the newest good backup is recent, not merely while the
+    # loop runs (docker/postgres/bin/backup-health.sh).
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "backup-loop"]
-      interval: 30s
+      test: ["CMD", "sh", "/atlas/backup-health.sh"]
+      interval: 60s
       timeout: 5s
       retries: 3
-      start_period: 10s
-      start_interval: 2s
+      start_period: 30s
+      start_interval: 5s
     depends_on:
       db:
         condition: service_healthy

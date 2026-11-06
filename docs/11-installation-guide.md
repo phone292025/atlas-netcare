@@ -141,7 +141,8 @@ The `scheduler` service runs `php artisan schedule:work`, and the `worker` servi
 | `atlas:watch-incidents` | every minute | Opens and resolves incidents from current statuses, and escalates any nobody has acknowledged ([M8](modules/M8-incidents.md)) |
 | `atlas:recalculate-risk` | daily 02:00 | Rescores every asset, keeping history |
 | `atlas:mark-missed-shifts` | every five minutes | Marks ended shifts nobody checked into as missed |
-| `backup` service | once a day | Backs the database up into `backups/`, keeping 14 days (`COMPOSE_PROFILES=backup` in `.env`). Copy that folder off the machine yourself |
+| `backup` service | once a day | Backs the database up into `backups/`, keeping 14 days (`COMPOSE_PROFILES=backup` in `.env`), restores each backup into a scratch database to prove it, and copies it to `ATLAS_BACKUP_COPY_DIR` when that is set |
+| `atlas:check-backups` | hourly | Alarms the administrators if the newest good backup is overdue, the last attempt failed, or the copy to `ATLAS_BACKUP_COPY_DIR` is behind, from `backups/status` |
 | `atlas:check-queue` | every five minutes | Alarms the administrators if a job has waited 5 minutes (the worker is down) or jobs keep failing. In-app alarms go out through the scheduler, so this works with the worker down |
 | `atlas:generate-shifts` | Sunday 18:00 | Next week's roster |
 
