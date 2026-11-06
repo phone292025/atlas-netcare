@@ -128,6 +128,14 @@ class BackupHealthTest extends TestCase
         $this->artisan('atlas:check-backups')->expectsOutputToContain('on time');
     }
 
+    public function test_a_copy_on_the_same_disk_as_the_backups_is_reported(): void
+    {
+        $this->goodBackup(2, ['copy' => 'yes', 'copy_same_disk' => 'yes', 'last_copy' => now()->subHour()->getTimestamp()]);
+
+        $this->artisan('atlas:check-backups')->expectsOutputToContain('same disk')->assertSuccessful();
+        $this->assertSame(1, $this->backupAlarms());
+    }
+
     public function test_a_backup_service_that_never_wrote_its_status_is_reported(): void
     {
         $this->artisan('atlas:check-backups')->expectsOutputToContain('never written its status')->assertSuccessful();

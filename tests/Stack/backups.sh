@@ -41,22 +41,31 @@ done
 [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q backup)")" = healthy ] || { echo "FAILED: the backup service is not healthy"; exit 1; }
 echo "  the backup service reports healthy"
 
+# Run here and in CI, the copy folder is on the same disk as backups/, as a
+# careless setup would be: the loop must notice, and the scheduler say so
+# and alarm the administrator. On separate storage it must read on time.
 said=$(docker compose exec -T scheduler php artisan atlas:check-backups)
 echo "$said" | sed 's/^/  scheduler: /'
-grep -q "on time" <<< "$said" || { echo "FAILED: atlas:check-backups did not read the backup as on time"; exit 1; }
+if [ "$(value copy_same_disk)" = yes ]; then
+    grep -q "same disk" <<< "$said" && grep -q "Told 1 administrator" <<< "$said" \
+        || { echo "FAILED: a copy on the same disk was not reported"; exit 1; }
+    echo "  the copy folder is on the same disk as backups/, and that is reported"
+else
+    grep -q "on time" <<< "$said" || { echo "FAILED: atlas:check-backups did not read the backup as on time"; exit 1; }
+fi
 
-# A newer backup that could not be copied: the scheduler must say so.
+# A newer backup that could not be copied: the scheduler must say so. The
+# command must also reach the database: an exit code other than 0 fails
+# this script.
 docker compose exec -T backup sh -c '
     tmp=$(mktemp /backups/.status.XXXXXX)
     grep -v "^last_success=" /backups/status > "$tmp"
     echo "last_success=$(( $(date +%s) + 60 ))" >> "$tmp"
     chmod 644 "$tmp"; mv "$tmp" /backups/status'
-# The command must also reach the database to raise the alarm: an exit code
-# other than 0 fails this script.
 said=$(docker compose exec -T scheduler php artisan atlas:check-backups)
-grep -q "not copied to ATLAS_BACKUP_COPY_DIR" <<< "$said" && grep -q "Told 1 administrator" <<< "$said" \
+grep -q "not copied to ATLAS_BACKUP_COPY_DIR" <<< "$said" \
     || { echo "FAILED: a copy that fell behind was not reported. The scheduler said:"; echo "$said"; exit 1; }
-echo "  a copy that fell behind is reported, and the administrator alarmed"
+echo "  a copy that fell behind is reported"
 
 # A dump that fails leaves no file the loop could take for a backup.
 if docker compose exec -T backup sh /atlas/backup.sh no_such_database > /dev/null 2>&1; then

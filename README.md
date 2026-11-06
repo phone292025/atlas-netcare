@@ -92,7 +92,7 @@ The stack's `backup` service backs the database up once a day into `backups/`, a
 
 **Set `ATLAS_BACKUP_COPY_DIR`** in `.env` to a folder on another disk, or a network share mounted on this machine, and every backup is copied there as well. A backup on the same disk as the database is lost with it, so with `APP_ENV=production` the app refuses to start without one, unless `ATLAS_BACKUPS_ELSEWHERE=true` says the server is backed up another way.
 
-The service writes how each attempt went into `backups/status`. `docker compose ps backup` shows it unhealthy once the newest good backup is more than two hours overdue, and every hour the scheduler's `atlas:check-backups` reads the same file: the administrators get an alarm when a backup is late, the last attempt failed, or the copy is behind.
+The service writes how each attempt went into `backups/status`. `docker compose ps backup` shows it unhealthy once the newest good backup is more than two hours overdue, and every hour the scheduler's `atlas:check-backups` reads the same file: the administrators get an alarm when a backup is late, the last attempt failed, or the copy is behind or on the same disk as `backups/`.
 
 To take one now:
 

@@ -38,6 +38,7 @@ x-atlas: &atlas
     # have (atlas:check-deployment).
     ATLAS_COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
     ATLAS_BACKUP_COPY_DIR: ${ATLAS_BACKUP_COPY_DIR:-}
+    ATLAS_BACKUP_DIR: ${ATLAS_BACKUP_DIR:-./backups}
     # Where the stack is published, so the app knows whether only this
     # machine can reach it (config atlas.published_on_loopback).
     ATLAS_BIND: ${ATLAS_BIND:-127.0.0.1}

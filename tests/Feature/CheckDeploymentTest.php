@@ -55,6 +55,7 @@ class CheckDeploymentTest extends TestCase
             'agents allowed plain http' => [['atlas.ingest.allow_plain_http' => true], 'ATLAS_AGENTS_ALLOW_PLAIN_HTTP'],
             'no scheduled backups' => [['atlas.backups.expected' => false], 'COMPOSE_PROFILES'],
             'backups only on this disk' => [['atlas.backups.copy_dir' => ''], 'ATLAS_BACKUP_COPY_DIR'],
+            'the copy is the backups folder' => [['atlas.backups.copy_dir' => 'backups/', 'atlas.backups.dir' => './backups'], 'names the backups folder itself'],
         ];
     }
 

@@ -48,6 +48,14 @@ echo "Backups every ${every_hours} h into backups/, kept ${keep_days} days."
 set_status started "$(date +%s)"
 set_status every_hours "$every_hours"
 set_status copy "$([ -n "$copy" ] && echo yes || echo no)"
+# A copy is worth something only on other storage. Two folders on one disk
+# have the same device number, and a disk that fails takes both.
+if [ -n "$copy" ] && [ "$(stat -c %d /backups)" = "$(stat -c %d /copy)" ]; then
+    echo "ATLAS_BACKUP_COPY_DIR is on the same disk as backups/: a failing disk takes both." >&2
+    set_status copy_same_disk yes
+else
+    set_status copy_same_disk no
+fi
 
 while true; do
     newest=$(find /backups -maxdepth 1 -name 'atlas-*.dump' -mmin -$((every_hours * 60)) | head -n 1)

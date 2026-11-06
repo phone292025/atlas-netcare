@@ -58,6 +58,10 @@ class BackupHealth
             $problems[] = 'Backups are not being restored to check them (ATLAS_BACKUP_VERIFY=false), so nobody knows whether they restore.';
         }
 
+        if (($status['copy'] ?? 'no') === 'yes' && ($status['copy_same_disk'] ?? 'no') === 'yes') {
+            $problems[] = 'ATLAS_BACKUP_COPY_DIR is on the same disk as backups/, so a failing disk takes the backups and their copies together. Point it at another disk or a mounted network share.';
+        }
+
         if ($success && ($status['copy'] ?? 'no') === 'yes') {
             $copied = $at('last_copy');
 
