@@ -1,0 +1,23 @@
+# The load test on a small server: SMALL=1 bash tests/Performance/load-stack.sh
+#
+# Caps the stack at 4 CPUs and 4.5 GB between its services, the size of a
+# modest virtual machine, instead of the whole of the machine running the
+# test. Docker enforces the caps, so the numbers are what that server would
+# see, give or take its disks.
+services:
+  app:
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 1536M }
+  db:
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 2048M }
+  worker:
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 512M }
+  scheduler:
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 512M }

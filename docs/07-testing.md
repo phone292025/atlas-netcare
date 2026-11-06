@@ -119,7 +119,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 | ID | Criterion | How to test |
 |---|---|---|
-| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 150-device outage storm and a backlog of 5,000 readings. Measured: slowest request 736 ms; storm 7.1 s; backlog 933 ms. See [Response times](#response-times). |
+| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 150-device outage storm and a backlog of 5,000 readings. Measured: slowest request 736 ms; storm 7.1 s; backlog 933 ms. Capped at a small server's 4 CPUs and 4.5 GB: slowest 2.07 s; storm 7.5 s; backlog 2.7 s. See [Response times](#response-times). |
 | NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. **Not done:** one real phone, with a screenshot, during UAT-1. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Every browser test runs in Chromium, the engine of Chrome and Edge, and in Firefox (`playwright.config.js`), locally and in CI. **Not done:** a pass in Edge itself, recording its version, during UAT. |
 | NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. **Not done:** a pass with a screen reader (NVDA or Narrator), during UAT-4. |
@@ -180,6 +180,20 @@ An earlier run found a real fault: one ticket raise in 1,973 failed, because fou
 **Outage storm:** all 150 access points offline, in open incidents, and all 150 alerts sent, 7.1 seconds after the first of the three batches was sent. That covers the three requests, the listener on the queue, the incidents, the tickets and the alerts. The 40-device run took 3.5 seconds.
 
 **Backlog:** five agents sending two batches of 500 readings each, at once, stored all 5,000 readings in 933 ms. The median batch took 434 ms and the slowest 512 ms.
+
+### On a small server
+
+`SMALL=1 bash tests/Performance/load-stack.sh` runs the same test with the stack capped by Docker at 4 CPUs and 4.5 GB between its services (`tests/Performance/small-server.yaml`): the app 1.5 CPUs and 1.5 GB, the database 1.5 CPUs and 2 GB, the worker and the scheduler half a CPU and 512 MB each. Measured 2026-11-06, same data and load:
+
+| Request | n | p50 ms | p95 ms | max ms |
+|---|---:|---:|---:|---:|
+| Monitor screens and their JSON, every role | 1,110 | 935 to 977 | 1,335 to 1,489 | 1,819 |
+| Engineer: reports | 151 | 882 | 1,312 | 1,507 |
+| Every other screen | 3,412 | 568 to 839 | 963 to 1,218 | 1,608 |
+| Assistant: raise a ticket, the POST | 316 | 647 | 1,106 | 1,460 |
+| Agent: POST a batch of 150 readings | 139 | 1,157 | 1,532 | 2,069 |
+
+No request failed, and the slowest took 2.07 seconds, under a third of the target. The twelve people got through an eighth as many requests as on the uncapped laptop, because each waits for its answer, so these are times under a load the small server could only just keep up with. The **outage storm** took 7.5 seconds for all 150 access points, their incidents and alerts, and the **backlog** of 5,000 readings 2.7 seconds, with the slowest 500-reading batch at 1.6 seconds.
 
 This is one machine's measurement: a server with less memory than this laptop's Docker allowance will be slower, and the numbers to compare against are these, taken the same way.
 
