@@ -1,6 +1,6 @@
 # Roadmap to Atlas 2.0
 
-> **Last updated:** 2026-11-01 · **Current phase:** 2
+> **Last updated:** 2026-11-06 · **Release 2.0:** Phases 0 to 2
 
 Atlas 1.0 was a capstone project, and its network was simulated. 2.0 watches a real one. Small probe agents on the network measure devices and push readings to Atlas. Atlas turns failures into incidents, alerts whoever the roster says is on shift, and shows it all live. Everything can be tried on a home network first.
 
@@ -72,6 +72,10 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 2.4 | Tickets created from incidents, one per incident. The old auto-ticket code is removed. Done |
 | 2.5 | On-call from the roster: the assistant on shift first, then engineers if nobody acknowledges in time. Done, then administrators |
 | 2.6 | Alert channels: in-app, email and a Telegram bot. Each alert has a unique key, so retries never alert anyone twice. Done. Phone push moved to Phase 4 on purpose: it needs the installable web app and its service worker, which Phase 4 builds |
+
+## What release 2.0 is
+
+**Release 2.0 is Phases 0 to 2**: the stack, real telemetry from the Go agent, and incidents with on-call alerts. That is what a campus deployment of this release gets, and what its tests and measurements cover. Phases 3 and 4 below are the next releases, not missing parts of this one: until Phase 3 the screens poll every few seconds instead of being pushed to, there is no network map or floor plan, and until Phase 4 rounds need a connection and alerts go in the app, by email and by Telegram, not as phone push.
 
 ## Later
 
