@@ -118,7 +118,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 
 | ID | Criterion | How to test |
 |---|---|---|
-| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 40-device outage storm. Measured: slowest request 460 ms; storm 3.5 s. See [Response times](#response-times). |
+| NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 150-device outage storm and a backlog of 5,000 readings. Measured: slowest request 736 ms; storm 7.1 s; backlog 933 ms. See [Response times](#response-times). |
 | NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. One real phone as well, with a screenshot. |
 | NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
 | NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. A screen reader pass stays manual. |
@@ -149,32 +149,34 @@ Last, the **backlog** (`tests/Performance/backlog.mjs`): five agents come back a
 
 CI's **Response times** job runs a shorter version on every pull request and every push to `main`: a week of telemetry, 60 seconds of load, then the storm and the backlog, with the same budgets. The stack is removed however the run ends.
 
-Measured 2026-11-02 on a Windows 11 laptop under Docker Desktop, with 1,358,512 readings, 3,003 tickets, 4,000 inspections, 250 lab PCs and 157 devices:
+Measured 2026-11-05 on a Windows 11 laptop under Docker Desktop, with 1,358,835 readings, 3,002 tickets, 4,000 inspections, 250 lab PCs and 157 devices, and the agent watching all 150 access points:
 
 | Request | n | p50 ms | p95 ms | max ms |
 |---|---:|---:|---:|---:|
-| Engineer: Network monitor | 680 | 298 | 331 | 381 |
-| Engineer: monitor data (polled JSON) | 680 | 273 | 304 | 375 |
-| Engineer: dashboard | 680 | 149 | 174 | 242 |
-| Engineer: access points | 680 | 120 | 139 | 182 |
-| Engineer: traffic logs | 679 | 125 | 144 | 198 |
-| Engineer: ticket queue | 679 | 119 | 142 | 198 |
-| Engineer: risk ranking | 676 | 154 | 183 | 338 |
-| Engineer: reports | 676 | 277 | 318 | 405 |
-| Administrator: monitor | 1,799 | 296 | 333 | 460 |
-| Administrator: audit log | 1,797 | 72 | 88 | 132 |
-| Administrator: lab PCs, access points, devices, users, roster | 8,984 | 50 to 65 | 64 to 80 | 89 to 118 |
-| Assistant: monitor | 1,171 | 288 | 332 | 450 |
-| Assistant: raise a ticket, the form (250-machine room plan) | 1,169 | 162 | 184 | 246 |
-| Assistant: raise a ticket, the POST | 1,950 | 52 | 65 | 90 |
-| Assistant: today's shift, inspections, tickets | 3,515 | 61 to 74 | 77 to 89 | 123 to 148 |
-| Agent: POST a batch of 40 readings | 244 | 222 | 272 | 364 |
+| Engineer: Network monitor | 704 | 291 | 315 | 554 |
+| Engineer: monitor data (polled JSON) | 703 | 269 | 298 | 417 |
+| Engineer: dashboard | 704 | 143 | 158 | 172 |
+| Engineer: access points | 702 | 114 | 129 | 152 |
+| Engineer: traffic logs | 702 | 132 | 154 | 176 |
+| Engineer: ticket queue | 700 | 114 | 130 | 161 |
+| Engineer: risk ranking | 700 | 147 | 166 | 186 |
+| Engineer: reports | 700 | 269 | 291 | 377 |
+| Administrator: monitor | 1,873 | 289 | 315 | 604 |
+| Administrator: audit log | 1,870 | 69 | 81 | 231 |
+| Administrator: lab PCs, access points, devices, users, roster | 9,353 | 48 to 63 | 60 to 74 | 110 to 260 |
+| Assistant: monitor | 1,216 | 283 | 308 | 349 |
+| Assistant: raise a ticket, the form (250-machine room plan) | 1,213 | 154 | 176 | 237 |
+| Assistant: raise a ticket, the POST | 2,027 | 49 | 62 | 271 |
+| Assistant: today's shift, inspections, tickets | 3,654 | 59 to 71 | 71 to 84 | 102 to 275 |
+| Agent: POST a batch of 150 readings | 183 | 633 | 704 | 736 |
 
-No request failed, and the slowest took 460 ms, under 7% of the target. The monitor screens are the heaviest, because they read every device's latest reading and its last day of hourly figures.
+No request failed, and the slowest took 736 ms, about a tenth of the target. The monitor screens are the heaviest page loads, because they read every device's latest reading and its last day of hourly figures. A 150-reading batch is the heaviest request, at about 4 ms a reading.
 
-An earlier run found a real fault: one ticket raise in 1,973 failed, because four assistants raising tickets at once all read the same highest ticket number and used up the three retries. Ticket numbers are now handed out under an advisory lock (`TableLock::named`), and the two runs since raised 1,980 and 1,950 with none failing.
+An earlier run found a real fault: one ticket raise in 1,973 failed, because four assistants raising tickets at once all read the same highest ticket number and used up the three retries. Ticket numbers are now handed out under an advisory lock (`TableLock::named`), and the three runs since raised 1,980, 1,950 and 2,027 with none failing.
 
-**Outage storm:** all 40 access points offline, in open incidents, and every alert sent, 3.5 seconds after the first of the three batches was sent. That covers the three requests, the listener on the queue, the incidents, the tickets and the alerts.
+**Outage storm:** all 150 access points offline, in open incidents, and all 150 alerts sent, 7.1 seconds after the first of the three batches was sent. That covers the three requests, the listener on the queue, the incidents, the tickets and the alerts. The 40-device run took 3.5 seconds.
+
+**Backlog:** five agents sending two batches of 500 readings each, at once, stored all 5,000 readings in 933 ms. The median batch took 434 ms and the slowest 512 ms.
 
 This is one machine's measurement: a server with less memory than this laptop's Docker allowance will be slower, and the numbers to compare against are these, taken the same way.
 
