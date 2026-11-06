@@ -1,6 +1,6 @@
 # Documentation index
 
-> **Last updated:** 2026-11-01 · **All seven modules are built.** 2.0 is done through roadmap task 1.6: network devices, probe agents and the ingest API, and the Unknown status.
+> **Last updated:** 2026-11-06 · **All seven modules are built, and the incidents module (M8).** Release 2.0 is Phases 0 to 2 of the [roadmap](roadmap.md): the Docker stack on PostgreSQL with TimescaleDB, real telemetry from the Go probe agent, and incidents with on-call alerts. Phases 3 and 4 are the next releases.
 
 This folder documents the system. Conversation history and memory do not survive, so anything that matters beyond today belongs here.
 
