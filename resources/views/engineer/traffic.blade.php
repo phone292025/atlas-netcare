@@ -134,7 +134,7 @@
                     </thead>
                     <tbody class="divide-y divide-line text-fg">
                         @foreach ($rows as $row)
-                            @php($util = (float) $row->avg_channel_util_pct)
+                            @php($util = $row->avg_channel_util_pct === null ? null : (float) $row->avg_channel_util_pct)
                             <tr class="hover:bg-sunken/60">
                                 <td class="whitespace-nowrap px-5 py-3 text-fg-muted">{{ $row->hour_bucket->campus()->format('j M, H:i') }}</td>
                                 <td class="whitespace-nowrap px-4 py-3">
@@ -148,16 +148,19 @@
                                         <span class="block text-xs text-fg-subtle">{{ $row->device?->location?->code }}</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right tabular-nums">{{ $row->peak_client_count }}</td>
+                                <td class="px-4 py-3 text-right tabular-nums">{{ $row->peak_client_count ?? '-' }}</td>
                                 <td @class([
                                     'px-4 py-3 text-right tabular-nums',
                                     'font-medium text-red-700' => $row->avg_latency_ms > config('atlas.thresholds.latency_ms'),
                                 ])>{{ $row->avg_latency_ms ? number_format((float) $row->avg_latency_ms, 0).' ms' : '-' }}</td>
                                 <td @class([
                                     'px-4 py-3 text-right tabular-nums',
-                                    'font-medium text-red-700' => (float) $row->avg_packet_loss_pct > config('atlas.thresholds.packet_loss_pct'),
-                                ])>{{ number_format((float) $row->avg_packet_loss_pct, 1) }}%</td>
+                                    'font-medium text-red-700' => $row->avg_packet_loss_pct !== null && (float) $row->avg_packet_loss_pct > config('atlas.thresholds.packet_loss_pct'),
+                                ])>{{ $row->avg_packet_loss_pct !== null ? number_format((float) $row->avg_packet_loss_pct, 1).'%' : '-' }}</td>
                                 <td class="px-4 py-3">
+                                    @if ($util === null)
+                                        <span class="text-fg-subtle">-</span>
+                                    @else
                                     <span class="flex w-28 items-center gap-2">
                                         <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
                                             <span @class(['block h-full rounded-full', 'bg-amber-500' => $util >= config('atlas.thresholds.channel_util_pct'), 'bg-brand-500' => $util < config('atlas.thresholds.channel_util_pct')])
@@ -165,6 +168,7 @@
                                         </span>
                                         <span class="w-9 text-right text-xs tabular-nums text-fg-muted">{{ number_format($util, 0) }}%</span>
                                     </span>
+                                    @endif
                                 </td>
                                 <td @class([
                                     'px-5 py-3 text-right tabular-nums',

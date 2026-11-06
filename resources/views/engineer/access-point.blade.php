@@ -3,7 +3,7 @@
 
     @php
         $latencyHigh = $latest && $latest->latency_ms > config('atlas.thresholds.latency_ms');
-        $lossHigh = $latest && (float) $latest->packet_loss_pct > config('atlas.thresholds.packet_loss_pct');
+        $lossHigh = $latest?->packet_loss_pct !== null && (float) $latest->packet_loss_pct > config('atlas.thresholds.packet_loss_pct');
     @endphp
 
     <a href="{{ route('engineer.aps.index') }}"
@@ -19,12 +19,12 @@
     </x-page-header>
 
     <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <x-stat-tile label="Clients now" icon="users" :value="$latest?->client_count ?? 0"
+        <x-stat-tile label="Clients now" icon="users" :value="$latest?->client_count ?? '-'"
                      :unit="'of '.$accessPoint->client_capacity" />
         <x-stat-tile label="Latency" icon="gauge" :value="$latest?->latency_ms ?? '-'" unit="ms"
                      :tone="$latencyHigh ? 'urgent' : null"
                      :delta="$latencyHigh ? 'Above the '.config('atlas.thresholds.latency_ms').' ms threshold' : null" />
-        <x-stat-tile label="Packet loss" icon="activity" :value="$latest ? number_format((float) $latest->packet_loss_pct, 1) : '-'" unit="%"
+        <x-stat-tile label="Packet loss" icon="activity" :value="$latest?->packet_loss_pct !== null ? number_format((float) $latest->packet_loss_pct, 1) : '-'" unit="%"
                      :tone="$lossHigh ? 'urgent' : null"
                      :delta="$lossHigh ? 'Above the '.config('atlas.thresholds.packet_loss_pct').'% threshold' : null" />
         <x-stat-tile label="Last seen" icon="clock" :value="$accessPoint->last_seen_at?->diffForHumans(['short' => true]) ?? 'Never'" />
@@ -114,11 +114,11 @@
                                 @foreach ($hours->sortByDesc('hour_bucket') as $hour)
                                     <tr class="hover:bg-sunken/60">
                                         <td class="whitespace-nowrap px-5 py-2.5 text-fg-muted">{{ $hour->hour_bucket->campus()->format('j M, H:i') }}</td>
-                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ $hour->peak_client_count }}</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ $hour->peak_client_count ?? '-' }}</td>
                                         <td class="px-4 py-2.5 text-right tabular-nums">
                                             {{ $hour->avg_latency_ms ? number_format((float) $hour->avg_latency_ms, 0).' ms' : '-' }}
                                         </td>
-                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ number_format((float) $hour->avg_packet_loss_pct, 1) }}%</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ $hour->avg_packet_loss_pct !== null ? number_format((float) $hour->avg_packet_loss_pct, 1).'%' : '-' }}</td>
                                         <td @class([
                                             'px-5 py-2.5 text-right tabular-nums',
                                             'font-medium text-red-700' => (float) $hour->uptime_pct < 100,

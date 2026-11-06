@@ -137,15 +137,21 @@ class ReadingIngest
         $reachable = (bool) $reading['reachable'];
 
         // A device that didn't answer has no numbers: zeros would drag every
-        // average down and make an outage look like excellent latency.
+        // average down and make an outage look like excellent latency. A
+        // field an answering device's agent left out wasn't measured, and
+        // stays null: a ping-only switch has no clients to count, not zero.
+        $measured = fn (string $field): ?float => $reachable && isset($reading[$field]) ? (float) $reading[$field] : null;
+        $latency = $measured('latency_ms');
+        $clients = $measured('client_count');
+
         return new ReadingData(
             deviceId: $device->id,
             recordedAt: $measuredAt,
-            latencyMs: $reachable && isset($reading['latency_ms']) ? (int) round((float) $reading['latency_ms']) : null,
-            clientCount: $reachable ? (int) ($reading['client_count'] ?? 0) : 0,
-            packetLossPct: $reachable ? (float) ($reading['packet_loss_pct'] ?? 0) : 100.0,
-            channelUtilPct: $reachable ? (float) ($reading['channel_util_pct'] ?? 0) : 0.0,
-            throughputMbps: $reachable ? (float) ($reading['throughput_mbps'] ?? 0) : 0.0,
+            latencyMs: $latency === null ? null : (int) round($latency),
+            clientCount: $reachable ? ($clients === null ? null : (int) $clients) : 0,
+            packetLossPct: $reachable ? $measured('packet_loss_pct') : 100.0,
+            channelUtilPct: $reachable ? $measured('channel_util_pct') : 0.0,
+            throughputMbps: $reachable ? $measured('throughput_mbps') : 0.0,
             source: 'live',
             unreachable: ! $reachable,
             agentId: $agent->id,

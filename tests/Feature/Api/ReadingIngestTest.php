@@ -12,6 +12,7 @@ use App\Models\Agent;
 use App\Models\Alarm;
 use App\Models\Incident;
 use App\Models\NetworkDevice;
+use App\Models\TelemetryHourly;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
@@ -382,6 +383,34 @@ class ReadingIngestTest extends TestCase
         ]])->assertJson(['stored' => [7]]);
 
         $this->assertSame(NetworkStatus::Online, NetworkDevice::firstWhere('code', 'SW-L6')->status);
+    }
+
+    public function test_what_a_probe_did_not_measure_is_stored_as_unknown_not_zero(): void
+    {
+        $this->send([
+            $this->reading(1, ['measured_at' => now()->subSeconds(40)->toIso8601ZuluString(), 'channel_util_pct' => 40]),
+            // A ping-only probe: no clients, no loss figure, no traffic.
+            ['sequence' => 2, 'device' => 'AP-06', 'measured_at' => now()->subSeconds(20)->toIso8601ZuluString(), 'reachable' => true, 'latency_ms' => 3],
+        ])->assertJson(['stored' => [1, 2]]);
+
+        $pingOnly = TelemetryReading::query()->where('sequence', 2)->sole();
+        $this->assertSame(3, $pingOnly->latency_ms);
+        $this->assertNull($pingOnly->client_count);
+        $this->assertNull($pingOnly->packet_loss_pct);
+        $this->assertNull($pingOnly->channel_util_pct);
+        $this->assertNull($pingOnly->throughput_mbps);
+
+        // The hour is the measured reading's figures, not halved by a zero.
+        $hour = TelemetryHourly::query()->where('network_device_id', $this->ap->id)->sole();
+        $this->assertSame(9, $hour->peak_client_count);
+        $this->assertEqualsWithDelta(40.0, (float) $hour->avg_channel_util_pct, 0.01);
+
+        // The page says it doesn't know, rather than "0 clients".
+        $engineer = User::factory()->create();
+        $engineer->forceFill(['role' => UserRole::Engineer, 'is_active' => true])->save();
+        $this->actingAs($engineer)->get(route('engineer.aps.show', $this->ap))
+            ->assertOk()
+            ->assertSeeInOrder(['Clients now', '-', 'of '.$this->ap->client_capacity]);
     }
 
     // ------------------------------------------------------------ HTTPS for remote agents

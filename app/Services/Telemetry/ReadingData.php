@@ -24,11 +24,15 @@ final readonly class ReadingData
     public function __construct(
         public int $deviceId,
         public CarbonInterface $recordedAt,
+        /*
+         * Null is "not measured": a ping probe has no client count, an SNMP
+         * probe no packet loss. Never zero, which is a measurement.
+         */
         public ?int $latencyMs,
-        public int $clientCount,
-        public float $packetLossPct,
-        public float $channelUtilPct,
-        public float $throughputMbps,
+        public ?int $clientCount,
+        public ?float $packetLossPct,
+        public ?float $channelUtilPct,
+        public ?float $throughputMbps,
         public string $source,
         /**
          * True when the access point did not answer at all. Distinct from a
@@ -71,9 +75,9 @@ final readonly class ReadingData
             'recorded_at' => $this->recordedAt->toDateTimeString(),
             'latency_ms' => $this->latencyMs,
             'client_count' => $this->clientCount,
-            'packet_loss_pct' => round($this->packetLossPct, 2),
-            'channel_util_pct' => round($this->channelUtilPct, 2),
-            'throughput_mbps' => round($this->throughputMbps, 2),
+            'packet_loss_pct' => $this->packetLossPct === null ? null : round($this->packetLossPct, 2),
+            'channel_util_pct' => $this->channelUtilPct === null ? null : round($this->channelUtilPct, 2),
+            'throughput_mbps' => $this->throughputMbps === null ? null : round($this->throughputMbps, 2),
             'status' => $status,
             'source' => $this->source,
             'agent_id' => $this->agentId,
