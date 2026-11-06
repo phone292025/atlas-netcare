@@ -131,7 +131,9 @@ async function sweep(page, stops = 120) {
         const stop = await page.evaluate(() => {
             const el = document.activeElement;
 
-            if (!el || el === document.body) return null;
+            // Past the last stop, Chromium wraps to the top of the page, and
+            // headless Firefox leaves focus where it was: see `last` below.
+            if (!el || el === document.body || !document.hasFocus()) return null;
 
             const describe = `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || '').trim().replace(/\s+/g, ' ').slice(0, 40)}"`;
             const look = () => {
@@ -149,9 +151,19 @@ async function sweep(page, stops = 120) {
             const plain = look();
             el.focus();
 
+            // Whether anything Tab could reach comes after this element. A
+            // radio's group is one stop, so its other radios don't count.
+            const later = [...document.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex]')]
+                .filter((n) => n.tabIndex >= 0 && !n.disabled && n.type !== 'hidden' && !n.closest('[inert]')
+                    && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden'
+                    && !(el.type === 'radio' && n.type === 'radio' && n.name === el.name)
+                    && (el.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)
+                    && !el.contains(n));
+
             return {
                 marker,
                 describe,
+                last: later.length === 0,
                 // Tab walks a date field's day, month and year in place.
                 segmented: ['date', 'time', 'datetime-local', 'month', 'week'].includes(el.getAttribute('type')),
                 visible: focused !== plain,
@@ -161,6 +173,9 @@ async function sweep(page, stops = 120) {
 
         if (stop === null) break;
         if (stop.marker === previous && stop.segmented) continue;
+        // Firefox at the end of the page. Anywhere else, a Tab that doesn't
+        // move is a trap.
+        if (stop.marker === previous && stop.last) break;
         if (stop.marker === previous) {
             problems.push(`focus stuck on ${stop.describe}`);
             break;
@@ -274,8 +289,23 @@ for (const role of Object.keys(screens)) {
         for (const path of await everyScreen(page, role)) {
             const response = await page.goto(path);
             expect(response.status(), path).toBe(200);
-            const [scroll, client] = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
-            if (scroll > client + 1) wide.push(`${path}: ${scroll}px wide in a ${client}px window`);
+            const [scroll, client, culprit] = await page.evaluate(() => {
+                const width = document.documentElement.clientWidth;
+                // The deepest element that reaches past the window, ignoring
+                // any whose ancestor clips it, so the message names the cause.
+                const clipped = (el) => {
+                    for (let p = el.parentElement; p; p = p.parentElement) {
+                        if (getComputedStyle(p).overflowX !== 'visible') return true;
+                    }
+                    return false;
+                };
+                const past = [...document.querySelectorAll('body *')]
+                    .filter((el) => el.getBoundingClientRect().right > width + 1 && !clipped(el));
+                const deepest = past.find((el) => !past.some((other) => other !== el && el.contains(other)));
+                const name = deepest && `${deepest.tagName.toLowerCase()}${deepest.className ? '.' + String(deepest.className).trim().split(/\s+/).join('.') : ''} "${(deepest.textContent || '').trim().slice(0, 30)}"`;
+                return [document.documentElement.scrollWidth, width, name];
+            });
+            if (scroll > client + 1) wide.push(`${path}: ${scroll}px wide in a ${client}px window${culprit ? `, past the edge: ${culprit}` : ''}`);
         }
 
         expect(wide).toEqual([]);

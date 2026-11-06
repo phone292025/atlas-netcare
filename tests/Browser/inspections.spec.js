@@ -6,16 +6,21 @@ import { expect, test } from './fixtures.js';
  * round and submits the checklist.
  */
 
-test('an assistant inspects the next machine in a round', async ({ signedIn }) => {
+test('an assistant inspects the next machine in a round', async ({ signedIn }, testInfo) => {
     const assistant = await signedIn('assistant');
 
     // FR-203: an inspection happens during a shift, so check in first.
-    // global-setup gave the assistant a shift that runs all day.
+    // global-setup gave the assistant a shift that runs all day. The flows
+    // run once per browser on one stack, so the second browser finds the
+    // assistant checked in by the first; the first must see the prompt.
     await assistant.goto('/assistant/inspections');
-    await expect(assistant.getByText('Check in to start inspecting')).toBeVisible();
-    await assistant.getByRole('link', { name: 'Go to My shift' }).click();
-    await assistant.getByRole('button', { name: 'Check in' }).click();
-    await expect(assistant.getByRole('button', { name: 'Check out' })).toBeVisible();
+    const prompt = assistant.getByText('Check in to start inspecting');
+    if (testInfo.project.name === 'flows' || await prompt.count() > 0) {
+        await expect(prompt).toBeVisible();
+        await assistant.getByRole('link', { name: 'Go to My shift' }).click();
+        await assistant.getByRole('button', { name: 'Check in' }).click();
+        await expect(assistant.getByRole('button', { name: 'Check out' })).toBeVisible();
+    }
 
     await assistant.goto('/assistant/inspections');
     await expect(assistant.getByText('Check in to start inspecting')).toHaveCount(0);
