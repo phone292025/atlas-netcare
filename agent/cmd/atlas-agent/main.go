@@ -64,6 +64,9 @@ func main() {
 		fmt.Fprintln(logTo, err)
 		os.Exit(2)
 	}
+	for _, warning := range cfg.Warnings() {
+		log.Warn(warning)
+	}
 
 	if *once {
 		os.Exit(checkOnce(context.Background(), cfg))

@@ -19,7 +19,7 @@ Atlas is now a solo project, so the language doesn't need to be one a team alrea
 
 The agent is written in **Go**, in its own folder (`agent/`) in this repository, with its own tests and release builds.
 
-- **Checks:** ping, HTTP and SNMP (v2c first, v3 later) in the first version. Each check has its own timeout, and checks run concurrently.
+- **Checks:** ping, HTTP and SNMP in the first version. SNMPv3 with authentication and encryption (authPriv) is the normal setup; v2c is there for devices without v3, needs its community set (there is no default), and the agent warns about it at start. (v3 was added 2026-11-06, after a review pointed out a v2c community crosses the network in clear text and "public" was the default.) Each check has its own timeout, and checks run concurrently.
 - **Buffer:** readings that can't be sent wait in a local SQLite file and are sent in order when Atlas is reachable again.
 - **Release:** one binary per platform (Windows, Linux x64, Linux ARM for a Raspberry Pi), built in CI.
 

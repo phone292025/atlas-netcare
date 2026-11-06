@@ -10,7 +10,7 @@ Each device gets any of three checks, all at once, each with its own timeout. A 
 |---|---|---|
 | Ping (on unless `ping: false`) | any of 4 echo requests is answered | average round trip as `latency_ms`, `packet_loss_pct` |
 | `http: <url>` | the answer is below 500. A login page or a 401 still means the device is there | time to answer, when ping didn't |
-| `snmp:` (v2c) | the device returns `sysUpTime` | `client_count` from `clients_oid`, an integer OID from the vendor's MIB. Left out if the device doesn't have it |
+| `snmp:` (v3, or v2c) | the device returns `sysUpTime` | `client_count` from `clients_oid`, an integer OID from the vendor's MIB. Left out if the device doesn't have it |
 
 One reading per device per round. The device is reachable if any of its checks answered.
 
@@ -94,7 +94,7 @@ The dependencies are pinned in `go.mod`, with checksums in `go.sum`:
 
 | Package | For |
 |---|---|
-| `github.com/gosnmp/gosnmp` | SNMP v2c, the library Telegraf uses (named in ADR-0013) |
+| `github.com/gosnmp/gosnmp` | SNMPv3 and v2c, the library Telegraf uses (named in ADR-0013) |
 | `github.com/prometheus-community/pro-bing` | ICMP ping on Windows and Linux |
 | `modernc.org/sqlite` | the buffer, in pure Go, so cross-compiling needs no C compiler |
 | `gopkg.in/yaml.v3` | the config file |

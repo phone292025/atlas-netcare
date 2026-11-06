@@ -34,14 +34,23 @@ devices:
     host: 10.20.0.1
     http: http://10.20.0.1/
 
+  # SNMPv3, authenticated and encrypted. auth is SHA, SHA224, SHA256 (the
+  # default), SHA384 or SHA512; priv is AES (the default), AES192 or AES256.
+  # Both passphrases are at least 8 characters. Give the user read-only
+  # access on the device.
   - code: SW-L6-IT-01
     host: 10.20.1.2
     snmp:
-      community: public
+      user: atlas-ro
+      auth_passphrase: change-this-auth-passphrase
+      priv_passphrase: change-this-priv-passphrase
 
+  # SNMP v2c, only for a device without v3, and only on a management network:
+  # the community crosses the network in clear text, and the agent warns
+  # about it at start. There is no default community.
   - code: AP-01
     host: 10.20.1.10
     snmp:
-      community: public
+      community: change-this-community
       # An integer OID that counts connected clients, from the vendor's MIB.
       clients_oid: .1.3.6.1.4.1.14179.2.1.1.1.38.1

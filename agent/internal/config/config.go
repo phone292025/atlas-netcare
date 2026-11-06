@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -51,16 +52,37 @@ type Device struct {
 	Ping *bool `yaml:"ping"`
 	// HTTP fetches a URL and counts any answer below 500 as up.
 	HTTP string `yaml:"http"`
-	// SNMP asks Host for sysUpTime with SNMP v2c, and for ClientsOID if set.
+	// SNMP asks Host for sysUpTime, and for ClientsOID if set.
 	SNMP *SNMP `yaml:"snmp"`
 }
 
-// SNMP is a v2c community and the optional OID that counts clients.
+// SNMP is how to ask one device: an SNMPv3 user (User and both
+// passphrases), or a v2c Community, never both and never neither. There is
+// no default community: v2c sends it in clear text, and "public" is the
+// first one anybody tries.
 type SNMP struct {
+	// User is the SNMPv3 user. v3 always authenticates and encrypts
+	// (authPriv): Auth is SHA, SHA224, SHA256 (the default), SHA384 or
+	// SHA512, Priv is AES (the default), AES192 or AES256.
+	User           string `yaml:"user"`
+	Auth           string `yaml:"auth"`
+	AuthPassphrase string `yaml:"auth_passphrase"`
+	Priv           string `yaml:"priv"`
+	PrivPassphrase string `yaml:"priv_passphrase"`
+	// Community is the v2c community, for a device that has no v3.
 	Community  string `yaml:"community"`
 	Port       uint16 `yaml:"port"`
 	ClientsOID string `yaml:"clients_oid"`
 }
+
+// V3 says whether this device is asked with SNMPv3.
+func (s SNMP) V3() bool { return s.User != "" }
+
+// The SNMPv3 protocols the agent offers, as the config names them.
+var (
+	AuthProtocols = []string{"SHA", "SHA224", "SHA256", "SHA384", "SHA512"}
+	PrivProtocols = []string{"AES", "AES192", "AES256"}
+)
 
 // PingEnabled says whether this device is pinged.
 func (d Device) PingEnabled() bool { return d.Ping == nil || *d.Ping }
@@ -93,11 +115,18 @@ func Load(path string) (*Config, error) {
 	}
 	for i := range c.Devices {
 		if s := c.Devices[i].SNMP; s != nil {
-			if s.Community == "" {
-				s.Community = "public"
-			}
 			if s.Port == 0 {
 				s.Port = 161
+			}
+			if s.V3() {
+				s.Auth = strings.ToUpper(s.Auth)
+				s.Priv = strings.ToUpper(s.Priv)
+				if s.Auth == "" {
+					s.Auth = "SHA256"
+				}
+				if s.Priv == "" {
+					s.Priv = "AES"
+				}
 			}
 		}
 	}
@@ -162,6 +191,9 @@ func (c *Config) check() error {
 		if !d.PingEnabled() && d.HTTP == "" && d.SNMP == nil {
 			problems = append(problems, where+": no checks: turn on ping, or set http or snmp")
 		}
+		if s := d.SNMP; s != nil {
+			problems = append(problems, s.problems(where)...)
+		}
 		if d.HTTP != "" {
 			if h, err := url.Parse(d.HTTP); err != nil || h.Host == "" || (h.Scheme != "http" && h.Scheme != "https") {
 				problems = append(problems, where+": http must be a full http:// or https:// address")
@@ -174,6 +206,49 @@ func (c *Config) check() error {
 	}
 
 	return nil
+}
+
+func (s SNMP) problems(where string) []string {
+	where += ".snmp"
+	switch {
+	case s.V3() && s.Community != "":
+		return []string{where + ": set user for SNMPv3 or community for v2c, not both"}
+	case !s.V3() && s.Community == "":
+		return []string{where + ": set user, auth_passphrase and priv_passphrase for SNMPv3, or community for a device that only has v2c. There is no default community"}
+	case !s.V3():
+		return nil
+	}
+
+	var problems []string
+	if !slices.Contains(AuthProtocols, s.Auth) {
+		problems = append(problems, where+": auth must be one of "+strings.Join(AuthProtocols, ", "))
+	}
+	if !slices.Contains(PrivProtocols, s.Priv) {
+		problems = append(problems, where+": priv must be one of "+strings.Join(PrivProtocols, ", "))
+	}
+	// SNMPv3 keys come from the passphrases, and RFC 3414 and net-snmp
+	// refuse ones shorter than 8 characters.
+	if len(s.AuthPassphrase) < 8 {
+		problems = append(problems, where+": auth_passphrase must be at least 8 characters")
+	}
+	if len(s.PrivPassphrase) < 8 {
+		problems = append(problems, where+": priv_passphrase must be at least 8 characters")
+	}
+
+	return problems
+}
+
+// Warnings are things that work but shouldn't be left that way. The agent
+// logs them at start.
+func (c *Config) Warnings() []string {
+	var warnings []string
+	for _, d := range c.Devices {
+		if d.SNMP != nil && !d.SNMP.V3() {
+			warnings = append(warnings, d.Code+" uses SNMP v2c: its community crosses the network in clear text. Use SNMPv3 if the device has it, and keep v2c to a management network")
+		}
+	}
+
+	return warnings
 }
 
 func isLoopback(host string) bool {

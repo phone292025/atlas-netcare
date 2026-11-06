@@ -1,6 +1,7 @@
-# A real SNMP v2c agent for the SNMP check's integration test: net-snmp's
-# snmpd from Alpine's own packages, read-only community "public", and one
-# extra integer OID standing in for an access point's client count.
+# A real SNMP agent for the SNMP check's integration test: net-snmp's
+# snmpd from Alpine's own packages, an SNMPv3 user "atlas" with SHA-256 and
+# AES, the v2c community "public", and one extra integer OID standing in for
+# an access point's client count.
 #
 #   docker build -t atlas-snmpd agent/internal/check/testdata/snmpd
 #   docker run -d --rm -p 127.0.0.1:1161:161/udp --name atlas-snmpd atlas-snmpd
