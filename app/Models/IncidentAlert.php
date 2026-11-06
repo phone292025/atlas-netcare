@@ -25,6 +25,7 @@ class IncidentAlert extends Model
             'channel' => AlertChannel::class,
             'step' => 'integer',
             'attempted_at' => 'datetime',
+            'maybe_sent' => 'boolean',
             'sent_at' => 'datetime',
             'failed_at' => 'datetime',
         ];
