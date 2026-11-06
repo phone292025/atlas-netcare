@@ -71,7 +71,7 @@ Same features as 1.0, on a base that 2.0 can build on.
 | 2.3 | Grouping by parent: when a switch and the devices behind it fail together, one incident opens, on the switch. Done, whichever fails first |
 | 2.4 | Tickets created from incidents, one per incident. The old auto-ticket code is removed. Done |
 | 2.5 | On-call from the roster: the assistant on shift first, then engineers if nobody acknowledges in time. Done, then administrators |
-| 2.6 | Alert channels: in-app, email and a Telegram bot. Each alert has a unique key, so retries never alert anyone twice. Done. Phone push moved to Phase 4 on purpose: it needs the installable web app and its service worker, which Phase 4 builds |
+| 2.6 | Alert channels: in-app, email and a Telegram bot. Each alert has a unique key, so a retry or a second worker never sends what was already sent. In the app that is exactly once. Email and Telegram are at least once: a worker that dies, or a call that times out, after the provider took the message leaves an alert that goes again, labelled as a repeat, and an email keeps its Message-ID. Done. Phone push moved to Phase 4 on purpose: it needs the installable web app and its service worker, which Phase 4 builds |
 
 ## What release 2.0 is
 
