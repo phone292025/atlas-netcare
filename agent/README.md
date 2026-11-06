@@ -10,7 +10,7 @@ Each device gets any of three checks, all at once, each with its own timeout. A 
 |---|---|---|
 | Ping (on unless `ping: false`) | any of 4 echo requests is answered | average round trip as `latency_ms`, `packet_loss_pct` |
 | `http: <url>` | the answer is below 500. A login page or a 401 still means the device is there | time to answer, when ping didn't |
-| `snmp:` (v3, or v2c) | the device returns `sysUpTime` | `client_count` from `clients_oid`, an integer OID from the vendor's MIB. Left out if the device doesn't have it |
+| `snmp:` (v3, or v2c with `allow_snmp_v2c: true`) | the device returns `sysUpTime` | `client_count` from `clients_oid`, an integer OID from the vendor's MIB. Left out if the device doesn't have it |
 
 One reading per device per round. The device is reachable if any of its checks answered.
 

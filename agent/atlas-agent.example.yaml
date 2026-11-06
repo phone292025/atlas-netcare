@@ -27,6 +27,11 @@ buffer: atlas-agent.db
 # Linux. Without it Linux uses unprivileged ping sockets.
 privileged_ping: true
 
+# Needed only for a device below that uses an SNMP v2c community: it says
+# the agent and those devices share a management network, since v2c sends
+# the community in clear text. Remove it once every device has SNMPv3.
+allow_snmp_v2c: true
+
 # Each device by its code in Atlas, and the checks to run on it. Ping is on
 # unless set to false. A device is reachable if any check answers.
 devices:
@@ -46,8 +51,9 @@ devices:
       priv_passphrase: change-this-priv-passphrase
 
   # SNMP v2c, only for a device without v3, and only on a management network:
-  # the community crosses the network in clear text, and the agent warns
-  # about it at start. There is no default community.
+  # the community crosses the network in clear text. The agent refuses a
+  # community unless allow_snmp_v2c: true is set at the top of this file,
+  # warns about each v2c device at start, and has no default community.
   - code: AP-01
     host: 10.20.1.10
     snmp:
