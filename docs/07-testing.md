@@ -1,8 +1,8 @@
 # Testing
 
-> **Last updated:** 2026-11-01
+> **Last updated:** 2026-11-06
 
-The test plan covers automated tests at three levels and user acceptance testing, with **data sets provided**, **actual results documented**, and **4 UAT sessions with recorded feedback**.
+The test plan covers automated tests at three levels, with the data sets they use and the results they produced, and a protocol for four user acceptance sessions. **The UAT sessions have not been held.** They need real participants, and each one's feedback goes under [User Acceptance Testing](#user-acceptance-testing) when it is. Until then this page claims no UAT result.
 
 ---
 
@@ -86,7 +86,7 @@ The second needs the Docker stack's database running (`docker compose up -d db`)
 
 ## Browser tests
 
-Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in Chromium instead, as 23 tests in `tests/Browser/`:
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in a real browser instead, from `tests/Browser/`: the five sign-in tests once, then the other 18 in Chromium, the engine of Chrome and Edge, and again in Firefox, 41 in all:
 
 | Spec | Flow |
 |---|---|
@@ -107,6 +107,7 @@ Four rules keep them honest:
 - **They get a stack of their own.** `tests/Browser/global-setup.js` builds the image from the working tree, starts the Compose project `atlas-browser` on ports 8100 and 5433 with a copy of `.env.example` and its own image tag, seeds demo data and creates the administrator. The teardown deletes the stack. They never run against a stack with real data: they raise tickets, and a developer's `.env` may send real mail.
 - **A console error fails the test.** The fixtures in `fixtures.js` collect JavaScript errors and failed requests from every page a test opens.
 - **Compare the screen with itself, not with the seed.** The scheduler keeps simulating readings during a run, so an access point's status can change between two looks. The monitor test checks that the "Online" filter shows as many rows as its button counts, never that a given access point is online.
+- **Firefox found what Chromium didn't.** Its first run failed six tests. One was Atlas's: the Unfinished list on the inspections screen was a grid with no column template, and Firefox sized its column to a truncated line's full width, 2 px past a 375 px phone; `grid-cols-1` lets it shrink. The other five were the tests assuming Chromium: headless Firefox leaves focus on the last control when Tab runs out, where Chromium wraps to the top, so the sweep now ends there only when nothing tabbable follows, and still fails on a Tab that doesn't move anywhere else; Playwright makes PDFs only in Chromium; and the inspection flow found the assistant already checked in by the Chromium run on the same stack. The phone-width test now names the element past the edge.
 - **Each was watched failing.** Scoping the dark palette to all media instead of screens fails `report.spec.js` (text luminance 0.85 on paper), and renaming the room plan's script fails both ticket tests with console errors. The keyboard sweep's first run found the closed phone drawer's sixteen links taking focus off screen on every page, now fixed.
 
 ---
@@ -119,9 +120,9 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 | ID | Criterion | How to test |
 |---|---|---|
 | NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 150-device outage storm and a backlog of 5,000 readings. Measured: slowest request 736 ms; storm 7.1 s; backlog 933 ms. See [Response times](#response-times). |
-| NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. One real phone as well, with a screenshot. |
-| NFR-09 | Runs on current Chrome, Edge, Firefox | Manual pass through the flagship flow in each. Record versions. |
-| NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. A screen reader pass stays manual. |
+| NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. **Not done:** one real phone, with a screenshot, during UAT-1. |
+| NFR-09 | Runs on current Chrome, Edge, Firefox | Every browser test runs in Chromium, the engine of Chrome and Edge, and in Firefox (`playwright.config.js`), locally and in CI. **Not done:** a pass in Edge itself, recording its version, during UAT. |
+| NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. **Not done:** a pass with a screen reader (NVDA or Narrator), during UAT-4. |
 | NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. It is a design target with the mitigations that support it, not a measured result. |
 
 > Do not claim to have measured NFR-01. Claiming an unverifiable result is worse than acknowledging the limit.

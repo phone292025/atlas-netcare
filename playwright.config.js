@@ -34,8 +34,17 @@ export default defineConfig({
         screenshot: 'only-on-failure',
     },
 
+    // Every flow in Chromium (Chrome and Edge) and in Firefox, the browsers
+    // NFR-09 names. The sessions sign-in saves are plain cookies, which
+    // either engine loads.
     projects: [
         { name: 'sign-in', testMatch: 'sign-in.spec.js' },
         { name: 'flows', testIgnore: 'sign-in.spec.js', dependencies: ['sign-in'] },
+        {
+            name: 'firefox',
+            testIgnore: 'sign-in.spec.js',
+            dependencies: ['sign-in'],
+            use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } },
+        },
     ],
 });

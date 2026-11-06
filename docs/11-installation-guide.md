@@ -224,22 +224,22 @@ npm install
 php artisan test
 ```
 
-Expect **1,285 passing, 12 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB; three tests check TimescaleDB itself; five hold a lock from a second PostgreSQL connection; and three check the database password, which SQLite doesn't have. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
+Expect **1,306 passing, 12 skipped**, on an in-memory SQLite database. The skips are deliberate: `SchemaIntegrityTest` checks a MariaDB trap, and Atlas no longer runs on MariaDB; three tests check TimescaleDB itself; five hold a lock from a second PostgreSQL connection; and three check the database password, which SQLite doesn't have. To run the suite on PostgreSQL with TimescaleDB as well, which CI does on every pull request:
 
 ```bash
 php artisan test -c phpunit.pgsql.xml
 ```
 
-That is **1,295 passing, 2 skipped**, in about three minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
+That is **1,316 passing, 2 skipped**, in about nine minutes: the MariaDB check, and the one test of the SQLite path. It uses a separate `atlas_test` database, which the stack creates on its first start. Each run drops every table in the database it uses, so pointing it at `atlas` would erase real work.
 
-The browser tests run five core flows in Chromium against a stack of their own, on ports 8100 and 5433:
+The browser tests run five core flows and the accessibility checks in Chromium and in Firefox, against a stack of their own, on ports 8100 and 5433:
 
 ```bash
-npx playwright install chromium
+npx playwright install chromium firefox
 npm run test:browser
 ```
 
-Expect **23 passed**, in about a minute once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
+Expect **41 passed**, in about ten minutes once the image is cached. The run deletes its stack at the end, so it never touches yours. [07-testing.md](07-testing.md) says what each one covers.
 
 ---
 

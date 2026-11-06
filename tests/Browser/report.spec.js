@@ -18,7 +18,7 @@ function luminance(colour) {
 
 const textColour = (page) => page.evaluate(() => getComputedStyle(document.body).color);
 
-test('an administrator prints the report', async ({ signedIn }) => {
+test('an administrator prints the report', async ({ signedIn, browserName }) => {
     const admin = await signedIn('admin');
     await admin.emulateMedia({ colorScheme: 'dark' });
     await admin.goto('/admin/reports');
@@ -47,7 +47,11 @@ test('an administrator prints the report', async ({ signedIn }) => {
     await expect(admin.getByText(`Prepared by`)).toBeVisible();
     expect(luminance(await textColour(admin))).toBeLessThan(0.1);
 
-    // Chromium lays the page out on A4, as "Save as PDF" would.
-    const pdf = (await admin.pdf({ format: 'A4' })).toString('latin1');
-    expect(pdf.match(/\/Type\s*\/Page\b/g)?.length ?? 0).toBeGreaterThan(0);
+    // Chromium lays the page out on A4, as "Save as PDF" would. Only
+    // Chromium can make a PDF under Playwright; the print layout above is
+    // checked in every browser.
+    if (browserName === 'chromium') {
+        const pdf = (await admin.pdf({ format: 'A4' })).toString('latin1');
+        expect(pdf.match(/\/Type\s*\/Page\b/g)?.length ?? 0).toBeGreaterThan(0);
+    }
 });
