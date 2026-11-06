@@ -28,7 +28,7 @@
                     <h3 id="unfinished" class="text-[15px] font-semibold text-fg">Unfinished</h3>
                     <span class="text-sm text-fg-muted">Started but not submitted</span>
                 </div>
-                <ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <ul class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                     @foreach ($inProgress as $inspection)
                         <li class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-xs">
                             <span class="grid size-10 flex-none place-items-center rounded-lg bg-amber-100 text-amber-700">
