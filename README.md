@@ -22,7 +22,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit. This is release 2.0: real telemetry from probe agents, and incidents that alert whoever is on call. Live-pushed screens with a network map, and offline phone rounds with phone push, are the next releases and are not in this one.
 
-The suite has 1,318 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Eleven need PostgreSQL and skip on SQLite: three check TimescaleDB, five hold a lock from a second connection, and three check the database password. One checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs 41 browser tests against the Docker stack, five core flows and accessibility checks on every screen in Chromium and in Firefox; checks that scheduled backups are made, restored, copied and watched; and the Go agent's tests on Linux and Windows.
+The suite has 1,318 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Eleven need PostgreSQL and skip on SQLite: three check TimescaleDB, five hold a lock from a second connection, and three check the database password. One checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs 59 browser tests against the Docker stack, five core flows and accessibility checks on every screen in Chromium, Firefox and Microsoft Edge; checks that scheduled backups are made, restored, copied and watched; and the Go agent's tests on Linux and Windows.
 
 ## Getting started
 
@@ -164,14 +164,14 @@ That uses a separate `atlas_test` database, which the stack creates the first ti
 
 ### Running the browser tests
 
-Five flows run against the Docker stack, in Chromium and again in Firefox: signing in as each role, raising and resolving a ticket, inspecting a machine, the Network Monitor, and printing the report, with accessibility checks on every screen. With Docker Desktop running, install the browsers once, then run them:
+Five flows run against the Docker stack, in Chromium, Firefox and the Microsoft Edge installed on your machine: signing in as each role, raising and resolving a ticket, inspecting a machine, the Network Monitor, and printing the report, with accessibility checks on every screen. With Docker Desktop running, install the browsers once, then run them:
 
 ```bash
 npx playwright install chromium firefox
 npm run test:browser
 ```
 
-A run builds an image of its own from your code and starts a second stack for itself, on ports 8100 and 5433, with settings copied from `.env.example`. It seeds demo data, runs the tests and deletes that stack, so it never touches your data or sends real mail. Once the image is cached, a run takes about ten minutes. A failed test leaves a screenshot and a trace in `test-results/browser`, and `npx playwright show-trace <path to trace.zip>` replays it step by step.
+A run builds an image of its own from your code and starts a second stack for itself, on ports 8100 and 5433, with settings copied from `.env.example`. It seeds demo data, runs the tests and deletes that stack, so it never touches your data or sends real mail. Once the image is cached, a run takes about fifteen minutes. A failed test leaves a screenshot and a trace in `test-results/browser`, and `npx playwright show-trace <path to trace.zip>` replays it step by step.
 
 ### Signing in
 

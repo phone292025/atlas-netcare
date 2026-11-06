@@ -86,7 +86,7 @@ The second needs the Docker stack's database running (`docker compose up -d db`)
 
 ## Browser tests
 
-Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in a real browser instead, from `tests/Browser/`: the five sign-in tests once, then the other 18 in Chromium, the engine of Chrome and Edge, and again in Firefox, 41 in all:
+Feature tests read the HTML the server sends. They never run JavaScript or apply CSS, so they can't see a room plan that doesn't respond, a chart that never draws, or a printout in the wrong colours. Five flows and the accessibility checks run in a real browser instead, from `tests/Browser/`: the five sign-in tests once, then the other 18 in Chromium, the engine of Chrome, again in Firefox, and again in Microsoft Edge itself, 59 in all:
 
 | Spec | Flow |
 |---|---|
@@ -121,7 +121,7 @@ NFR-01 and NFR-02 are pass conditions, not aspirations.
 |---|---|---|
 | NFR-02 | Page and API response under 7 seconds | `tests/Performance/load-stack.sh`: 12 people at once, ticket raises and an agent, for five minutes, on a campus-sized dataset, then a 150-device outage storm and a backlog of 5,000 readings. Measured: slowest request 736 ms; storm 7.1 s; backlog 933 ms. Capped at a small server's 4 CPUs and 4.5 GB: slowest 2.07 s; storm 7.5 s; backlog 2.7 s. See [Response times](#response-times). |
 | NFR-05 | Checklist operable one-handed at 375 px | `accessibility.spec.js` loads every screen at 375 px and fails on sideways scrolling; `inspections.spec.js` completes a checklist. **Not done:** one real phone, with a screenshot, during UAT-1. |
-| NFR-09 | Runs on current Chrome, Edge, Firefox | Every browser test runs in Chromium, the engine of Chrome and Edge, and in Firefox (`playwright.config.js`), locally and in CI. **Not done:** a pass in Edge itself, recording its version, during UAT. |
+| NFR-09 | Runs on current Chrome, Edge, Firefox | Every browser test runs in Chromium, in Firefox and in the installed Microsoft Edge (`playwright.config.js`), locally and in CI: every flow, axe in both themes, the keyboard sweep and the phone width. |
 | NFR-10 | Keyboard reachable with visible focus | `accessibility.spec.js` tabs through every screen of every role, at 1440 and 375 px, and fails on a stop with no visible focus change, a stop that keeps focus, or focus off screen. axe checks labels, names, contrast and ARIA on the same screens. **Not done:** a pass with a screen reader (NVDA or Narrator), during UAT-4. |
 | NFR-01 | Annual downtime under 30 minutes | Cannot be measured in 14 weeks. It is a design target with the mitigations that support it, not a measured result. |
 
