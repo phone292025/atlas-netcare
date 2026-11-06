@@ -48,6 +48,12 @@ Schedule::command('atlas:check-queue')
     ->everyFiveMinutes()
     ->withoutOverlapping(10);
 
+// The backup service writes how its last backup went; the administrators
+// hear about a late or failed one from this.
+Schedule::command('atlas:check-backups')
+    ->hourly()
+    ->withoutOverlapping(30);
+
 // Next week's roster on Sunday evening. Idempotent.
 Schedule::command('atlas:generate-shifts')
     ->weeklyOn(0, '18:00')

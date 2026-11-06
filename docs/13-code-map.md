@@ -220,6 +220,7 @@ the same answer, it belongs here.
 | `Incidents/OnCall.php` | Who is told about an incident, and when the next people are (roadmap 2.5) |
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates |
 | `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection |
+| `Operations/BackupHealth.php` | Whether the scheduled backups are being made, proven and copied |
 | `Operations/QueueHealth.php` | Whether the queue worker is doing its job (roadmap 2.6's alerts depend on |
 | `Reports/ReportingService.php` | The five operational reports (FR-410) |
 | `Risk/RiskScoringService.php` | The predictive part of the project |
@@ -418,6 +419,7 @@ and why each runs when it does.
 |---|---|
 | `BackfillTelemetry.php` | Invent plausible telemetry history, so the charts have something to draw |
 | `BuildCodeMap.php` | Rebuild the file tables in `docs/13-code-map.md` |
+| `CheckBackups.php` | Tell the administrators when backups are late, failing or not copied off |
 | `CheckDeployment.php` | Refuse to start a copy with settings that would expose it |
 | `CheckQueue.php` | Tell the administrators when the queue worker has stopped or keeps |
 | `CheckSchema.php` | Audit the LIVE database for MariaDB traps the SQLite suite cannot see |
@@ -772,6 +774,7 @@ this the fourth.
 | `Feature/Incidents/IncidentTest.php` | Phase 2: incidents between readings and tickets (ADR-0014) |
 | `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row |
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
+| `Feature/Operations/BackupHealthTest.php` | atlas:check-backups: a backup that is late, failed, unproven or not copied |
 | `Feature/Operations/QueueHealthTest.php` | atlas:check-queue: a stopped or failing worker reaches the administrators |
 | `Feature/ProfileTest.php` | _no summary in the file_ |
 | `Feature/PurgeDemoDataTest.php` | `atlas:purge-demo-data`, turning a demonstration system into a deployable |
