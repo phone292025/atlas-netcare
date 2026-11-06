@@ -9,8 +9,11 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Refuse to start a copy with settings that would expose it.
  *
- * Runs in the container's start script, after migrations and before the web
- * server. Every problem it finds is fatal when APP_ENV=production, and also
+ * Runs twice in the container's start script. With --before-migrations it
+ * checks only the settings, which need no database, before anything writes
+ * to it: an unsafe production copy changes nothing. With --after-migrations
+ * it checks what only the database knows, the demo accounts. Without either
+ * it checks both. Every problem it finds is fatal when APP_ENV=production, and also
  * whenever the stack is reachable from other machines (ATLAS_BIND beyond
  * loopback), whatever APP_ENV says: the container exits, Docker restarts it,
  * and `docker compose logs app` says what to change. On a stack only this
@@ -27,7 +30,9 @@ use Illuminate\Support\Facades\Schema;
  */
 class CheckDeployment extends Command
 {
-    protected $signature = 'atlas:check-deployment';
+    protected $signature = 'atlas:check-deployment
+        {--before-migrations : Only the settings, which need no database}
+        {--after-migrations : Only what is in the database}';
 
     protected $description = 'Check the settings a production copy must not run with';
 
@@ -36,7 +41,11 @@ class CheckDeployment extends Command
 
     public function handle(): int
     {
-        $problems = $this->problems();
+        $problems = match (true) {
+            (bool) $this->option('before-migrations') => $this->settingProblems(),
+            (bool) $this->option('after-migrations') => $this->databaseProblems(),
+            default => $this->problems(),
+        };
         $reachable = ! config('atlas.published_on_loopback');
         $fatal = app()->environment('production') || ($reachable && ! config('atlas.allow_unsafe_network'));
 
@@ -67,6 +76,16 @@ class CheckDeployment extends Command
     /** @return list<string> */
     public function problems(): array
     {
+        return [...$this->settingProblems(), ...$this->databaseProblems()];
+    }
+
+    /**
+     * What the environment says, without a query.
+     *
+     * @return list<string>
+     */
+    public function settingProblems(): array
+    {
         $problems = [];
         $connection = config('database.connections.'.config('database.default'));
 
@@ -90,10 +109,6 @@ class CheckDeployment extends Command
             $problems[] = 'ATLAS_DEMO_MODE is on, so seeding would create accounts with a published password. Set ATLAS_DEMO_MODE=false.';
         }
 
-        if (Schema::hasTable('users') && User::query()->where('is_demo', true)->exists()) {
-            $problems[] = 'Demo accounts exist, and their password is published. Run php artisan atlas:purge-demo-data.';
-        }
-
         if (! config('atlas.published_on_loopback') && ! str_starts_with((string) config('app.url'), 'https://')) {
             $problems[] = 'The app is reachable from other machines and APP_URL is not https://, so passwords and agent tokens would cross the network in the clear. Set ATLAS_SERVER_NAME and ATLAS_URL=https://... in .env: under Docker, compose builds APP_URL from ATLAS_URL (docs/11-installation-guide.md).';
         }
@@ -103,5 +118,15 @@ class CheckDeployment extends Command
         }
 
         return $problems;
+    }
+
+    /** @return list<string> */
+    public function databaseProblems(): array
+    {
+        if (Schema::hasTable('users') && User::query()->where('is_demo', true)->exists()) {
+            return ['Demo accounts exist, and their password is published. Run php artisan atlas:purge-demo-data.'];
+        }
+
+        return [];
     }
 }

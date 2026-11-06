@@ -269,7 +269,7 @@ Removes every demonstration row and leaves the reference data, the administrator
 
 ### Before anyone else can reach it
 
-Set `APP_ENV=production` in `.env`. On every start the app container runs `php artisan atlas:check-deployment`, and **refuses to start** while any of these is true, in production and whenever the stack is reachable from other machines:
+Set `APP_ENV=production` in `.env`. On every start the app container runs `php artisan atlas:check-deployment`, the settings before it migrates the database and the demo accounts after, and **refuses to start** while any of these is true, in production and whenever the stack is reachable from other machines:
 
 - `APP_DEBUG` is on
 - `APP_KEY` is empty

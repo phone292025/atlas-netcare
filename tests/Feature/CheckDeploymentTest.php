@@ -81,6 +81,54 @@ class CheckDeploymentTest extends TestCase
         $this->artisan('atlas:check-deployment')->assertFailed()->expectsOutputToContain('atlas:purge-demo-data');
     }
 
+    public function test_the_settings_are_checked_before_migrations_without_touching_the_database(): void
+    {
+        $this->safeProduction();
+        config(['app.debug' => true]);
+        User::factory()->create()->forceFill(['is_demo' => true])->save();
+        $queries = 0;
+        DB::listen(function () use (&$queries) {
+            $queries++;
+        });
+
+        $this->artisan('atlas:check-deployment --before-migrations')
+            ->assertFailed()
+            ->expectsOutputToContain('APP_DEBUG')
+            ->doesntExpectOutputToContain('Demo accounts');
+
+        $this->assertSame(0, $queries, 'The check before migrations may not need a database.');
+    }
+
+    public function test_the_demo_accounts_are_checked_after_migrations(): void
+    {
+        $this->safeProduction();
+        config(['app.debug' => true]);
+        User::factory()->create()->forceFill(['is_demo' => true])->save();
+
+        $this->artisan('atlas:check-deployment --after-migrations')
+            ->assertFailed()
+            ->expectsOutputToContain('atlas:purge-demo-data')
+            ->doesntExpectOutputToContain('APP_DEBUG');
+    }
+
+    public function test_the_container_checks_its_settings_before_it_migrates(): void
+    {
+        $start = file_get_contents(base_path('docker/app/start.sh'));
+        $lines = array_values(array_filter(
+            array_map('trim', explode("\n", $start)),
+            fn ($line) => str_starts_with($line, 'php artisan '),
+        ));
+
+        $before = array_search('php artisan atlas:check-deployment --before-migrations', $lines, true);
+        $migrate = array_search('php artisan migrate --force', $lines, true);
+        $after = array_search('php artisan atlas:check-deployment --after-migrations', $lines, true);
+
+        $this->assertIsInt($before);
+        $this->assertIsInt($after);
+        $this->assertLessThan($migrate, $before, 'The settings are checked before the database is migrated.');
+        $this->assertGreaterThan($migrate, $after);
+    }
+
     public function test_plain_http_is_fine_while_only_this_machine_can_reach_it(): void
     {
         $this->safeProduction();
