@@ -124,10 +124,24 @@ class CheckDeployment extends Command
                 $problems[] = 'No scheduled backups: COMPOSE_PROFILES does not include backup. Add it, or set ATLAS_BACKUPS_ELSEWHERE=true if this server is backed up another way.';
             } elseif (blank(config('atlas.backups.copy_dir'))) {
                 $problems[] = 'ATLAS_BACKUP_COPY_DIR is empty, so every backup is on the same disk as the database and is lost with it. Set it to another disk or a mounted network share, or set ATLAS_BACKUPS_ELSEWHERE=true if backups/ is copied off this machine another way.';
+            } elseif ($this->sameFolder((string) config('atlas.backups.copy_dir'), (string) config('atlas.backups.dir'))) {
+                $problems[] = 'ATLAS_BACKUP_COPY_DIR names the backups folder itself, so the copy is the same files. Point it at another disk or a mounted network share.';
             }
         }
 
         return $problems;
+    }
+
+    /**
+     * The same folder, however it is written. The backup service also
+     * compares device numbers once it runs, which catches two folders on
+     * one disk (atlas:check-backups).
+     */
+    private function sameFolder(string $a, string $b): bool
+    {
+        $normal = fn (string $path) => rtrim(preg_replace('#^\./#', '', str_replace(chr(92), '/', $path)), '/');
+
+        return strcasecmp($normal($a), $normal($b)) === 0;
     }
 
     /** @return list<string> */
