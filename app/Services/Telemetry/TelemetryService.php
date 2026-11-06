@@ -296,7 +296,7 @@ class TelemetryService
         return $this->overThresholds(
             $device,
             $reading->latency_ms,
-            (float) $reading->packet_loss_pct,
+            $reading->packet_loss_pct === null ? null : (float) $reading->packet_loss_pct,
             $reading->client_count,
         );
     }
@@ -305,7 +305,7 @@ class TelemetryService
      * One threshold test for both paths, so a fresh reading and a stored one
      * are always judged identically.
      */
-    private function overThresholds(NetworkDevice $device, ?int $latencyMs, float $lossPct, int $clients): bool
+    private function overThresholds(NetworkDevice $device, ?int $latencyMs, ?float $lossPct, ?int $clients): bool
     {
         return $this->breachReason($device, $latencyMs, $lossPct, $clients) !== null;
     }
@@ -315,17 +315,19 @@ class TelemetryService
      * loss, "busy" for an access point nearly at capacity. Both count towards
      * Degraded, but they are different faults, and a screen calling a full
      * access point slow sends somebody after the wrong one.
+     *
+     * Only what was measured is judged: a null is no evidence either way.
      */
-    private function breachReason(NetworkDevice $device, ?int $latencyMs, float $lossPct, int $clients): ?string
+    private function breachReason(NetworkDevice $device, ?int $latencyMs, ?float $lossPct, ?int $clients): ?string
     {
         $thresholds = config('atlas.thresholds');
 
-        if (($latencyMs !== null && $latencyMs > $thresholds['latency_ms']) || $lossPct > $thresholds['packet_loss_pct']) {
+        if (($latencyMs !== null && $latencyMs > $thresholds['latency_ms']) || ($lossPct !== null && $lossPct > $thresholds['packet_loss_pct'])) {
             return 'slow';
         }
 
         // Only an access point has a capacity to be busy against.
-        $saturation = $device instanceof AccessPoint ? $device->saturation($clients) : null;
+        $saturation = $device instanceof AccessPoint && $clients !== null ? $device->saturation($clients) : null;
 
         return $saturation !== null && $saturation > $thresholds['client_saturation'] ? 'busy' : null;
     }
