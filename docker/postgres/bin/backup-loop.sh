@@ -102,6 +102,8 @@ while true; do
         set_status last_size "$(du -h "$file" | cut -f1)"
         set_status verified "$([ "$verify" != false ] && echo yes || echo no)"
         find /backups -maxdepth 1 -name 'atlas-*.dump' -mtime +"$keep_days" -print -delete | sed 's/^/Deleted old backup /'
+        # A dump or copy a killed process left half written.
+        find /backups /copy -maxdepth 1 -name '.*.partial' -mtime +1 -delete
     fi
 
     sleep 600

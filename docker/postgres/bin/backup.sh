@@ -14,13 +14,18 @@ set -eu
 
 database=${1:-atlas}
 name="${database}-$(date -u +%Y%m%d-%H%M%SZ).dump"
+# pg_dump writes under a name nothing reads as a backup, and the file gets
+# its real name only once the dump is complete. A dump that fails half way
+# leaves no .dump behind for backup-loop.sh to take for today's backup.
+partial="/backups/.${name}.partial"
 log=$(mktemp)
-trap 'rm -f "$log"' EXIT
+trap 'rm -f "$log" "$partial"' EXIT
 
-if ! pg_dump -U "$POSTGRES_USER" -d "$database" --format=custom --file="/backups/$name" 2> "$log"; then
+if ! pg_dump -U "$POSTGRES_USER" -d "$database" --format=custom --file="$partial" 2> "$log"; then
     cat "$log" >&2
     exit 1
 fi
+mv "$partial" "/backups/$name"
 cat "$log" >&2
 
 echo "Backed up $database to backups/$name ($(du -h "/backups/$name" | cut -f1))."

@@ -58,4 +58,12 @@ grep -q "not copied to ATLAS_BACKUP_COPY_DIR" <<< "$said" && grep -q "Told 1 adm
     || { echo "FAILED: a copy that fell behind was not reported. The scheduler said:"; echo "$said"; exit 1; }
 echo "  a copy that fell behind is reported, and the administrator alarmed"
 
+# A dump that fails leaves no file the loop could take for a backup.
+if docker compose exec -T backup sh /atlas/backup.sh no_such_database > /dev/null 2>&1; then
+    echo "FAILED: a dump of a database that doesn't exist succeeded"; exit 1
+fi
+leftovers=$(find "$BACKUPS" -maxdepth 1 -name '*no_such_database*' | wc -l)
+[ "$leftovers" -eq 0 ] || { echo "FAILED: a failed dump left $leftovers files in backups/"; exit 1; }
+echo "  a failed dump leaves nothing behind"
+
 echo "Backups end to end: made, proven, copied, watched."
