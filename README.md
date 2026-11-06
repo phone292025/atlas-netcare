@@ -90,7 +90,7 @@ The database lives in a Docker volume, so it survives stopping and rebuilding. `
 
 The stack's `backup` service backs the database up once a day into `backups/`, and deletes dumps older than 14 days. `.env.example` turns it on with `COMPOSE_PROFILES=backup`; `ATLAS_BACKUP_EVERY_HOURS` and `ATLAS_BACKUP_KEEP_DAYS` change the timing. Each new backup is restored into a scratch database, compared row by row with the file, and the scratch database dropped, so a backup that would not restore counts as a failed one. That takes about as long as the backup itself; `ATLAS_BACKUP_VERIFY=false` turns it off.
 
-**Set `ATLAS_BACKUP_COPY_DIR`** in `.env` to a folder on another disk, or a network share mounted on this machine, and every backup is copied there as well. A backup on the same disk as the database is lost with it.
+**Set `ATLAS_BACKUP_COPY_DIR`** in `.env` to a folder on another disk, or a network share mounted on this machine, and every backup is copied there as well. A backup on the same disk as the database is lost with it, so with `APP_ENV=production` the app refuses to start without one, unless `ATLAS_BACKUPS_ELSEWHERE=true` says the server is backed up another way.
 
 The service writes how each attempt went into `backups/status`. `docker compose ps backup` shows it unhealthy once the newest good backup is more than two hours overdue, and every hour the scheduler's `atlas:check-backups` reads the same file: the administrators get an alarm when a backup is late, the last attempt failed, or the copy is behind.
 

@@ -117,6 +117,16 @@ class CheckDeployment extends Command
             $problems[] = 'ATLAS_AGENTS_ALLOW_PLAIN_HTTP is on, so agents may send their tokens over plain HTTP.';
         }
 
+        // Production only: a demonstration on a trusted Wi-Fi has nothing
+        // worth a second disk yet.
+        if (app()->environment('production') && ! config('atlas.backups.elsewhere')) {
+            if (! config('atlas.backups.expected')) {
+                $problems[] = 'No scheduled backups: COMPOSE_PROFILES does not include backup. Add it, or set ATLAS_BACKUPS_ELSEWHERE=true if this server is backed up another way.';
+            } elseif (blank(config('atlas.backups.copy_dir'))) {
+                $problems[] = 'ATLAS_BACKUP_COPY_DIR is empty, so every backup is on the same disk as the database and is lost with it. Set it to another disk or a mounted network share, or set ATLAS_BACKUPS_ELSEWHERE=true if backups/ is copied off this machine another way.';
+            }
+        }
+
         return $problems;
     }
 

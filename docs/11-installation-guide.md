@@ -278,6 +278,7 @@ Set `APP_ENV=production` in `.env`. On every start the app container runs `php a
 - `ATLAS_DEMO_MODE` is on, or demo accounts exist
 - the stack is published beyond this machine and `ATLAS_URL` is not `https://`
 - `ATLAS_AGENTS_ALLOW_PLAIN_HTTP` is on
+- in production only: `COMPOSE_PROFILES` has no `backup`, or `ATLAS_BACKUP_COPY_DIR` is empty, so every backup would sit on the database's own disk. `ATLAS_BACKUPS_ELSEWHERE=true` says the server is backed up another way
 
 The container exits, Docker restarts it, and `docker compose logs app` lists what to change. On a stack only this machine can reach, the same findings print as warnings and the app starts. `ATLAS_ALLOW_UNSAFE_NETWORK=true` starts a reachable stack anyway, outside production only. Run the command yourself to check before switching: `docker compose exec app php artisan atlas:check-deployment`.
 

@@ -27,6 +27,9 @@ class CheckDeploymentTest extends TestCase
             'atlas.demo_mode' => false,
             'atlas.published_on_loopback' => false,
             'atlas.ingest.allow_plain_http' => false,
+            'atlas.backups.expected' => true,
+            'atlas.backups.copy_dir' => '/mnt/nas/atlas-backups',
+            'atlas.backups.elsewhere' => false,
             'database.connections.'.config('database.default').'.password' => 'a7f3c9e1b2d84f6a',
         ]);
     }
@@ -50,6 +53,8 @@ class CheckDeploymentTest extends TestCase
             'demo mode on' => [['atlas.demo_mode' => true], 'ATLAS_DEMO_MODE'],
             'reachable over plain http' => [['app.url' => 'http://atlas.lab.internal'], 'https://'],
             'agents allowed plain http' => [['atlas.ingest.allow_plain_http' => true], 'ATLAS_AGENTS_ALLOW_PLAIN_HTTP'],
+            'no scheduled backups' => [['atlas.backups.expected' => false], 'COMPOSE_PROFILES'],
+            'backups only on this disk' => [['atlas.backups.copy_dir' => ''], 'ATLAS_BACKUP_COPY_DIR'],
         ];
     }
 
@@ -71,6 +76,23 @@ class CheckDeploymentTest extends TestCase
         config($setting);
 
         $this->artisan('atlas:check-deployment')->assertFailed()->expectsOutputToContain($named);
+    }
+
+    public function test_a_production_server_backed_up_another_way_can_say_so(): void
+    {
+        $this->safeProduction();
+        config(['atlas.backups.expected' => false, 'atlas.backups.copy_dir' => '', 'atlas.backups.elsewhere' => true]);
+
+        $this->artisan('atlas:check-deployment')->assertSuccessful();
+    }
+
+    public function test_a_reachable_development_copy_needs_no_second_backup_disk(): void
+    {
+        $this->safeProduction();
+        $this->app['env'] = 'local';
+        config(['atlas.backups.copy_dir' => '', 'atlas.backups.expected' => false]);
+
+        $this->artisan('atlas:check-deployment')->assertSuccessful()->expectsOutputToContain('nothing unsafe found');
     }
 
     public function test_production_refuses_to_start_while_demo_accounts_exist(): void
