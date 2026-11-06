@@ -4,6 +4,7 @@
 #
 #   bash tests/Performance/load-stack.sh          build, seed, measure, remove
 #   KEEP=1 bash tests/Performance/load-stack.sh   leave the stack running
+#   SMALL=1 bash tests/Performance/load-stack.sh  on a small server's CPUs and memory
 #
 # DAYS (30) is the telemetry history, DEVICES (150) how many access points
 # the agent watches and the outage storm takes down, ATLAS_LOAD_SECONDS
@@ -19,6 +20,11 @@ export ATLAS_PORT=8300 ATLAS_HTTPS_PORT=8743 ATLAS_DB_PORT=5436 ATLAS_BIND=127.0
 export ATLAS_ENV_FILE=./tests/Performance/.stack.env ATLAS_SERVER_NAME= ATLAS_URL=
 # No backup service: a throwaway database must not fill ./backups.
 export COMPOSE_PROFILES=
+# SMALL=1 caps the stack at a small server's CPUs and memory.
+if [ -n "${SMALL:-}" ]; then
+    export COMPOSE_PATH_SEPARATOR=: COMPOSE_FILE=compose.yaml:tests/Performance/small-server.yaml
+    echo "On a small server: 4 CPUs and 4.5 GB between the services (tests/Performance/small-server.yaml)."
+fi
 export DB_PASSWORD="$(node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")"
 DAYS="${DAYS:-30}"
 DEVICES="${DEVICES:-150}"
