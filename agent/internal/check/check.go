@@ -206,6 +206,16 @@ func (n *Network) HTTP(ctx context.Context, url string) Outcome {
 
 const sysUpTime = ".1.3.6.1.2.1.1.3.0"
 
+// The protocols config.AuthProtocols and config.PrivProtocols name.
+var (
+	authProtocols = map[string]gosnmp.SnmpV3AuthProtocol{
+		"SHA": gosnmp.SHA, "SHA224": gosnmp.SHA224, "SHA256": gosnmp.SHA256, "SHA384": gosnmp.SHA384, "SHA512": gosnmp.SHA512,
+	}
+	privProtocols = map[string]gosnmp.SnmpV3PrivProtocol{
+		"AES": gosnmp.AES, "AES192": gosnmp.AES192, "AES256": gosnmp.AES256,
+	}
+)
+
 // SNMP asks for sysUpTime, and the client count when the device has an OID
 // for it.
 func (n *Network) SNMP(ctx context.Context, host string, s config.SNMP) Outcome {
@@ -217,6 +227,19 @@ func (n *Network) SNMP(ctx context.Context, host string, s config.SNMP) Outcome 
 	g := &gosnmp.GoSNMP{
 		Target: host, Port: s.Port, Community: s.Community, Version: gosnmp.Version2c,
 		Timeout: timeout, Retries: 0, Context: ctx,
+	}
+	if s.V3() {
+		g.Community = ""
+		g.Version = gosnmp.Version3
+		g.SecurityModel = gosnmp.UserSecurityModel
+		g.MsgFlags = gosnmp.AuthPriv
+		g.SecurityParameters = &gosnmp.UsmSecurityParameters{
+			UserName:                 s.User,
+			AuthenticationProtocol:   authProtocols[s.Auth],
+			AuthenticationPassphrase: s.AuthPassphrase,
+			PrivacyProtocol:          privProtocols[s.Priv],
+			PrivacyPassphrase:        s.PrivPassphrase,
+		}
 	}
 	if err := g.Connect(); err != nil {
 		o.Err = err

@@ -289,7 +289,7 @@ ATLAS_HTTPS_PORT=443
 
 Then `docker compose up -d`. Caddy, the web server inside the image, serves HTTPS and redirects port 80 to it. For a name ending in `.internal`, `.local` or `.home.arpa`, or an IP address, the certificate comes from Caddy's own authority, which each agent machine must trust: `docker compose cp app:/data/caddy/pki/authorities/local/root.crt atlas-root.crt` copies its root out. A public name that resolves to this machine, with ports 80 and 443 open, gets a Let's Encrypt certificate instead. The name must reach this machine from the agent, through DNS or the agent machine's hosts file.
 
-The agent itself is in `agent/`, written in Go: one file per platform, for Windows, Linux and Raspberry Pi. It pings, fetches a URL and asks SNMP v2c, all at once, and keeps readings in a local SQLite file while Atlas is unreachable. `agent/README.md` shows how to set it up.
+The agent itself is in `agent/`, written in Go: one file per platform, for Windows, Linux and Raspberry Pi. It pings, fetches a URL and asks SNMP (v3, or v2c for older devices), all at once, and keeps readings in a local SQLite file while Atlas is unreachable. `agent/README.md` shows how to set it up.
 
 ### Keeping the monitor live
 

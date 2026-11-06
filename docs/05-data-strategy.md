@@ -145,7 +145,7 @@ Five entry points. Know which one you are working on.
 
 - An `is_demo` column on four tables that a production system would not need.
 - The simulator has to be written well enough to be plausible.
-- The Go agent (roadmap task 1.7) will need SNMP community strings for the devices it checks. They go in the agent's own config file, so Atlas never holds them, and keeping that file safe is the agent machine owner's job.
+- The Go agent needs SNMP credentials for the devices it checks: SNMPv3 users and passphrases, or a v2c community for a device without v3. They go in the agent's own config file, so Atlas never holds them, and keeping that file safe is the agent machine owner's job.
 
 **What this buys us**
 
