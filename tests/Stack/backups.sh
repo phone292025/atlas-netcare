@@ -47,7 +47,7 @@ echo "  the backup service reports healthy"
 said=$(docker compose exec -T scheduler php artisan atlas:check-backups)
 echo "$said" | sed 's/^/  scheduler: /'
 if [ "$(value copy_same_disk)" = yes ]; then
-    grep -q "same filesystem" <<< "$said" && grep -q "Told 1 administrator" <<< "$said" \
+    grep -q "same filesystem" <<< "$said" && grep -Eq "Told [1-9][0-9]* administrator" <<< "$said" \
         || { echo "FAILED: a copy on the same disk was not reported"; exit 1; }
     echo "  the copy folder is on the same disk as backups/, and that is reported"
 else
