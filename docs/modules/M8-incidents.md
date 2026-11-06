@@ -63,13 +63,15 @@ An engineer or administrator can **resolve a degraded or flapping incident by ha
 
 ## Alerts
 
-`IncidentAlerts` claims each alert before sending it: a row in `incident_alerts`, unique on incident, person, step and channel. The claim that inserts the row queues the send; a second sweep, a retry or a second worker finds the row and sends nothing. The send checks `sent_at` first, so a retry after a send that worked sends nothing.
+`IncidentAlerts` claims each alert before sending it: a row in `incident_alerts`, unique on incident, person, step and channel. The claim that inserts the row queues the send; a second sweep, a retry or a second worker finds the row and sends nothing.
+
+The row is the record of what is owed, and the queue only carries it. A worker takes an alert by setting `attempted_at`, and only when nobody has it or the last taker is more than three minutes old, so two jobs for one alert never send at once; a failed attempt gives it back for the retry. If the job never reached the queue, because the process died after the incident committed, or its worker died mid-send, the alert stays unsent. The minute sweep queues every such alert again once it has been quiet for three minutes, so it goes out late and is never lost.
 
 | Channel | When | Once? |
 |---|---|---|
 | In the app | Always. An `Alarm` about the incident, which the bell and the notifications list show | Exactly once: the alarm and `sent_at` are one transaction |
-| Email | `MAIL_MAILER` is not `log` | Once, unless the worker dies between the mail server accepting it and `sent_at` being saved |
-| Telegram | `ATLAS_TELEGRAM_BOT_TOKEN` is set and the person has a chat id on their profile | The same |
+| Email | `MAIL_MAILER` is not `log` | At least once: a worker that dies between the mail server accepting it and `sent_at` being saved leaves it for the sweep, which sends it again. Both copies have the same Message-ID, which many mail servers use to drop the second |
+| Telegram | `ATLAS_TELEGRAM_BOT_TOKEN` is set and the person has a chat id on their profile | At least once, the same way. Telegram has no way to mark a resend |
 
 A send that fails is retried by the worker, and the last failure is saved on the claim as `failed_at` and `error`, which the incident's page shows. The Telegram bot token is in the API's URL, and a connection error quotes the URL, so the token is replaced with `[token]` before anything is stored or logged. Phone push is not built.
 

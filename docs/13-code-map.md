@@ -501,6 +501,7 @@ database that already ran it.
 | `2026_11_01_110004_create_incident_alerts_table.php` | Every alert an incident sends: one row per incident, person, escalation |
 | `2026_11_01_110005_create_device_status_changes_table.php` | Each time a device's status changed, from the DeviceStatusesChanged event |
 | `2026_11_01_110006_add_telegram_chat_id_to_users_table.php` | Where a person's Telegram alerts go (roadmap 2.6). Set on their profile |
+| `2026_11_01_110007_add_attempted_at_to_incident_alerts_table.php` | When a worker last took an alert to send it |
 <!-- /code-map -->
 
 The `add_*` migrations exist because of that rule. When `tickets.opened_at`

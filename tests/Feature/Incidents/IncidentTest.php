@@ -396,6 +396,83 @@ class IncidentTest extends TestCase
         $this->actingAs($this->engineer)->get(Incident::sole()->urlFor($this->engineer))->assertOk()->assertSee('[token]');
     }
 
+    public function test_an_alert_whose_job_never_reached_the_queue_is_sent_by_the_sweep(): void
+    {
+        config(['queue.default' => 'database']);
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        // The listener opens the incident and claims its alerts; the process
+        // dies before their jobs are queued.
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--max-jobs' => 1]);
+        DB::table('jobs')->delete();
+
+        $this->artisan('atlas:watch-incidents');
+        $this->assertSame(0, DB::table('jobs')->count(), 'An alert just claimed may still have its job on the way.');
+
+        $this->travel(IncidentAlerts::LEASE_SECONDS + 1)->seconds();
+        $this->artisan('atlas:watch-incidents');
+        $this->artisan('atlas:watch-incidents');
+        $this->assertSame(1, DB::table('jobs')->count(), 'Queued again once, not once a minute.');
+
+        $this->artisan('queue:work', ['--stop-when-empty' => true]);
+
+        $this->assertNotNull(IncidentAlert::where('user_id', $this->engineer->id)->sole()->sent_at);
+        $this->assertSame(1, $this->alarmsFor($this->engineer));
+    }
+
+    public function test_an_alert_a_worker_holds_is_sent_by_nobody_else_until_the_worker_is_presumed_dead(): void
+    {
+        config(['queue.default' => 'database']);
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--max-jobs' => 1]);
+        DB::table('jobs')->delete();
+        $alert = IncidentAlert::where('user_id', $this->engineer->id)->sole();
+        // A worker took it, and died before sending.
+        $alert->forceFill(['attempted_at' => now()])->save();
+
+        app(IncidentAlerts::class)->deliver($alert->id);
+        $this->assertSame(0, $this->alarmsFor($this->engineer), 'A second job must not send what another worker holds.');
+
+        $this->travel(IncidentAlerts::LEASE_SECONDS + 1)->seconds();
+        $this->artisan('atlas:watch-incidents');
+        $this->artisan('queue:work', ['--stop-when-empty' => true]);
+
+        $this->assertNotNull($alert->fresh()->sent_at);
+        $this->assertSame(1, $this->alarmsFor($this->engineer));
+    }
+
+    public function test_a_failed_attempt_gives_the_alert_back_for_the_retry(): void
+    {
+        config(['queue.default' => 'database', 'atlas.incidents.telegram_bot_token' => '123:abc']);
+        Http::fakeSequence('api.telegram.org/*')->push('down', 502)->push(['ok' => true]);
+        $this->engineer->forceFill(['telegram_chat_id' => '4242'])->save();
+
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 2, '--backoff' => 0]);
+
+        $telegram = IncidentAlert::where('channel', AlertChannel::Telegram)->sole();
+        $this->assertNotNull($telegram->sent_at);
+        $this->assertNull($telegram->failed_at);
+        Http::assertSentCount(2);
+    }
+
+    public function test_an_email_alert_sent_again_after_a_crash_is_the_same_message(): void
+    {
+        config(['mail.default' => 'array', 'atlas.mail_configured' => true]);
+        $this->change(NetworkStatus::Offline, $this->accessPointBehind());
+        $email = IncidentAlert::where(['user_id' => $this->engineer->id, 'channel' => AlertChannel::Email])->sole();
+
+        // The worker died after the mail server took it, before sent_at was saved.
+        $email->forceFill(['sent_at' => null, 'attempted_at' => null])->save();
+        app(IncidentAlerts::class)->deliver($email->id);
+
+        $sent = collect(app('mailer')->getSymfonyTransport()->messages())
+            ->map(fn ($message) => $message->getOriginalMessage())
+            ->filter(fn ($message) => $message->getTo()[0]->getAddress() === $this->engineer->email);
+        $this->assertCount(2, $sent);
+        $ids = $sent->map(fn ($message) => $message->getHeaders()->get('Message-ID')->getBodyAsString())->unique();
+        $this->assertSame(['<'.app(IncidentAlerts::class)->messageId($email).'>'], $ids->values()->all());
+    }
+
     // ------------------------------------------------- degraded, flapping, silent
 
     public function test_a_degraded_device_opens_an_incident_without_a_ticket(): void
