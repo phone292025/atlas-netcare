@@ -20,7 +20,7 @@ Laravel · Blade · Tailwind CSS · Alpine.js · Chart.js · PostgreSQL with Tim
 
 ## Status
 
-Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit.
+Everything listed above is built, on Laravel 12 with the Laravel Breeze starter kit. This is release 2.0: real telemetry from probe agents, and incidents that alert whoever is on call. Live-pushed screens with a network map, and offline phone rounds with phone push, are the next releases and are not in this one.
 
 The suite has 1,297 tests, and CI runs it on SQLite and on PostgreSQL with TimescaleDB. One test checks a MariaDB trap and skips itself on both. Eleven need PostgreSQL and skip on SQLite: three check TimescaleDB, five hold a lock from a second connection, and three check the database password. One checks the SQLite path and skips on PostgreSQL. A copy without the `docs` folder also skips the seven tests that check it. CI also runs 23 browser tests against the Docker stack: five core flows, and accessibility checks on every screen, and the Go agent's tests on Linux and Windows.
 

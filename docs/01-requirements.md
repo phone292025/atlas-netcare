@@ -13,10 +13,10 @@ Every requirement has an ID. Test cases reference these IDs; module specs list t
 Three carry a caveat worth stating rather than hiding:
 
 - **FR-102** (password reset by email) works, but delivery depends on an SMTP server being set in `.env`. Until it is, the screen says so instead of pretending. See [Q11](02-open-questions.md#q11).
-- **FR-301, FR-303, FR-304, FR-305, FR-312** read whatever the agents send. In the demo every device is watched by the simulator, so they read **simulated** telemetry. FR-313 and FR-314 work only on devices the simulator watches. The ingest API for real probe agents (FR-510) is built; the Go agent that will call it is roadmap task 1.7. See [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
-- **FR-506** alarms reach the in-app bell only, except shift reminders, which leave as a calendar file.
+- **FR-301, FR-303, FR-304, FR-305, FR-312** read whatever the agents send. In the demo every device is watched by the simulator, so they read **simulated** telemetry. FR-313 and FR-314 work only on devices the simulator watches. Real probe agents send through the ingest API (FR-510): the Go agent in `agent/` pings, fetches a URL and asks SNMP, and a device it watches shows real readings. See [10-simulated-and-real-data.md](10-simulated-and-real-data.md).
+- **FR-506** alarms reach the in-app bell, except shift reminders, which leave as a calendar file. Incident alerts also go by email and Telegram when those are set up.
 
-The **non-functional** requirements are a different matter: NFR timings and the UAT sessions need real measurements and real participants, and cannot be produced from the code. They remain outstanding.
+The **non-functional** requirements are a different matter. NFR-02's response times are measured, on a campus-sized dataset ([07-testing.md](07-testing.md#response-times)). The UAT sessions, a real phone, Edge itself and a screen reader pass need real participants and devices, and remain outstanding.
 
 ---
 
