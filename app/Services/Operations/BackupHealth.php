@@ -59,7 +59,7 @@ class BackupHealth
         }
 
         if (($status['copy'] ?? 'no') === 'yes' && ($status['copy_same_disk'] ?? 'no') === 'yes') {
-            $problems[] = 'ATLAS_BACKUP_COPY_DIR is on the same disk as backups/, so a failing disk takes the backups and their copies together. Point it at another disk or a mounted network share.';
+            $problems[] = 'ATLAS_BACKUP_COPY_DIR is on the same filesystem as backups/, so a failing disk takes the backups and their copies together. Point it at another physical disk or a mounted network share.';
         }
 
         if ($success && ($status['copy'] ?? 'no') === 'yes') {

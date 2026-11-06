@@ -132,7 +132,7 @@ class BackupHealthTest extends TestCase
     {
         $this->goodBackup(2, ['copy' => 'yes', 'copy_same_disk' => 'yes', 'last_copy' => now()->subHour()->getTimestamp()]);
 
-        $this->artisan('atlas:check-backups')->expectsOutputToContain('same disk')->assertSuccessful();
+        $this->artisan('atlas:check-backups')->expectsOutputToContain('same filesystem')->assertSuccessful();
         $this->assertSame(1, $this->backupAlarms());
     }
 
