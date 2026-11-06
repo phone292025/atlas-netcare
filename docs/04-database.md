@@ -434,7 +434,7 @@ Five tables, all written by `App\Services\Incidents` only ([M8](modules/M8-incid
 | `incidents` | A fault: a rule on a device, or `silent` on an agent | `status` open, acknowledged or resolved; `resolution` recovered, grouped, settled or retired. `grouped_into_id` points at the parent's incident that took this one in. `escalation_step` and `next_escalation_at` drive on-call. `ticket_id` is not unique: repeat outages of one device share its open ticket |
 | `incident_devices` | A device covered by an incident, the incident's own device included | Unique on the pair. `recovered_at` when that device came back |
 | `incident_events` | A line of the timeline | Never edited |
-| `incident_alerts` | One alert, to one person, at one step, on one channel | Unique on all four: the claim that makes a retry send nothing. `sent_at`, or `failed_at` and `error` |
+| `incident_alerts` | One alert, to one person, at one step, on one channel | Unique on all four: the claim that makes a retry send nothing. `attempted_at` while a worker has it, then `sent_at`, or `failed_at` and `error` |
 | `device_status_changes` | A device's status changing | For the flapping rule. Pruned after `incidents.history_days` |
 
 `users.telegram_chat_id` (nullable) is where a person's Telegram alerts go, set on their profile.

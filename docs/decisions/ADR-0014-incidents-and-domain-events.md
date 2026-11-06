@@ -33,7 +33,7 @@ Phase 2 settles the rule format, the escalation timings and the first channels.
 - **One lock on `incidents`** around every write, instead of row locks across the device tree. Incidents change a few times an hour.
 - **A ticket per incident, not per outage:** a device that fails again while its ticket is open reuses it. `incidents.ticket_id` is therefore not unique.
 - **Escalation:** assistants on shift (those in the device's room first), then engineers, then administrators, `incidents.escalate_after_min` apart. A silent agent goes to engineers and administrators at once.
-- **Channels:** in-app (exactly once), email and Telegram (once unless a worker dies mid-send). Phone push waits for Phase 4.
+- **Channels:** in-app (exactly once), email and Telegram (at least once: the sweep sends again an alert whose job was lost or whose worker died mid-send). Phone push waits for Phase 4.
 
 ## Consequences
 

@@ -20,15 +20,36 @@ use Throwable;
  *
  * Each alert is claimed before it is sent: a row keyed by incident, person,
  * escalation step and channel. The claim that inserts the row queues the
- * send; anything that finds the row already there sends nothing. The send
- * itself runs on the queue with retries, and checks `sent_at` first, so a
- * retry after a send that succeeded doesn't send it again. In the app the
- * alarm and `sent_at` are written in one transaction, so that channel is
- * exactly once. Email and Telegram are once unless a worker dies between
- * the provider accepting the message and `sent_at` being saved.
+ * send; anything that finds the row already there sends nothing.
+ *
+ * The send runs on the queue with retries. A worker first takes the alert
+ * by setting `attempted_at`, and only if nobody has it or the last taker is
+ * older than LEASE_SECONDS, so two jobs for one alert never send at once.
+ * A failed attempt gives the alert back for the next retry.
+ *
+ * The row is the record of what is owed, and the queue only a way to send
+ * it. If the job never reached the queue (the process died after the
+ * incident committed) or the worker died mid-send, the alert stays unsent
+ * and untaken. The minute sweep (atlas:watch-incidents) queues every such
+ * alert again once it has been quiet for LEASE_SECONDS, so it goes out late
+ * and is never lost.
+ *
+ * In the app the alarm and `sent_at` are written in one transaction, so that
+ * channel is exactly once. Email and Telegram are at least once: a worker
+ * that dies after the provider took the message and before `sent_at` was
+ * saved leaves an alert the sweep sends again. An email keeps one Message-ID
+ * per alert, so a mail server that drops repeated IDs shows one; Telegram
+ * has no way to say "this one again".
  */
 class IncidentAlerts
 {
+    /**
+     * How long a worker keeps an alert it took. Longer than a job can run:
+     * the worker kills a job after 60 seconds, and a Telegram call gives up
+     * after 10.
+     */
+    public const LEASE_SECONDS = 180;
+
     public function __construct(private readonly AlarmService $alarms) {}
 
     /** @param  Collection<int, User>  $people */
@@ -50,14 +71,48 @@ class IncidentAlerts
                         ->where(['incident_id' => $incident->id, 'user_id' => $user->id, 'step' => $step, 'channel' => $channel->value])
                         ->value('id');
 
-                    // On the queue, after the incident commits, with the worker's
-                    // retries. The last failure is written on the claim.
-                    dispatch(fn () => app(self::class)->deliver($id))
-                        ->catch(fn (Throwable $e) => app(self::class)->failed($id, $e->getMessage()))
-                        ->afterCommit();
+                    $this->queue($id);
                 }
             }
         }
+    }
+
+    /**
+     * Queue again every alert that is owed and that nobody has touched for
+     * LEASE_SECONDS: its job was lost, or its worker died. Run by the minute
+     * sweep. Touching `updated_at` keeps one alert from being queued again
+     * every minute while its new job waits.
+     *
+     * @return int how many were queued again
+     */
+    public function requeueStalled(): int
+    {
+        $quiet = now()->subSeconds(self::LEASE_SECONDS);
+
+        $ids = IncidentAlert::query()
+            ->whereNull('sent_at')
+            ->whereNull('failed_at')
+            ->where('updated_at', '<', $quiet)
+            ->where(fn ($q) => $q->whereNull('attempted_at')->orWhere('attempted_at', '<', $quiet))
+            ->orderBy('id')
+            ->limit(500)
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            IncidentAlert::query()->whereKey($id)->update(['updated_at' => now()]);
+            $this->queue($id);
+        }
+
+        return $ids->count();
+    }
+
+    /** On the queue, after any open transaction commits, with the worker's retries. */
+    private function queue(int $id): void
+    {
+        // The last failure is written on the claim.
+        dispatch(fn () => app(self::class)->deliver($id))
+            ->catch(fn (Throwable $e) => app(self::class)->failed($id, $e->getMessage()))
+            ->afterCommit();
     }
 
     /** @return list<AlertChannel> */
@@ -76,14 +131,42 @@ class IncidentAlerts
         return $channels;
     }
 
-    /** Send one claimed alert, unless it has already gone. */
+    /**
+     * Send one claimed alert, unless it has already gone, has failed for
+     * good, or another worker has it.
+     */
     public function deliver(int $alertId): void
     {
-        $alert = IncidentAlert::query()->with(['incident.device.location', 'incident.agent', 'user'])->find($alertId);
-
-        if (! $alert || $alert->sent_at !== null) {
+        if (! $this->take($alertId)) {
             return;
         }
+
+        $alert = IncidentAlert::query()->with(['incident.device.location', 'incident.agent', 'user'])->find($alertId);
+
+        try {
+            $this->sendTaken($alert);
+        } catch (Throwable $e) {
+            // Give it back, so the queue's retry, or the sweep, can take it.
+            IncidentAlert::query()->whereKey($alertId)->update(['attempted_at' => null, 'updated_at' => now()]);
+
+            throw $e;
+        }
+    }
+
+    /** Take the alert for this worker, if it is owed and nobody else has it. */
+    private function take(int $alertId): bool
+    {
+        return IncidentAlert::query()
+            ->whereKey($alertId)
+            ->whereNull('sent_at')
+            ->whereNull('failed_at')
+            ->where(fn ($q) => $q->whereNull('attempted_at')->orWhere('attempted_at', '<', now()->subSeconds(self::LEASE_SECONDS)))
+            ->update(['attempted_at' => now(), 'updated_at' => now()]) === 1;
+    }
+
+    private function sendTaken(IncidentAlert $alert): void
+    {
+        $alertId = $alert->id;
 
         if ($alert->channel === AlertChannel::InApp) {
             DB::transaction(function () use ($alertId) {
@@ -117,13 +200,24 @@ class IncidentAlerts
         match ($alert->channel) {
             AlertChannel::Email => Mail::raw(
                 $this->summary($alert->incident)."\n\n".$alert->incident->urlFor($alert->user),
-                fn ($message) => $message->to($alert->user->email)->subject('[Atlas] '.$alert->incident->title),
+                function ($message) use ($alert) {
+                    $message->to($alert->user->email)->subject('[Atlas] '.$alert->incident->title);
+                    // One ID per alert, so a resend after a crash is the same message.
+                    $message->getSymfonyMessage()->getHeaders()->addIdHeader('Message-ID', $this->messageId($alert));
+                },
             ),
             AlertChannel::Telegram => Http::timeout(10)->post(
                 'https://api.telegram.org/bot'.config('atlas.incidents.telegram_bot_token').'/sendMessage',
                 ['chat_id' => $alert->user->telegram_chat_id, 'text' => $alert->incident->title."\n".$this->summary($alert->incident)."\n".$alert->incident->urlFor($alert->user)],
             )->throw(),
         };
+    }
+
+    public function messageId(IncidentAlert $alert): string
+    {
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'atlas.local';
+
+        return "incident-alert-{$alert->id}@{$host}";
     }
 
     private function redact(string $message): string
