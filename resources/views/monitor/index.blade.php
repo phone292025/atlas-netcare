@@ -374,7 +374,8 @@
         <section x-show="detail" x-cloak
                  x-transition:enter="transition duration-150 ease-out" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
                  class="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-line bg-surface shadow-xl"
-                 role="dialog" aria-modal="true" aria-labelledby="device-title">
+                 role="dialog" aria-modal="true" aria-labelledby="device-title"
+                 @keydown.tab="keepFocusIn($el, $event)">
             <template x-if="detail">
                 <div>
                     <div class="sticky top-0 border-b border-line bg-surface px-5 pb-4 pt-4">
@@ -607,8 +608,12 @@
                     });
                 };
 
+                const index = (devices) => Object.fromEntries(devices.map((d) => [d.id, d]));
+
                 return {
                     data: initial,
+                    // Devices by id, rebuilt when a poll replaces the data.
+                    byId: index(initial.devices),
                     links: options.links,
                     status: params.get('status') ?? 'all',
                     view: params.get('view') === 'list' ? 'list' : 'places',
@@ -662,9 +667,6 @@
                         return `${agents.length} ${agents.length === 1 ? 'agent' : 'agents'} reporting`;
                     },
 
-                    get byId() {
-                        return Object.fromEntries(this.data.devices.map((d) => [d.id, d]));
-                    },
 
                     matches(device) {
                         const q = this.search.trim().toLowerCase();
@@ -751,6 +753,7 @@
                         this.refreshing = true;
                         try {
                             this.data = await window.fetchJson(options.endpoint);
+                            this.byId = index(this.data.devices);
                             this.failing = false;
                             this.drawActivity();
                             if (this.detail) this.load(this.detail.id);
@@ -798,6 +801,23 @@
                             this.detailFailed = true;
                         } finally {
                             this.detailLoading = false;
+                        }
+                    },
+
+                    // Tab and Shift+Tab go round the panel's own controls, as
+                    // aria-modal promises, instead of on to the page behind.
+                    keepFocusIn(panel, event) {
+                        const stops = [...panel.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+                            .filter((el) => el.offsetParent !== null);
+                        if (! stops.length) return;
+                        const first = stops[0];
+                        const last = stops[stops.length - 1];
+                        if (event.shiftKey && document.activeElement === first) {
+                            event.preventDefault();
+                            last.focus();
+                        } else if (! event.shiftKey && document.activeElement === last) {
+                            event.preventDefault();
+                            first.focus();
                         }
                     },
 

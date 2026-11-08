@@ -7,6 +7,7 @@ use App\Enums\NetworkStatus;
 use App\Enums\UserRole;
 use App\Events\DeviceStatusesChanged;
 use App\Models\AccessPoint;
+use App\Models\DeviceStatusChange;
 use App\Models\Incident;
 use App\Models\Location;
 use App\Models\NetworkDevice;
@@ -218,6 +219,44 @@ class NetworkMonitorReadModelTest extends TestCase
         $device = app(NetworkMonitorService::class)->device($ap->fresh(), $this->engineer);
 
         $this->assertSame('It answers, but slowly: 180 ms against the '.config('atlas.thresholds.latency_ms').' ms limit.', $device['verdict']);
+    }
+
+    public function test_only_administrators_see_a_switchs_address_and_agent(): void
+    {
+        $this->switch->forceFill(['ip_address' => '10.20.6.2'])->save();
+        $ap = $this->accessPoint('AP-06');
+        $ap->forceFill(['ip_address' => '10.20.6.16'])->save();
+        $panel = fn (User $viewer, NetworkDevice $device) => app(NetworkMonitorService::class)->device($device->fresh(), $viewer);
+
+        foreach ([$this->engineer, $this->userWith(UserRole::Assistant)] as $viewer) {
+            $this->assertNull($panel($viewer, $this->switch)['ip_address'], 'The devices screen is the administrators\'.');
+            $this->assertNull($panel($viewer, $this->switch)['agent']);
+            $this->assertSame('10.20.6.16', $panel($viewer, $ap)['ip_address'], 'An access point\'s address was always shown.');
+        }
+
+        $this->assertSame('10.20.6.2', $panel($this->userWith(UserRole::Admin), $this->switch)['ip_address']);
+    }
+
+    public function test_an_incident_on_a_removed_device_opens_its_page_not_a_panel(): void
+    {
+        $ap = $this->accessPoint('AP-06');
+        $this->change(NetworkStatus::Offline, $ap);
+        $ap->delete();
+
+        $incident = $this->snapshot()['incidents'][0];
+
+        $this->assertSame('AP-06', $incident['subject']);
+        $this->assertArrayNotHasKey('device_id', $incident, 'There is no panel for a removed device.');
+    }
+
+    public function test_a_device_down_longer_than_the_status_history_still_says_how_long(): void
+    {
+        $ap = $this->accessPoint('AP-06');
+        $this->change(NetworkStatus::Offline, $ap);
+        $this->travel(9)->days();
+        DeviceStatusChange::query()->delete();
+
+        $this->assertSame('9 days', collect($this->snapshot()['devices'])->firstWhere('code', 'AP-06')['for']);
     }
 
     public function test_a_switch_opens_in_the_panel_too(): void
