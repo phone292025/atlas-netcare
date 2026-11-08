@@ -13,7 +13,7 @@ use App\Models\AuditLog;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Services\Telemetry\NetworkMonitorService;
+use App\Services\Monitor\NetworkMonitorService;
 use App\Services\Telemetry\SimulatedReadings;
 use App\Support\CampusClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,7 +90,7 @@ class NetworkMonitorTest extends TestCase
                 ->get(route($route))
                 ->assertOk()
                 ->assertSee('Network monitor')
-                ->assertSee('Network activity')
+                ->assertSeeInOrder(['Campus activity', 'Needs attention', 'The estate now', 'Where'])
                 ->assertSee('href="'.route($route).'"', escape: false);
         }
     }
@@ -115,7 +115,7 @@ class NetworkMonitorTest extends TestCase
                 ->assertOk()
                 ->assertSee('Generate sample')
                 ->assertSee('Run simulation')
-                ->assertSee('Simulation control room');
+                ->assertSee('Take a sample now');
         }
     }
 
@@ -172,7 +172,7 @@ class NetworkMonitorTest extends TestCase
         TelemetryReading::factory()->create(['network_device_id' => $old->id, 'recorded_at' => now()->subHours(2), 'client_count' => 30]);
         TelemetryReading::factory()->create(['network_device_id' => $offline->id, 'recorded_at' => now()->subHours(2)]);
 
-        $rows = collect(app(NetworkMonitorService::class)->snapshot()['access_points'])->keyBy('code');
+        $rows = collect(app(NetworkMonitorService::class)->snapshot()['devices'])->keyBy('code');
 
         $this->assertSame('online', $rows['AP-FRESH']['state']);
         $this->assertSame(12, $rows['AP-FRESH']['clients']);
@@ -254,7 +254,7 @@ class NetworkMonitorTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'generated_at', 'last_sample_at', 'counts' => ['total', 'online', 'degraded', 'offline', 'maintenance', 'stale'],
-                'access_points' => [['id', 'code', 'state', 'state_label', 'badge', 'clients', 'utilization', 'latency_ms']],
+                'devices' => [['id', 'code', 'state', 'state_label', 'badge', 'clients', 'utilization', 'latency_ms']],
                 'activity',
             ])
             ->assertJsonPath('counts.total', 2);
@@ -265,7 +265,7 @@ class NetworkMonitorTest extends TestCase
         $ap = AccessPoint::factory()->create();
 
         $this->getJson(route('api.monitor'))->assertUnauthorized();
-        $this->getJson(route('api.monitor.aps.show', $ap))->assertUnauthorized();
+        $this->getJson(route('api.monitor.devices.show', $ap))->assertUnauthorized();
     }
 
     public function test_one_access_point_comes_with_its_own_activity(): void
@@ -274,7 +274,7 @@ class NetworkMonitorTest extends TestCase
         TelemetryReading::factory()->create(['network_device_id' => $ap->id, 'recorded_at' => now()->subMinutes(2), 'latency_ms' => 21]);
 
         $this->actingAs($this->userWith(UserRole::Assistant))
-            ->getJson(route('api.monitor.aps.show', $ap))
+            ->getJson(route('api.monitor.devices.show', $ap))
             ->assertOk()
             ->assertJsonPath('code', $ap->code)
             ->assertJsonPath('ip_address', '10.20.1.11')
@@ -381,7 +381,7 @@ class NetworkMonitorTest extends TestCase
         $this->assertSame(NetworkStatus::Online, $ap->fresh()->status);
         $this->assertSame(0, Ticket::count());
 
-        $row = collect(app(NetworkMonitorService::class)->snapshot()['access_points'])->firstWhere('id', $ap->id);
+        $row = collect(app(NetworkMonitorService::class)->snapshot()['devices'])->firstWhere('id', $ap->id);
         $this->assertSame('stale', $row['state']);
         $this->assertSame('feed_interruption', $row['scenario']);
     }
@@ -568,7 +568,7 @@ class NetworkMonitorTest extends TestCase
             'channel_util_pct' => -1.4,
         ]);
 
-        $row = collect(app(NetworkMonitorService::class)->snapshot()['access_points'])->firstWhere('id', $ap->id);
+        $row = collect(app(NetworkMonitorService::class)->snapshot()['devices'])->firstWhere('id', $ap->id);
 
         $this->assertSame(0, $row['utilization']);
     }

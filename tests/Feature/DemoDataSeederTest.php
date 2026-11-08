@@ -13,7 +13,7 @@ use App\Models\NetworkDevice;
 use App\Models\TelemetryHourly;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Services\Telemetry\NetworkMonitorService;
+use App\Services\Monitor\NetworkMonitorService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceSeeder;

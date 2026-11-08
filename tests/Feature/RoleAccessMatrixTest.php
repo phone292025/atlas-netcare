@@ -71,7 +71,7 @@ class RoleAccessMatrixTest extends TestCase
             'notifications' => ['notifications.index', 200, 200, 200],
             'dashboard json' => ['api.dashboard', 200, 200, 200],
             'network monitor json' => ['api.monitor', 200, 200, 200],
-            'one access point json' => ['api.monitor.aps.show', 200, 200, 200],
+            'one device json' => ['api.monitor.devices.show', 200, 200, 200],
 
             // The Network monitor: one page, reached through each role's own name
             'network monitor, engineer' => ['engineer.monitor.index', 200, 200, 403],
@@ -173,6 +173,7 @@ class RoleAccessMatrixTest extends TestCase
             'network_device' => $switch->id,
             'agent' => Agent::factory()->create()->id,
             'accessPoint' => $ap->id,
+            'device' => $switch->id,
             'lab_pc' => $labPc->id,
             'location' => $location->id,
             'checklist' => $template->id,

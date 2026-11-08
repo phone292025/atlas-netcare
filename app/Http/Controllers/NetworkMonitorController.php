@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\SimulationScenario;
 use App\Enums\UserRole;
 use App\Http\Requests\Telemetry\RunSimulationRequest;
-use App\Models\AccessPoint;
+use App\Models\NetworkDevice;
 use App\Models\User;
-use App\Services\Telemetry\NetworkMonitorService;
+use App\Services\Monitor\NetworkMonitorService;
 use App\Services\Telemetry\SimulationService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -17,10 +17,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 /**
- * The Network monitor (FR-312 to FR-314): every access point on one screen,
- * campus activity over the last day, and — for engineers and administrators,
- * while the simulator watches devices — the controls to take a sample or force
- * a scenario.
+ * The Network monitor (FR-312 to FR-314): what needs attention now, every
+ * device by place, the agents, campus activity over the last day, and, for
+ * engineers and administrators while the simulator watches devices, the
+ * controls to take a sample or force a scenario.
  *
  * One page for all three roles. It is reached through three role-prefixed
  * routes only because the sidebar's navigation names must carry the role
@@ -39,37 +39,38 @@ class NetworkMonitorController extends Controller
 
     public function index(Request $request): View
     {
-        $data = $this->monitor->snapshot();
-        $canSimulate = $this->canSimulate($request->user());
+        $user = $request->user();
+        $canSimulate = $this->canSimulate($user);
 
         return view('monitor.index', [
-            'data' => $data,
+            'data' => $this->monitor->snapshot($user),
             'pollInterval' => (int) config('atlas.poll_interval'),
             'feed' => $this->monitor->feed(),
             'canSimulate' => $canSimulate,
             'targets' => $canSimulate ? $this->simulation->targets() : [],
             'scenarios' => SimulationScenario::cases(),
-            // The filter lists only locations that have an access point, taken
-            // from the rows already loaded rather than a second query.
-            'locations' => collect($data['access_points'])
-                ->whereNotNull('location_id')
-                ->unique('location_id')
-                ->sortBy('location')
-                ->mapWithKeys(fn (array $ap) => [$ap['location_id'] => $ap['location'].' · '.$ap['location_name']])
-                ->all(),
+            // Where a row's links go for this person: the same screens under
+            // their own role's prefix. An assistant has no ticket queue.
+            'links' => [
+                'incident' => route($user->role->value.'.incidents.show', ['incident' => '__ID__']),
+                'ticket' => $user->isAssistant() ? null : route('engineer.tickets.show', ['ticket' => '__ID__']),
+                'history' => $user->isAssistant() ? null : route('engineer.aps.show', ['accessPoint' => '__ID__']),
+                'incidents' => route($user->role->value.'.incidents.index'),
+                'acknowledge' => route('incidents.acknowledge', ['incident' => '__ID__']),
+            ],
         ]);
     }
 
     /** The polling endpoint (FR-302 applies here as on the dashboard). */
-    public function data(): JsonResponse
+    public function data(Request $request): JsonResponse
     {
-        return response()->json($this->monitor->snapshot());
+        return response()->json($this->monitor->snapshot($request->user()));
     }
 
-    /** One access point, for the detail dialog. */
-    public function show(AccessPoint $accessPoint): JsonResponse
+    /** One device, for the panel beside the list. */
+    public function show(Request $request, NetworkDevice $device): JsonResponse
     {
-        return response()->json($this->monitor->accessPoint($accessPoint));
+        return response()->json($this->monitor->device($device, $request->user()));
     }
 
     public function sample(): RedirectResponse

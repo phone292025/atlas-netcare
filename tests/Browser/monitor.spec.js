@@ -1,12 +1,14 @@
 import { expect, test } from './fixtures.js';
 
 /**
- * Flow 4: an engineer opens the Network Monitor. Its chart is drawn by Chart.js
- * and its table is filtered in the browser, so the HTML alone proves neither.
+ * Flow 4: an engineer opens the Network Monitor. Its places, list and panel
+ * are drawn by Alpine and its charts by Chart.js, so the HTML alone proves
+ * none of it.
  *
- * The scheduler keeps simulating readings while the test runs, so an access
- * point's status can change between two looks. The test compares the screen
- * with itself, never with a status from the seed.
+ * The scheduler keeps simulating readings while the test runs, so a device's
+ * status can change between two looks. The test compares the screen with
+ * itself, never with a status from the seed. global-setup gives it a
+ * degraded switch with an open incident, so "Needs attention" has a row.
  */
 
 /** How many points each series of a Chart.js chart on this canvas holds. */
@@ -17,32 +19,51 @@ test('an engineer opens the Network Monitor', async ({ signedIn }) => {
     await engineer.goto('/engineer/monitor');
     await expect(engineer.getByRole('heading', { name: 'Network monitor', level: 2 })).toBeVisible();
 
-    const rows = engineer.getByRole('table').getByRole('row').filter({ has: engineer.getByRole('button', { name: /^Details for / }) });
-    const all = Number((await engineer.getByRole('button', { name: /^All \d+$/ }).textContent()).match(/\d+/)[0]);
-    expect(all).toBeGreaterThan(0);
-    await expect(rows).toHaveCount(all);
+    // What needs attention comes first, with a way to look at it.
+    await expect(engineer.getByRole('button', { name: /^Look at / }).first()).toBeVisible();
 
-    const chart = engineer.getByRole('img', { name: /^Connected clients and throughput across all access points/ });
-    const series = await plotted(chart);
-    expect(series.length).toBeGreaterThan(0);
-    for (const points of series) expect(points).toBeGreaterThan(0);
+    // Every device is in a place, and the counts add up to the estate.
+    const total = Number((await engineer.getByRole('button', { name: /^All \d+$/ }).textContent()).match(/\d+/)[0]);
+    expect(total).toBeGreaterThan(0);
+    await expect.poll(() => engineer.locator('section[aria-label] button').count()).toBe(total);
+
+    // One chart per unit, each drawn.
+    for (const name of [/^Connected clients across every access point/, /^Throughput across every access point/, /^Average latency across every device/]) {
+        const series = await plotted(engineer.getByRole('img', { name }));
+        expect(series.length).toBe(1);
+        expect(series[0]).toBeGreaterThan(0);
+    }
 
     const refreshed = engineer.waitForResponse((response) => /\/api\/monitor(\?|$)/.test(response.url()));
     await engineer.getByRole('button', { name: 'Refresh' }).click();
     expect((await refreshed).ok()).toBe(true);
 
-    // The status buttons filter the table to their own count.
+    // The list shows the devices a count stands for, worst first.
+    await engineer.getByRole('button', { name: 'List', exact: true }).click();
+    const rows = engineer.getByRole('region', { name: 'Devices, scrollable' }).locator('tbody tr');
+    await expect(rows).toHaveCount(total);
     const online = engineer.getByRole('button', { name: /^Online \d+$/ });
     await online.click();
-    const count = Number((await online.textContent()).match(/\d+/)[0]);
-    await expect(rows).toHaveCount(count);
+    await expect(rows).toHaveCount(Number((await online.textContent()).match(/\d+/)[0]));
     await engineer.getByRole('button', { name: /^All \d+$/ }).click();
 
-    const first = rows.first();
-    const name = (await first.getByRole('cell').first().getByRole('paragraph').first().textContent()).trim();
-    await first.getByRole('button', { name: `Details for ${name}` }).click();
+    // A device opens in the panel beside the page, says where the fault is,
+    // draws its own day, and the link to it can be shared.
+    const first = rows.first().getByRole('button');
+    const code = (await first.locator('span').first().textContent()).trim();
+    await first.click();
+    const panel = engineer.getByRole('dialog', { name: code });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText('Where the fault is')).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Close' })).toBeFocused();
+    await expect.poll(() => plotted(panel.getByRole('img', { name: new RegExp(` for ${code}$`) }))).not.toEqual([]);
+    expect(new URL(engineer.url()).searchParams.get('device')).toBe(code);
 
-    const details = engineer.getByRole('dialog', { name: 'Access point' });
-    await expect(details.getByRole('heading', { name })).toBeVisible();
-    await expect.poll(() => plotted(details.getByRole('img', { name: `Clients and throughput for ${name}` }))).not.toEqual([]);
+    await engineer.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+    await expect(first).toBeFocused();
+
+    // Opened from its link, the panel is there on arrival.
+    await engineer.goto(`/engineer/monitor?device=${encodeURIComponent(code)}`);
+    await expect(engineer.getByRole('dialog', { name: code })).toBeVisible();
 });

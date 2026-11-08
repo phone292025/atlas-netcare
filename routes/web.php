@@ -227,8 +227,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,engineer,assistant')->group(function () {
         Route::get('api/monitor', [NetworkMonitorController::class, 'data'])->name('api.monitor');
-        Route::get('api/monitor/aps/{accessPoint}', [NetworkMonitorController::class, 'show'])
-            ->name('api.monitor.aps.show');
+        Route::get('api/monitor/devices/{device}', [NetworkMonitorController::class, 'show'])
+            ->name('api.monitor.devices.show');
     });
 
     Route::middleware('role:admin,engineer')->prefix('monitor')->name('monitor.')->group(function () {

@@ -48,6 +48,9 @@ class ArchitectureTest extends TestCase
         // IncidentTickets raises an incident's ticket, and IncidentAlerts
         // raises its in-app alarms (ADR-0014).
         'Incidents' => ['Tickets', 'Shifts'],
+        // The Network monitor is a read model across modules: it shows
+        // Telemetry's readings beside the incidents they caused.
+        'Monitor' => ['Telemetry'],
         // QueueHealth alarms the administrators when the worker stops.
         'Operations' => ['Shifts'],
         // TicketService alarms engineers about a new critical ticket, a ticket
