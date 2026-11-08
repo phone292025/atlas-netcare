@@ -170,8 +170,9 @@ app/
     │   ├── TelemetryCollector.php        one collection round, with its tickets and alarms
     │   ├── TelemetryBackfill.php         simulated history, and filling a collection gap
     │   ├── TelemetryStorage.php          TimescaleDB's jobs, from config
-    │   ├── NetworkMonitorService.php     the Network monitor snapshot
     │   └── SimulationService.php         take a sample, force a scenario (simulated devices only)
+    ├── Monitor/
+    │   └── NetworkMonitorService.php     the Network monitor: devices by place, incidents, agents
     ├── Maintenance/
     │   ├── InspectionService.php         start, save answers, derive the outcome
     │   └── ChecklistService.php          template versioning and activation

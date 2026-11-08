@@ -123,7 +123,7 @@ couple of hundred lines is one that has started deciding things.
 | `Engineer/TicketController.php` | The engineer's queue and the transitions that move a ticket along |
 | `Engineer/TrafficLogController.php` | Traffic and congestion logs (FR-303) |
 | `IncidentController.php` | The incidents screen, for every role (roadmap 2.2 to 2.5) |
-| `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): every access point on one screen, |
+| `NetworkMonitorController.php` | The Network monitor (FR-312 to FR-314): what needs attention now, every |
 | `NotificationController.php` | The notification bell and its list (FR-212) |
 | `ProfileController.php` | _no summary in the file_ |
 | `ReportController.php` | Operational reports and descriptive statistics (FR-410) |
@@ -220,6 +220,7 @@ the same answer, it belongs here.
 | `Incidents/OnCall.php` | Who is told about an incident, and when the next people are (roadmap 2.5) |
 | `Maintenance/ChecklistService.php` | Creating, versioning and activating checklist templates |
 | `Maintenance/InspectionService.php` | Starting, saving and finishing an inspection |
+| `Monitor/NetworkMonitorService.php` | What the Network monitor shows: what needs attention now, every device by |
 | `Operations/BackupHealth.php` | Whether the scheduled backups are being made, proven and copied |
 | `Operations/QueueHealth.php` | Whether the queue worker is doing its job (roadmap 2.6's alerts depend on |
 | `Reports/ReportingService.php` | The five operational reports (FR-410) |
@@ -228,7 +229,6 @@ the same answer, it belongs here.
 | `Shifts/ShiftCalendar.php` | Turn shifts into an iCalendar file (RFC 5545) |
 | `Shifts/ShiftService.php` | Generating the roster, and an assistant's day on it |
 | `Telemetry/AgentService.php` | Registering agents and the tokens they prove themselves with (ADR-0017) |
-| `Telemetry/NetworkMonitorService.php` | What the Network monitor shows: every access point's state right now, and |
 | `Telemetry/ReadingData.php` | One measurement, on its way from an agent into the database |
 | `Telemetry/ReadingIngest.php` | One batch of readings from a probe agent (ADR-0017, roadmap task 1.3) |
 | `Telemetry/SimulatedReadings.php` | Telemetry invented, but invented from a model rather than rand() |
@@ -774,6 +774,7 @@ this the fourth.
 | `Feature/Incidents/IncidentTest.php` | Phase 2: incidents between readings and tickets (ADR-0014) |
 | `Feature/ListScreensDoNotNPlusOneTest.php` | The list screens must not issue one more query per row |
 | `Feature/MailTestCommandTest.php` | `php artisan atlas:mail-test`, the only check that says anything real about |
+| `Feature/Monitor/NetworkMonitorReadModelTest.php` | What the rebuilt Network monitor reads: every kind of device by place, |
 | `Feature/Operations/BackupHealthTest.php` | atlas:check-backups: a backup that is late, failed, unproven or not copied |
 | `Feature/Operations/QueueHealthTest.php` | atlas:check-queue: a stopped or failing worker reaches the administrators |
 | `Feature/ProfileTest.php` | _no summary in the file_ |

@@ -13,8 +13,8 @@ use App\Models\NetworkDevice;
 use App\Models\TelemetryReading;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\Monitor\NetworkMonitorService;
 use App\Services\Telemetry\AgentService;
-use App\Services\Telemetry\NetworkMonitorService;
 use App\Services\Telemetry\TelemetryCollector;
 use App\Services\Telemetry\TelemetryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -297,7 +297,7 @@ class AgentHeartbeatTest extends TestCase
         $ap = $this->watchedBy($this->agent, NetworkStatus::Unknown);
 
         $snapshot = app(NetworkMonitorService::class)->snapshot();
-        $row = collect($snapshot['access_points'])->firstWhere('id', $ap->id);
+        $row = collect($snapshot['devices'])->firstWhere('id', $ap->id);
 
         $this->assertSame(1, $snapshot['counts']['stale']);
         // So the page says an agent went quiet, not that the scheduler stopped.
