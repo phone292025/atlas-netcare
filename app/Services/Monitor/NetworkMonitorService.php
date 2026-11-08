@@ -145,7 +145,7 @@ class NetworkMonitorService
         $ids = collect($path)->pluck('id')->push($device->id);
         $latest = $this->telemetry->latestReadings($ids);
         $since = $this->since($ids);
-        $incident = $this->incidentByDevice($this->openIncidents())->get($device->id);
+        $incident = $this->incidentByDevice($this->openIncidents($device))->get($device->id);
         $reading = $latest->get($device->id);
         $row = $this->row($device, $reading, $since->get($device->id), $incident);
 
@@ -158,8 +158,8 @@ class NetworkMonitorService
         return [
             ...$row,
             'model' => $device instanceof AccessPoint ? $device->model : null,
-            'ip_address' => $device->ip_address,
-            'agent' => $device->agent?->name,
+            'ip_address' => $device instanceof AccessPoint || $viewer?->isAdmin() ? $device->ip_address : null,
+            'agent' => $viewer?->isAdmin() ? $device->agent?->name : null,
             'path' => $upstream,
             'verdict' => $this->verdict($device, $row, $upstream, $reading),
             'incident' => $incident ? $this->incident($incident->loadMissing('events'), $viewer, withEvents: true) : null,
@@ -180,7 +180,7 @@ class NetworkMonitorService
 
         // How long it has been in the state shown. Unknown counts from the
         // last thing Atlas heard; the others from the change into them.
-        $from = $state === 'stale' ? $device->last_seen_at : $changedAt;
+        $from = $state === 'stale' ? $device->last_seen_at : ($changedAt ?? ($incident?->network_device_id === $device->id ? $incident->opened_at : null));
 
         return [
             'id' => $device->id,
@@ -259,17 +259,21 @@ class NetworkMonitorService
 
     /**
      * Unresolved incidents, worst first: nobody has taken it, then what it
-     * is (down before slow), then the oldest.
+     * is (down before slow), then the oldest. With a device, only those it
+     * is in, its own or one it joined behind a failed parent.
      *
      * @return Collection<int, Incident>
      */
-    private function openIncidents(): Collection
+    private function openIncidents(?NetworkDevice $covering = null): Collection
     {
         $rank = [IncidentRule::Offline->value => 0, IncidentRule::Silent->value => 1, IncidentRule::Flapping->value => 2, IncidentRule::Degraded->value => 3];
 
         return Incident::query()
             ->unresolved()
             ->whereNull('grouped_into_id')
+            ->when($covering, fn ($query) => $query->where(fn ($q) => $q
+                ->where('network_device_id', $covering->id)
+                ->orWhereHas('devices', fn ($d) => $d->whereKey($covering->id)->whereNull('incident_devices.recovered_at'))))
             ->with(['device.location', 'agent', 'ticket', 'acknowledgedBy', 'alerts.user', 'devices'])
             ->get()
             ->sortBy([
@@ -319,7 +323,7 @@ class NetworkMonitorService
             'down' => in_array($incident->rule, [IncidentRule::Offline, IncidentRule::Silent], true),
             'status' => $incident->status->value,
             'status_label' => $incident->status->label(),
-            'device_id' => $incident->network_device_id,
+            'device_id' => $incident->device && ! $incident->device->trashed() ? $incident->network_device_id : null,
             'subject' => $incident->subjectLabel(),
             'place' => $incident->device?->location?->name,
             'behind' => $behind,

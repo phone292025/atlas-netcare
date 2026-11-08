@@ -56,6 +56,11 @@ test('an engineer opens the Network Monitor', async ({ signedIn }) => {
     await expect(panel).toBeVisible();
     await expect(panel.getByText('Where the fault is')).toBeVisible();
     await expect(panel.getByRole('button', { name: 'Close' })).toBeFocused();
+    // It is modal: Shift+Tab from its first control goes round to its last,
+    // not out to the page behind.
+    await engineer.keyboard.press('Shift+Tab');
+    expect(await panel.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    await panel.getByRole('button', { name: 'Close' }).focus();
     await expect.poll(() => plotted(panel.getByRole('img', { name: new RegExp(` for ${code}$`) }))).not.toEqual([]);
     expect(new URL(engineer.url()).searchParams.get('device')).toBe(code);
 
