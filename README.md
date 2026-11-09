@@ -297,7 +297,7 @@ The agent itself is in `agent/`, written in Go: one file per platform, for Windo
 
 ### Keeping the monitor live
 
-The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs seven jobs on a timer:
+The stack's `scheduler` service runs the scheduler for you, and restarts it if it stops. When running Atlas without Docker, start it in its own terminal with `php artisan schedule:work`. It runs eight jobs on a timer:
 
 | Job | When | What it does |
 |---|---|---|
@@ -306,6 +306,7 @@ The stack's `scheduler` service runs the scheduler for you, and restarts it if i
 | `atlas:dispatch-alarms` | every minute | Sends the alarms that have come due |
 | `atlas:mark-missed-shifts` | every 5 minutes | Marks a shift missed when it has ended and nobody checked in |
 | `atlas:check-queue` | every 5 minutes | Alerts the administrators, in the app, if the worker has stopped or jobs keep failing: incidents' alerts depend on it |
+| `atlas:check-backups` | hourly | Alerts the administrators if the newest good backup is overdue, the last one failed, or its copy is behind or on the same filesystem |
 | `atlas:recalculate-risk` | daily at 02:00 | Rescores every asset and keeps the old scores |
 | `atlas:generate-shifts` | Sundays at 18:00 | Builds next week's roster |
 
@@ -315,15 +316,15 @@ The times are campus time.
 
 A fault becomes an **incident**: a device that stops answering, degrades or keeps changing status, or an agent that stops reporting. One per fault: when a switch and the access points behind it fail together, it is one incident on the switch, with one ticket. An incident resolves itself when the device recovers. A device that fails again while its ticket is still open reuses that ticket.
 
-Who is told comes from the roster. First the assistants checked in to a shift, those in the device's room before anyone else; if nobody acknowledges within 10 minutes, the engineers; then the administrators. Acknowledging, on the incident's page under **Incidents**, stops it. A silent agent goes straight to engineers and administrators.
+Who is told comes from the roster. First the assistants checked in to a shift, those in the device's room before anyone else; if nobody acknowledges within 10 minutes, the engineers; then the administrators. Acknowledging stops it: **Take it** on the Network Monitor, or Acknowledge on the incident's page under **Incidents**. A silent agent goes straight to engineers and administrators.
 
-Alerts arrive in the app, by email when mail is set up, and on Telegram when `.env` has `ATLAS_TELEGRAM_BOT_TOKEN` and the person has put a Telegram chat id on their profile. Each alert reaches each person on each channel once, however often it is retried.
+Alerts arrive in the app, by email when mail is set up, and on Telegram when `.env` has `ATLAS_TELEGRAM_BOT_TOKEN` and the person has put a Telegram chat id on their profile. An alert in the app arrives exactly once. Email and Telegram arrive at least once: if a worker dies just after the provider took the message, the alert goes again, marked as a repeat, so it doesn't read as a second fault.
 
 The `worker` service sends them: the stack runs it, and without Docker it is `php artisan queue:work` in a terminal of its own.
 
 Hourly summaries, compression and retention aren't on this list. The database runs them itself, as TimescaleDB jobs, set from `config/atlas.php` every time the app starts (`php artisan atlas:telemetry-storage`). Raw readings are compressed after 7 days and dropped after 90, and hourly summaries are kept for 12 months.
 
-Without the scheduler nothing looks broken at first. Five minutes after the last reading, every access point on the Network Monitor reads Unknown, and no new alarms reach the bell.
+Without the scheduler nothing looks broken at first. Five minutes after the last reading, every device on the Network Monitor reads Unknown, and no new alarms reach the bell.
 
 Turning it back on repairs the charts by itself. Its first round sees the silence and fills it with simulated readings, up to the last 24 hours, so the Network Monitor comes back to a full day instead of a single point.
 
