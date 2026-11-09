@@ -60,13 +60,20 @@ A remark box appears only when you tap Issue, so a clean answer is one tap and a
 
 **The dashboard.** Four tiles across the top: tickets assigned to you, tickets past their target, tickets waiting for somebody, and what you resolved this week. Beside the ticket lists, an access point panel draws every access point as a square under its room, coloured by status, and lists the ones that need attention.
 
-**The Network monitor** is the full picture, the same page for all three roles. A tile per status, which also filters the list, then every access point with its latest reading, latency, packet loss, and when it was last heard from. A line above the tiles says where the numbers come from: the simulated feed, live probe agents, or both.
+**The Network monitor** is the full picture, the same page for all three roles. A line under its title says where the numbers come from (the simulated feed, live probe agents, or both) and how many agents are reporting. Then, in order:
+
+- **Campus activity:** connected clients, throughput and latency over the last day, one chart each.
+- **Needs attention:** the open incidents, the ones nobody has taken first, each with its room, how long, its ticket and who has it, and **Take it**. Five at a time, under a line that sums them up, so an outage across the campus is one card and not a wall of rows.
+- **The estate now:** one bar by status, counts that filter the devices below, how many routers, switches and access points answer, and each agent.
+- **Where:** every device by room, what the room's access points hang from first and rooms with a fault first; or the same devices as a list, worst first.
+
+Clicking a device opens a panel beside the page. It walks the path from the core router to the device and says where the fault is: "Its switch SW-L6-IT-01 answers, so the fault is at AP-06 itself or its cable." It shows the incident's timeline and its actions, and the link to the page opens it again, so it can be sent to someone.
 
 The monitor and the dashboard panel refresh themselves every twenty seconds without reloading. It shows two times, because they answer different questions: when the page last fetched, and when the newest reading was actually taken. If the collector has stopped, the second one is old and a banner says so, because the statuses on the page are then the last known state rather than a measurement. If a refresh fails it keeps the last good numbers and says so rather than blanking. A dashboard that might be stale and does not admit it is worse than no dashboard, and until 2026-09-04 this one said "updated 1s ago" over readings two days old.
 
 It stops polling when you switch tabs.
 
-**Drilling in.** Clicking an access point opens 24 hours of history as a chart, peak clients and mean latency on two axes. The two lines track each other visibly, which is the point.
+**Drilling in.** An access point's full history, from its panel or the access point list, opens 24 hours as a chart, peak clients and mean latency on two axes. The two lines track each other visibly, which is the point.
 
 That chart reads the hourly summaries, not the raw readings. Twenty-four hours of raw data for one access point is 1,440 rows. The same period summarised is 24. The summaries are a TimescaleDB continuous aggregate the database derives from the readings, so no code writes them. NFR-02 asks for this under two seconds and scanning the raw table would be slow enough to notice during a demo.
 
